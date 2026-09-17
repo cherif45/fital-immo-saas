@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F1B2D" />
+      <stop offset="100%" stop-color="#070C15" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8D5B0" />
+      <stop offset="50%" stop-color="#C9A96E" />
+      <stop offset="100%" stop-color="#A07840" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C9A96E" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#E8D5B0" stop-opacity="0.8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-opacity="0.35" />
+
+  <!-- Real Estate Isometric Architectural Symbol + FI Monogram -->
+  <g transform="translate(64, 56)">
+    <!-- Roof Gable Line -->
+    <path d="M 192 48 L 336 156 L 312 156 L 192 66 L 72 156 L 48 156 Z" fill="url(#goldGrad)" />
+    
+    <!-- Letter F Structure -->
+    <path d="M 112 130 L 160 130 L 160 330 L 112 330 Z" fill="url(#goldGrad)" />
+    <!-- Top arm of F -->
+    <path d="M 160 130 L 250 130 L 250 174 L 160 174 Z" fill="url(#goldGrad)" />
+    <!-- Middle arm of F -->
+    <path d="M 160 215 L 230 215 L 230 255 L 160 255 Z" fill="url(#goldGrad)" />
+
+    <!-- Letter I Structure -->
+    <path d="M 272 150 L 316 150 L 316 330 L 272 330 Z" fill="url(#goldGrad)" />
+    <!-- Dot / Apex of I (Roof Diamond) -->
+    <polygon points="294,95 316,118 294,141 272,118" fill="url(#goldGrad)" />
+
+    <!-- Foundation Architectural Grid Lines -->
+    <rect x="72" y="348" width="240" height="8" rx="4" fill="url(#goldGrad)" fill-opacity="0.9" />
+    <rect x="100" y="364" width="184" height="4" rx="2" fill="url(#goldGrad)" fill-opacity="0.5" />
+  </g>
+</svg>

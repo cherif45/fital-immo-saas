@@ -1,0 +1,17 @@
+{
+  "name": "FITAL-IMMO — Gestion Locative & Loyers",
+  "short_name": "FITAL-IMMO",
+  "description": "Plateforme SaaS professionnelle de gestion locative, quittances, caisse, baux et recouvrement.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1B2D",
+  "theme_color": "#0F1B2D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

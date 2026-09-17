@@ -1,0 +1,783 @@
+import React, { useState } from 'react';
+import {
+  Building2,
+  Plus,
+  Search,
+  Filter,
+  DoorOpen,
+  MapPin,
+  User,
+  Coins,
+  CheckCircle2,
+  AlertCircle,
+  Wrench,
+  FileText,
+  Percent,
+  Edit,
+  Trash2,
+  Eye,
+  Download,
+  ShieldAlert,
+  ShieldCheck,
+  Layers,
+  Sparkles,
+  X
+} from 'lucide-react';
+import { Property, Owner, PropertyType, PropertyStatus, UserAccount } from '../types';
+import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
+
+interface PropertiesViewProps {
+  properties: Property[];
+  owners: Owner[];
+  currentUser?: UserAccount;
+  onAddProperty: (property: Property) => void;
+  onUpdateProperty?: (property: Property) => void;
+  onDeleteProperty?: (propertyId: string) => void;
+  isNewPropertyModalOpen: boolean;
+  setIsNewPropertyModalOpen: (open: boolean) => void;
+}
+
+export const PropertiesView: React.FC<PropertiesViewProps> = ({
+  properties,
+  owners,
+  currentUser,
+  onAddProperty,
+  onUpdateProperty,
+  onDeleteProperty,
+  isNewPropertyModalOpen,
+  setIsNewPropertyModalOpen,
+}) => {
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Selected for Details / Edit
+  const [selectedPropertyDetails, setSelectedPropertyDetails] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+
+  // Form State for Adding a Property
+  const [nom, setNom] = useState('');
+  const [type, setType] = useState<PropertyType>('Appartement');
+  const [adresse, setAdresse] = useState('');
+  const [quartier, setQuartier] = useState('Almadies');
+  const [loyerBase, setLoyerBase] = useState<number>(350000);
+  const [charges, setCharges] = useState<number>(25000);
+  const [proprietaireId, setProprietaireId] = useState<string>(owners[0]?.id || '');
+  const [pieces, setPieces] = useState<number>(3);
+  const [superficie, setSuperficie] = useState<number>(110);
+  const [tauxGerance, setTauxGerance] = useState<number>(10);
+  const [description, setDescription] = useState('');
+
+  // Rôle & Permissions Check: LES LOCATAIRES N'ONT PAS LE DROIT D'AJOUTER DES BIENS
+  const isTenant = currentUser?.role === 'LOCATAIRE';
+  const canManageProperties = currentUser
+    ? ['SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE'].includes(currentUser.role)
+    : true;
+
+  // Filter properties based on role
+  let displayableProperties = properties;
+  if (isTenant && currentUser?.locataireId) {
+    displayableProperties = properties.filter(
+      (p) => p.id === currentUser.locataireId || p.locataireActuelNom?.toLowerCase().includes(currentUser.nom.toLowerCase())
+    );
+    if (displayableProperties.length === 0) {
+      displayableProperties = properties.slice(0, 1); // Display the leased property
+    }
+  } else if (currentUser?.role === 'PROPRIETAIRE' && currentUser?.proprietaireId) {
+    displayableProperties = properties.filter(
+      (p) => p.proprietaireId === currentUser.proprietaireId
+    );
+  }
+
+  const filteredProperties = displayableProperties.filter((p) => {
+    if (typeFilter !== 'all' && p.type !== typeFilter) return false;
+    if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        p.nom.toLowerCase().includes(q) ||
+        p.adresse.toLowerCase().includes(q) ||
+        p.quartier.toLowerCase().includes(q) ||
+        p.locataireActuelNom?.toLowerCase().includes(q) ||
+        p.proprietaireNom.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const handleSubmitProperty = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isTenant) {
+      alert("Accès refusé : En tant que locataire, vous n'avez pas l'autorisation d'ajouter ou d'enregistrer des biens.");
+      return;
+    }
+
+    const owner = owners.find((o) => o.id === proprietaireId) || owners[0];
+
+    const newProp: Property = {
+      id: crypto.randomUUID(),
+      ref: `LOT-${Math.floor(100 + Math.random() * 900)}`,
+      nom,
+      type,
+      adresse,
+      quartier,
+      ville: 'Dakar',
+      superficie: Number(superficie) || 100,
+      nombrePieces: Number(pieces) || 3,
+      pieces: Number(pieces) || 3,
+      loyerBase: Number(loyerBase),
+      charges: Number(charges),
+      tvaApplicable: false,
+      avatar: type === 'Villa' ? '🏠' : type === 'Commerce' ? '🏪' : '🏢',
+      dateCreation: new Date().toISOString().split('T')[0],
+      loyerTotal: Number(loyerBase) + Number(charges),
+      statut: 'Vacant',
+      proprietaireId: owner?.id || 'owner-1',
+      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Bailleur Principal',
+      tauxCommission: Number(tauxGerance),
+      description: description || `${type} de haut standing situé à ${quartier}, Dakar.`,
+      equipements: ['Climatisation split', 'Compteur Woyofal individuel', 'Gardiennage 24/7', 'Groupe électrogène'],
+    };
+
+    onAddProperty(newProp);
+    setIsNewPropertyModalOpen(false);
+    setNom('');
+    setAdresse('');
+    setDescription('');
+  };
+
+  const handleUpdateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty || !onUpdateProperty) return;
+    onUpdateProperty(editingProperty);
+    setEditingProperty(null);
+  };
+
+  const handleDelete = (propId: string, propNom: string) => {
+    if (!canManageProperties) {
+      alert("Action non autorisée.");
+      return;
+    }
+    if (window.confirm(`Confirmez-vous l'archivage/suppression du bien "${propNom}" ?`)) {
+      if (onDeleteProperty) {
+        onDeleteProperty(propId);
+      }
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Réf', 'Nom', 'Type', 'Quartier', 'Adresse', 'Statut', 'Loyer Base (FCFA)', 'Charges', 'Loyer Total', 'Propriétaire', 'Locataire Actuel'];
+    const rows = filteredProperties.map((p) => [
+      p.ref,
+      p.nom,
+      p.type,
+      p.quartier,
+      p.adresse,
+      p.statut,
+      p.loyerBase,
+      p.charges,
+      p.loyerTotal,
+      p.proprietaireNom,
+      p.locataireActuelNom || 'Vacant',
+    ]);
+    exportToCSV('Parc_Immobilier_FITAL_IMMO', rows, headers);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Banner & Controls */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-[#C9A96E]/15 text-[#C9A96E] flex items-center justify-center font-bold">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-base font-bold text-white flex items-center gap-2">
+              {isTenant ? 'Mon Logement / Résidence en Location' : 'Catalogue & Gestion du Parc Immobilier'}
+              {isTenant && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  Vue Locataire Sécurisée
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-[#A8B4C4] mt-0.5">
+              {filteredProperties.length} bien(s) répertorié(s) · {filteredProperties.filter((p) => p.statut === 'Occupé').length} occupé(s) · {filteredProperties.filter((p) => p.statut === 'Vacant').length} disponible(s)
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="px-3.5 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Exporter CSV</span>
+          </button>
+
+          {/* SÉCURITÉ : Bouton masqué pour les locataires */}
+          {!isTenant && canManageProperties && (
+            <button
+              onClick={() => setIsNewPropertyModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Ajouter un Bien / Lot</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Info Banner pour Locataire */}
+      {isTenant && (
+        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-200 text-xs flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-purple-400 flex-shrink-0" />
+          <span>
+            Vous consultez la fiche technique de votre logement sous bail. La création, modification et suppression de biens sont strictement réservées aux gestionnaires et administrateurs.
+          </span>
+        </div>
+      )}
+
+      {/* Filter and Search Bar */}
+      <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                statusFilter === 'all' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
+              }`}
+            >
+              Tous ({displayableProperties.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Occupé')}
+              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                statusFilter === 'Occupé' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-emerald-400 hover:text-white'
+              }`}
+            >
+              Occupés ({displayableProperties.filter((p) => p.statut === 'Occupé').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Vacant')}
+              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                statusFilter === 'Vacant' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-sky-400 hover:text-white'
+              }`}
+            >
+              Vacants ({displayableProperties.filter((p) => p.statut === 'Vacant').length})
+            </button>
+          </div>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+          >
+            <option value="all">Tous les Types de biens</option>
+            <option value="Appartement">Appartements</option>
+            <option value="Villa">Villas</option>
+            <option value="Magasin">Magasins / Commerces</option>
+            <option value="Bureau">Bureaux / Locaux pro</option>
+            <option value="Immeuble">Immeubles entiers</option>
+          </select>
+        </div>
+
+        <div className="relative w-full md:w-64">
+          <Search className="w-3.5 h-3.5 text-[#6B7C94] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Rechercher bien, quartier, bailleur..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+          />
+        </div>
+      </div>
+
+      {/* Properties Grid */}
+      {filteredProperties.length === 0 ? (
+        <div className="py-16 text-center text-[#6B7C94] bg-[#162133] rounded-2xl border border-[#C9A96E]/20 p-8">
+          <Building2 className="w-10 h-10 mx-auto text-[#6B7C94]/50 mb-3" />
+          <h3 className="text-sm font-bold text-white mb-1">Aucun bien immobilier répertorié</h3>
+          <p className="text-xs text-[#A8B4C4] max-w-sm mx-auto mb-4">
+            Enregistrez un bien, un appartement ou une villa avec son loyer de référence pour commencer la gestion locative.
+          </p>
+          {!isTenant && canManageProperties && (
+            <button
+              onClick={() => setIsNewPropertyModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs"
+            >
+              + Ajouter un premier bien
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredProperties.map((p) => {
+          const isOccupied = p.statut === 'Occupé';
+          return (
+            <div
+              key={p.id}
+              className="p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 hover:border-[#C9A96E]/50 transition-all shadow-xl flex flex-col justify-between group"
+            >
+              <div>
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1E2E45] text-[#C9A96E] border border-[#C9A96E]/20">
+                      {p.ref} · {p.type}
+                    </span>
+                    <h3 className="text-sm font-bold text-white mt-1.5 group-hover:text-[#C9A96E] transition-colors">
+                      {p.nom}
+                    </h3>
+                  </div>
+                  <span
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-semibold border ${
+                      isOccupied
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : p.statut === 'Vacant'
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}
+                  >
+                    {p.statut}
+                  </span>
+                </div>
+
+                {/* Location & Specs */}
+                <div className="space-y-1.5 text-xs text-[#A8B4C4] my-3">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <MapPin className="w-3.5 h-3.5 text-[#6B7C94] flex-shrink-0" />
+                    <span>{p.adresse}, {p.quartier}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-[#6B7C94]">
+                    <span>{p.pieces || p.nombrePieces} pièces</span>
+                    <span>•</span>
+                    <span>{p.superficie} m²</span>
+                    <span>•</span>
+                    <span>Gérance {p.tauxCommission}%</span>
+                  </div>
+                </div>
+
+                {/* Tenant / Owner Info */}
+                <div className="p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/10 space-y-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#6B7C94]">Propriétaire :</span>
+                    <span className="font-semibold text-white truncate max-w-[140px]">
+                      {p.proprietaireNom}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#6B7C94]">Locataire actif :</span>
+                    <span className="font-semibold text-[#E8D5B0] truncate max-w-[140px]">
+                      {p.locataireActuelNom || <span className="text-sky-400 font-normal">Aucun (Vacant)</span>}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price & Actions */}
+              <div className="mt-4 pt-3 border-t border-[#C9A96E]/15 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-[#6B7C94] uppercase">Loyer Mensuel Total</div>
+                  <div className="text-sm font-bold text-[#C9A96E] font-mono">
+                    {formatCurrency(p.loyerTotal || (p.loyerBase + p.charges))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setSelectedPropertyDetails(p)}
+                    className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-slate-300 hover:text-white transition-colors"
+                    title="Voir la fiche détaillée"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+
+                  {!isTenant && canManageProperties && (
+                    <>
+                      <button
+                        onClick={() => setEditingProperty(p)}
+                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-amber-300 hover:text-amber-200 transition-colors"
+                        title="Modifier le bien"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id, p.nom)}
+                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors"
+                        title="Archiver / Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        </div>
+      )}
+
+      {/* MODAL : FICHE DÉTAILLÉE DU BIEN */}
+      {selectedPropertyDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-[#C9A96E]/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#C9A96E]/15 text-[#C9A96E] flex items-center justify-center font-bold">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">{selectedPropertyDetails.nom}</h2>
+                  <p className="text-xs text-[#A8B4C4]">Réf : {selectedPropertyDetails.ref} · {selectedPropertyDetails.type}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedPropertyDetails(null)} className="text-slate-400 hover:text-white p-2">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Adresse</span>
+                <strong className="text-white">{selectedPropertyDetails.adresse}, {selectedPropertyDetails.quartier}</strong>
+              </div>
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Superficie & Pièces</span>
+                <strong className="text-white">{selectedPropertyDetails.superficie} m² · {selectedPropertyDetails.pieces || selectedPropertyDetails.nombrePieces} pièces</strong>
+              </div>
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Statut Actuel</span>
+                <strong className="text-emerald-400">{selectedPropertyDetails.statut}</strong>
+              </div>
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Loyer de Base</span>
+                <strong className="text-[#C9A96E]">{formatCurrency(selectedPropertyDetails.loyerBase)}</strong>
+              </div>
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Charges Mensuelles</span>
+                <strong className="text-slate-200">{formatCurrency(selectedPropertyDetails.charges)}</strong>
+              </div>
+              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Loyer Total</span>
+                <strong className="text-emerald-300 font-bold">{formatCurrency(selectedPropertyDetails.loyerTotal || selectedPropertyDetails.loyerBase + selectedPropertyDetails.charges)}</strong>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#1E2E45]/40 rounded-xl border border-[#C9A96E]/10 space-y-2 text-xs">
+              <div className="font-bold text-[#E8D5B0]">Description & Prestations</div>
+              <p className="text-slate-300 leading-relaxed">{selectedPropertyDetails.description || 'Bien de haut standing administré par le cabinet FITAL-IMMO.'}</p>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {selectedPropertyDetails.equipements?.map((eq, idx) => (
+                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-[#0F1B2D] text-slate-300 text-[11px] border border-white/5">
+                    ✓ {eq}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedPropertyDetails(null)}
+                className="px-5 py-2 bg-[#1E2E45] hover:bg-[#2A3F5C] text-white rounded-xl text-xs font-semibold"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL : MODIFIER UN BIEN */}
+      {editingProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#C9A96E]/20 pb-4">
+              <h3 className="font-bold text-white text-base">Modifier les Données du Bien</h3>
+              <button onClick={() => setEditingProperty(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <form onSubmit={handleUpdateSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Désignation du Bien</label>
+                <input
+                  type="text"
+                  value={editingProperty.nom}
+                  onChange={(e) => setEditingProperty({ ...editingProperty, nom: e.target.value })}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Statut d'occupation</label>
+                  <select
+                    value={editingProperty.statut}
+                    onChange={(e) => setEditingProperty({ ...editingProperty, statut: e.target.value as PropertyStatus })}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  >
+                    <option value="Occupé">Occupé</option>
+                    <option value="Vacant">Vacant</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="En litige">En litige</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Quartier</label>
+                  <input
+                    type="text"
+                    value={editingProperty.quartier}
+                    onChange={(e) => setEditingProperty({ ...editingProperty, quartier: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Loyer Base (FCFA)</label>
+                  <input
+                    type="number"
+                    value={editingProperty.loyerBase}
+                    onChange={(e) => {
+                      const base = Number(e.target.value);
+                      setEditingProperty({
+                        ...editingProperty,
+                        loyerBase: base,
+                        loyerTotal: base + (editingProperty.charges || 0),
+                      });
+                    }}
+                    required
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Charges (FCFA)</label>
+                  <input
+                    type="number"
+                    value={editingProperty.charges}
+                    onChange={(e) => {
+                      const chg = Number(e.target.value);
+                      setEditingProperty({
+                        ...editingProperty,
+                        charges: chg,
+                        loyerTotal: editingProperty.loyerBase + chg,
+                      });
+                    }}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Gérance (%)</label>
+                  <input
+                    type="number"
+                    value={editingProperty.tauxCommission}
+                    onChange={(e) => setEditingProperty({ ...editingProperty, tauxCommission: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingProperty(null)}
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300 hover:bg-[#2A3F5C]"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold"
+                >
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Ajouter un Nouveau Bien (ADMIN / GESTIONNAIRE SEULEMENT) */}
+      {!isTenant && isNewPropertyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Building2 className="w-5 h-5 text-[#C9A96E]" />
+                <span>Nouveau Bien Immobilier dans le Parc</span>
+              </div>
+              <button
+                onClick={() => setIsNewPropertyModalOpen(false)}
+                className="text-[#A8B4C4] hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitProperty} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Nom / Désignation du Bien
+                </label>
+                <input
+                  type="text"
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                  placeholder="Ex: Résidence Teranga - Apt 302"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Type de Bien
+                  </label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as PropertyType)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                  >
+                    <option value="Appartement">Appartement</option>
+                    <option value="Villa">Villa</option>
+                    <option value="Magasin">Magasin / Commerce</option>
+                    <option value="Bureau">Bureau / Local commercial</option>
+                    <option value="Immeuble">Immeuble entier</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Propriétaire Mandant
+                  </label>
+                  <select
+                    value={proprietaireId}
+                    onChange={(e) => setProprietaireId(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                  >
+                    {owners.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.prenom} {o.nom} ({o.mandatGerance})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Adresse complète
+                  </label>
+                  <input
+                    type="text"
+                    value={adresse}
+                    onChange={(e) => setAdresse(e.target.value)}
+                    required
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                    placeholder="Ex: Rue 6, Porte 12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Quartier / Zone
+                  </label>
+                  <input
+                    type="text"
+                    value={quartier}
+                    onChange={(e) => setQuartier(e.target.value)}
+                    required
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                    placeholder="Ex: Almadies, Mermoz, Plateau..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">
+                    Loyer Base (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    value={loyerBase}
+                    onChange={(e) => setLoyerBase(Number(e.target.value))}
+                    required
+                    min={1000}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Charges (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    value={charges}
+                    onChange={(e) => setCharges(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Taux Gérance (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={tauxGerance}
+                    onChange={(e) => setTauxGerance(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Nombre de pièces
+                  </label>
+                  <input
+                    type="number"
+                    value={pieces}
+                    onChange={(e) => setPieces(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Superficie (m²)
+                  </label>
+                  <input
+                    type="number"
+                    value={superficie}
+                    onChange={(e) => setSuperficie(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsNewPropertyModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C]"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Enregistrer le Bien</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
