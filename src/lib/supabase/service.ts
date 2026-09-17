@@ -398,19 +398,25 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
   return {
     id: r.id,
     ref: r.ref || `REV-${r.id.slice(0, 6)}`,
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || 'Propriétaire',
+    proprietaireId: r.proprietaire_id || '',
+    proprietaireNom: r.proprietaire_nom || 'Propriétaire',
     periode: r.periode || 'Ce mois',
-    loyersBruts: Number(r.loyers_bruts ?? r.loyersBruts ?? 0),
-    commissionAgence: Number(r.commission_agence ?? r.commissionAgence ?? 0),
-    depensesDeduites: Number(r.depenses_deduites ?? r.depensesDeduites ?? 0),
-    retenueTVA: Number(r.retenue_tva ?? r.retenueTVA ?? 0),
-    montantNetPaye: Number(r.montant_net_paye ?? r.montantNetPaye ?? 0),
-    montantNet: Number(r.montant_net_paye ?? r.montantNet ?? 0),
+    loyersBruts: Number(r.loyers_bruts_recouvres || 0),
+    montantBrut: Number(r.loyers_bruts_recouvres || 0),
+    tauxCommission: Number(r.taux_commission || 10),
+    commissionAgence: Number(r.montant_commission || 0),
+    tvaCommission: Number(r.tva_commission || 0),
+    retenueTVA: Number(r.tva_commission || 0),
+    depensesDeduites: Number(r.charges_deduites || 0),
+    chargesDeduites: Number(r.charges_deduites || 0),
+    montantNetPaye: Number(r.net_a_reverser || 0),
+    montantNet: Number(r.net_a_reverser || 0),
     statut: r.statut || 'Effectué',
-    modeReglement: r.mode_reglement || r.modeReglement || 'Virement',
-    dateReglement: r.date_reglement || r.dateReglement || new Date().toISOString().split('T')[0],
-    referenceVirement: r.reference_virement || r.referenceVirement || '',
+    modeReglement: r.mode_reglement || 'Virement',
+    modeReversement: r.mode_reglement || 'Virement',
+    dateReglement: r.date_versement || '',
+    dateReversement: r.date_versement || '',
+    referenceVirement: '',
   };
 }
 
@@ -1197,22 +1203,22 @@ export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, age
   try {
     const record = {
       agency_id: agencyId,
+      ref: disb.ref || `REV-${Date.now()}`,
       proprietaire_id: disb.proprietaireId,
-      proprietaire_nom: disb.proprietaireNom,
-      periode: disb.periode,
-      loyers_bruts: disb.loyersBruts,
-      commission_agence: disb.commissionAgence,
-      depenses_deduites: disb.depensesDeduites || 0,
-      retenue_tva: disb.retenueTVA || 0,
-      montant_net_paye: disb.montantNetPaye,
-      statut: disb.statut,
-      mode_reglement: disb.modeReglement,
-      date_reglement: disb.dateReglement,
-      reference_virement: disb.referenceVirement || null,
+      periode: disb.periode || 'Ce mois',
+      loyers_bruts_recouvres: disb.loyersBruts || disb.montantBrut || 0,
+      taux_commission: disb.tauxCommission || 10,
+      montant_commission: disb.commissionAgence || 0,
+      tva_commission: disb.retenueTVA || disb.tvaCommission || 0,
+      charges_deduites: disb.depensesDeduites || 0,
+      net_a_reverser: disb.montantNetPaye || disb.montantNet || 0,
+      mode_reglement: disb.modeReglement || disb.modeReversement || 'Virement',
+      date_versement: disb.dateReglement || disb.dateReversement || new Date().toISOString().split('T')[0],
+      statut: disb.statut || 'Effectué',
     };
     const exists = disb.id ? await recordExists('disbursements', disb.id, agencyId) : false;
     if (exists) {
-      const { data, error } = await supabase.from('disbursements').update(record).eq('id', disb.id).select().single();
+      const { data, error } = await supabase.from('disbursements').update(record).eq('id', disb.id).eq('agency_id', agencyId).select().single();
       if (error) throw error;
       return { success: true, data: mapDisbursementFromDb(data) };
     } else {
@@ -1225,6 +1231,10 @@ export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, age
     return { success: false, error: err.message };
   }
 }
+
+// ============================================================
+// CRUD : FACTURES
+// ============================================================
 
 // ============================================================
 // CRUD : FACTURES
