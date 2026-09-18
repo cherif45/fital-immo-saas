@@ -206,7 +206,7 @@ export function AdminUsersView({
     }
 
     const newUser: UserAccount = {
-      id: `user-${Date.now()}`,
+      id: crypto.randomUUID(),
       agencyId: currentUser.agencyId,
       nom: formData.nom.toUpperCase(),
       prenom: formData.prenom,
@@ -470,12 +470,7 @@ export function AdminUsersView({
                         </div>
                       )}
 
-                      {user.password && (
-                        <div className="p-2 bg-white/5 border border-white/10 rounded-lg text-[11px] flex items-center justify-between">
-                          <span className="text-slate-400">Mot de passe initial :</span>
-                          <span className="font-mono text-[#E8D5B0] font-semibold">{user.password}</span>
-                        </div>
-                      )}
+                     
 
                       <div className="text-[11px] text-slate-400 flex justify-between pt-1">
                         <span>Dernière connexion :</span>

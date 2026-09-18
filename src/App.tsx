@@ -135,6 +135,7 @@ export default function App() {
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Core Data
