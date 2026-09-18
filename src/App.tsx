@@ -7,6 +7,7 @@ import {
   Coins,
   Menu as MenuIcon,
 } from 'lucide-react';
+import { ResetPasswordView } from './components/ResetPasswordView';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { DashboardView } from './components/DashboardView';
@@ -137,6 +138,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
   // Core Data
   const [properties, setProperties] = useState<Property[]>(() => loadLocalCollection('properties', initialProperties));
@@ -192,6 +194,14 @@ export default function App() {
     dueAmount?: number;
     daysLate?: number;
   } | null>(null);
+
+  // Détecte si on arrive depuis un lien de reset password
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token') || hash.includes('type=recovery')) {
+      setIsResetPasswordMode(true);
+    }
+  }, []);
 
   // Global search shortcut
   useEffect(() => {
@@ -975,6 +985,17 @@ export default function App() {
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
+
+  if (isResetPasswordMode) {
+    return (
+      <ResetPasswordView
+        onSuccess={() => {
+          setIsResetPasswordMode(false);
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
 
   if (isAuthLoading) {
     return (
