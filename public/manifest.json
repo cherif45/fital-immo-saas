@@ -3,15 +3,40 @@
   "short_name": "FITAL-IMMO",
   "description": "Plateforme SaaS professionnelle de gestion locative, quittances, caisse, baux et recouvrement.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0F1B2D",
-  "theme_color": "#0F1B2D",
+  "orientation": "portrait",
+  "background_color": "#0A111D",
+  "theme_color": "#C9A96E",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/favicon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Encaisser un loyer",
+      "short_name": "Encaisser",
+      "url": "/?tab=payments",
+      "description": "Enregistrer un paiement"
+    },
+    {
+      "name": "Nouveau locataire",
+      "short_name": "Locataire",
+      "url": "/?tab=tenants",
+      "description": "Assistant nouveau locataire"
     }
   ]
 }
