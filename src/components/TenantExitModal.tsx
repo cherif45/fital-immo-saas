@@ -44,7 +44,7 @@ export function TenantExitModal({
 
   const handleConfirm = () => {
     const inspectionExit: Inspection = {
-      id: `insp-exit-${Date.now()}`,
+      id: crypto.randomUUID(),
       ref: `EDL-S-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       bienId: tenant.bienId,
       bienNom: tenant.bienNom,

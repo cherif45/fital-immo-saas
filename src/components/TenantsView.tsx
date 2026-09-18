@@ -22,8 +22,10 @@ import {
   PhoneCall,
   MessageSquare,
   Smartphone,
+  LogOut,
+  X,
 } from 'lucide-react';
-import { Tenant, Property, ActiveTab } from '../types';
+import { Tenant, Property, ActiveTab, Inspection } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
@@ -36,6 +38,7 @@ interface TenantsViewProps {
   onAddTenant: (tenant: Tenant) => void;
   onOpenMobileMoney?: (tenant: Tenant) => void;
   onAddPayment?: (payment: any) => void;
+  onInitiateExit?: (tenant: Tenant) => void;
 }
 
 export const TenantsView: React.FC<TenantsViewProps> = ({
@@ -46,12 +49,17 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   onAddTenant,
   onOpenMobileMoney,
   onAddPayment,
+  onInitiateExit,
 }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedTenantForDetails, setSelectedTenantForDetails] = useState<Tenant | null>(null);
   const [selectedTenantForPayment, setSelectedTenantForPayment] = useState<Tenant | null>(null);
   const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState<boolean>(false);
+  const [tenantForExit, setTenantForExit] = useState<Tenant | null>(null);
+  const [exitDate, setExitDate] = useState(new Date().toISOString().split('T')[0]);
+  const [exitObservations, setExitObservations] = useState('');
+  const [retenueCaution, setRetenueCaution] = useState(0);
 
   // Form State
   const [nom, setNom] = useState('');
@@ -86,10 +94,10 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     e.preventDefault();
     const prop = properties.find((p) => p.id === bienId);
     if (!prop || !prop.proprietaireId) {
-alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
-}
+      alert("Impossible : ce bien n'a pas de propriétaire associé.");
+      return;
+    }
     const newTenant: Tenant = {
-      // id: `loc-${Date.now()}`,
       id: crypto.randomUUID(),
       nom: nom.toUpperCase(),
       prenom,
@@ -101,7 +109,6 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
       revenuMensuel: Number(revenuMensuel),
       bienId,
       bienNom: prop?.nom || 'Bien non assigné',
-      // proprietaireId: prop?.proprietaireId || 'prop-1',
       proprietaireId: prop?.proprietaireId || null,
       dateEntree: new Date().toISOString().split('T')[0],
       loyerMensuel: Number(loyerMensuel),
@@ -115,6 +122,21 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
 
     onAddTenant(newTenant);
     setIsAddTenantModalOpen(false);
+  };
+
+  const handleConfirmExit = () => {
+    if (!tenantForExit) return;
+
+    if (onInitiateExit) {
+      // Utilise le modal global si disponible
+      onInitiateExit(tenantForExit);
+      setTenantForExit(null);
+      return;
+    }
+
+    // Sinon, fallback : utilise le callback onAddTenant ou alerte
+    alert(`Sortie du locataire ${tenantForExit.prenom} ${tenantForExit.nom} au ${exitDate}.`);
+    setTenantForExit(null);
   };
 
   const handleExportCSV = () => {
@@ -244,165 +266,274 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
                 </tr>
               ) : (
                 filteredTenants.map((t) => {
-                const isPaid = t.statut === 'À jour';
-                return (
-                  <tr key={t.id} className="hover:bg-[#1E2E45]/40 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                  const isPaid = t.statut === 'À jour';
+                  return (
+                    <tr key={t.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                              isPaid
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            }`}
+                          >
+                            {t.prenom[0]}
+                            {t.nom[0]}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white">
+                              {t.prenom} {t.nom}
+                            </div>
+                            <div className="text-[10px] text-[#A8B4C4] truncate max-w-[140px]">
+                              {t.profession} ({t.employeur})
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3 px-3">
+                        <div className="font-medium text-white max-w-[180px] truncate">{t.bienNom}</div>
+                        <div className="text-[10px] text-[#6B7C94]">Entrée : {formatDate(t.dateEntree)}</div>
+                      </td>
+
+                      <td className="py-3 px-3 font-mono">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-xs font-semibold">{t.telephone}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => triggerPhoneCall(t.telephone)}
+                              className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                              title="Appeler directement ce locataire"
+                            >
+                              <PhoneCall className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
+                              className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all"
+                              title="Écrire sur WhatsApp"
+                            >
+                              <Send className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
+                              className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all"
+                              title="Envoyer un SMS"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni}</div>
+                      </td>
+
+                      <td className="py-3 px-3 text-right font-mono font-bold text-white">
+                        {formatNumber(t.loyerMensuel)}{' '}
+                        <span className="text-[10px] text-[#C9A96E]">FCFA</span>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span className="text-xs font-mono font-bold text-emerald-400">
+                          {t.solvabiliteScore}%
+                        </span>
+                      </td>
+
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
                             isPaid
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                               : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                           }`}
                         >
-                          {t.prenom[0]}
-                          {t.nom[0]}
-                        </div>
-                        <div>
-                          <div className="font-bold text-white">
-                            {t.prenom} {t.nom}
-                          </div>
-                          <div className="text-[10px] text-[#A8B4C4] truncate max-w-[140px]">
-                            {t.profession} ({t.employeur})
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+                          {t.statut} {t.joursRetard > 0 && `(J+${t.joursRetard})`}
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3">
-                      <div className="font-medium text-white max-w-[180px] truncate">{t.bienNom}</div>
-                      <div className="text-[10px] text-[#6B7C94]">Entrée : {formatDate(t.dateEntree)}</div>
-                    </td>
-
-                    <td className="py-3 px-3 font-mono">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-xs font-semibold">{t.telephone}</span>
-                        <div className="flex items-center gap-1">
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button
-                            type="button"
+                            onClick={() => setSelectedTenantForDetails(t)}
+                            className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all"
+                            title="Voir Fiche de Renseignements Détaillée"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (onOpenMobileMoney) {
+                                onOpenMobileMoney(t);
+                              } else {
+                                setSelectedTenantForPayment(t);
+                              }
+                            }}
+                            className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                            title="Générer lien Wave ou Orange Money / Payer"
+                          >
+                            <Smartphone className="w-3 h-3 text-blue-400" />
+                            <span>Wave / OM</span>
+                          </button>
+
+                          <button
                             onClick={() => triggerPhoneCall(t.telephone)}
-                            className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
-                            title="Appeler directement ce locataire"
+                            className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all"
+                            title={`Appeler directement ${t.prenom} (${t.telephone})`}
                           >
-                            <PhoneCall className="w-3 h-3" />
+                            <PhoneCall className="w-3.5 h-3.5" />
                           </button>
+
                           <button
-                            type="button"
-                            onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
-                            className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all"
-                            title="Écrire sur WhatsApp"
+                            onClick={() => {
+                              const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
+                              triggerWhatsApp(t.telephone, defaultMsg);
+                            }}
+                            className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all"
+                            title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
                           >
-                            <Send className="w-3 h-3" />
+                            <MessageSquare className="w-3.5 h-3.5" />
                           </button>
+
+                          {/* ⬇️⬇️⬇️ BOUTON SORTIE AJOUTÉ ⬇️⬇️⬇️ */}
                           <button
-                            type="button"
-                            onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
-                            className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all"
-                            title="Envoyer un SMS"
+                            onClick={() => setTenantForExit(t)}
+                            className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                            title="Enregistrer la sortie de ce locataire"
                           >
-                            <MessageSquare className="w-3 h-3" />
+                            <LogOut className="w-3 h-3 text-rose-400" />
+                            <span>Sortie</span>
                           </button>
+
+                          {!isPaid ? (
+                            <button
+                              onClick={() => onOpenQuickReminder(t)}
+                              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 transition-all"
+                            >
+                              <Send className="w-3 h-3" /> Relance
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onOpenNewPayment(t)}
+                              className="px-2 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-[11px] font-medium transition-all"
+                            >
+                              Encaisser
+                            </button>
+                          )}
                         </div>
-                      </div>
-                      <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni}</div>
-                    </td>
-
-                    <td className="py-3 px-3 text-right font-mono font-bold text-white">
-                      {formatNumber(t.loyerMensuel)}{' '}
-                      <span className="text-[10px] text-[#C9A96E]">FCFA</span>
-                    </td>
-
-                    <td className="py-3 px-3 text-center">
-                      <span className="text-xs font-mono font-bold text-emerald-400">
-                        {t.solvabiliteScore}%
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                          isPaid
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        }`}
-                      >
-                        {t.statut} {t.joursRetard > 0 && `(J+${t.joursRetard})`}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                        <button
-                          onClick={() => setSelectedTenantForDetails(t)}
-                          className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all"
-                          title="Voir Fiche de Renseignements Détaillée"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            if (onOpenMobileMoney) {
-                              onOpenMobileMoney(t);
-                            } else {
-                              setSelectedTenantForPayment(t);
-                            }
-                          }}
-                          className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all"
-                          title="Générer lien Wave ou Orange Money / Payer"
-                        >
-                          <Smartphone className="w-3 h-3 text-blue-400" />
-                          <span>Wave / OM</span>
-                        </button>
-
-                        {/* Appel direct */}
-                        <button
-                          onClick={() => triggerPhoneCall(t.telephone)}
-                          className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all"
-                          title={`Appeler directement ${t.prenom} (${t.telephone})`}
-                        >
-                          <PhoneCall className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Message WhatsApp direct */}
-                        <button
-                          onClick={() => {
-                            const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
-                            triggerWhatsApp(t.telephone, defaultMsg);
-                          }}
-                          className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all"
-                          title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </button>
-
-                        {!isPaid ? (
-                          <button
-                            onClick={() => onOpenQuickReminder(t)}
-                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 transition-all"
-                          >
-                            <Send className="w-3 h-3" /> Relance
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => onOpenNewPayment(t)}
-                            className="px-2 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-[11px] font-medium transition-all"
-                          >
-                            Encaisser
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }))}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal: Fiche de Renseignements Locataire Détaillée (FITAL-IMMO Doc Page 14) */}
+      {/* MODAL : Confirmation de Sortie Locataire */}
+      {tenantForExit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-rose-500/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-rose-500/30 flex items-center justify-between bg-[#1E2E45]/80">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <LogOut className="w-5 h-5 text-rose-400" />
+                <span>Confirmer la Sortie du Locataire</span>
+              </div>
+              <button
+                onClick={() => setTenantForExit(null)}
+                className="text-[#A8B4C4] hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-[#0A111D] border border-rose-500/20">
+                <div className="font-bold text-white text-sm">
+                  {tenantForExit.prenom} {tenantForExit.nom}
+                </div>
+                <div className="text-[#A8B4C4] mt-0.5">
+                  Bien : {tenantForExit.bienNom}
+                </div>
+                <div className="text-[#A8B4C4]">
+                  Loyer : {formatNumber(tenantForExit.loyerMensuel)} FCFA
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Date de sortie effective
+                </label>
+                <input
+                  type="date"
+                  value={exitDate}
+                  onChange={(e) => setExitDate(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Retenue sur caution (FCFA)
+                </label>
+                <input
+                  type="number"
+                  value={retenueCaution}
+                  onChange={(e) => setRetenueCaution(Number(e.target.value))}
+                  min={0}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                />
+                <div className="text-[10px] text-[#6B7C94] mt-1">
+                  Laissez 0 si aucune dégradation n'est constatée.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Observations (dégradations, état général)
+                </label>
+                <textarea
+                  value={exitObservations}
+                  onChange={(e) => setExitObservations(e.target.value)}
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  placeholder="Ex: Murs corrects, robinetterie changée, aucune dégradation majeure."
+                />
+              </div>
+
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px]">
+                ⚠️ Cette action va :
+                <ul className="list-disc ml-4 mt-1 space-y-0.5">
+                  <li>Créer un état des lieux de sortie</li>
+                  <li>Marquer le bien comme "Vacant"</li>
+                  <li>Archiver le locataire</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-rose-500/20 flex items-center justify-end gap-2 bg-[#1E2E45]/40">
+              <button
+                onClick={() => setTenantForExit(null)}
+                className="px-4 py-2 rounded-xl bg-[#0A111D] text-[#A8B4C4] hover:text-white text-xs font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmExit}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Confirmer la Sortie</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Fiche de Renseignements Locataire Détaillée */}
       {selectedTenantForDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
@@ -437,7 +568,6 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
                 </div>
               </div>
 
-              {/* General info */}
               <div className="space-y-4">
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
@@ -479,7 +609,6 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
                   </div>
                 </div>
 
-                {/* Spouse Info */}
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
                     2. RENSEIGNEMENTS SUR LE / LA CONJOINT(E)
@@ -496,7 +625,6 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
                   </div>
                 </div>
 
-                {/* Rental Conditions */}
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
                     3. CONDITIONS DU LOGEMENT ATTRIBUÉ
@@ -524,7 +652,6 @@ alert("Impossible : ce bien n'a pas de propriétaire associé.");  return;
                 </div>
               </div>
 
-              {/* Signatures */}
               <div className="grid grid-cols-2 gap-8 pt-6 mt-6 border-t border-neutral-300">
                 <div>
                   <div className="font-bold text-neutral-700">Signature du Locataire :</div>

@@ -1304,7 +1304,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TenantsView
+                <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 onOpenQuickReminder={handleOpenQuickReminder}
@@ -1312,6 +1312,7 @@ export default function App() {
                 onAddTenant={handleAddTenant}
                 onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
                 onAddPayment={handleAddPayment}
+                onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
               />
             </div>
           )}
