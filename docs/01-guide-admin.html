@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Guide Administrateur - FITAL-IMMO</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0A111D; color: #F0EDE8; line-height: 1.6; padding: 40px 20px; }
+  .container { max-width: 850px; margin: 0 auto; background: #162133; border: 1px solid rgba(201,169,110,0.2); border-radius: 20px; padding: 50px; }
+  .header { border-bottom: 3px solid #C9A96E; padding-bottom: 20px; margin-bottom: 30px; }
+  .logo { font-size: 32px; font-weight: 900; color: white; letter-spacing: 1px; }
+  .logo span { color: #C9A96E; }
+  .subtitle { color: #A8B4C4; font-size: 14px; margin-top: 5px; }
+  h1 { color: #C9A96E; font-size: 26px; margin: 40px 0 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,169,110,0.3); }
+  h2 { color: #E8D5B0; font-size: 20px; margin: 30px 0 12px; }
+  h3 { color: #E8D5B0; font-size: 16px; margin: 20px 0 10px; }
+  p { color: #D0D8E0; margin-bottom: 12px; }
+  ul, ol { margin: 12px 0 20px 25px; color: #D0D8E0; }
+  li { margin-bottom: 8px; }
+  .step { background: #0A111D; border-left: 4px solid #C9A96E; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .step strong { color: #C9A96E; }
+  .tip { background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10B981; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .tip strong { color: #10B981; }
+  .warning { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #EF4444; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .warning strong { color: #EF4444; }
+  code { background: #0A111D; color: #C9A96E; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; }
+  .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid rgba(201,169,110,0.2); text-align: center; color: #6B7C94; font-size: 12px; }
+  @media print {
+    body { background: white; color: #1a1a1a; padding: 0; }
+    .container { background: white; border: none; padding: 20px; }
+    h1 { color: #8B7040; }
+    h2, h3 { color: #333; }
+    p, ul, ol, li { color: #333; }
+    .logo { color: #1a1a1a; }
+    .logo span { color: #8B7040; }
+    .subtitle { color: #666; }
+    .step, .tip, .warning { background: #f5f5f5; border-left-color: #8B7040; }
+    code { background: #f0f0f0; color: #8B7040; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">FITAL<span>-IMMO</span></div>
+    <div class="subtitle">Plateforme de Gestion Locative & Loyers</div>
+  </div>
+
+  <h1>📘 Guide Administrateur</h1>
+  <p><strong>Pour qui :</strong> Direction, gérant principal, administrateurs</p>
+  <p><strong>Objectif :</strong> Maîtriser l'ensemble de la plateforme et gérer les utilisateurs.</p>
+
+  <h1>1. Connexion à la plateforme</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Ouvrez votre navigateur et allez sur l'adresse de la plateforme.<br>
+    <strong>Étape 2 :</strong> Entrez votre email professionnel et votre mot de passe.<br>
+    <strong>Étape 3 :</strong> Cliquez sur <code>Se Connecter</code>.
+  </div>
+  <div class="tip">
+    <strong>💡 Astuce :</strong> Si vous avez oublié votre mot de passe, cliquez sur "Mot de passe oublié ?" et suivez les instructions reçues par email.
+  </div>
+
+  <h1>2. Créer un compte utilisateur</h1>
+  <p>Vous pouvez créer des comptes pour vos collaborateurs (caissier, gestionnaire, agent) et vos clients (propriétaires, locataires).</p>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Utilisateurs</code> → cliquez sur <code>+ Nouveau Compte</code>.<br>
+    <strong>Étape 2 :</strong> Remplissez les informations (prénom, nom, email, téléphone).<br>
+    <strong>Étape 3 :</strong> Choisissez le <strong>rôle</strong> (Administrateur, Caissier, Gestionnaire, Propriétaire, Locataire, Agent).<br>
+    <strong>Étape 4 :</strong> Si le rôle est Propriétaire ou Locataire, rattachez-le à une entité existante.<br>
+    <strong>Étape 5 :</strong> Notez le <strong>mot de passe temporaire</strong> affiché.<br>
+    <strong>Étape 6 :</strong> Cliquez sur <code>Créer & Activer le Compte</code>.
+  </div>
+  <div class="warning">
+    <strong>⚠️ Important :</strong> Le mot de passe n'est affiché qu'une seule fois. Notez-le et transmettez-le à l'utilisateur. Il pourra le modifier après sa première connexion.
+  </div>
+
+  <h1>3. Ajouter un propriétaire (bailleur)</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Propriétaires</code> → <code>+ Nouveau Propriétaire</code>.<br>
+    <strong>Étape 2 :</strong> Remplissez les informations personnelles et bancaires.<br>
+    <strong>Étape 3 :</strong> Définissez le <strong>taux de commission</strong> (10% par défaut).<br>
+    <strong>Étape 4 :</strong> Enregistrez.
+  </div>
+
+  <h1>4. Ajouter un bien immobilier</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Biens</code> → <code>+ Nouveau Bien</code>.<br>
+    <strong>Étape 2 :</strong> Remplissez les informations (nom, type, adresse, quartier, ville).<br>
+    <strong>Étape 3 :</strong> Rattachez le bien à un <strong>propriétaire</strong>.<br>
+    <strong>Étape 4 :</strong> Définissez le loyer et les charges.<br>
+    <strong>Étape 5 :</strong> Enregistrez.
+  </div>
+
+  <h1>5. Créer un nouveau locataire (Assistant en 7 étapes)</h1>
+  <p>La plateforme propose un assistant complet pour créer un locataire, son contrat de bail et son état des lieux d'entrée.</p>
+  <div class="step">
+    <strong>Étape 1 (Identité) :</strong> Nom, prénom, téléphone, email, CNI, profession.<br>
+    <strong>Étape 2 (Bien) :</strong> Sélectionnez le bien à louer.<br>
+    <strong>Étape 3 (Contrat) :</strong> Date de début, durée, loyer de base, charges.<br>
+    <strong>Étape 4 (Cautions) :</strong> Nombre de mois de caution, frais d'adhésion.<br>
+    <strong>Étape 5 (État des lieux) :</strong> Agent, compteur eau, compteur électricité.<br>
+    <strong>Étape 6 (Validation) :</strong> Vérifiez le récapitulatif et validez.
+  </div>
+  <div class="tip">
+    <strong>💡 Astuce :</strong> Le bien est automatiquement passé en statut "Occupé" après la création du locataire.
+  </div>
+
+  <h1>6. Encaisser un loyer</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Loyers</code> → <code>Enregistrer un encaissement</code>.<br>
+    <strong>Étape 2 :</strong> Sélectionnez le locataire.<br>
+    <strong>Étape 3 :</strong> Vérifiez le montant, les charges, les pénalités.<br>
+    <strong>Étape 4 :</strong> Choisissez le mode de paiement (Espèces, Wave, Orange Money, Virement, Chèque).<br>
+    <strong>Étape 5 :</strong> Validez et imprimez la quittance.
+  </div>
+
+  <h1>7. Générer les reversements propriétaires</h1>
+  <p>En fin de mois, générez automatiquement les virements à effectuer aux propriétaires.</p>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Finance</code>.<br>
+    <strong>Étape 2 :</strong> Cliquez sur <code>✨ Générer les reversements</code>.<br>
+    <strong>Étape 3 :</strong> Vérifiez le calcul (loyers bruts − commission agence = net à reverser).<br>
+    <strong>Étape 4 :</strong> Confirmez pour créer les décaissements.<br>
+    <strong>Étape 5 :</strong> Imprimez les bons de caisse.
+  </div>
+
+  <h1>8. Sortie d'un locataire</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Locataires</code> → bouton <code>Sortie</code> sur la ligne du locataire.<br>
+    <strong>Étape 2 :</strong> Remplissez l'état des lieux de sortie (dégradations éventuelles).<br>
+    <strong>Étape 3 :</strong> Indiquez la retenue sur caution.<br>
+    <strong>Étape 4 :</strong> Confirmez → le bien repasse en "Vacant".
+  </div>
+
+  <h1>9. Suivi et rapports</h1>
+  <p>Menu <code>Rapports</code> : consultez les statistiques mensuelles (encaissements, impayés, taux d'occupation).</p>
+  <p>Menu <code>Journal d'activité</code> : consultez l'historique des actions effectuées par chaque utilisateur.</p>
+
+  <h1>10. Sécurité et bonnes pratiques</h1>
+  <ul>
+    <li>Ne partagez jamais votre mot de passe.</li>
+    <li>Déconnectez-vous après chaque session sur un ordinateur partagé.</li>
+    <li>Vérifiez régulièrement le journal d'activité.</li>
+    <li>Sauvegardez régulièrement vos données (export Excel).</li>
+  </ul>
+
+  <div class="footer">
+    FITAL-IMMO © 2026 — Document confidentiel<br>
+    Pour toute assistance : support@fital-immo.sn
+  </div>
+</div>
+</body>
+</html>

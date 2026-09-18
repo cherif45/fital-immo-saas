@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Guide Caissier - FITAL-IMMO</title>
+<style>
+  /* Même CSS que le guide admin */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0A111D; color: #F0EDE8; line-height: 1.6; padding: 40px 20px; }
+  .container { max-width: 850px; margin: 0 auto; background: #162133; border: 1px solid rgba(201,169,110,0.2); border-radius: 20px; padding: 50px; }
+  .header { border-bottom: 3px solid #C9A96E; padding-bottom: 20px; margin-bottom: 30px; }
+  .logo { font-size: 32px; font-weight: 900; color: white; letter-spacing: 1px; }
+  .logo span { color: #C9A96E; }
+  .subtitle { color: #A8B4C4; font-size: 14px; margin-top: 5px; }
+  h1 { color: #C9A96E; font-size: 26px; margin: 40px 0 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,169,110,0.3); }
+  p { color: #D0D8E0; margin-bottom: 12px; }
+  ul, ol { margin: 12px 0 20px 25px; color: #D0D8E0; }
+  li { margin-bottom: 8px; }
+  .step { background: #0A111D; border-left: 4px solid #C9A96E; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .step strong { color: #C9A96E; }
+  .tip { background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10B981; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .tip strong { color: #10B981; }
+  .warning { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #EF4444; padding: 15px 20px; margin: 15px 0; border-radius: 8px; }
+  .warning strong { color: #EF4444; }
+  code { background: #0A111D; color: #C9A96E; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; }
+  .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid rgba(201,169,110,0.2); text-align: center; color: #6B7C94; font-size: 12px; }
+  @media print {
+    body { background: white; color: #1a1a1a; padding: 0; }
+    .container { background: white; border: none; padding: 20px; }
+    h1 { color: #8B7040; }
+    p, ul, ol, li { color: #333; }
+    .logo { color: #1a1a1a; }
+    .logo span { color: #8B7040; }
+    .subtitle { color: #666; }
+    .step, .tip, .warning { background: #f5f5f5; border-left-color: #8B7040; }
+    code { background: #f0f0f0; color: #8B7040; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">FITAL<span>-IMMO</span></div>
+    <div class="subtitle">Plateforme de Gestion Locative & Loyers</div>
+  </div>
+
+  <h1>💵 Guide Caissier / Comptable</h1>
+  <p><strong>Pour qui :</strong> Caissier, comptable, responsable encaissement</p>
+  <p><strong>Objectif :</strong> Encaisser les loyers, gérer la caisse et les quittances.</p>
+
+  <h1>1. Connexion</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Allez sur la plateforme FITAL-IMMO.<br>
+    <strong>Étape 2 :</strong> Entrez votre email et mot de passe.<br>
+    <strong>Étape 3 :</strong> Cliquez sur <code>Se Connecter</code>.
+  </div>
+
+  <h1>2. Encaisser un loyer</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Loyers</code> → cliquez sur <code>Enregistrer un encaissement</code>.<br>
+    <strong>Étape 2 :</strong> Sélectionnez le locataire dans la liste.<br>
+    <strong>Étape 3 :</strong> Vérifiez les montants (loyer, charges, pénalités).<br>
+    <strong>Étape 4 :</strong> Choisissez le mode de paiement.<br>
+    <strong>Étape 5 :</strong> Cliquez sur <code>Encaisser & Émettre Quittance</code>.<br>
+    <strong>Étape 6 :</strong> Imprimez la quittance pour le locataire.
+  </div>
+  <div class="tip">
+    <strong>💡 Modes de paiement disponibles :</strong>
+    <ul>
+      <li><strong>Espèces</strong> : comptoir agence</li>
+      <li><strong>Wave</strong> : mobile money</li>
+      <li><strong>Orange Money</strong> : mobile money</li>
+      <li><strong>Virement</strong> : banque</li>
+      <li><strong>Chèque</strong> : bancaire</li>
+    </ul>
+  </div>
+
+  <h1>3. Gérer la caisse</h1>
+  <p>Le menu <code>Caisse</code> vous permet de voir tous les mouvements d'espèces.</p>
+  <div class="step">
+    <strong>Encaissement</strong> : entrée d'argent en caisse.<br>
+    <strong>Décaissement</strong> : sortie d'argent (travaux, remboursements, etc.).
+  </div>
+
+  <h1>4. Clôture journalière</h1>
+  <p>En fin de journée, faites une clôture de caisse pour vérifier le solde.</p>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Caisse</code> → onglet <code>Clôtures</code>.<br>
+    <strong>Étape 2 :</strong> Cliquez sur <code>Nouvelle Clôture</code>.<br>
+    <strong>Étape 3 :</strong> Comptez les espèces en caisse.<br>
+    <strong>Étape 4 :</strong> Saisissez le montant réel.<br>
+    <strong>Étape 5 :</strong> Le système calcule automatiquement l'écart éventuel.<br>
+    <strong>Étape 6 :</strong> Validez la clôture.
+  </div>
+  <div class="warning">
+    <strong>⚠️ Important :</strong> En cas d'écart, notez les observations pour justifier la différence.
+  </div>
+
+  <h1>5. Validation des paiements mobiles</h1>
+  <p>Les paiements par Wave/Orange Money sont automatiquement en attente de validation.</p>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Paiements en attente</code>.<br>
+    <strong>Étape 2 :</strong> Vérifiez la référence de transaction (Wave, OM).<br>
+    <strong>Étape 3 :</strong> Si valide → cliquez sur <code>Valider</code>.<br>
+    <strong>Étape 4 :</strong> Si suspect → cliquez sur <code>Rejeter</code> avec motif.
+  </div>
+
+  <h1>6. Imprimer une quittance</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Loyers</code> → trouvez le paiement.<br>
+    <strong>Étape 2 :</strong> Cliquez sur <code>Quittance</code>.<br>
+    <strong>Étape 3 :</strong> Imprimez ou enregistrez en PDF.<br>
+    <strong>Étape 4 :</strong> Envoyez par WhatsApp au locataire si besoin.
+  </div>
+
+  <h1>7. Envoyer une quittance par WhatsApp</h1>
+  <div class="step">
+    <strong>Étape 1 :</strong> Menu <code>Loyers</code> → cliquez sur l'icône WhatsApp (verte).<br>
+    <strong>Étape 2 :</strong> Le message pré-rempli s'ouvre.<br>
+    <strong>Étape 3 :</strong> Envoyez au locataire.
+  </div>
+
+  <h1>8. Bonnes pratiques</h1>
+  <ul>
+    <li>Enregistrez les paiements <strong>immédiatement</strong> après encaissement.</li>
+    <li>Vérifiez les références Wave/OM avant validation.</li>
+    <li>Faites la clôture <strong>chaque jour</strong> avant de quitter.</li>
+    <li>N'acceptez jamais un paiement sans émettre de quittance.</li>
+  </ul>
+
+  <div class="footer">
+    FITAL-IMMO © 2026 — Document confidentiel<br>
+    Pour toute assistance : support@fital-immo.sn
+  </div>
+</div>
+</body>
+</html>
