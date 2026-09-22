@@ -62,7 +62,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [aiInsight, setAiInsight] = useState<{ analysis: string; actionPlan: string[] } | null>(null);
 
   // ============================================================
-  // FILTRAGE PAR PÉRIODE (Aujourd'hui, 7 jours, Mois, Trimestre, Année)
+  // FILTRAGE PAR PÉRIODE
   // ============================================================
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -104,8 +104,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return d >= periodStart && d <= periodEnd;
   };
 
+  const isToday = (dateStr?: string) => {
+    if (!dateStr) return false;
+    return new Date(dateStr).toDateString() === new Date().toDateString();
+  };
+
   // ============================================================
-  // CALCUL DES MÉTRIQUES (filtrées par période)
+  // MÉTRIQUES
   // ============================================================
   const filteredPayments = payments.filter(
     (p) => p.statut === 'Payé' && isInPeriod(p.datePaiement)
@@ -121,19 +126,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     (t) => t.statut === 'Impayé' || t.statut === 'Retard'
   );
 
-  // Encaissé AUJOURD'HUI (indépendant du filtre de période)
   const totalCollectedToday = payments
-    .filter((p) =>
-      p.statut === 'Payé' &&
-      new Date(p.datePaiement).toDateString() === new Date().toDateString()
-    )
+    .filter((p) => p.statut === 'Payé' && isToday(p.datePaiement))
     .reduce((sum, p) => sum + p.montantPaye, 0);
 
-  const paymentsToday = payments.filter(
-    (p) =>
-      p.statut === 'Payé' &&
-      new Date(p.datePaiement).toDateString() === new Date().toDateString()
-  );
+  const paymentsToday = payments.filter((p) => p.statut === 'Payé' && isToday(p.datePaiement));
 
   const occupiedProperties = properties.filter((p) => p.statut === 'Occupé').length;
   const vacantProperties = properties.filter((p) => p.statut === 'Vacant').length;
@@ -144,13 +141,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalTarget = totalCollected + totalUnpaid;
   const recoveryRate = totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0;
 
-  // Monthly Agency Commission estimate (averaging 10%)
   const estimatedCommission = Math.round(totalCollected * 0.095);
+
+  // ============================================================
+  // ACTIVITÉ DU JOUR (nouveaux éléments créés aujourd'hui)
+  // ============================================================
+  const tenantsToday = tenants.filter((t) => isToday(t.dateEntree));
+  const maintenanceToday = maintenance.filter((m) => isToday(m.dateSignalement));
+  const remindersToday = overdueTenants.filter((t) => (t.joursRetard || 0) > 0);
+  const contractsToday = tenantsToday.length; // approximation : 1 contrat par nouveau locataire
 
   const handleRefreshAI = async () => {
     if (properties.length === 0) {
       setAiInsight({
-        analysis: 'Votre portefeuille immobilier ne comporte aucun bien pour le moment. Dès l’ajout de vos premiers contrats et locataires, l’IA générera des diagnostics précis et des recommandations de recouvrement.',
+        analysis: 'Votre portefeuille immobilier ne comporte aucun bien pour le moment.',
         actionPlan: [
           'Ajouter vos propriétaires bailleurs',
           'Enregistrer vos premiers biens immobiliers',
@@ -173,9 +177,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }),
       });
       const data = await res.json();
-      if (data.analysis) {
-        setAiInsight(data);
-      }
+      if (data.analysis) setAiInsight(data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -187,7 +189,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Period Selector & Global Header Bar */}
+      {/* Period Selector */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-[#C9A96E]/10">
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1">
           {periods.map((p) => (
@@ -210,7 +212,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Quick Actions Ribbon */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <button
           onClick={onOpenNewPayment}
@@ -276,9 +278,108 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </button>
       </div>
 
+      {/* ============================================================ */}
+      {/* ACTIVITÉ DU JOUR (uniquement si période = Aujourd'hui) */}
+      {/* ============================================================ */}
+      {selectedPeriod === 'Aujourd’hui' && (
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border-2 border-[#C9A96E]/40 shadow-2xl">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#C9A96E] to-[#A07840] flex items-center justify-center text-[#0A111D] shadow-lg">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-base font-bold text-white">
+                  📅 Activité du jour
+                </div>
+                <div className="text-xs text-[#A8B4C4]">
+                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-black text-[#E8D5B0]">
+                {tenantsToday.length + paymentsToday.length + maintenanceToday.length} action{tenantsToday.length + paymentsToday.length + maintenanceToday.length > 1 ? 's' : ''}
+              </div>
+              <div className="text-[10px] text-[#6B7C94] uppercase tracking-wider">aujourd'hui</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Nouveaux locataires */}
+            <div className="p-4 rounded-xl bg-[#0A111D]/60 border border-emerald-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-white">Nouveaux locataires</span>
+                </div>
+                <span className="text-lg font-black text-emerald-400">{tenantsToday.length}</span>
+              </div>
+              {tenantsToday.length === 0 ? (
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun nouveau locataire aujourd'hui</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {tenantsToday.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <span className="font-semibold text-white truncate">{t.prenom} {t.nom}</span>
+                      <span className="text-[#A8B4C4] truncate ml-2">{t.bienNom}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Paiements du jour */}
+            <div className="p-4 rounded-xl bg-[#0A111D]/60 border border-[#C9A96E]/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-[#C9A96E]" />
+                  <span className="text-xs font-bold text-white">Encaissements</span>
+                </div>
+                <span className="text-lg font-black text-[#C9A96E]">{paymentsToday.length}</span>
+              </div>
+              {paymentsToday.length === 0 ? (
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun encaissement aujourd'hui</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {paymentsToday.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-[#C9A96E]/10 border border-[#C9A96E]/20">
+                      <span className="font-semibold text-white truncate">{p.locataireNom}</span>
+                      <span className="text-[#C9A96E] font-mono">{formatNumber(p.montantPaye)} F</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Tickets maintenance */}
+            <div className="p-4 rounded-xl bg-[#0A111D]/60 border border-amber-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs font-bold text-white">Tickets travaux</span>
+                </div>
+                <span className="text-lg font-black text-amber-400">{maintenanceToday.length}</span>
+              </div>
+              {maintenanceToday.length === 0 ? (
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun ticket aujourd'hui</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {maintenanceToday.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <span className="font-semibold text-white truncate">{m.titre}</span>
+                      <span className="text-[#A8B4C4] truncate ml-2">{m.bienNom}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Revenus Perçus */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 hover:border-[#C9A96E]/40 transition-all relative overflow-hidden group shadow-xl">
           <div className="absolute top-0 right-0 w-28 h-28 bg-[#C9A96E]/5 rounded-full blur-2xl group-hover:bg-[#C9A96E]/10 transition-all" />
           <div className="flex items-center justify-between mb-3">
@@ -298,13 +399,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="text-[11px] text-[#6B7C94] mt-3 pt-3 border-t border-[#C9A96E]/10 flex items-center justify-between">
             <span>Commissions agence :</span>
-            <span className="text-[#C9A96E] font-semibold">
-              {formatNumber(estimatedCommission)} FCFA
-            </span>
+            <span className="text-[#C9A96E] font-semibold">{formatNumber(estimatedCommission)} FCFA</span>
           </div>
         </div>
 
-        {/* Card 2: Loyers Impayés */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-rose-500/25 hover:border-rose-500/45 transition-all relative overflow-hidden group shadow-xl">
           <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition-all" />
           <div className="flex items-center justify-between mb-3">
@@ -322,16 +420,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-xs font-medium text-[#A8B4C4] mt-1">Loyers impayés & arriérés</div>
           <div className="text-[11px] text-[#6B7C94] mt-3 pt-3 border-t border-rose-500/15 flex items-center justify-between">
             <span>Action requise :</span>
-            <button
-              onClick={() => setActiveTab('reminders')}
-              className="text-rose-400 font-semibold hover:underline flex items-center gap-1"
-            >
+            <button onClick={() => setActiveTab('reminders')} className="text-rose-400 font-semibold hover:underline flex items-center gap-1">
               Lancer relances <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        {/* Card 3: Taux de Recouvrement */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-emerald-500/20 hover:border-emerald-500/40 transition-all relative overflow-hidden group shadow-xl">
           <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all" />
           <div className="flex items-center justify-between mb-3">
@@ -343,19 +437,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
-            {recoveryRate}%{' '}
-            <span className="text-xs font-normal text-[#A8B4C4]">recouvré</span>
+            {recoveryRate}% <span className="text-xs font-normal text-[#A8B4C4]">recouvré</span>
           </div>
           <div className="text-xs font-medium text-[#A8B4C4] mt-1">Efficacité de recouvrement</div>
           <div className="w-full bg-[#1E2E45] h-2 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-emerald-500 to-[#C9A96E] h-full rounded-full transition-all duration-700"
-              style={{ width: `${recoveryRate}%` }}
-            />
+            <div className="bg-gradient-to-r from-emerald-500 to-[#C9A96E] h-full rounded-full transition-all duration-700" style={{ width: `${recoveryRate}%` }} />
           </div>
         </div>
 
-        {/* Card 4: Taux d'Occupation */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-sky-500/20 hover:border-sky-500/40 transition-all relative overflow-hidden group shadow-xl">
           <div className="absolute top-0 right-0 w-28 h-28 bg-sky-500/5 rounded-full blur-2xl group-hover:bg-sky-500/10 transition-all" />
           <div className="flex items-center justify-between mb-3">
@@ -367,8 +456,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
-            {occupancyRate}%{' '}
-            <span className="text-xs font-normal text-[#A8B4C4]">occupation</span>
+            {occupancyRate}% <span className="text-xs font-normal text-[#A8B4C4]">occupation</span>
           </div>
           <div className="text-xs font-medium text-[#A8B4C4] mt-1">Parc loué actif</div>
           <div className="text-[11px] text-[#6B7C94] mt-3 pt-3 border-t border-sky-500/15 flex items-center justify-between">
@@ -378,7 +466,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* CARTE ENCAISSÉ AUJOURD'HUI */}
+      {/* Carte Encaissé aujourd'hui */}
       <div className="grid grid-cols-1 gap-4">
         <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border-2 border-[#C9A96E]/40 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[#C9A96E]/10 rounded-full blur-3xl" />
@@ -388,12 +476,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Coins className="w-7 h-7" />
               </div>
               <div>
-                <div className="text-sm font-bold text-[#A8B4C4] uppercase tracking-wider">
-                  💰 Encaissé aujourd'hui
-                </div>
+                <div className="text-sm font-bold text-[#A8B4C4] uppercase tracking-wider">💰 Encaissé aujourd'hui</div>
                 <div className="text-3xl font-black text-[#E8D5B0] tracking-tight mt-1">
-                  {formatNumber(totalCollectedToday)}{' '}
-                  <span className="text-base font-normal text-[#C9A96E]">FCFA</span>
+                  {formatNumber(totalCollectedToday)} <span className="text-base font-normal text-[#C9A96E]">FCFA</span>
                 </div>
                 <div className="text-xs text-[#6B7C94] mt-1">
                   {paymentsToday.length} paiement{paymentsToday.length > 1 ? 's' : ''} enregistré{paymentsToday.length > 1 ? 's' : ''} aujourd'hui
@@ -401,23 +486,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-[#6B7C94] uppercase tracking-wider">
-                Date du jour
-              </div>
+              <div className="text-[10px] text-[#6B7C94] uppercase tracking-wider">Date du jour</div>
               <div className="text-sm font-bold text-white">
-                {new Date().toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AI Recovery Assistant */}
+      {/* AI Assistant */}
       <div className="p-5 rounded-2xl bg-gradient-to-r from-[#1E2E45] via-[#162133] to-[#1E2E45] border border-[#C9A96E]/35 shadow-2xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-[#C9A96E]/15">
           <div className="flex items-center gap-3">
@@ -427,28 +505,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <span>Assistant IA de Recouvrement & Gestion</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C9A96E]/20 text-[#E8D5B0] border border-[#C9A96E]/30 font-semibold font-mono">
-                  Gemini 3.7
-                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C9A96E]/20 text-[#E8D5B0] border border-[#C9A96E]/30 font-semibold font-mono">Gemini 3.7</span>
               </div>
-              <p className="text-xs text-[#A8B4C4] mt-0.5">
-                Analyse prédictive des encaissements et automatisation des relances locataires
-              </p>
+              <p className="text-xs text-[#A8B4C4] mt-0.5">Analyse prédictive des encaissements et automatisation des relances locataires</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefreshAI}
-              disabled={aiInsightLoading}
-              className="px-3.5 py-1.5 rounded-xl bg-[#162133] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5 disabled:opacity-50"
-            >
+            <button onClick={handleRefreshAI} disabled={aiInsightLoading} className="px-3.5 py-1.5 rounded-xl bg-[#162133] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5 disabled:opacity-50">
               <Sparkles className={`w-3.5 h-3.5 ${aiInsightLoading ? 'animate-spin' : ''}`} />
               <span>{aiInsightLoading ? 'Analyse en cours...' : 'Réanalyser le parc'}</span>
             </button>
-            <button
-              onClick={() => setActiveTab('reminders')}
-              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
-            >
+            <button onClick={() => setActiveTab('reminders')} className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5">
               <Send className="w-3.5 h-3.5" />
               <span>Exécuter les Relances</span>
             </button>
@@ -479,16 +546,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="mt-4 p-4 rounded-xl bg-[#0F1B2D]/40 border border-white/5 text-center text-xs text-[#A8B4C4]">
-            <p>
-              Cliquez sur <strong className="text-[#C9A96E]">« Réanalyser le parc »</strong> pour générer l'audit prédictif de vos loyers et recommandations d'actions prioritaires.
-            </p>
+            <p>Cliquez sur <strong className="text-[#C9A96E]">« Réanalyser le parc »</strong> pour générer l'audit prédictif.</p>
           </div>
         )}
       </div>
 
-      {/* Middle Section: Financial Chart & Occupancy Status */}
+      {/* Middle Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Visual Financial Trends */}
         <div className="lg:col-span-2 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -522,29 +586,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                   <div className="w-full max-w-[48px] flex items-end justify-center gap-1 h-full">
-                    <div
-                      className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${
-                        bar.current
-                          ? 'bg-gradient-to-t from-[#C9A96E] to-[#E8D5B0] shadow-lg shadow-[#C9A96E]/20'
-                          : bar.forecast
-                          ? 'bg-[#C9A96E]/40 border border-dashed border-[#C9A96E]'
-                          : 'bg-[#C9A96E]/70 hover:bg-[#C9A96E]'
-                      }`}
-                      style={{ height: `${incomeHeight}%` }}
-                    >
-                      <div className="opacity-0 group-hover/bar:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-[#1E2E45] border border-[#C9A96E]/30 text-[10px] text-white px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">
-                        {(bar.income / 1000000).toFixed(2)}M FCFA
-                      </div>
+                    <div className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${bar.current ? 'bg-gradient-to-t from-[#C9A96E] to-[#E8D5B0] shadow-lg shadow-[#C9A96E]/20' : bar.forecast ? 'bg-[#C9A96E]/40 border border-dashed border-[#C9A96E]' : 'bg-[#C9A96E]/70 hover:bg-[#C9A96E]'}`} style={{ height: `${incomeHeight}%` }}>
+                      <div className="opacity-0 group-hover/bar:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-[#1E2E45] border border-[#C9A96E]/30 text-[10px] text-white px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">{(bar.income / 1000000).toFixed(2)}M FCFA</div>
                     </div>
-                    <div
-                      className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${
-                        bar.forecast ? 'bg-rose-500/30' : 'bg-rose-500/60 hover:bg-rose-500'
-                      }`}
-                      style={{ height: `${expenseHeight}%` }}
-                    >
-                      <div className="opacity-0 group-hover/bar:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-[#1E2E45] border border-rose-500/30 text-[10px] text-white px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">
-                        {(bar.expense / 1000).toFixed(0)}k FCFA
-                      </div>
+                    <div className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${bar.forecast ? 'bg-rose-500/30' : 'bg-rose-500/60 hover:bg-rose-500'}`} style={{ height: `${expenseHeight}%` }}>
+                      <div className="opacity-0 group-hover/bar:opacity-100 transition-opacity absolute -top-8 left-1/2 -translate-x-1/2 bg-[#1E2E45] border border-rose-500/30 text-[10px] text-white px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">{(bar.expense / 1000).toFixed(0)}k FCFA</div>
                     </div>
                   </div>
                   <div className={`text-[11px] font-medium ${bar.current ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94]'}`}>
@@ -561,7 +607,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Occupancy & Inventory Breakdown */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl flex flex-col justify-between">
           <div>
             <div className="text-sm font-bold text-white">Statut du Parc Immobilier</div>
@@ -571,18 +616,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="relative w-36 h-36 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1E2E45" strokeWidth="12" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="transparent"
-                    stroke="#4CAF82"
-                    strokeWidth="12"
-                    strokeDasharray="251.2"
-                    strokeDashoffset={251.2 * (1 - occupancyRate / 100)}
-                    strokeLinecap="round"
-                    className="transition-all duration-1000"
-                  />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#4CAF82" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={251.2 * (1 - occupancyRate / 100)} strokeLinecap="round" className="transition-all duration-1000" />
                 </svg>
                 <div className="absolute text-center">
                   <div className="text-2xl font-bold text-white">{occupancyRate}%</div>
@@ -616,16 +650,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={() => setActiveTab('properties')}
-            className="w-full mt-4 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-xs text-[#C9A96E] font-semibold border border-[#C9A96E]/20 transition-all flex items-center justify-center gap-1.5"
-          >
+          <button onClick={() => setActiveTab('properties')} className="w-full mt-4 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-xs text-[#C9A96E] font-semibold border border-[#C9A96E]/20 transition-all flex items-center justify-center gap-1.5">
             <Building2 className="w-3.5 h-3.5" /> Gérer le catalogue complet
           </button>
         </div>
       </div>
 
-      {/* Bottom Row: Priority Arrears & Recent Payments */}
+      {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="p-5 rounded-2xl bg-[#162133] border border-rose-500/20 shadow-xl">
           <div className="flex items-center justify-between mb-4">
@@ -634,14 +665,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <AlertTriangle className="w-4 h-4 text-rose-400" />
                 <span>Locataires en Retard & Relances Prioritaires</span>
               </div>
-              <div className="text-xs text-[#6B7C94] mt-0.5">
-                {overdueTenants.length} dossiers nécessitant une intervention immédiate
-              </div>
+              <div className="text-xs text-[#6B7C94] mt-0.5">{overdueTenants.length} dossiers nécessitant une intervention immédiate</div>
             </div>
-            <button
-              onClick={() => setActiveTab('recovery')}
-              className="text-xs text-[#C9A96E] hover:underline font-semibold flex items-center gap-1"
-            >
+            <button onClick={() => setActiveTab('recovery')} className="text-xs text-[#C9A96E] hover:underline font-semibold flex items-center gap-1">
               Suivi détaillé <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -655,40 +681,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             ) : (
               overdueTenants.map((t) => (
-                <div
-                  key={t.id}
-                  className="p-3.5 rounded-xl bg-[#1E2E45]/60 border border-rose-500/20 hover:border-rose-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
+                <div key={t.id} className="p-3.5 rounded-xl bg-[#1E2E45]/60 border border-rose-500/20 hover:border-rose-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-xs truncate">
-                        {t.prenom} {t.nom}
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/30">
-                        {t.joursRetard} jours de retard
-                      </span>
+                      <span className="font-bold text-white text-xs truncate">{t.prenom} {t.nom}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/30">{t.joursRetard} jours de retard</span>
                     </div>
-                    <div className="text-[11px] text-[#A8B4C4] truncate mt-0.5">
-                      {t.bienNom}
-                    </div>
-                    <div className="text-xs font-bold text-rose-400 mt-1">
-                      Arriéré : {formatCurrency(t.arrieresCumules || t.loyerMensuel)}
-                    </div>
+                    <div className="text-[11px] text-[#A8B4C4] truncate mt-0.5">{t.bienNom}</div>
+                    <div className="text-xs font-bold text-rose-400 mt-1">Arriéré : {formatCurrency(t.arrieresCumules || t.loyerMensuel)}</div>
                   </div>
-
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onOpenQuickReminder(t)}
-                      className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5"
-                    >
+                    <button onClick={() => onOpenQuickReminder(t)} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5">
                       <Send className="w-3.5 h-3.5" /> Relancer
                     </button>
-                    <button
-                      onClick={onOpenNewPayment}
-                      className="px-3 py-1.5 rounded-lg bg-[#162133] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#C9A96E] font-medium text-xs transition-all"
-                    >
-                      Encaisser
-                    </button>
+                    <button onClick={onOpenNewPayment} className="px-3 py-1.5 rounded-lg bg-[#162133] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#C9A96E] font-medium text-xs transition-all">Encaisser</button>
                   </div>
                 </div>
               ))
@@ -703,14 +709,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Receipt className="w-4 h-4 text-[#C9A96E]" />
                 <span>Derniers Règlements Encaissés</span>
               </div>
-              <div className="text-xs text-[#6B7C94] mt-0.5">
-                Quittances certifiées avec montants en lettres
-              </div>
+              <div className="text-xs text-[#6B7C94] mt-0.5">Quittances certifiées avec montants en lettres</div>
             </div>
-            <button
-              onClick={() => setActiveTab('payments')}
-              className="text-xs text-[#C9A96E] hover:underline font-semibold flex items-center gap-1"
-            >
+            <button onClick={() => setActiveTab('payments')} className="text-xs text-[#C9A96E] hover:underline font-semibold flex items-center gap-1">
               Historique complet <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -720,47 +721,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="py-8 text-center text-[#6B7C94]">
                 <Receipt className="w-8 h-8 mx-auto text-[#6B7C94]/40 mb-2" />
                 <p className="text-xs font-semibold text-white">Aucun règlement enregistré</p>
-                <p className="text-[11px] text-[#6B7C94] mt-0.5">Les quittances apparaîtront ici dès l'encaissement d'un loyer.</p>
+                <p className="text-[11px] text-[#6B7C94] mt-0.5">Les quittances apparaîtront ici dès l'encaissement.</p>
               </div>
             ) : (
-              payments
-                .filter((p) => p.statut === 'Payé')
-                .slice(0, 5)
-                .map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-3.5 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/15 hover:border-[#C9A96E]/35 transition-all flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-xs truncate">{p.locataireNom}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#C9A96E]/15 text-[#E8D5B0] font-mono">
-                          {p.modePaiement}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-[#A8B4C4] truncate mt-0.5">
-                        {p.bienNom} · {formatDate(p.datePaiement)}
-                      </div>
+              payments.filter((p) => p.statut === 'Payé').slice(0, 5).map((p) => (
+                <div key={p.id} className="p-3.5 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/15 hover:border-[#C9A96E]/35 transition-all flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-xs truncate">{p.locataireNom}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#C9A96E]/15 text-[#E8D5B0] font-mono">{p.modePaiement}</span>
                     </div>
-
-                    <div className="text-right flex items-center gap-3">
-                      <div>
-                        <div className="text-xs font-bold text-[#C9A96E]">
-                          {formatCurrency(p.montantPaye)}
-                        </div>
-                        <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 justify-end">
-                          <CheckCircle2 className="w-3 h-3" /> Encaissé
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => onOpenReceipt(p)}
-                        className="p-2 rounded-lg bg-[#162133] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all hover:scale-105"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <div className="text-[11px] text-[#A8B4C4] truncate mt-0.5">{p.bienNom} · {formatDate(p.datePaiement)}</div>
                   </div>
-                ))
+                  <div className="text-right flex items-center gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[#C9A96E]">{formatCurrency(p.montantPaye)}</div>
+                      <div className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 justify-end">
+                        <CheckCircle2 className="w-3 h-3" /> Encaissé
+                      </div>
+                    </div>
+                    <button onClick={() => onOpenReceipt(p)} className="p-2 rounded-lg bg-[#162133] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all hover:scale-105">
+                      <Receipt className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
