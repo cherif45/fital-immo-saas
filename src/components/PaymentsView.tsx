@@ -19,7 +19,7 @@ import {
   MessageSquare,
   Smartphone,
 } from 'lucide-react';
-import { Payment, Tenant, Property, Owner, PaymentMethod, PaymentStatus, UserAccount } from '../types';
+import { Payment, Tenant, Property, Owner, PaymentMethod, PaymentStatus, UserAccount, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp, getPaymentReceiptTemplate } from '../lib/comms/commsHelper';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
@@ -31,6 +31,7 @@ interface PaymentsViewProps {
   properties: Property[];
   owners: Owner[];
   currentUser?: UserAccount;
+  settings?: AgencySettings;   // ⬅️ AJOUT : pour les numéros Wave/OM
   onAddPayment: (payment: Payment) => void;
   onOpenReceipt: (payment: Payment) => void;
   isNewPaymentModalOpen: boolean;
@@ -44,6 +45,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   properties,
   owners,
   currentUser,
+  settings,
   onAddPayment,
   onOpenReceipt,
   isNewPaymentModalOpen,
@@ -73,7 +75,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const role = currentUser?.role || 'ADMIN';
   const isLocataire = role === 'LOCATAIRE';
   const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER';
-  const canUseMobileMoney = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'LOCATAIRE';
+  const canUseMobileMoney = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'GESTIONNAIRE' || role === 'LOCATAIRE';
   const canSeeOthers = !isLocataire;
 
   // Auto populate values when tenant changes
@@ -214,6 +216,16 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     exportToCSV('Registre_Paiements_FITAL_IMMO', rows, headers);
   };
 
+  // 🔒 Pour le locataire : choisir sa propre quittance impayée
+  const getPayablePayment = (): Payment | null => {
+    if (isLocataire) {
+      // Prendre sa première quittance impayée ou la plus récente
+      return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
+    }
+    // Pour les autres : première quittance impayée
+    return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner Stats */}
@@ -251,7 +263,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </div>
         </div>
 
-        {/* 🔒 BLOC "Encaissements & Moyens Mobiles" — UNIQUEMENT pour ADMIN/CAISSIER/GESTIONNAIRE/LOCATAIRE */}
+        {/* 🔒 BLOC "Encaissements & Moyens Mobiles" */}
         {canUseMobileMoney && (
           <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border border-[#C9A96E]/30 flex flex-col justify-between">
             <div className="text-xs text-white font-bold flex items-center gap-1.5">
@@ -268,13 +280,12 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   <Plus className="w-4 h-4" /> Enregistrer
                 </button>
               )}
-              {/* 🔒 Bouton "Wave / OM" — pour tous ceux qui peuvent payer */}
+              {/* 🔒 Bouton "Wave / OM" */}
               <button
                 onClick={() => {
-                  const target = isLocataire
-                    ? payments.find((p) => p.statut !== 'Payé') || payments[0]
-                    : payments.find((p) => p.statut !== 'Payé') || payments[0];
-                  setSelectedPaymentForMobileMoney(target);
+                  const target = getPayablePayment();
+                  if (target) setSelectedPaymentForMobileMoney(target);
+                  else alert('Aucune quittance disponible pour le paiement.');
                 }}
                 className={`py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 ${canEncaisser ? 'flex-1' : 'w-full'}`}
                 title={isLocataire ? 'Payer mon loyer via Wave / OM' : 'Générer un lien ou encaisser par Wave / OM'}
@@ -430,7 +441,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                             >
                               <Printer className="w-3 h-3" /> Quittance
                             </button>
-                            {/* 🔒 WhatsApp + Appel : UNIQUEMENT pour ADMIN/CAISSIER/GESTIONNAIRE */}
+                            {/* 🔒 WhatsApp + Appel : UNIQUEMENT pour rôles non-locataire */}
                             {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
@@ -465,7 +476,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                           </>
                         ) : (
                           <>
-                            {/* 🔒 Bouton "Encaisser" : UNIQUEMENT pour ADMIN/CAISSIER */}
+                            {/* 🔒 Bouton "Encaisser" : UNIQUEMENT ADMIN/CAISSIER */}
                             {canEncaisser && (
                               <button
                                 onClick={() => {
@@ -477,7 +488,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                                 Encaisser
                               </button>
                             )}
-                            {/* 🔒 Bouton "Wave / OM" : pour tous ceux qui peuvent payer */}
+                            {/* 🔒 Bouton "Wave / OM" */}
                             {canUseMobileMoney && (
                               <button
                                 onClick={() => setSelectedPaymentForMobileMoney(p)}
@@ -487,7 +498,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                                 <Smartphone className="w-3 h-3" /> Wave / OM
                               </button>
                             )}
-                            {/* 🔒 Appel : UNIQUEMENT pour les rôles non-locataire */}
+                            {/* 🔒 Appel : UNIQUEMENT pour rôles non-locataire */}
                             {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
@@ -514,7 +525,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Enregistrer un Nouveau Paiement — 🔒 UNIQUEMENT pour ADMIN/CAISSIER */}
+      {/* Modal: Enregistrer un Nouveau Paiement — 🔒 UNIQUEMENT ADMIN/CAISSIER */}
       {isNewPaymentModalOpen && canEncaisser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
@@ -705,6 +716,9 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             setSelectedPaymentForMobileMoney(null);
             confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
           }}
+          waveNumero={settings?.waveNumero}
+          orangeMoneyCode={settings?.orangeMoneyCode}
+          whatsappBusiness={settings?.whatsappBusiness}
         />
       )}
     </div>
