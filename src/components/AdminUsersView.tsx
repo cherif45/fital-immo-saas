@@ -465,7 +465,9 @@ export function AdminUsersView({
                             <span>Locataire Associé :</span>
                           </div>
                           <p className="text-white font-medium pl-5">
-                            {linkedTenant ? `${linkedTenant.prenom} ${linkedTenant.nom} — ${linkedTenant.bienNom}` : 'Compte non rattaché'}
+                            {linkedTenant 
+  ? `${linkedTenant.prenom} ${linkedTenant.nom}${linkedTenant.bienNom ? ` — ${linkedTenant.bienNom}` : ''}` 
+  : 'Compte non rattaché'}
                           </p>
                         </div>
                       )}
