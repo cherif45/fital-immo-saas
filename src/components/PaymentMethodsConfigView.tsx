@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PaymentMethodConfig, PaymentMethodCode } from '../types';
+import { PaymentMethodConfig, PaymentMethodCode, AgencySettings } from '../types';
 import { 
   CreditCard, 
   Smartphone, 
@@ -13,17 +13,20 @@ import {
   Sliders, 
   ShieldCheck, 
   Save, 
-  AlertCircle 
+  AlertCircle,
+  Info
 } from 'lucide-react';
 
 interface PaymentMethodsConfigViewProps {
   paymentMethods: PaymentMethodConfig[];
+  settings?: AgencySettings;   // ⬇️ AJOUT : pour lire les vrais numéros Wave/OM
   onUpdatePaymentMethod: (method: PaymentMethodConfig) => void;
   onAddPaymentMethod: (method: PaymentMethodConfig) => void;
 }
 
 export function PaymentMethodsConfigView({
   paymentMethods,
+  settings,
   onUpdatePaymentMethod,
   onAddPaymentMethod,
 }: PaymentMethodsConfigViewProps) {
@@ -39,6 +42,20 @@ export function PaymentMethodsConfigView({
     delaiValidationHeures: 0,
     instructions: '',
   });
+
+  // ============================================================
+  // ⬇️ FIX RADICAL : lire les VRAIS numéros depuis agency_settings
+  // pour WAVE et ORANGE_MONEY. Sinon on garde la valeur DB locale.
+  // ============================================================
+  const getRealPhone = (method: PaymentMethodConfig): string => {
+    if (method.code === 'WAVE') {
+      return settings?.waveNumero || method.numeroCompteOuTelephone || '— Non configuré';
+    }
+    if (method.code === 'ORANGE_MONEY') {
+      return settings?.orangeMoneyCode || method.numeroCompteOuTelephone || '— Non configuré';
+    }
+    return method.numeroCompteOuTelephone || method.config?.numeroRecepteur || method.config?.nomCompte || '—';
+  };
 
   const getMethodIcon = (code: PaymentMethodCode) => {
     switch (code) {
@@ -64,7 +81,6 @@ export function PaymentMethodsConfigView({
   };
 
   const handleSetDefault = (method: PaymentMethodConfig) => {
-    // Unset other defaults
     paymentMethods.forEach((m) => {
       if (m.id === method.id) {
         onUpdatePaymentMethod({ ...m, estParDefaut: true });
@@ -103,6 +119,12 @@ export function PaymentMethodsConfigView({
     setIsNewMethodModalOpen(false);
   };
 
+  // ⬇️ Détecte si on est sur Wave/OM pour afficher une note
+  const isGatewaySynced = (code: PaymentMethodCode): boolean => {
+    return (code === 'WAVE' && !!settings?.waveNumero) 
+        || (code === 'ORANGE_MONEY' && !!settings?.orangeMoneyCode);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -127,6 +149,19 @@ export function PaymentMethodsConfigView({
           <PlusCircle className="w-4 h-4" />
           <span>+ Ajouter un Canal de Paiement</span>
         </button>
+      </div>
+
+      {/* Note de synchronisation */}
+      <div className="p-3.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-200 flex items-start gap-2.5">
+        <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" />
+        <div>
+          <p className="font-semibold text-blue-100">
+            Les numéros Wave et Orange Money sont pilotés depuis <strong>Paramètres → Mobile Money & Télécoms</strong>.
+          </p>
+          <p className="text-blue-200/80 mt-0.5">
+            Toute modification dans cette page est synchronisée automatiquement avec la modale de paiement des locataires.
+          </p>
+        </div>
       </div>
 
       {/* Methods Grid */}
@@ -173,10 +208,10 @@ export function PaymentMethodsConfigView({
               <p className="text-xs text-slate-400">{method.description}</p>
 
               <div className="p-3 bg-[#0A111D] border border-white/5 rounded-xl space-y-1.5 text-xs">
-                {(method.numeroCompteOuTelephone || method.config?.numeroRecepteur || method.config?.nomCompte) && (
+                {(getRealPhone(method) !== '—' && getRealPhone(method) !== '— Non configuré') && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Compte / Tél :</span>
-                    <strong className="text-white font-mono">{method.numeroCompteOuTelephone || method.config?.numeroRecepteur || method.config?.nomCompte}</strong>
+                    <strong className="text-white font-mono">{getRealPhone(method)}</strong>
                   </div>
                 )}
                 {(method.banqueNom || method.config?.banque) && (
@@ -198,6 +233,14 @@ export function PaymentMethodsConfigView({
                   </span>
                 </div>
               </div>
+
+              {/* Badge "Synchronisé" pour Wave/OM */}
+              {isGatewaySynced(method.code) && (
+                <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  <span>Synchronisé avec Paramètres → Mobile Money</span>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 mt-4 border-t border-white/5 flex items-center justify-between">
@@ -235,6 +278,19 @@ export function PaymentMethodsConfigView({
               <button onClick={() => setSelectedMethod(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
+            {/* Alerte si Wave/OM : il faut passer par Paramètres */}
+            {(selectedMethod.code === 'WAVE' || selectedMethod.code === 'ORANGE_MONEY') && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                <div>
+                  <p className="font-semibold">Ce numéro est piloté depuis les Paramètres.</p>
+                  <p className="mt-0.5 text-amber-200/80">
+                    Pour modifier le numéro {selectedMethod.code === 'WAVE' ? 'Wave' : 'Orange Money'}, rendez-vous dans <strong>Paramètres → Mobile Money & Télécoms</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1">Nom / Libellé *</label>
@@ -249,12 +305,24 @@ export function PaymentMethodsConfigView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Numéro Marchand / Tél / RIB</label>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                    Numéro Marchand / Tél / RIB
+                    {(selectedMethod.code === 'WAVE' || selectedMethod.code === 'ORANGE_MONEY') && (
+                      <span className="text-amber-400 ml-1">(lecture seule)</span>
+                    )}
+                  </label>
                   <input
                     type="text"
-                    value={selectedMethod.numeroCompteOuTelephone || ''}
+                    value={
+                      selectedMethod.code === 'WAVE' 
+                        ? (settings?.waveNumero || selectedMethod.numeroCompteOuTelephone || '')
+                        : selectedMethod.code === 'ORANGE_MONEY'
+                        ? (settings?.orangeMoneyCode || selectedMethod.numeroCompteOuTelephone || '')
+                        : (selectedMethod.numeroCompteOuTelephone || '')
+                    }
                     onChange={(e) => setSelectedMethod({ ...selectedMethod, numeroCompteOuTelephone: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white font-mono"
+                    disabled={selectedMethod.code === 'WAVE' || selectedMethod.code === 'ORANGE_MONEY'}
+                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white font-mono disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>

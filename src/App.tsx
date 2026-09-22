@@ -1268,9 +1268,10 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'payment-methods' && (
+                    {activeTab === 'payment-methods' && (
             <PaymentMethodsConfigView
               paymentMethods={paymentMethods}
+              settings={settings}
               onUpdatePaymentMethod={handleUpdatePaymentMethod}
               onAddPaymentMethod={handleAddPaymentMethod}
             />
