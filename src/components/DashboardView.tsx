@@ -144,12 +144,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const estimatedCommission = Math.round(totalCollected * 0.095);
 
   // ============================================================
-  // ACTIVITÉ DU JOUR (nouveaux éléments créés aujourd'hui)
+  // ACTIVITÉ DU JOUR
   // ============================================================
   const tenantsToday = tenants.filter((t) => isToday(t.dateEntree));
+  const propertiesToday = properties.filter((p) => isToday(p.dateCreation));
   const maintenanceToday = maintenance.filter((m) => isToday(m.dateSignalement));
   const remindersToday = overdueTenants.filter((t) => (t.joursRetard || 0) > 0);
-  const contractsToday = tenantsToday.length; // approximation : 1 contrat par nouveau locataire
+  const contractsToday = tenantsToday.length;
+
+  const totalActionsToday = tenantsToday.length + propertiesToday.length + paymentsToday.length + maintenanceToday.length;
 
   const handleRefreshAI = async () => {
     if (properties.length === 0) {
@@ -299,13 +302,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="text-right">
               <div className="text-2xl font-black text-[#E8D5B0]">
-                {tenantsToday.length + paymentsToday.length + maintenanceToday.length} action{tenantsToday.length + paymentsToday.length + maintenanceToday.length > 1 ? 's' : ''}
+                {totalActionsToday} action{totalActionsToday > 1 ? 's' : ''}
               </div>
               <div className="text-[10px] text-[#6B7C94] uppercase tracking-wider">aujourd'hui</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Nouveaux locataires */}
             <div className="p-4 rounded-xl bg-[#0A111D]/60 border border-emerald-500/20">
               <div className="flex items-center justify-between mb-3">
@@ -316,13 +319,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="text-lg font-black text-emerald-400">{tenantsToday.length}</span>
               </div>
               {tenantsToday.length === 0 ? (
-                <p className="text-[11px] text-[#6B7C94] italic">Aucun nouveau locataire aujourd'hui</p>
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun aujourd'hui</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {tenantsToday.map((t) => (
                     <div key={t.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                       <span className="font-semibold text-white truncate">{t.prenom} {t.nom}</span>
-                      <span className="text-[#A8B4C4] truncate ml-2">{t.bienNom}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Nouveaux biens */}
+            <div className="p-4 rounded-xl bg-[#0A111D]/60 border border-purple-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-400" />
+                  <span className="text-xs font-bold text-white">Nouveaux biens</span>
+                </div>
+                <span className="text-lg font-black text-purple-400">{propertiesToday.length}</span>
+              </div>
+              {propertiesToday.length === 0 ? (
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun aujourd'hui</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {propertiesToday.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                      <span className="font-semibold text-white truncate">{p.nom}</span>
                     </div>
                   ))}
                 </div>
@@ -339,7 +363,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="text-lg font-black text-[#C9A96E]">{paymentsToday.length}</span>
               </div>
               {paymentsToday.length === 0 ? (
-                <p className="text-[11px] text-[#6B7C94] italic">Aucun encaissement aujourd'hui</p>
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun aujourd'hui</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {paymentsToday.map((p) => (
@@ -362,13 +386,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="text-lg font-black text-amber-400">{maintenanceToday.length}</span>
               </div>
               {maintenanceToday.length === 0 ? (
-                <p className="text-[11px] text-[#6B7C94] italic">Aucun ticket aujourd'hui</p>
+                <p className="text-[11px] text-[#6B7C94] italic">Aucun aujourd'hui</p>
               ) : (
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {maintenanceToday.map((m) => (
                     <div key={m.id} className="flex items-center justify-between text-[11px] p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
                       <span className="font-semibold text-white truncate">{m.titre}</span>
-                      <span className="text-[#A8B4C4] truncate ml-2">{m.bienNom}</span>
                     </div>
                   ))}
                 </div>
