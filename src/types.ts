@@ -612,6 +612,11 @@ export interface AgencySettings {
   prefixPaiement: string;
   prefixContrat: string;
   prefixBonCaisse: string;
+  // ⬇️ NOUVEAUX CHAMPS pour Mobile Money & Télécoms
+  waveNumero?: string;
+  orangeMoneyCode?: string;
+  whatsappBusiness?: string;
+  standardTelephone?: string;
 }
 
 export type ActiveTab = 
