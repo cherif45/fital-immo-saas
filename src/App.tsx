@@ -1546,7 +1546,7 @@ export default function App() {
           ]);
         }}
       />
-
+   {mobileMoneyModalConfig && console.log('🔍 DEBUG — settings.waveNumero =', settings.waveNumero, '| typeof =', typeof settings.waveNumero)}
             {mobileMoneyModalConfig && (
         <MobileMoneyPaymentModal
           isOpen={mobileMoneyModalConfig.isOpen}
