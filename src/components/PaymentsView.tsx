@@ -67,6 +67,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [datePaiement, setDatePaiement] = useState<string>(new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useState<string>('Règlement loyer régulier');
 
+  // ============================================================
+  // 🔒 MATRICE DE PERMISSIONS
+  // ============================================================
+  const role = currentUser?.role || 'ADMIN';
+  const isLocataire = role === 'LOCATAIRE';
+  const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER';
+  const canUseMobileMoney = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'LOCATAIRE';
+  const canSeeOthers = !isLocataire;
+
   // Auto populate values when tenant changes
   React.useEffect(() => {
     if (selectedTenantId) {
@@ -80,6 +89,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       }
     }
   }, [selectedTenantId]);
+
+  // 🔒 Sécurité : si un LOCATAIRE essaie d'ouvrir la modale d'encaissement → on la ferme
+  React.useEffect(() => {
+    if (isLocataire && isNewPaymentModalOpen) {
+      setIsNewPaymentModalOpen(false);
+    }
+  }, [isLocataire, isNewPaymentModalOpen, setIsNewPaymentModalOpen]);
 
   const filteredPayments = payments.filter((p) => {
     if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
@@ -122,6 +138,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   const handleSubmitPayment = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🔒 Sécurité : seul ADMIN/CAISSIER peut encaisser
+    if (!canEncaisser) {
+      alert("Vous n'avez pas les droits pour enregistrer un encaissement.");
+      return;
+    }
+
     const t = tenants.find((item) => item.id === selectedTenantId);
     if (!t) return;
 
@@ -132,7 +155,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     const isFull = montantPaye >= totalCalculated;
 
     const newPayment: Payment = {
-      id: crypto.randomUUID(), 
+      id: crypto.randomUUID(),
       ref: `PAY-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
       locataireId: t.id,
@@ -162,7 +185,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     onAddPayment(newPayment);
     setIsNewPaymentModalOpen(false);
 
-    // Trigger celebratory confetti effect
     try {
       confetti({
         particleCount: 70,
@@ -174,7 +196,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       // ignore
     }
 
-    // Auto open receipt for instant print
     onOpenReceipt(newPayment);
   };
 
@@ -199,7 +220,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/20">
           <div className="text-[11px] text-[#A8B4C4] font-medium uppercase tracking-wider">
-            Total Encaissé (Filtre actif)
+            {isLocataire ? 'Total Encaissé par moi' : 'Total Encaissé (Filtre actif)'}
           </div>
           <div className="text-2xl font-bold text-[#E8D5B0] mt-1">
             {formatNumber(totalCollected)}{' '}
@@ -230,36 +251,44 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border border-[#C9A96E]/30 flex flex-col justify-between">
-          <div className="text-xs text-white font-bold flex items-center gap-1.5">
-            <Receipt className="w-4 h-4 text-[#C9A96E]" />
-            <span>Encaissements & Moyens Mobiles</span>
+        {/* 🔒 BLOC "Encaissements & Moyens Mobiles" — UNIQUEMENT pour ADMIN/CAISSIER/GESTIONNAIRE/LOCATAIRE */}
+        {canUseMobileMoney && (
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border border-[#C9A96E]/30 flex flex-col justify-between">
+            <div className="text-xs text-white font-bold flex items-center gap-1.5">
+              <Receipt className="w-4 h-4 text-[#C9A96E]" />
+              <span>{isLocataire ? 'Payer mon Loyer' : 'Encaissements & Moyens Mobiles'}</span>
+            </div>
+            <div className="mt-3 flex flex-col sm:flex-row gap-2">
+              {/* 🔒 Bouton "+ Enregistrer" — UNIQUEMENT pour ADMIN/CAISSIER */}
+              {canEncaisser && (
+                <button
+                  onClick={() => setIsNewPaymentModalOpen(true)}
+                  className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 flex-1"
+                >
+                  <Plus className="w-4 h-4" /> Enregistrer
+                </button>
+              )}
+              {/* 🔒 Bouton "Wave / OM" — pour tous ceux qui peuvent payer */}
+              <button
+                onClick={() => {
+                  const target = isLocataire
+                    ? payments.find((p) => p.statut !== 'Payé') || payments[0]
+                    : payments.find((p) => p.statut !== 'Payé') || payments[0];
+                  setSelectedPaymentForMobileMoney(target);
+                }}
+                className={`py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 ${canEncaisser ? 'flex-1' : 'w-full'}`}
+                title={isLocataire ? 'Payer mon loyer via Wave / OM' : 'Générer un lien ou encaisser par Wave / OM'}
+              >
+                <Smartphone className="w-4 h-4 text-blue-400" /> Wave / OM
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={() => setIsNewPaymentModalOpen(true)}
-              className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 flex-1"
-            >
-              <Plus className="w-4 h-4" /> Enregistrer
-            </button>
-            <button
-              onClick={() => {
-                const unpaid = payments.find((p) => p.statut !== 'Payé') || payments[0];
-                setSelectedPaymentForMobileMoney(unpaid);
-              }}
-              className="py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 flex-1"
-              title="Générer un lien ou encaisser par Wave / OM"
-            >
-              <Smartphone className="w-4 h-4 text-blue-400" /> Wave / OM
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Status buttons */}
           <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs">
             <button
               onClick={() => setStatusFilter('all')}
@@ -287,7 +316,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             </button>
           </div>
 
-          {/* Mode select */}
           <select
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value)}
@@ -301,7 +329,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </select>
         </div>
 
-        {/* Search & Export Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <div className="relative flex-1 md:w-56">
             <Search className="w-3.5 h-3.5 text-[#6B7C94] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -346,7 +373,9 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   <td colSpan={8} className="py-12 text-center text-[#6B7C94]">
                     <CreditCard className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
                     <p className="text-xs font-semibold text-white">Aucun paiement enregistré</p>
-                    <p className="text-[11px] text-[#6B7C94] mt-1">Vous n'avez encore aucun encaissement correspondant aux filtres.</p>
+                    <p className="text-[11px] text-[#6B7C94] mt-1">
+                      {isLocataire ? 'Vous n\'avez pas encore de quittance.' : 'Aucun encaissement correspondant aux filtres.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -401,7 +430,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                             >
                               <Printer className="w-3 h-3" /> Quittance
                             </button>
-                            {(() => {
+                            {/* 🔒 WhatsApp + Appel : UNIQUEMENT pour ADMIN/CAISSIER/GESTIONNAIRE */}
+                            {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
                               return (
@@ -435,23 +465,30 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                           </>
                         ) : (
                           <>
-                            <button
-                              onClick={() => {
-                                setSelectedTenantId(p.locataireId);
-                                setIsNewPaymentModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all flex items-center gap-1"
-                            >
-                              Encaisser
-                            </button>
-                            <button
-                              onClick={() => setSelectedPaymentForMobileMoney(p)}
-                              className="px-2 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 font-semibold text-[11px] transition-all flex items-center gap-1"
-                              title="Payer ou générer le lien Wave / OM"
-                            >
-                              <Smartphone className="w-3 h-3" /> Wave / OM
-                            </button>
-                            {(() => {
+                            {/* 🔒 Bouton "Encaisser" : UNIQUEMENT pour ADMIN/CAISSIER */}
+                            {canEncaisser && (
+                              <button
+                                onClick={() => {
+                                  setSelectedTenantId(p.locataireId);
+                                  setIsNewPaymentModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all flex items-center gap-1"
+                              >
+                                Encaisser
+                              </button>
+                            )}
+                            {/* 🔒 Bouton "Wave / OM" : pour tous ceux qui peuvent payer */}
+                            {canUseMobileMoney && (
+                              <button
+                                onClick={() => setSelectedPaymentForMobileMoney(p)}
+                                className="px-2 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 font-semibold text-[11px] transition-all flex items-center gap-1"
+                                title={isLocataire ? 'Payer ma quittance via Wave / OM' : 'Payer ou générer le lien Wave / OM'}
+                              >
+                                <Smartphone className="w-3 h-3" /> Wave / OM
+                              </button>
+                            )}
+                            {/* 🔒 Appel : UNIQUEMENT pour les rôles non-locataire */}
+                            {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
                               return (
@@ -477,8 +514,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Enregistrer un Nouveau Paiement */}
-      {isNewPaymentModalOpen && (
+      {/* Modal: Enregistrer un Nouveau Paiement — 🔒 UNIQUEMENT pour ADMIN/CAISSIER */}
+      {isNewPaymentModalOpen && canEncaisser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
@@ -495,7 +532,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             </div>
 
             <form onSubmit={handleSubmitPayment} className="p-6 space-y-4 text-xs">
-              {/* Tenant Selection */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   1. Sélectionner le Locataire & Bien
@@ -515,7 +551,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </select>
               </div>
 
-              {/* Amount and Period Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -545,7 +580,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </div>
               </div>
 
-              {/* Breakdown Grid */}
               <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/15">
                 <div>
                   <label className="block text-[10px] text-[#6B7C94] uppercase">Charges</label>
@@ -576,7 +610,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </div>
               </div>
 
-              {/* Payment Mode & Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -607,7 +640,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </div>
               </div>
 
-              {/* Observations */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Observations / Référence reçu
@@ -621,7 +653,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 />
               </div>
 
-              {/* Submit Buttons */}
               <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -644,7 +675,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       )}
 
       {/* Modal Mobile Money (Wave & Orange Money) */}
-      {selectedPaymentForMobileMoney && (
+      {selectedPaymentForMobileMoney && canUseMobileMoney && (
         <MobileMoneyPaymentModal
           isOpen={!!selectedPaymentForMobileMoney}
           onClose={() => setSelectedPaymentForMobileMoney(null)}
