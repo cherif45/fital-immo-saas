@@ -1062,23 +1062,108 @@ export default function App() {
     );
   }
 
-  const scopedProperties = currentUser.role === 'PROPRIETAIRE'
-    ? properties.filter((p) => p.proprietaireId === currentUser.proprietaireId)
-    : currentUser.role === 'LOCATAIRE'
-    ? properties.filter((p) => p.id === currentUser.bienId)
-    : properties;
+   // ============================================================
+  // 🔒 SCOPED DATA PAR RÔLE — Matrice de permissions
+  // Basée sur les logiciels standard (TurboTenant, Matera, Lobby)
+  // ============================================================
 
-  const scopedTenants = currentUser.role === 'PROPRIETAIRE'
-    ? tenants.filter((t) => t.proprietaireId === currentUser.proprietaireId)
-    : currentUser.role === 'LOCATAIRE'
-    ? tenants.filter((t) => t.id === currentUser.locataireId)
-    : tenants;
+  // 🔧 Biens visibles selon le rôle
+  const scopedProperties = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      // Le locataire voit son bien via son locataireId → bienId
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
+    }
+    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER (lecture), AGENT (lecture)
+    return properties;
+  })();
 
-  const scopedPayments = currentUser.role === 'PROPRIETAIRE'
-    ? payments.filter((p) => p.proprietaireId === currentUser.proprietaireId)
-    : currentUser.role === 'LOCATAIRE'
-    ? payments.filter((p) => p.locataireId === currentUser.locataireId)
-    : payments;
+  // 🔧 Locataires visibles selon le rôle
+  const scopedTenants = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      // Propriétaire → locataires dans SES biens uniquement
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return tenants.filter((t) => myBienIds.includes(t.bienId));
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      return tenants.filter((t) => t.id === currentUser.locataireId);
+    }
+    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER (lecture), AGENT (lecture)
+    return tenants;
+  })();
+
+  // 🔧 Paiements visibles selon le rôle
+  const scopedPayments = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      return payments.filter((p) => p.locataireId === currentUser.locataireId);
+    }
+    // 🔴 AGENT ne voit AUCUN paiement
+    if (currentUser.role === 'AGENT') {
+      return [];
+    }
+    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER
+    return payments;
+  })();
+
+  // 🔧 Contrats visibles selon le rôle
+  const scopedContracts = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      return contracts.filter((c) => c.locataireId === currentUser.locataireId);
+    }
+    if (currentUser.role === 'AGENT') {
+      return contracts; // L'agent peut voir les baux pour les états des lieux
+    }
+    return contracts;
+  })();
+
+  // 🔧 Inspections visibles selon le rôle
+  const scopedInspections = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return inspections.filter((i) => myBienIds.includes(i.bienId));
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      return inspections.filter((i) => i.locataireId === currentUser.locataireId);
+    }
+    return inspections;
+  })();
+
+  // 🔧 Travaux visibles selon le rôle
+  const scopedMaintenance = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return maintenance.filter((m) => myBienIds.includes(m.bienId));
+    }
+    if (currentUser.role === 'LOCATAIRE') {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : [];
+    }
+    return maintenance;
+  })();
+
+  // 🔧 Reversements visibles selon le rôle
+  const scopedDisbursements = (() => {
+    if (currentUser.role === 'PROPRIETAIRE') {
+      return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
+    }
+    // 🔴 Les autres rôles (sauf ADMIN/CAISSIER) ne devraient pas voir les reversements
+    if (currentUser.role === 'GESTIONNAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'LOCATAIRE') {
+      return [];
+    }
+    return disbursements;
+  })();
 
   return (
     <div className="min-h-screen bg-[#0A111D] text-[#F0EDE8] flex font-sans antialiased selection:bg-[#C9A96E]/30 selection:text-[#E8D5B0]">

@@ -49,6 +49,15 @@ interface TopbarProps {
   onOpenMobileMoney?: () => void;
 }
 
+// ============================================================
+// 🔒 MATRICE DE VISIBILITÉ DES BOUTONS PAR RÔLE
+// Basée sur les logiciels standard (TurboTenant, Matera, Lobby)
+// ============================================================
+
+const CAN_USE_MOBILE_MONEY = ['ADMIN', 'SUPER_ADMIN', 'CAISSIER', 'GESTIONNAIRE', 'LOCATAIRE'];
+const CAN_USE_QUICK_COMMS = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'];
+const CAN_USE_AI_REMINDERS = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'];
+
 export const Topbar: React.FC<TopbarProps> = ({
   activeTab,
   searchQuery,
@@ -76,6 +85,11 @@ export const Topbar: React.FC<TopbarProps> = ({
   const [showDbStatusModal, setShowDbStatusModal] = useState(false);
 
   const noop = () => {};
+
+  // ⬇️ Filtrer les boutons selon le rôle
+  const showMobileMoneyBtn = onOpenMobileMoney && CAN_USE_MOBILE_MONEY.includes(currentUser.role);
+  const showQuickCommsBtn = onOpenQuickComms && CAN_USE_QUICK_COMMS.includes(currentUser.role);
+  const showAiRemindersBtn = CAN_USE_AI_REMINDERS.includes(currentUser.role);
 
   const tabTitles: Record<string, { title: string; subtitle: string; ctaText?: string; ctaAction?: () => void; hideCta?: boolean }> = {
     dashboard: {
@@ -143,14 +157,16 @@ export const Topbar: React.FC<TopbarProps> = ({
     properties: {
       title: currentUser.role === 'PROPRIETAIRE' ? 'Mes Biens Immobiliers' : 'Parc Immobilier & Biens',
       subtitle: 'Gestion des appartements, villas, bureaux, magasins et taux de gérance',
-      ctaText: 'Nouveau Bien',
-      ctaAction: onOpenNewProperty,
+      ctaText: currentUser.role === 'LOCATAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'CAISSIER' ? undefined : 'Nouveau Bien',
+      ctaAction: currentUser.role === 'LOCATAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'CAISSIER' ? undefined : onOpenNewProperty,
+      hideCta: currentUser.role === 'LOCATAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'CAISSIER',
     },
     tenants: {
       title: currentUser.role === 'PROPRIETAIRE' ? 'Mes Locataires' : 'Répertoire des Locataires',
       subtitle: 'Fiches personnelles, solvabilité, coordonnées et historiques',
-      ctaText: 'Nouveau Locataire',
-      ctaAction: onOpenNewTenant || onOpenNewPayment,
+      ctaText: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE' ? undefined : 'Nouveau Locataire',
+      ctaAction: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE' ? undefined : (onOpenNewTenant || onOpenNewPayment),
+      hideCta: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE',
     },
     owners: {
       title: 'Propriétaires & Mandats',
@@ -175,8 +191,9 @@ export const Topbar: React.FC<TopbarProps> = ({
     finance: {
       title: currentUser.role === 'PROPRIETAIRE' ? 'Mes Reversements & Décomptes' : 'Comptabilité, Décaissements & Caisse',
       subtitle: 'Revenus agence, commissions, reversements propriétaires et solde de caisse',
-      ctaText: 'Nouveau Décaissement',
-      ctaAction: onOpenNewPayment,
+      ctaText: currentUser.role === 'PROPRIETAIRE' ? undefined : 'Nouveau Décaissement',
+      ctaAction: currentUser.role === 'PROPRIETAIRE' ? undefined : onOpenNewPayment,
+      hideCta: currentUser.role === 'PROPRIETAIRE',
     },
     documents: {
       title: 'Documents & Modèles Officiels',
@@ -370,9 +387,8 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
 
-          {/* AI Quick Button */}
           {/* Communications (Appels / WhatsApp / SMS) button */}
-          {onOpenQuickComms && (
+          {showQuickCommsBtn && (
             <button
               onClick={onOpenQuickComms}
               className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[40px]"
@@ -384,7 +400,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
 
           {/* Mobile Money direct action button */}
-          {onOpenMobileMoney && (
+          {showMobileMoneyBtn && (
             <button
               onClick={onOpenMobileMoney}
               className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[40px]"
@@ -395,7 +411,8 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          {currentUser.role !== 'LOCATAIRE' && (
+          {/* AI Reminders button */}
+          {showAiRemindersBtn && (
             <button
               onClick={onOpenReminders}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E]/20 via-[#E8A84A]/20 to-[#C9A96E]/10 border border-[#C9A96E]/40 text-[#E8D5B0] hover:border-[#C9A96E] text-xs font-semibold shadow-sm hover:shadow-[#C9A96E]/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[40px]"
