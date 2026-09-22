@@ -61,10 +61,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
   const [aiInsight, setAiInsight] = useState<{ analysis: string; actionPlan: string[] } | null>(null);
 
-  // Calculate Metrics
-  const totalCollected = payments
-    .filter((p) => p.statut === 'Payé')
-    .reduce((sum, p) => sum + p.montantPaye, 0);
+  // ============================================================
+  // FILTRAGE PAR PÉRIODE (Aujourd'hui, 7 jours, Mois, Trimestre, Année)
+  // ============================================================
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const getPeriodRange = () => {
+    switch (selectedPeriod) {
+      case 'Aujourd’hui': {
+        const end = new Date(today);
+        end.setDate(end.getDate() + 1);
+        return { start: today, end };
+      }
+      case '7 jours': {
+        const start = new Date(today);
+        start.setDate(start.getDate() - 7);
+        return { start, end: now };
+      }
+      case 'Trimestre': {
+        const quarter = Math.floor(now.getMonth() / 3);
+        const start = new Date(now.getFullYear(), quarter * 3, 1);
+        return { start, end: now };
+      }
+      case 'Année 2026': {
+        const start = new Date(now.getFullYear(), 0, 1);
+        return { start, end: now };
+      }
+      case 'Ce mois (Mai 2026)':
+      default: {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start, end: now };
+      }
+    }
+  };
+
+  const { start: periodStart, end: periodEnd } = getPeriodRange();
+
+  const isInPeriod = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d >= periodStart && d <= periodEnd;
+  };
+
+  // ============================================================
+  // CALCUL DES MÉTRIQUES (filtrées par période)
+  // ============================================================
+  const filteredPayments = payments.filter(
+    (p) => p.statut === 'Payé' && isInPeriod(p.datePaiement)
+  );
+
+  const totalCollected = filteredPayments.reduce((sum, p) => sum + p.montantPaye, 0);
 
   const totalUnpaid = tenants
     .filter((t) => t.statut === 'Impayé' || t.statut === 'Retard')
@@ -72,6 +119,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const overdueTenants = tenants.filter(
     (t) => t.statut === 'Impayé' || t.statut === 'Retard'
+  );
+
+  // Encaissé AUJOURD'HUI (indépendant du filtre de période)
+  const totalCollectedToday = payments
+    .filter((p) =>
+      p.statut === 'Payé' &&
+      new Date(p.datePaiement).toDateString() === new Date().toDateString()
+    )
+    .reduce((sum, p) => sum + p.montantPaye, 0);
+
+  const paymentsToday = payments.filter(
+    (p) =>
+      p.statut === 'Payé' &&
+      new Date(p.datePaiement).toDateString() === new Date().toDateString()
   );
 
   const occupiedProperties = properties.filter((p) => p.statut === 'Occupé').length;
@@ -232,7 +293,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {formatNumber(totalCollected)}{' '}
             <span className="text-xs font-normal text-[#C9A96E]">FCFA</span>
           </div>
-          <div className="text-xs font-medium text-[#A8B4C4] mt-1">Loyers perçus du mois</div>
+          <div className="text-xs font-medium text-[#A8B4C4] mt-1">
+            Loyers perçus · {selectedPeriod}
+          </div>
           <div className="text-[11px] text-[#6B7C94] mt-3 pt-3 border-t border-[#C9A96E]/10 flex items-center justify-between">
             <span>Commissions agence :</span>
             <span className="text-[#C9A96E] font-semibold">
@@ -284,7 +347,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-xs font-normal text-[#A8B4C4]">recouvré</span>
           </div>
           <div className="text-xs font-medium text-[#A8B4C4] mt-1">Efficacité de recouvrement</div>
-          {/* Progress bar */}
           <div className="w-full bg-[#1E2E45] h-2 rounded-full mt-3 overflow-hidden">
             <div
               className="bg-gradient-to-r from-emerald-500 to-[#C9A96E] h-full rounded-full transition-all duration-700"
@@ -316,7 +378,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* AI Recovery Assistant & Smart Recommendations */}
+      {/* CARTE ENCAISSÉ AUJOURD'HUI */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border-2 border-[#C9A96E]/40 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#C9A96E]/10 rounded-full blur-3xl" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C9A96E] to-[#A07840] flex items-center justify-center text-[#0A111D] shadow-lg">
+                <Coins className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-[#A8B4C4] uppercase tracking-wider">
+                  💰 Encaissé aujourd'hui
+                </div>
+                <div className="text-3xl font-black text-[#E8D5B0] tracking-tight mt-1">
+                  {formatNumber(totalCollectedToday)}{' '}
+                  <span className="text-base font-normal text-[#C9A96E]">FCFA</span>
+                </div>
+                <div className="text-xs text-[#6B7C94] mt-1">
+                  {paymentsToday.length} paiement{paymentsToday.length > 1 ? 's' : ''} enregistré{paymentsToday.length > 1 ? 's' : ''} aujourd'hui
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-[#6B7C94] uppercase tracking-wider">
+                Date du jour
+              </div>
+              <div className="text-sm font-bold text-white">
+                {new Date().toLocaleDateString('fr-FR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Recovery Assistant */}
       <div className="p-5 rounded-2xl bg-gradient-to-r from-[#1E2E45] via-[#162133] to-[#1E2E45] border border-[#C9A96E]/35 shadow-2xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-[#C9A96E]/15">
           <div className="flex items-center gap-3">
@@ -378,7 +479,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         ) : (
           <div className="mt-4 p-4 rounded-xl bg-[#0F1B2D]/40 border border-white/5 text-center text-xs text-[#A8B4C4]">
-            <p>Cliquez sur <strong className="text-[#C9A96E]">« Réanalyser le parc »</strong> pour générer l’audit prédictif de vos loyers et recommandations d'actions prioritaires.</p>
+            <p>
+              Cliquez sur <strong className="text-[#C9A96E]">« Réanalyser le parc »</strong> pour générer l'audit prédictif de vos loyers et recommandations d'actions prioritaires.
+            </p>
           </div>
         )}
       </div>
@@ -404,7 +507,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Bar Chart Simulation */}
           <div className="h-56 flex items-end justify-between gap-3 pt-6 pb-2 px-2 border-b border-[#C9A96E]/10">
             {[
               { month: 'Jan', income: 3200000, expense: 450000 },
@@ -420,7 +522,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                   <div className="w-full max-w-[48px] flex items-end justify-center gap-1 h-full">
-                    {/* Income Bar */}
                     <div
                       className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${
                         bar.current
@@ -435,7 +536,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {(bar.income / 1000000).toFixed(2)}M FCFA
                       </div>
                     </div>
-                    {/* Expense Bar */}
                     <div
                       className={`w-1/2 rounded-t-lg transition-all duration-500 relative group/bar ${
                         bar.forecast ? 'bg-rose-500/30' : 'bg-rose-500/60 hover:bg-rose-500'
@@ -467,7 +567,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="text-sm font-bold text-white">Statut du Parc Immobilier</div>
             <div className="text-xs text-[#6B7C94] mt-0.5">Répartition des {totalProperties} biens gérés</div>
 
-            {/* Circular Progress Display */}
             <div className="flex items-center justify-center my-6">
               <div className="relative w-36 h-36 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -492,7 +591,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            {/* Breakdown List */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs p-2 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/10">
                 <div className="flex items-center gap-2 text-white">
@@ -529,7 +627,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Bottom Row: Priority Arrears & Recent Payments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Overdue Tenants with 1-Click Relance */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-rose-500/20 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -583,7 +680,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <button
                       onClick={() => onOpenQuickReminder(t)}
                       className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5"
-                      title="Envoyer relance WhatsApp 1-clic"
                     >
                       <Send className="w-3.5 h-3.5" /> Relancer
                     </button>
@@ -600,7 +696,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Recent Payments & Instant Receipts */}
         <div className="p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -625,7 +720,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="py-8 text-center text-[#6B7C94]">
                 <Receipt className="w-8 h-8 mx-auto text-[#6B7C94]/40 mb-2" />
                 <p className="text-xs font-semibold text-white">Aucun règlement enregistré</p>
-                <p className="text-[11px] text-[#6B7C94] mt-0.5">Les quittances apparaîtront ici dès l’encaissement d'un loyer.</p>
+                <p className="text-[11px] text-[#6B7C94] mt-0.5">Les quittances apparaîtront ici dès l'encaissement d'un loyer.</p>
               </div>
             ) : (
               payments
@@ -660,7 +755,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <button
                         onClick={() => onOpenReceipt(p)}
                         className="p-2 rounded-lg bg-[#162133] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all hover:scale-105"
-                        title="Imprimer / Télécharger Quittance de Loyer"
                       >
                         <Receipt className="w-3.5 h-3.5" />
                       </button>
