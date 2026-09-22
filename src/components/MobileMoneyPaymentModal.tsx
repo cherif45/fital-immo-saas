@@ -6,7 +6,7 @@ import {
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
   generateWavePaymentUrl, generateWaveDeepLink, generateOrangeMoneyUssd,
-  generateOrangeMoneyDialerUrl, generatePaymentQRCodeUrl, defaultMobileMoneyConfig 
+  generateOrangeMoneyDialerUrl, generatePaymentQRCodeUrl
 } from '../lib/payments/mobileMoney';
 import { triggerWhatsApp, triggerSMS } from '../lib/comms/commsHelper';
 import { PaymentMethodCode } from '../types';
@@ -21,7 +21,7 @@ interface MobileMoneyPaymentModalProps {
   period?: string;
   reference?: string;
   onConfirmPayment?: (amount: number, method: PaymentMethodCode, transactionRef: string) => void;
-  // ⬇️ NOUVELLES PROPS : les vrais numéros depuis les Paramètres
+  // ⬇️ Les vrais numéros depuis les Paramètres (agency_settings)
   waveNumero?: string;
   orangeMoneyCode?: string;
   whatsappBusiness?: string;
@@ -49,12 +49,17 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
 
   if (!isOpen) return null;
 
-  // ⬇️ Utilise TES valeurs (depuis les Paramètres) avec fallback sur les valeurs par défaut
+  // ⬇️ FIX RADICAL : AUCUN fallback vers des valeurs en dur.
+  // La source de vérité est agency_settings (props).
   const config = {
-    wavePhone: waveNumero || defaultMobileMoneyConfig.wavePhone,
-    orangeMoneyMerchantCode: orangeMoneyCode || defaultMobileMoneyConfig.orangeMoneyMerchantCode,
-    whatsappBusiness: whatsappBusiness || defaultMobileMoneyConfig.whatsappBusiness || tenantPhone,
+    wavePhone: waveNumero || '⚠️ NON CONFIGURÉ',
+    orangeMoneyMerchantCode: orangeMoneyCode || '⚠️ NON CONFIGURÉ',
+    whatsappBusiness: whatsappBusiness || tenantPhone,
   };
+
+  if (!waveNumero && !orangeMoneyCode) {
+    console.error('❌ ERREUR CRITIQUE : Wave/OM non configurés dans Paramètres → Mobile Money.');
+  }
 
   const wavePayUrl = generateWavePaymentUrl(amount, config.wavePhone, reference);
   const waveDeepLink = generateWaveDeepLink(amount, config.wavePhone, reference);
@@ -288,7 +293,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
                       <div className="text-lg font-mono font-black text-orange-400">{config.orangeMoneyMerchantCode}</div>
                     </div>
                     <button
-                      onClick={() => handleCopyCode(config.orangeMoneyMerchantCode || '894210')}
+                      onClick={() => handleCopyCode(config.orangeMoneyMerchantCode)}
                       className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs flex items-center gap-1"
                     >
                       {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
