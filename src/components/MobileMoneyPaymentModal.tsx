@@ -1,27 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  Smartphone, 
-  ExternalLink, 
-  QrCode, 
-  Copy, 
-  Check, 
-  Share2, 
-  PhoneCall, 
-  ShieldCheck, 
-  Receipt,
-  ArrowRight,
-  Sparkles,
-  Building2,
-  Coins
+  Smartphone, ExternalLink, QrCode, Copy, Check, Share2, PhoneCall,
+  ShieldCheck, Receipt, ArrowRight, Sparkles, Building2, Coins
 } from 'lucide-react';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
-  generateWavePaymentUrl, 
-  generateWaveDeepLink, 
-  generateOrangeMoneyUssd, 
-  generateOrangeMoneyDialerUrl, 
-  generatePaymentQRCodeUrl,
-  defaultMobileMoneyConfig 
+  generateWavePaymentUrl, generateWaveDeepLink, generateOrangeMoneyUssd,
+  generateOrangeMoneyDialerUrl, generatePaymentQRCodeUrl, defaultMobileMoneyConfig 
 } from '../lib/payments/mobileMoney';
 import { triggerWhatsApp, triggerSMS } from '../lib/comms/commsHelper';
 import { PaymentMethodCode } from '../types';
@@ -36,6 +21,10 @@ interface MobileMoneyPaymentModalProps {
   period?: string;
   reference?: string;
   onConfirmPayment?: (amount: number, method: PaymentMethodCode, transactionRef: string) => void;
+  // ⬇️ NOUVELLES PROPS : les vrais numéros depuis les Paramètres
+  waveNumero?: string;
+  orangeMoneyCode?: string;
+  whatsappBusiness?: string;
 }
 
 export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = ({
@@ -48,6 +37,9 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
   period = 'Mois en cours',
   reference = `LOY-${Date.now().toString().slice(-6)}`,
   onConfirmPayment,
+  waveNumero,
+  orangeMoneyCode,
+  whatsappBusiness,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<'WAVE' | 'ORANGE_MONEY' | 'FREE_MONEY'>('WAVE');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -57,17 +49,23 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
 
   if (!isOpen) return null;
 
-  const wavePayUrl = generateWavePaymentUrl(amount, defaultMobileMoneyConfig.wavePhone, reference);
-  const waveDeepLink = generateWaveDeepLink(amount, defaultMobileMoneyConfig.wavePhone, reference);
-  const omUssdCode = generateOrangeMoneyUssd(defaultMobileMoneyConfig.orangeMoneyMerchantCode, amount);
-  const omDialerUrl = generateOrangeMoneyDialerUrl(defaultMobileMoneyConfig.orangeMoneyMerchantCode, amount);
+  // ⬇️ Utilise TES valeurs (depuis les Paramètres) avec fallback sur les valeurs par défaut
+  const config = {
+    wavePhone: waveNumero || defaultMobileMoneyConfig.wavePhone,
+    orangeMoneyMerchantCode: orangeMoneyCode || defaultMobileMoneyConfig.orangeMoneyMerchantCode,
+    whatsappBusiness: whatsappBusiness || defaultMobileMoneyConfig.whatsappBusiness || tenantPhone,
+  };
+
+  const wavePayUrl = generateWavePaymentUrl(amount, config.wavePhone, reference);
+  const waveDeepLink = generateWaveDeepLink(amount, config.wavePhone, reference);
+  const omUssdCode = generateOrangeMoneyUssd(config.orangeMoneyMerchantCode, amount);
+  const omDialerUrl = generateOrangeMoneyDialerUrl(config.orangeMoneyMerchantCode, amount);
   
   const qrCodeUrl = selectedMethod === 'WAVE' 
     ? generatePaymentQRCodeUrl(wavePayUrl) 
-    : generatePaymentQRCodeUrl(`OM:SEN:${defaultMobileMoneyConfig.orangeMoneyMerchantCode}:${amount}:${reference}`);
+    : generatePaymentQRCodeUrl(`OM:SEN:${config.orangeMoneyMerchantCode}:${amount}:${reference}`);
 
   const handleLaunchWave = () => {
-    // Open the official Wave payment URL in a new window/tab
     window.open(wavePayUrl, '_blank');
   };
 
@@ -92,13 +90,13 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
       `Bonjour *${tenantName}*,\n` +
       `Voici votre lien de paiement direct pour votre loyer de *${propertyNom}* (${period}) d'un montant de *${amount.toLocaleString('fr-FR')} FCFA* :\n\n` +
       `🌊 *Payer avec Wave en 1 clic :*\n${wavePayUrl}\n\n` +
-      `🟠 *Orange Money Sénégal :*\nTapez *#144#* puis saisissez le Code Marchand *${defaultMobileMoneyConfig.orangeMoneyMerchantCode}* (Montant: ${amount.toLocaleString('fr-FR')} FCFA).\n\n` +
+      `🟠 *Orange Money Sénégal :*\nTapez *#144#* puis saisissez le Code Marchand *${config.orangeMoneyMerchantCode}* (Montant: ${amount.toLocaleString('fr-FR')} FCFA).\n\n` +
       `Réf transaction : *${reference}*`;
     triggerWhatsApp(tenantPhone, text);
   };
 
   const handleShareSMS = () => {
-    const text = `FITAL-IMMO: Règlement loyer ${propertyNom} (${amount.toLocaleString('fr-FR')} FCFA). Payer via Wave: ${wavePayUrl} ou OM Code ${defaultMobileMoneyConfig.orangeMoneyMerchantCode}. Ref: ${reference}`;
+    const text = `FITAL-IMMO: Règlement loyer ${propertyNom} (${amount.toLocaleString('fr-FR')} FCFA). Payer via Wave: ${wavePayUrl} ou OM Code ${config.orangeMoneyMerchantCode}. Ref: ${reference}`;
     triggerSMS(tenantPhone, text);
   };
 
@@ -256,7 +254,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
 
                   <div className="text-[11px] text-slate-400 flex items-center gap-2">
                     <span>Destinataire officiel :</span>
-                    <strong className="text-white font-mono">{defaultMobileMoneyConfig.wavePhone}</strong>
+                    <strong className="text-white font-mono">{config.wavePhone}</strong>
                   </div>
                 </div>
               </div>
@@ -287,10 +285,10 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
                   <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-semibold">Code Marchand FITAL-IMMO</span>
-                      <div className="text-lg font-mono font-black text-orange-400">{defaultMobileMoneyConfig.orangeMoneyMerchantCode}</div>
+                      <div className="text-lg font-mono font-black text-orange-400">{config.orangeMoneyMerchantCode}</div>
                     </div>
                     <button
-                      onClick={() => handleCopyCode(defaultMobileMoneyConfig.orangeMoneyMerchantCode || '894210')}
+                      onClick={() => handleCopyCode(config.orangeMoneyMerchantCode || '894210')}
                       className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs flex items-center gap-1"
                     >
                       {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}

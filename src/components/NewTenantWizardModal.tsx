@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import {
-  UserPlus,
-  Building,
-  FileText,
-  DollarSign,
-  ClipboardCheck,
-  CheckCircle2,
-  X,
-  ChevronRight,
-  ChevronLeft,
-  Calendar
+  UserPlus, Building, FileText, DollarSign, ClipboardCheck,
+  CheckCircle2, X, ChevronRight, ChevronLeft, Calendar, AlertTriangle
 } from 'lucide-react';
 import { Property, Tenant, LeaseContract, Inspection } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
@@ -41,12 +33,12 @@ export function NewTenantWizardModal({
   const [employeur, setEmployeur] = useState('');
   const [revenuMensuel, setRevenuMensuel] = useState(600000);
 
-  // Step 2: Choix du Bien
+  // Step 2: Choix du Bien — ⬇️ FILTRE VACANTS UNIQUEMENT
   const vacantProperties = properties.filter((p) => p.statut === 'Vacant');
   const [selectedBienId, setSelectedBienId] = useState(
-    vacantProperties[0]?.id || properties[0]?.id || ''
+    vacantProperties[0]?.id || ''
   );
-  const selectedBien = properties.find((p) => p.id === selectedBienId) || properties[0];
+  const selectedBien = properties.find((p) => p.id === selectedBienId);
 
   // Step 3: Contrat Bail
   const [dateDebut, setDateDebut] = useState(new Date().toISOString().split('T')[0]);
@@ -72,10 +64,25 @@ export function NewTenantWizardModal({
       alert('Veuillez renseigner le nom et le téléphone du locataire.');
       return;
     }
+    // ⬇️ BLOQUER SI AUCUN BIEN VACANT DISPONIBLE
+    if (step === 2 && !selectedBien) {
+      alert("Aucun bien vacant n'est disponible. Libérez un bien avant de créer un locataire.");
+      return;
+    }
     setStep((prev) => Math.min(6, prev + 1));
   };
 
   const handleFinish = () => {
+    // ⬇️ DOUBLE VÉRIFICATION À LA FINALISATION
+    if (!selectedBien) {
+      alert("Erreur : aucun bien sélectionné.");
+      return;
+    }
+    if (selectedBien.statut !== 'Vacant') {
+      alert("Ce bien n'est plus vacant. Impossible de créer le locataire.");
+      return;
+    }
+
     const tenantId = crypto.randomUUID();
     const contractId = crypto.randomUUID();
     const inspectionId = crypto.randomUUID();
@@ -295,41 +302,51 @@ export function NewTenantWizardModal({
               </h3>
               <div className="space-y-3">
                 <label className="block text-xs text-[#A0AEC0]">Sélectionner un bien disponible :</label>
-                <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
-                  {properties.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => {
-                        setSelectedBienId(p.id);
-                        setLoyerBase(p.loyerBase);
-                        setCharges(p.charges);
-                        setCautionMontant(p.loyerBase * cautionMois);
-                      }}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
-                        selectedBienId === p.id
-                          ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#F0EDE8]'
-                          : 'bg-[#0A111D] border-[#2A3447] hover:border-[#64748B]'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-semibold text-sm">{p.nom}</div>
-                        <div className="text-xs text-[#A0AEC0]">
-                          {p.type} • {p.quartier}, {p.ville} • Bailleur: {p.proprietaireNom}
+
+                {/* ⬇️ SI AUCUN BIEN VACANT, AFFICHER UN MESSAGE */}
+                {vacantProperties.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Aucun bien vacant disponible</p>
+                      <p className="mt-1 text-amber-200/80">
+                        Tous les biens sont actuellement occupés. Libérez un bien (via une sortie locataire) avant de créer un nouveau locataire.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                    {vacantProperties.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          setSelectedBienId(p.id);
+                          setLoyerBase(p.loyerBase);
+                          setCharges(p.charges);
+                          setCautionMontant(p.loyerBase * cautionMois);
+                        }}
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
+                          selectedBienId === p.id
+                            ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#F0EDE8]'
+                            : 'bg-[#0A111D] border-[#2A3447] hover:border-[#64748B]'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-semibold text-sm">{p.nom}</div>
+                          <div className="text-xs text-[#A0AEC0]">
+                            {p.type} • {p.quartier}, {p.ville} • Bailleur: {p.proprietaireNom}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-[#C9A96E]">{formatCurrencyFCFA(p.loyerBase + p.charges)}/m</div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#10B981]/20 text-[#10B981]">
+                            Vacant
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-[#C9A96E]">{formatCurrencyFCFA(p.loyerBase + p.charges)}/m</div>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            p.statut === 'Vacant' ? 'bg-[#10B981]/20 text-[#10B981]' : 'bg-[#EF4444]/20 text-[#EF4444]'
-                          }`}
-                        >
-                          {p.statut}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -477,7 +494,7 @@ export function NewTenantWizardModal({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#A0AEC0]">Logement :</span>
-                  <span className="font-bold text-[#C9A96E]">{selectedBien.nom}</span>
+                  <span className="font-bold text-[#C9A96E]">{selectedBien?.nom || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#A0AEC0]">Loyer Mensuel Total :</span>
@@ -513,7 +530,8 @@ export function NewTenantWizardModal({
           {step < 6 ? (
             <button
               onClick={handleNext}
-              className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+              disabled={step === 2 && vacantProperties.length === 0}
+              className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Suivant
               <ChevronRight className="w-4 h-4" />
@@ -521,7 +539,8 @@ export function NewTenantWizardModal({
           ) : (
             <button
               onClick={handleFinish}
-              className="px-6 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg"
+              disabled={!selectedBien}
+              className="px-6 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="w-4 h-4" />
               Finaliser & Créer le Locataire

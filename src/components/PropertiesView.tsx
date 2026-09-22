@@ -105,14 +105,19 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     return true;
   });
 
-  const handleSubmitProperty = (e: React.FormEvent) => {
+   const handleSubmitProperty = (e: React.FormEvent) => {
     e.preventDefault();
     if (isTenant) {
       alert("Accès refusé : En tant que locataire, vous n'avez pas l'autorisation d'ajouter ou d'enregistrer des biens.");
       return;
     }
 
-    const owner = owners.find((o) => o.id === proprietaireId) || owners[0];
+    // ⬇️ VÉRIFIER QU'UN PROPRIÉTAIRE EXISTE
+    const owner = owners.find((o) => o.id === proprietaireId);
+    if (!owner) {
+      alert("Impossible : aucun propriétaire sélectionné. Créez d'abord un propriétaire.");
+      return;
+    }
 
     const newProp: Property = {
       id: crypto.randomUUID(),
@@ -132,8 +137,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       dateCreation: new Date().toISOString().split('T')[0],
       loyerTotal: Number(loyerBase) + Number(charges),
       statut: 'Vacant',
-      proprietaireId: owner?.id || 'owner-1',
-      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Bailleur Principal',
+           proprietaireId: owner.id,
+      proprietaireNom: `${owner.prenom} ${owner.nom}`,
       tauxCommission: Number(tauxGerance),
       description: description || `${type} de haut standing situé à ${quartier}, Dakar.`,
       equipements: ['Climatisation split', 'Compteur Woyofal individuel', 'Gardiennage 24/7', 'Groupe électrogène'],

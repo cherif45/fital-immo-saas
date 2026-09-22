@@ -768,8 +768,8 @@ export default function App() {
               statut: 'Occupé' as const,
               locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
             };
-            if (currentUser?.agencyId) {
-              savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
+                       if (currentUser?.agencyId) {
+              savePropertyToDb(updatedP, currentUser.agencyId).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
             }
             return updatedP;
           }
@@ -789,10 +789,24 @@ export default function App() {
     if (!currentUser?.agencyId || !supabase) return;
 
     // 1. Créer le locataire
-    const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
+        const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) {
       console.error('❌ Locataire refusé:', tenantResult.error);
-      alert('Impossible de créer le locataire : ' + tenantResult.error);
+
+      const errorMsg = tenantResult.error || '';
+      let userMessage = 'Impossible de créer le locataire.';
+
+      if (errorMsg.includes('uq_tenant_active_per_bien') || errorMsg.includes('duplicate key')) {
+        userMessage = "Ce bien est déjà occupé par un autre locataire actif.\n\nVeuillez :\n1. Soit choisir un autre bien\n2. Soit enregistrer d'abord la sortie de l'occupant actuel";
+      } else if (errorMsg.includes('violates foreign key')) {
+        userMessage = "Erreur de liaison : le propriétaire ou le bien n'existe pas dans la base.";
+      } else if (errorMsg.includes('null value in column')) {
+        userMessage = "Certains champs obligatoires sont vides. Vérifiez le nom, le téléphone et le bien.";
+      } else {
+        userMessage = 'Impossible de créer le locataire : ' + errorMsg;
+      }
+
+      alert(userMessage);
       return;
     }
 
@@ -832,7 +846,7 @@ export default function App() {
       persistCollection('inspections', next);
       return next;
     });
-    setProperties((prev) => {
+       setProperties((prev) => {
       const next = prev.map((p) =>
         p.id === tenantToSave.bienId
           ? { ...p, statut: 'Occupé' as const, locataireActuelNom: `${tenantToSave.prenom} ${tenantToSave.nom}` }
@@ -841,6 +855,15 @@ export default function App() {
       persistCollection('properties', next);
       return next;
     });
+
+    // ⬇️ SYNCHRONISER AVEC SUPABASE
+    const updatedProp = properties.find((p) => p.id === tenantToSave.bienId);
+    if (updatedProp && currentUser?.agencyId) {
+      savePropertyToDb(
+        { ...updatedProp, statut: 'Occupé', locataireActuelNom: `${tenantToSave.prenom} ${tenantToSave.nom}` },
+        currentUser.agencyId
+      ).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
+    }
 
     // 6. Audit
     handleTriggerAuditLog(
@@ -1523,7 +1546,7 @@ export default function App() {
         }}
       />
 
-      {mobileMoneyModalConfig && (
+            {mobileMoneyModalConfig && (
         <MobileMoneyPaymentModal
           isOpen={mobileMoneyModalConfig.isOpen}
           onClose={() => setMobileMoneyModalConfig(null)}
@@ -1534,6 +1557,9 @@ export default function App() {
           period={mobileMoneyModalConfig.period || selectedPeriod}
           reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
           onConfirmPayment={handleConfirmMobileMoneyPayment}
+          waveNumero={settings.waveNumero}
+          orangeMoneyCode={settings.orangeMoneyCode}
+          whatsappBusiness={settings.whatsappBusiness}
         />
       )}
 

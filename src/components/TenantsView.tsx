@@ -90,11 +90,23 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return true;
   });
 
-  const handleSubmitTenant = (e: React.FormEvent) => {
+      const handleSubmitTenant = (e: React.FormEvent) => {
     e.preventDefault();
     const prop = properties.find((p) => p.id === bienId);
     if (!prop || !prop.proprietaireId) {
       alert("Impossible : ce bien n'a pas de propriétaire associé.");
+      return;
+    }
+    // ⬇️ VÉRIFICATION RENFORCÉE : on vérifie qu'aucun locataire n'est déjà lié
+    const bienDejaOccupe = tenants.some(
+      (t) => t.bienId === bienId && !t.dateSortie
+    );
+    if (bienDejaOccupe) {
+      alert("Ce bien est déjà occupé par un locataire actif.\n\nVeuillez d'abord enregistrer sa sortie.");
+      return;
+    }
+    if (prop.statut !== 'Vacant') {
+      alert(`Ce bien est actuellement "${prop.statut}". Impossible d'y ajouter un locataire. Libérez-le d'abord.`);
       return;
     }
     const newTenant: Tenant = {
@@ -123,7 +135,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     onAddTenant(newTenant);
     setIsAddTenantModalOpen(false);
   };
-
   const handleConfirmExit = () => {
     if (!tenantForExit) return;
 
@@ -763,7 +774,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien à Louer</label>
-                  <select
+                                    <select
                     value={bienId}
                     onChange={(e) => {
                       setBienId(e.target.value);
@@ -772,11 +783,18 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     }}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   >
-                    {properties.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nom} ({formatNumber(p.loyerTotal)} FCFA)
-                      </option>
-                    ))}
+                    {/* ⬇️ FILTRE : uniquement les biens vacants */}
+                    {properties.filter((p) => p.statut === 'Vacant').length === 0 ? (
+                      <option value="">Aucun bien vacant disponible</option>
+                    ) : (
+                      properties
+                        .filter((p) => p.statut === 'Vacant')
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nom} ({formatNumber(p.loyerTotal)} FCFA)
+                          </option>
+                        ))
+                    )}
                   </select>
                 </div>
                 <div>
