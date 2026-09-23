@@ -6,7 +6,7 @@ import {
   MaintenanceTicket, OwnerDisbursement, Invoice, CashVoucher, NotificationItem,
   AuditLog, AgencySettings, UserAccount, PaymentMethodConfig, CashMovement,
   CashClosing, Agency, Building, Unit, OwnerDeduction, BulletinVersement,
-  ArchiveRecord, ActivityLog,
+  ArchiveRecord, ActivityLog, Penalty, OwnerCharge,
 } from '../../types';
 
 export interface AppStateData {
@@ -35,6 +35,8 @@ export interface AppStateData {
   bulletinVersements?: BulletinVersement[];
   archives?: ArchiveRecord[];
   activityLogs?: ActivityLog[];
+  penalties?: Penalty[];
+  ownerCharges?: OwnerCharge[];
 }
 
 export const defaultSettings: AgencySettings = {
@@ -288,7 +290,56 @@ export function mapPaymentFromDb(r: any): Payment {
 }
 
 // ============================================================
-// MAPPERS : OWNER DEDUCTIONS
+// MAPPERS : PENALTIES
+// ============================================================
+export function mapPenaltyFromDb(r: any): Penalty {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    paymentId: r.payment_id || r.paymentId,
+    locataireId: r.locataire_id || r.locataireId,
+    locataireNom: r.locataire_nom || r.locataireNom,
+    bienId: r.bien_id || r.bienId,
+    bienNom: r.bien_nom || r.bienNom,
+    periode: r.periode,
+    joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
+    tauxPenalite: Number(r.taux_penalite ?? r.tauxPenalite ?? 10),
+    montantBase: Number(r.montant_base ?? r.montantBase ?? 0),
+    montantPenalite: Number(r.montant_penalite ?? r.montantPenalite ?? 0),
+    statut: r.statut || 'En attente',
+    dateCalcul: r.date_calcul || r.dateCalcul || new Date().toISOString().split('T')[0],
+    dateApplication: r.date_application || r.dateApplication,
+    notes: r.notes || '',
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
+  };
+}
+
+// ============================================================
+// MAPPERS : OWNER CHARGES
+// ============================================================
+export function mapOwnerChargeFromDb(r: any): OwnerCharge {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    proprietaireId: r.proprietaire_id || r.proprietaireId,
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
+    bulletinId: r.bulletin_id || r.bulletinId,
+    periode: r.periode,
+    typeCharge: r.type_charge || r.typeCharge || 'AUTRE',
+    libelle: r.libelle || '',
+    montant: Number(r.montant ?? 0),
+    referenceDocument: r.reference_document || r.referenceDocument,
+    dateCharge: r.date_charge || r.dateCharge || new Date().toISOString().split('T')[0],
+    statut: r.statut || 'Validé',
+    notes: r.notes || '',
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
+  };
+}
+
+// ============================================================
+// MAPPERS : OWNER DEDUCTIONS (ancien système)
 // ============================================================
 export function mapOwnerDeductionFromDb(r: any): OwnerDeduction {
   return {
@@ -544,7 +595,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
     dateEnvoi: r.date_envoi || r.dateEnvoi,
   };
-}
+} 
 
 // ============================================================
 // CHARGEMENT DE L'APPLICATION
@@ -575,6 +626,8 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   const localBulletinVersements = loadLocalCollection<BulletinVersement[]>('bulletin_versements', []);
   const localArchives = loadLocalCollection<ArchiveRecord[]>('archives', []);
   const localActivityLogs = loadLocalCollection<ActivityLog[]>('activity_logs', []);
+  const localPenalties = loadLocalCollection<Penalty[]>('penalties', []);
+  const localOwnerCharges = loadLocalCollection<OwnerCharge[]>('owner_charges', []);
 
   const state: AppStateData = {
     agency: localAgency, properties: localProperties,
@@ -587,6 +640,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
     cashMovements: localCashMovements, cashClosings: localCashClosings,
     ownerDeductions: localOwnerDeductions, bulletinVersements: localBulletinVersements,
     archives: localArchives, activityLogs: localActivityLogs,
+    penalties: localPenalties, ownerCharges: localOwnerCharges,
   };
 
   if (!isSupabaseConfigured || !supabase) return state;
@@ -599,6 +653,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       cashMovRes, cashCloseRes, maintRes, inspRes, disbRes, invRes, remindRes,
       auditRes, notifRes, pmRes, settingsRes, usersRes, buildingsRes, unitsRes,
       deductionsRes, bulletinsRes, archivesRes, activitiesRes,
+      penaltiesRes, ownerChargesRes,
     ] = await Promise.allSettled([
       agencyId ? supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
@@ -624,6 +679,8 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('bulletin_versements').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('archives').select('*').order('archived_at', { ascending: false }).limit(200)),
       agencyFilter(supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500)),
+      agencyFilter(supabase.from('penalties').select('*').order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('owner_charges').select('*').order('created_at', { ascending: false })),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
@@ -711,16 +768,24 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       persistCollection('bulletin_versements', state.bulletinVersements);
     }
 
-    // ARCHIVES
     if (archivesRes.status === 'fulfilled' && archivesRes.value.data && archivesRes.value.data.length > 0) {
       state.archives = archivesRes.value.data.map(mapArchiveFromDb);
       persistCollection('archives', state.archives);
     }
 
-    // ACTIVITY LOGS
     if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data && activitiesRes.value.data.length > 0) {
       state.activityLogs = activitiesRes.value.data.map(mapActivityLogFromDb);
       persistCollection('activity_logs', state.activityLogs);
+    }
+
+    if (penaltiesRes.status === 'fulfilled' && penaltiesRes.value.data && penaltiesRes.value.data.length > 0) {
+      state.penalties = penaltiesRes.value.data.map(mapPenaltyFromDb);
+      persistCollection('penalties', state.penalties);
+    }
+
+    if (ownerChargesRes.status === 'fulfilled' && ownerChargesRes.value.data && ownerChargesRes.value.data.length > 0) {
+      state.ownerCharges = ownerChargesRes.value.data.map(mapOwnerChargeFromDb);
+      persistCollection('owner_charges', state.ownerCharges);
     }
 
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
@@ -910,6 +975,93 @@ export async function deleteUnitFromDb(unitId: string): Promise<{ success: boole
     return { success: true };
   } catch (err: any) {
     console.error('Erreur suppression espace:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================
+// CRUD : PENALTIES
+// ============================================================
+export async function savePenaltyToDb(penalty: Partial<Penalty>, agencyId: string): Promise<{ success: boolean; data?: Penalty; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: penalty as Penalty };
+  try {
+    const record = {
+      agency_id: agencyId,
+      payment_id: penalty.paymentId || null,
+      locataire_id: penalty.locataireId,
+      locataire_nom: penalty.locataireNom || null,
+      bien_id: penalty.bienId || null,
+      bien_nom: penalty.bienNom || null,
+      periode: penalty.periode,
+      jours_retard: penalty.joursRetard || 0,
+      taux_penalite: penalty.tauxPenalite || 10,
+      montant_base: penalty.montantBase || 0,
+      montant_penalite: penalty.montantPenalite || 0,
+      statut: penalty.statut || 'En attente',
+      date_calcul: penalty.dateCalcul || new Date().toISOString().split('T')[0],
+      date_application: penalty.dateApplication || null,
+      notes: penalty.notes || '',
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('penalties').insert([record]).select().single();
+    if (error) throw error;
+    return { success: true, data: mapPenaltyFromDb(data) };
+  } catch (err: any) {
+    console.error('Erreur pénalité:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deletePenaltyFromDb(penaltyId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.from('penalties').delete().eq('id', penaltyId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('Erreur suppression pénalité:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================
+// CRUD : OWNER CHARGES
+// ============================================================
+export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId: string): Promise<{ success: boolean; data?: OwnerCharge; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: charge as OwnerCharge };
+  try {
+    const record = {
+      agency_id: agencyId,
+      proprietaire_id: charge.proprietaireId,
+      proprietaire_nom: charge.proprietaireNom || null,
+      bulletin_id: charge.bulletinId || null,
+      periode: charge.periode,
+      type_charge: charge.typeCharge || 'AUTRE',
+      libelle: charge.libelle,
+      montant: charge.montant || 0,
+      reference_document: charge.referenceDocument || null,
+      date_charge: charge.dateCharge || new Date().toISOString().split('T')[0],
+      statut: charge.statut || 'Validé',
+      notes: charge.notes || '',
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('owner_charges').insert([record]).select().single();
+    if (error) throw error;
+    return { success: true, data: mapOwnerChargeFromDb(data) };
+  } catch (err: any) {
+    console.error('Erreur charge propriétaire:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteOwnerChargeFromDb(chargeId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.from('owner_charges').delete().eq('id', chargeId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('Erreur suppression charge:', err);
     return { success: false, error: err.message };
   }
 }

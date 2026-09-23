@@ -72,7 +72,7 @@ export type ActiveTab =
   | 'payment-reports'
   | 'admin-control'
   | 'admin-users'
-  |  'admin-journal'
+  | 'admin-journal'
   | 'archives'
   | 'activity-logs'
   | 'audit';
@@ -94,22 +94,16 @@ export interface Owner {
   tauxCommission?: number;
   statut?: 'Actif' | 'Inactif' | 'Archivé';
   mandatGerance?: string;
+  dateMandat?: string;
   observations?: string;
   totalBiens?: number;
   totalLoyersMensuels?: number;
 }
 
 // ============================================================
-// IMMEUBLES (NOUVELLE HIÉRARCHIE)
+// IMMEUBLES
 // ============================================================
-export type BuildingType = 
-  | 'Immeuble'
-  | 'Villa'
-  | 'Résidence'
-  | 'Cité'
-  | 'Duplex'
-  | 'Autre';
-
+export type BuildingType = 'Immeuble' | 'Villa' | 'Résidence' | 'Cité' | 'Duplex' | 'Autre';
 export type BuildingStatus = 'Actif' | 'Inactif' | 'En travaux';
 
 export interface Building {
@@ -137,15 +131,8 @@ export interface Building {
 // ESPACES LOUABLES
 // ============================================================
 export type UnitType = 
-  | 'Appartement'
-  | 'Studio'
-  | 'Chambre'
-  | 'Salle de bain'
-  | 'Magasin'
-  | 'Bureau'
-  | 'Terrasse'
-  | 'Entrepôt'
-  | 'Autre';
+  | 'Appartement' | 'Studio' | 'Chambre' | 'Salle de bain'
+  | 'Magasin' | 'Bureau' | 'Terrasse' | 'Entrepôt' | 'Autre';
 
 export type UnitStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige';
 
@@ -173,17 +160,11 @@ export interface Unit {
 }
 
 // ============================================================
-// BIENS (ANCIEN SYSTÈME)
+// BIENS
 // ============================================================
 export type PropertyType = 
-  | 'Appartement'
-  | 'Villa'
-  | 'Magasin'
-  | 'Bureau'
-  | 'Immeuble'
-  | 'Terrain'
-  | 'Chambre'
-  | 'Studio';
+  | 'Appartement' | 'Villa' | 'Magasin' | 'Bureau'
+  | 'Immeuble' | 'Terrain' | 'Chambre' | 'Studio';
 
 export type PropertyStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige' | 'Archivé';
 
@@ -245,8 +226,9 @@ export interface Tenant {
   conjointNom?: string;
   conjointTelephone?: string;
 }
+
 // ============================================================
-// CONTRATS DE BAIL
+// CONTRATS
 // ============================================================
 export type ContractStatus = 'En cours' | 'Terminé' | 'Résilié' | 'Archivé';
 
@@ -324,16 +306,64 @@ export interface Payment {
   observation?: string;
   auteurId?: string;
   auteurNom?: string;
-    dateHeurePaiement?: string;
-  // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
+  dateHeurePaiement?: string;
   typeRecu?: ReceiptType;
   referencePaiementInitial?: string;
   montantInitialDu?: number;
 }
 
+// ============================================================
+// PÉNALITÉS
+// ============================================================
+export type PenaltyStatus = 'En attente' | 'Appliquée' | 'Annulée' | 'Payée';
+
+export interface Penalty {
+  id: string;
+  agencyId?: string;
+  paymentId?: string;
+  locataireId: string;
+  locataireNom?: string;
+  bienId?: string;
+  bienNom?: string;
+  periode: string;
+  joursRetard: number;
+  tauxPenalite: number;
+  montantBase: number;
+  montantPenalite: number;
+  statut: PenaltyStatus;
+  dateCalcul: string;
+  dateApplication?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 // ============================================================
-// DÉDUCTIONS PROPRIÉTAIRE (NOUVEAU)
+// CHARGES PROPRIÉTAIRE
+// ============================================================
+export type OwnerChargeType = 'FACTURE' | 'PRET' | 'CREDIT' | 'REQUISITION' | 'TRAVAUX' | 'AUTRE';
+export type OwnerChargeStatus = 'Validé' | 'En attente' | 'Annulé';
+
+export interface OwnerCharge {
+  id: string;
+  agencyId?: string;
+  proprietaireId: string;
+  proprietaireNom?: string;
+  bulletinId?: string;
+  periode: string;
+  typeCharge: OwnerChargeType;
+  libelle: string;
+  montant: number;
+  referenceDocument?: string;
+  dateCharge: string;
+  statut: OwnerChargeStatus;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ============================================================
+// DÉDUCTIONS PROPRIÉTAIRE (ANCIEN)
 // ============================================================
 export type DeductionType = 'FACTURE' | 'PRET' | 'CREDIT' | 'REQUISITION' | 'AUTRE';
 
@@ -354,7 +384,7 @@ export interface OwnerDeduction {
 }
 
 // ============================================================
-// BULLETIN DE VERSEMENT (NOUVEAU)
+// BULLETIN DE VERSEMENT
 // ============================================================
 export type BulletinStatus = 'Brouillon' | 'Validé' | 'Payé' | 'Archivé';
 
@@ -411,7 +441,7 @@ export interface OwnerDisbursement {
 }
 
 // ============================================================
-// INSPECTIONS (ÉTATS DES LIEUX)
+// INSPECTIONS
 // ============================================================
 export type InspectionType = 'Entrée' | 'Sortie' | 'Périodique';
 export type InspectionStatus = 'Brouillon' | 'Validé' | 'Signé' | 'Archivé';
@@ -490,10 +520,8 @@ export interface MaintenanceTicket {
 // RAPPELS
 // ============================================================
 export type ReminderLevel = 
-  | 'Niveau 1: Courtois (J+3)'
-  | 'Niveau 2: Ferme (J+10)'
-  | 'Niveau 3: Mise en demeure (J+20)'
-  | 'Niveau 4: Contentieux (J+30)';
+  | 'Niveau 1: Courtois (J+3)' | 'Niveau 2: Modéré (J+10)'
+  | 'Niveau 3: Ferme & Pénalités (J+15)' | 'Niveau 4: Mise en demeure juridique (J+25)';
 
 export type ReminderChannel = 'SMS' | 'WhatsApp' | 'Email' | 'Courrier';
 export type ReminderStatus = 'En attente' | 'Envoyé' | 'Lu' | 'Échec';
@@ -706,7 +734,7 @@ export interface PaymentMethodConfig {
 }
 
 // ============================================================
-// ARCHIVES (NOUVEAU)
+// ARCHIVES
 // ============================================================
 export interface ArchiveRecord {
   id: string;
@@ -722,7 +750,7 @@ export interface ArchiveRecord {
 }
 
 // ============================================================
-// ACTIVITÉS (NOUVEAU - pour recherche par date)
+// ACTIVITÉS
 // ============================================================
 export interface ActivityLog {
   id: string;
@@ -769,4 +797,8 @@ export interface AppStateData {
   cashClosings: CashClosing[];
   ownerDeductions?: OwnerDeduction[];
   bulletinVersements?: BulletinVersement[];
+  archives?: ArchiveRecord[];
+  activityLogs?: ActivityLog[];
+  penalties?: Penalty[];
+  ownerCharges?: OwnerCharge[];
 }
