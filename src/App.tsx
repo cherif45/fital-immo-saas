@@ -1343,25 +1343,17 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'pending-payments' && (
-            {activeTab === 'payments' && (
-  <PaymentsView
-    payments={scopedPayments}
-    tenants={scopedTenants}
-    properties={scopedProperties}
-    owners={owners}
-    currentUser={currentUser || undefined}
-    settings={settings}
-    onAddPayment={handleAddPayment}
-    onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-    isNewPaymentModalOpen={isNewPaymentModalOpen}
-    setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
-    initialTenantForPayment={initialTenantForPayment}
-  />
-)}
+                    {activeTab === 'pending-payments' && (
+            <PendingPaymentsView
+              payments={payments}
+              currentUser={currentUser}
+              onValidatePayment={handleValidatePendingPayment}
+              onRejectPayment={handleRejectPendingPayment}
+              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+            />
           )}
 
-                    {activeTab === 'payment-methods' && (
+          {activeTab === 'payment-methods' && (
             <PaymentMethodsConfigView
               paymentMethods={paymentMethods}
               settings={settings}

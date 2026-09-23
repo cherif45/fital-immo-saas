@@ -36,12 +36,11 @@ export function PaymentMethodReportsView({
   const filteredPayments = payments.filter((p) => {
     const matchMethod = selectedMethod === 'ALL' || p.moyenPaiementCode === selectedMethod || p.modePaiement === selectedMethod;
     const matchOwner = selectedOwner === 'ALL' || p.proprietaireId === selectedOwner;
-    return matchMethod && matchOwner;
+    const matchStatus = p.statut === 'Payé' || p.statut === 'Partiel';
+    return matchMethod && matchOwner && matchStatus;
   });
 
-  const totalCollected = filteredPayments
-    .filter((p) => p.statut === 'Payé' || p.statut === 'Partiel')
-    .reduce((sum, p) => sum + p.montantPaye, 0);
+  const totalCollected = filteredPayments.reduce((sum, p) => sum + p.montantPaye, 0);
 
   // Group by payment method
   const statsByMethod: Record<string, { count: number; volume: number; code: string; label: string }> = {};
@@ -55,13 +54,34 @@ export function PaymentMethodReportsView({
   if (!statsByMethod['VIREMENT']) statsByMethod['VIREMENT'] = { count: 0, volume: 0, code: 'VIREMENT', label: 'Virement' };
   if (!statsByMethod['CHEQUE']) statsByMethod['CHEQUE'] = { count: 0, volume: 0, code: 'CHEQUE', label: 'Chèque' };
 
-  payments.forEach((p) => {
-    let key = p.moyenPaiementCode || (p.modePaiement === 'Mobile Money' ? 'WAVE' : p.modePaiement === 'Espèces' ? 'ESPECES' : p.modePaiement === 'Virement' ? 'VIREMENT' : 'CHEQUE');
-    if (statsByMethod[key]) {
-      statsByMethod[key].count += 1;
-      statsByMethod[key].volume += p.montantPaye;
-    }
-  });
+  // ✅ FIX : filtrer sur Payé/Partiel + mapper correctement Wave/OM
+  payments
+    .filter((p) => p.statut === 'Payé' || p.statut === 'Partiel')
+    .forEach((p) => {
+      let key: string | null = null;
+
+      // 1. Priorité au code précis
+      if (p.moyenPaiementCode && statsByMethod[p.moyenPaiementCode]) {
+        key = p.moyenPaiementCode;
+      } else if (p.modePaiement === 'Mobile Money') {
+        // Fallback : Wave ou OM selon la référence
+        const ref = (p.referenceTransaction || p.numeroTransaction || '').toUpperCase();
+        key = ref.includes('OM') || ref.includes('ORANGE') ? 'ORANGE_MONEY' : 'WAVE';
+      } else if (p.modePaiement === 'Espèces') {
+        key = 'ESPECES';
+      } else if (p.modePaiement === 'Virement') {
+        key = 'VIREMENT';
+      } else if (p.modePaiement === 'Chèque') {
+        key = 'CHEQUE';
+      } else {
+        key = 'ESPECES';
+      }
+
+      if (key && statsByMethod[key]) {
+        statsByMethod[key].count += 1;
+        statsByMethod[key].volume += p.montantPaye;
+      }
+    });
 
   const handleExportCSV = () => {
     const csvContent =
@@ -154,7 +174,7 @@ export function PaymentMethodReportsView({
         </div>
       </div>
 
-      {/* Method Cards & Percentages */}
+      {/* Method Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {Object.values(statsByMethod).map((stat) => {
           const percentage = totalCollected > 0 ? Math.round((stat.volume / totalCollected) * 100) : 0;
@@ -174,7 +194,7 @@ export function PaymentMethodReportsView({
         })}
       </div>
 
-      {/* Itemized Payments Table */}
+      {/* Table */}
       <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
         <h2 className="text-base font-bold text-white">Journal Détaillé des Encaissements</h2>
         <div className="overflow-x-auto">
@@ -190,23 +210,38 @@ export function PaymentMethodReportsView({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredPayments.map((p) => (
-                <tr key={p.id} className="hover:bg-white/[0.02]">
-                  <td className="py-3 px-3 font-mono font-bold text-[#C9A96E]">{p.quittanceNumero}</td>
-                  <td className="py-3 px-3 text-slate-300">{p.datePaiement}</td>
-                  <td className="py-3 px-3 font-bold text-white">{p.locataireNom}</td>
-                  <td className="py-3 px-3 text-slate-400">{p.bienNom}</td>
-                  <td className="py-3 px-3">
-                    <span className="text-white font-medium">{p.modePaiement}</span>
-                    {(p.transactionReference || p.referenceTransaction) && (
-                      <span className="block text-[10px] text-slate-500 font-mono">Réf: {p.transactionReference || p.referenceTransaction}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 text-right font-bold text-white text-sm">
-                    {formatCurrencyFCFA(p.montantPaye)}
+              {filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <BarChart3 className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
+                    <p className="text-xs font-semibold text-white">Aucun encaissement</p>
+                    <p className="text-[11px] text-slate-500 mt-1">Aucun règlement correspondant aux filtres.</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredPayments.map((p) => (
+                  <tr key={p.id} className="hover:bg-white/[0.02]">
+                    <td className="py-3 px-3 font-mono font-bold text-[#C9A96E]">{p.quittanceNumero}</td>
+                    <td className="py-3 px-3 text-slate-300">{p.datePaiement}</td>
+                    <td className="py-3 px-3 font-bold text-white">{p.locataireNom}</td>
+                    <td className="py-3 px-3 text-slate-400">{p.bienNom}</td>
+                    <td className="py-3 px-3">
+                      <span className="text-white font-medium">{p.modePaiement}</span>
+                      {p.moyenPaiementCode && (
+                        <span className="block text-[10px] text-[#C9A96E] font-mono">{p.moyenPaiementCode}</span>
+                      )}
+                      {(p.transactionReference || p.referenceTransaction) && (
+                        <span className="block text-[10px] text-slate-500 font-mono">
+                          Réf: {p.transactionReference || p.referenceTransaction}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right font-bold text-white text-sm">
+                      {formatCurrencyFCFA(p.montantPaye)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

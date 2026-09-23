@@ -45,15 +45,15 @@ export function CashRegisterView({
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
 
   // Initial cash balance (fond de caisse basé sur la dernière clôture ou 0)
-  const initialCash = cashClosings.length > 0 ? cashClosings[0].soldeReel : 0;
+  const initialCash = cashClosings.length > 0 ? (cashClosings[0].soldeReel ?? cashClosings[0].soldeReelCompte ?? 0) : 0;
 
-  // Real-time calculations
+  // Real-time calculations — accepte toutes les variantes de type
   const totalEntries = cashMovements
-    .filter((m) => m.type === 'ENTREE' && m.statut === 'Validé')
+    .filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT')
     .reduce((sum, m) => sum + m.montant, 0);
 
   const totalExits = cashMovements
-    .filter((m) => m.type === 'SORTIE' && m.statut === 'Validé')
+    .filter((m) => m.type === 'SORTIE' || m.type === 'DECAISSEMENT')
     .reduce((sum, m) => sum + m.montant, 0);
 
   const theoreticalBalance = initialCash + totalEntries - totalExits;
@@ -111,16 +111,22 @@ export function CashRegisterView({
     const newMov: CashMovement = {
       id: `mov-${Date.now()}`,
       reference: `MVT-${Date.now().toString().slice(-6)}`,
+      ref: `MVT-${Date.now().toString().slice(-6)}`,
       dateOperation: new Date().toISOString().split('T')[0],
+      dateHeure: new Date().toISOString(),
       type: movementForm.type,
       categorie: movementForm.categorie,
       montant: movementForm.montant,
       description: movementForm.description,
+      libelle: movementForm.description,
       moyenPaiementCode: 'ESPECES',
+      beneficiaire: movementForm.beneficiaireOuPayeur || 'Non précisé',
       beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || 'Non précisé',
       justificatifRef: movementForm.pieceJustificative || undefined,
       userId: currentUser.id,
       userNom: `${currentUser.prenom} ${currentUser.nom}`,
+      auteurId: currentUser.id,
+      auteurNom: `${currentUser.prenom} ${currentUser.nom}`,
       caissierNom: `${currentUser.prenom} ${currentUser.nom}`,
       statut: 'Validé',
       createdAt: new Date().toISOString(),
@@ -196,7 +202,6 @@ export function CashRegisterView({
 
           <button
             onClick={() => {
-              // Pre-fill physical count with theoretical balance for ease of check
               const q10k = Math.floor(theoreticalBalance / 10000);
               const rem = theoreticalBalance % 10000;
               setDenominations({
@@ -219,7 +224,6 @@ export function CashRegisterView({
 
       {/* Real-time Cash Balance Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Solde Initial */}
         <div className="bg-[#111C2E] p-5 rounded-2xl border border-white/5 shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fond de Caisse Initial</span>
@@ -233,10 +237,9 @@ export function CashRegisterView({
           </div>
         </div>
 
-        {/* Entrées Espèces */}
         <div className="bg-[#111C2E] p-5 rounded-2xl border border-emerald-500/20 shadow-lg">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Entrées (+ )</span>
+            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Entrées (+)</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
               <ArrowDownRight className="w-4 h-4" />
             </div>
@@ -247,10 +250,9 @@ export function CashRegisterView({
           </div>
         </div>
 
-        {/* Sorties Espèces */}
         <div className="bg-[#111C2E] p-5 rounded-2xl border border-rose-500/20 shadow-lg">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Total Sorties (- )</span>
+            <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Total Sorties (-)</span>
             <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
               <ArrowUpRight className="w-4 h-4" />
             </div>
@@ -261,8 +263,11 @@ export function CashRegisterView({
           </div>
         </div>
 
-        {/* Solde Théorique Actuel */}
-        <div className="bg-gradient-to-br from-[#111C2E] to-[#17253D] p-5 rounded-2xl border border-[#C9A96E]/40 shadow-xl">
+        <div className={`p-5 rounded-2xl border shadow-xl ${
+          theoreticalBalance >= 0 
+            ? 'bg-gradient-to-br from-[#111C2E] to-[#17253D] border-[#C9A96E]/40' 
+            : 'bg-gradient-to-br from-[#2E1A1A] to-[#1C1111] border-rose-500/40'
+        }`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#E8D5B0] uppercase tracking-wider">Solde Théorique Caisse</span>
             <div className="w-8 h-8 rounded-lg bg-[#C9A96E]/20 text-[#E8D5B0] flex items-center justify-center font-bold">
@@ -270,10 +275,21 @@ export function CashRegisterView({
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-white">{formatCurrencyFCFA(theoreticalBalance)}</div>
-            <div className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Montant attendu dans le tiroir</span>
+            <div className={`text-2xl font-bold ${theoreticalBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+              {formatCurrencyFCFA(theoreticalBalance)}
+            </div>
+            <div className={`text-xs mt-1 flex items-center gap-1 font-semibold ${theoreticalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {theoreticalBalance >= 0 ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Montant attendu dans le tiroir</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Solde négatif — vérifier les sorties</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -308,7 +324,7 @@ export function CashRegisterView({
         </button>
       </div>
 
-      {/* TAB: Journal des Mouvements */}
+      {/* TAB: Journal */}
       {activeTab === 'journal' && (
         <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
@@ -329,48 +345,57 @@ export function CashRegisterView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {cashMovements.map((m) => (
-                  <tr key={m.id} className="hover:bg-white/[0.02]">
-                    <td className="py-3 px-3">
-                      <div className="font-mono font-bold text-white">{m.reference}</div>
-                      <div className="text-[10px] text-slate-400">{m.dateOperation}</div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 w-fit ${
-                          m.type === 'ENTREE'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-rose-500/20 text-rose-400'
-                        }`}
-                      >
-                        {m.type === 'ENTREE' ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                        {m.type === 'ENTREE' ? 'ENTRÉE' : 'SORTIE'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-white">{m.description}</div>
-                      <div className="text-[10px] text-slate-400">{m.categorie}</div>
-                    </td>
-                    <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur}</td>
-                    <td className="py-3 px-3 text-slate-400">{m.caissierNom}</td>
-                    <td className="py-3 px-3 text-right">
-                      <span
-                        className={`font-bold text-sm ${
-                          m.type === 'ENTREE' ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                      >
-                        {m.type === 'ENTREE' ? '+' : '-'} {formatCurrencyFCFA(m.montant)}
-                      </span>
+                {cashMovements.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <Coins className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
+                      <p className="text-xs font-semibold text-white">Aucun mouvement de caisse</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Les opérations d'espèces apparaîtront ici.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  cashMovements.map((m) => {
+                    const isEntry = m.type === 'ENTREE' || m.type === 'ENCAISSEMENT';
+                    return (
+                      <tr key={m.id} className="hover:bg-white/[0.02]">
+                        <td className="py-3 px-3">
+                          <div className="font-mono font-bold text-white">{m.reference || m.ref}</div>
+                          <div className="text-[10px] text-slate-400">{m.dateOperation || m.dateHeure?.split(' ')[0]}</div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 w-fit ${
+                              isEntry
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {isEntry ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                            {isEntry ? 'ENTRÉE' : 'SORTIE'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-white">{m.description || m.libelle || '—'}</div>
+                          <div className="text-[10px] text-slate-400">{m.categorie || '—'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || '—'}</td>
+                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || '—'}</td>
+                        <td className="py-3 px-3 text-right">
+                          <span className={`font-bold text-sm ${isEntry ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isEntry ? '+' : '-'} {formatCurrencyFCFA(m.montant)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* TAB: Historique des Clôtures */}
+      {/* TAB: Historique */}
       {activeTab === 'history' && (
         <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
@@ -379,44 +404,52 @@ export function CashRegisterView({
           </div>
 
           <div className="space-y-3">
-            {cashClosings.map((clot) => (
-              <div key={clot.id} className="p-4 bg-[#0A111D] border border-white/5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-white text-sm">{clot.reference || clot.numero}</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                        clot.statut === 'CONFORME' || clot.statut === 'Validé par Responsable'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : clot.statut === 'SURPLUS'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-rose-500/20 text-rose-400'
-                      }`}
-                    >
-                      {clot.statut}
-                    </span>
-                  </div>
-                  <p className="text-slate-400">
-                    Clôturé le <strong className="text-slate-200">{clot.dateCloture || clot.date} à {clot.heureCloture || '18:00'}</strong> par {clot.caissierNom}
-                  </p>
-                  <p className="text-slate-500 text-[11px] italic">"{clot.observations || clot.observation}"</p>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <div className="text-slate-400 text-[11px]">Solde Théorique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
-                    <div className="text-sm font-bold text-white">Solde Compté : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
-                    <div className={`text-[11px] font-bold ${(clot.ecart ?? clot.ecartCaisse ?? 0) === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      Écart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
-                    </div>
-                  </div>
-
-                  <button className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10" title="Télécharger PV de Clôture PDF">
-                    <Download className="w-4 h-4" />
-                  </button>
-                </div>
+            {cashClosings.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">
+                <Lock className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
+                <p className="text-xs font-semibold text-white">Aucune clôture enregistrée</p>
+                <p className="text-[11px] text-slate-500 mt-1">Les clôtures quotidiennes apparaîtront ici.</p>
               </div>
-            ))}
+            ) : (
+              cashClosings.map((clot) => (
+                <div key={clot.id} className="p-4 bg-[#0A111D] border border-white/5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-white text-sm">{clot.reference || clot.numero}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                          clot.statut === 'CONFORME' || clot.statut === 'Validé par Responsable'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : clot.statut === 'SURPLUS'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-rose-500/20 text-rose-400'
+                        }`}
+                      >
+                        {clot.statut}
+                      </span>
+                    </div>
+                    <p className="text-slate-400">
+                      Clôturé le <strong className="text-slate-200">{clot.dateCloture || clot.date} à {clot.heureCloture || '18:00'}</strong> par {clot.caissierNom}
+                    </p>
+                    <p className="text-slate-500 text-[11px] italic">"{clot.observations || clot.observation}"</p>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <div className="text-slate-400 text-[11px]">Solde Théorique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
+                      <div className="text-sm font-bold text-white">Solde Compté : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
+                      <div className={`text-[11px] font-bold ${(clot.ecart ?? clot.ecartCaisse ?? 0) === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        Écart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
+                      </div>
+                    </div>
+
+                    <button className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10" title="Télécharger PV de Clôture PDF">
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -471,7 +504,7 @@ export function CashRegisterView({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Description / Motif du mouvement *</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Description / Motif *</label>
                 <input
                   type="text"
                   required
@@ -513,7 +546,7 @@ export function CashRegisterView({
         </div>
       )}
 
-      {/* Modal: Daily Cash Closing with Denomination Counting */}
+      {/* Modal: Daily Cash Closing */}
       {isClosingModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111C2E] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-5">
@@ -531,7 +564,6 @@ export function CashRegisterView({
             </div>
 
             <form onSubmit={handleCreateClosing} className="space-y-4">
-              {/* Theoretical Summary */}
               <div className="grid grid-cols-3 gap-3 p-3.5 bg-white/[0.02] border border-white/10 rounded-xl text-xs">
                 <div>
                   <span className="text-slate-400 block">Solde Initial :</span>
@@ -539,7 +571,9 @@ export function CashRegisterView({
                 </div>
                 <div>
                   <span className="text-slate-400 block">Flux Net Jour :</span>
-                  <strong className="text-emerald-400 font-mono">+{formatCurrencyFCFA(totalEntries - totalExits)}</strong>
+                  <strong className={`font-mono ${(totalEntries - totalExits) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {(totalEntries - totalExits) >= 0 ? '+' : ''}{formatCurrencyFCFA(totalEntries - totalExits)}
+                  </strong>
                 </div>
                 <div>
                   <span className="text-[#E8D5B0] block font-bold">Solde Théorique :</span>
@@ -547,7 +581,6 @@ export function CashRegisterView({
                 </div>
               </div>
 
-              {/* Physical Denominations Table */}
               <div>
                 <label className="text-xs font-bold text-white block mb-2">Comptage Physique des Billets & Pièces :</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -625,7 +658,6 @@ export function CashRegisterView({
                 </div>
               </div>
 
-              {/* Physical Total & Discrepancy Alert */}
               <div className={`p-4 rounded-xl border text-xs flex items-center justify-between ${
                 cashDiscrepancy === 0
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
