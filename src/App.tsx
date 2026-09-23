@@ -1373,10 +1373,11 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'properties' && (
+                    {activeTab === 'properties' && (
             <PropertiesView
               properties={scopedProperties}
               owners={owners}
+              tenants={scopedTenants}
               currentUser={currentUser}
               onAddProperty={handleAddProperty}
               onUpdateProperty={handleUpdateProperty}

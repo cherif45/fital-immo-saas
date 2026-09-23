@@ -29,6 +29,7 @@ import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 interface PropertiesViewProps {
   properties: Property[];
   owners: Owner[];
+  tenants?: any[];
   currentUser?: UserAccount;
   onAddProperty: (property: Property) => void;
   onUpdateProperty?: (property: Property) => void;
@@ -40,6 +41,7 @@ interface PropertiesViewProps {
 export const PropertiesView: React.FC<PropertiesViewProps> = ({
   properties,
   owners,
+  tenants = [],
   currentUser,
   onAddProperty,
   onUpdateProperty,
@@ -90,9 +92,14 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     return 'Bailleur non référencé';
   };
 
-  // 🔧 Helper : récupère le locataire actuel via le bien
+    // 🔧 Helper : récupère le locataire actuel via le bien (lookup dans tenants)
   const getCurrentTenantName = (p: Property): string => {
     if (p.locataireActuelNom && p.locataireActuelNom.trim()) return p.locataireActuelNom;
+    // Lookup : chercher dans tenants le locataire actif sur ce bien
+    const activeTenant = (tenants as any[]).find(
+      (t: any) => t.bienId === p.id && !t.dateSortie
+    );
+    if (activeTenant) return `${activeTenant.prenom} ${activeTenant.nom}`;
     return '';
   };
 

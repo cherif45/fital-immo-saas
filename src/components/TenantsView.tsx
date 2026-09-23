@@ -75,8 +75,42 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [conjointNom, setConjointNom] = useState('');
   const [conjointTelephone, setConjointTelephone] = useState('');
 
+  // ============================================================
+  // 🔧 HELPERS : Statut réel du locataire
+  // ============================================================
+  const isTenantSorted = (t: Tenant): boolean => {
+    return !!(t.dateSortie && t.dateSortie.trim());
+  };
+
+  const getRealStatus = (t: Tenant): { label: string; bg: string; text: string; border: string } => {
+    if (isTenantSorted(t)) {
+      return { label: 'SORTI', bg: 'bg-slate-500/20', text: 'text-slate-300', border: 'border-slate-500/30' };
+    }
+    if (t.statut === 'Impayé') {
+      return { label: `IMPAYÉ${t.joursRetard > 0 ? ` (J+${t.joursRetard})` : ''}`, bg: 'bg-rose-500/20', text: 'text-rose-300', border: 'border-rose-500/30' };
+    }
+    if (t.statut === 'Retard') {
+      return { label: `RETARD${t.joursRetard > 0 ? ` (J+${t.joursRetard})` : ''}`, bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/30' };
+    }
+    return { label: 'À JOUR', bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/30' };
+  };
+
+  const getSolvabilite = (t: Tenant): number => {
+    return t.solvabiliteScore || t.scoreSolvabilite || 85;
+  };
+
+  // Filtrer : Actifs (par défaut) / Sortis / Tous
+  const activeTenants = tenants.filter((t) => !isTenantSorted(t));
+  const sortedTenants = tenants.filter((t) => isTenantSorted(t));
+
   const filteredTenants = tenants.filter((t) => {
-    if (statusFilter !== 'all' && t.statut !== statusFilter) return false;
+    // Filtre statut
+    if (statusFilter === 'actifs' && isTenantSorted(t)) return false;
+    if (statusFilter === 'sortis' && !isTenantSorted(t)) return false;
+    if (statusFilter === 'a_jour' && (isTenantSorted(t) || t.statut !== 'À jour')) return false;
+    if (statusFilter === 'retard' && (isTenantSorted(t) || t.statut !== 'Retard')) return false;
+    if (statusFilter === 'impaye' && (isTenantSorted(t) || t.statut !== 'Impayé')) return false;
+
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -90,14 +124,13 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return true;
   });
 
-      const handleSubmitTenant = (e: React.FormEvent) => {
+  const handleSubmitTenant = (e: React.FormEvent) => {
     e.preventDefault();
     const prop = properties.find((p) => p.id === bienId);
     if (!prop || !prop.proprietaireId) {
       alert("Impossible : ce bien n'a pas de propriétaire associé.");
       return;
     }
-    // ⬇️ VÉRIFICATION RENFORCÉE : on vérifie qu'aucun locataire n'est déjà lié
     const bienDejaOccupe = tenants.some(
       (t) => t.bienId === bienId && !t.dateSortie
     );
@@ -135,17 +168,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     onAddTenant(newTenant);
     setIsAddTenantModalOpen(false);
   };
+
   const handleConfirmExit = () => {
     if (!tenantForExit) return;
 
     if (onInitiateExit) {
-      // Utilise le modal global si disponible
       onInitiateExit(tenantForExit);
       setTenantForExit(null);
       return;
     }
 
-    // Sinon, fallback : utilise le callback onAddTenant ou alerte
     alert(`Sortie du locataire ${tenantForExit.prenom} ${tenantForExit.nom} au ${exitDate}.`);
     setTenantForExit(null);
   };
@@ -178,7 +210,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
           <div>
             <div className="text-sm font-bold text-white">Répertoire & Fiches Locataires</div>
             <div className="text-xs text-[#A8B4C4]">
-              {tenants.length} locataires enregistrés · {tenants.filter((t) => t.statut === 'À jour').length} à jour · {tenants.filter((t) => t.statut !== 'À jour').length} en retard
+              {activeTenants.length} actifs · {sortedTenants.length} sortis · {tenants.filter((t) => !isTenantSorted(t) && t.statut === 'À jour').length} à jour · {tenants.filter((t) => !isTenantSorted(t) && t.statut !== 'À jour').length} en retard
             </div>
           </div>
         </div>
@@ -186,14 +218,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Excel</span>
           </button>
           <button
             onClick={() => setIsAddTenantModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nouveau Locataire</span>
@@ -203,42 +235,49 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs">
+        <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs flex-wrap">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
               statusFilter === 'all' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
             }`}
           >
             Tous ({tenants.length})
           </button>
           <button
-            onClick={() => setStatusFilter('À jour')}
-            className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              statusFilter === 'À jour' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-emerald-400 hover:text-white'
+            onClick={() => setStatusFilter('actifs')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+              statusFilter === 'actifs' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-emerald-400 hover:text-white'
             }`}
           >
-            À jour ({tenants.filter((t) => t.statut === 'À jour').length})
+            Actifs ({activeTenants.length})
           </button>
           <button
-            onClick={() => setStatusFilter('Retard')}
-            className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              statusFilter === 'Retard' ? 'bg-amber-500 text-white font-bold shadow-sm' : 'text-amber-400 hover:text-white'
+            onClick={() => setStatusFilter('sortis')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+              statusFilter === 'sortis' ? 'bg-slate-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            En Retard ({tenants.filter((t) => t.statut === 'Retard').length})
+            Sortis ({sortedTenants.length})
           </button>
           <button
-            onClick={() => setStatusFilter('Impayé')}
-            className={`px-3 py-1 rounded-lg font-medium transition-all ${
-              statusFilter === 'Impayé' ? 'bg-rose-500 text-white font-bold shadow-sm' : 'text-rose-400 hover:text-white'
+            onClick={() => setStatusFilter('retard')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+              statusFilter === 'retard' ? 'bg-amber-500 text-white font-bold shadow-sm' : 'text-amber-400 hover:text-white'
             }`}
           >
-            Impayés ({tenants.filter((t) => t.statut === 'Impayé').length})
+            En Retard ({tenants.filter((t) => !isTenantSorted(t) && t.statut === 'Retard').length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('impaye')}
+            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+              statusFilter === 'impaye' ? 'bg-rose-500 text-white font-bold shadow-sm' : 'text-rose-400 hover:text-white'
+            }`}
+          >
+            Impayés ({tenants.filter((t) => !isTenantSorted(t) && t.statut === 'Impayé').length})
           </button>
         </div>
 
-        {/* Search */}
         <div className="relative w-full md:w-64">
           <Search className="w-3.5 h-3.5 text-[#6B7C94] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -271,23 +310,22 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-[#6B7C94]">
                     <UserCheck className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
-                    <p className="text-xs font-semibold text-white">Aucun locataire enregistré</p>
-                    <p className="text-[11px] text-[#6B7C94] mt-1">Créez votre premier locataire en cliquant sur le bouton ci-dessus.</p>
+                    <p className="text-xs font-semibold text-white">Aucun locataire trouvé</p>
+                    <p className="text-[11px] text-[#6B7C94] mt-1">Modifiez vos filtres ou créez un nouveau locataire.</p>
                   </td>
                 </tr>
               ) : (
                 filteredTenants.map((t) => {
-                  const isPaid = t.statut === 'À jour';
+                  const sorted = isTenantSorted(t);
+                  const realStatus = getRealStatus(t);
+                  const solvabilite = getSolvabilite(t);
+
                   return (
-                    <tr key={t.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                    <tr key={t.id} className={`hover:bg-[#1E2E45]/40 transition-colors ${sorted ? 'opacity-70' : ''}`}>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                              isPaid
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            }`}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${realStatus.bg} ${realStatus.text} ${realStatus.border} border`}
                           >
                             {t.prenom[0]}
                             {t.nom[0]}
@@ -305,7 +343,10 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
                       <td className="py-3 px-3">
                         <div className="font-medium text-white max-w-[180px] truncate">{t.bienNom}</div>
-                        <div className="text-[10px] text-[#6B7C94]">Entrée : {formatDate(t.dateEntree)}</div>
+                        <div className="text-[10px] text-[#6B7C94]">
+                          Entrée : {formatDate(t.dateEntree)}
+                          {sorted && t.dateSortie && ` · Sortie : ${formatDate(t.dateSortie)}`}
+                        </div>
                       </td>
 
                       <td className="py-3 px-3 font-mono">
@@ -315,7 +356,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             <button
                               type="button"
                               onClick={() => triggerPhoneCall(t.telephone)}
-                              className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                              className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all cursor-pointer"
                               title="Appeler directement ce locataire"
                             >
                               <PhoneCall className="w-3 h-3" />
@@ -323,7 +364,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             <button
                               type="button"
                               onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
-                              className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all"
+                              className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all cursor-pointer"
                               title="Écrire sur WhatsApp"
                             >
                               <Send className="w-3 h-3" />
@@ -331,7 +372,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             <button
                               type="button"
                               onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
-                              className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all"
+                              className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all cursor-pointer"
                               title="Envoyer un SMS"
                             >
                               <MessageSquare className="w-3 h-3" />
@@ -347,20 +388,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-3 text-center">
-                        <span className="text-xs font-mono font-bold text-emerald-400">
-                          {t.solvabiliteScore}%
+                        <span className={`text-xs font-mono font-bold ${solvabilite >= 80 ? 'text-emerald-400' : solvabilite >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                          {solvabilite}%
                         </span>
                       </td>
 
                       <td className="py-3 px-3 text-center">
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                            isPaid
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          }`}
-                        >
-                          {t.statut} {t.joursRetard > 0 && `(J+${t.joursRetard})`}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${realStatus.bg} ${realStatus.text} ${realStatus.border}`}>
+                          {realStatus.label}
                         </span>
                       </td>
 
@@ -368,70 +403,79 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button
                             onClick={() => setSelectedTenantForDetails(t)}
-                            className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all"
+                            className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all cursor-pointer"
                             title="Voir Fiche de Renseignements Détaillée"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
-                          <button
-                            onClick={() => {
-                              if (onOpenMobileMoney) {
-                                onOpenMobileMoney(t);
-                              } else {
-                                setSelectedTenantForPayment(t);
-                              }
-                            }}
-                            className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all"
-                            title="Générer lien Wave ou Orange Money / Payer"
-                          >
-                            <Smartphone className="w-3 h-3 text-blue-400" />
-                            <span>Wave / OM</span>
-                          </button>
+                          {/* 🔒 Actions cachées pour les sortis */}
+                          {!sorted && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (onOpenMobileMoney) {
+                                    onOpenMobileMoney(t);
+                                  } else {
+                                    setSelectedTenantForPayment(t);
+                                  }
+                                }}
+                                className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                title="Générer lien Wave ou Orange Money / Payer"
+                              >
+                                <Smartphone className="w-3 h-3 text-blue-400" />
+                                <span>Wave / OM</span>
+                              </button>
 
-                          <button
-                            onClick={() => triggerPhoneCall(t.telephone)}
-                            className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all"
-                            title={`Appeler directement ${t.prenom} (${t.telephone})`}
-                          >
-                            <PhoneCall className="w-3.5 h-3.5" />
-                          </button>
+                              <button
+                                onClick={() => triggerPhoneCall(t.telephone)}
+                                className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all cursor-pointer"
+                                title={`Appeler directement ${t.prenom} (${t.telephone})`}
+                              >
+                                <PhoneCall className="w-3.5 h-3.5" />
+                              </button>
 
-                          <button
-                            onClick={() => {
-                              const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
-                              triggerWhatsApp(t.telephone, defaultMsg);
-                            }}
-                            className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all"
-                            title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </button>
+                              <button
+                                onClick={() => {
+                                  const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
+                                  triggerWhatsApp(t.telephone, defaultMsg);
+                                }}
+                                className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
+                                title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </button>
 
-                          {/* ⬇️⬇️⬇️ BOUTON SORTIE AJOUTÉ ⬇️⬇️⬇️ */}
-                          <button
-                            onClick={() => setTenantForExit(t)}
-                            className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all"
-                            title="Enregistrer la sortie de ce locataire"
-                          >
-                            <LogOut className="w-3 h-3 text-rose-400" />
-                            <span>Sortie</span>
-                          </button>
+                              <button
+                                onClick={() => setTenantForExit(t)}
+                                className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                title="Enregistrer la sortie de ce locataire"
+                              >
+                                <LogOut className="w-3 h-3 text-rose-400" />
+                                <span>Sortie</span>
+                              </button>
 
-                          {!isPaid ? (
-                            <button
-                              onClick={() => onOpenQuickReminder(t)}
-                              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 transition-all"
-                            >
-                              <Send className="w-3 h-3" /> Relance
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => onOpenNewPayment(t)}
-                              className="px-2 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-[11px] font-medium transition-all"
-                            >
-                              Encaisser
-                            </button>
+                              {t.statut !== 'À jour' ? (
+                                <button
+                                  onClick={() => onOpenQuickReminder(t)}
+                                  className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 transition-all cursor-pointer"
+                                >
+                                  <Send className="w-3 h-3" /> Relance
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => onOpenNewPayment(t)}
+                                  className="px-2 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-[11px] font-medium transition-all cursor-pointer"
+                                >
+                                  Encaisser
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                          {/* Pour les sortis : message + bouton réactiver */}
+                          {sorted && (
+                            <span className="text-[10px] text-slate-500 italic px-2">Locataire sorti — historique</span>
                           )}
                         </div>
                       </td>
@@ -455,7 +499,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               </div>
               <button
                 onClick={() => setTenantForExit(null)}
-                className="text-[#A8B4C4] hover:text-white p-1"
+                className="text-[#A8B4C4] hover:text-white p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -528,13 +572,13 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <div className="p-4 border-t border-rose-500/20 flex items-center justify-end gap-2 bg-[#1E2E45]/40">
               <button
                 onClick={() => setTenantForExit(null)}
-                className="px-4 py-2 rounded-xl bg-[#0A111D] text-[#A8B4C4] hover:text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-[#0A111D] text-[#A8B4C4] hover:text-white text-xs font-semibold cursor-pointer"
               >
                 Annuler
               </button>
               <button
                 onClick={handleConfirmExit}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Confirmer la Sortie</span>
@@ -556,13 +600,13 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" /> Imprimer
                 </button>
                 <button
                   onClick={() => setSelectedTenantForDetails(null)}
-                  className="p-1 rounded-lg text-[#A8B4C4] hover:text-white"
+                  className="p-1 rounded-lg text-[#A8B4C4] hover:text-white cursor-pointer"
                 >
                   ✕
                 </button>
@@ -615,7 +659,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     </div>
                     <div>
                       <span className="text-neutral-500">Score de Solvabilité : </span>
-                      <strong className="text-emerald-700 font-bold">{selectedTenantForDetails.solvabiliteScore}/100 (Excellent)</strong>
+                      <strong className="text-emerald-700 font-bold">{getSolvabilite(selectedTenantForDetails)}/100 (Excellent)</strong>
                     </div>
                   </div>
                 </div>
@@ -691,7 +735,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 <Users className="w-5 h-5 text-[#C9A96E]" />
                 <span>Nouveau Locataire (Fiche & Renseignements)</span>
               </div>
-              <button onClick={() => setIsAddTenantModalOpen(false)} className="text-[#A8B4C4] hover:text-white">
+              <button onClick={() => setIsAddTenantModalOpen(false)} className="text-[#A8B4C4] hover:text-white cursor-pointer">
                 ✕
               </button>
             </div>
@@ -774,16 +818,15 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien à Louer</label>
-                                    <select
+                  <select
                     value={bienId}
                     onChange={(e) => {
                       setBienId(e.target.value);
                       const selectedProp = properties.find((p) => p.id === e.target.value);
-                      if (selectedProp) setLoyerMensuel(selectedProp.loyerTotal);
+                      if (selectedProp) setLoyerMensuel(selectedProp.loyerTotal || selectedProp.loyerBase);
                     }}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   >
-                    {/* ⬇️ FILTRE : uniquement les biens vacants */}
                     {properties.filter((p) => p.statut === 'Vacant').length === 0 ? (
                       <option value="">Aucun bien vacant disponible</option>
                     ) : (
@@ -791,7 +834,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                         .filter((p) => p.statut === 'Vacant')
                         .map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.nom} ({formatNumber(p.loyerTotal)} FCFA)
+                            {p.nom} ({formatNumber(p.loyerTotal || (p.loyerBase + p.charges))} FCFA)
                           </option>
                         ))
                     )}
@@ -813,13 +856,13 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddTenantModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4]"
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Enregistrer le Locataire</span>
