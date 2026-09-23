@@ -54,13 +54,19 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   properties,
   tenants,
   owners = [],
+  currentUser,
   onAddTicket,
   onUpdateTicket,
   onAddCashMovement,
   onTriggerAuditLog,
 }) => {
-    // 🔒 MATRICE DE PERMISSIONS
-  const canManageMaintenance = true; // sera calculé via les props
+  // 🔒 MATRICE DE PERMISSIONS
+  // ADMIN, SUPER_ADMIN, GESTIONNAIRE, AGENT → peuvent créer/modifier
+  // PROPRIÉTAIRE, LOCATAIRE, CAISSIER → lecture seule
+  const canManageMaintenance = currentUser
+    ? ['SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE', 'AGENT'].includes(currentUser.role)
+    : true;
+
   const [search, setSearch] = useState('');
   const [filterStatut, setFilterStatut] = useState<string>('all');
   const [filterImputation, setFilterImputation] = useState<string>('all');
@@ -91,6 +97,10 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
 
   // Open resolution modal
   const handleOpenResolveModal = (ticket: MaintenanceTicket) => {
+    if (!canManageMaintenance) {
+      alert("Action réservée aux gestionnaires et administrateurs.");
+      return;
+    }
     setTicketToResolve(ticket);
     setCoutReel(ticket.coutReel || ticket.coutEstime || 0);
     setFactureArtisanRef(ticket.factureArtisanRef || `FACT-ART-${Date.now().toString().slice(-4)}`);
@@ -105,6 +115,10 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   const handleConfirmResolution = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketToResolve) return;
+    if (!canManageMaintenance) {
+      alert("Action non autorisée.");
+      return;
+    }
 
     const todayStr = dateReglement || new Date().toISOString().split('T')[0];
 
@@ -164,6 +178,10 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   // Quick status change helper
   const handleQuickStatusChange = (ticket: MaintenanceTicket, newStatut: MaintenanceStatus) => {
     if (!onUpdateTicket) return;
+    if (!canManageMaintenance) {
+      alert("Action non autorisée.");
+      return;
+    }
     const updated: MaintenanceTicket = {
       ...ticket,
       statut: newStatut,
@@ -177,6 +195,10 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   // Submit new ticket
   const handleSubmitNewTicket = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageMaintenance) {
+      alert("Action non autorisée.");
+      return;
+    }
     const selectedProp = properties.find((prop) => prop.id === bienId);
     const selectedTenant = tenants.find((t) => t.bienId === bienId);
     const selectedOwner = owners.find((o) => o.id === selectedProp?.proprietaireId);
@@ -224,7 +246,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
 
   // Filters logic
   const filtered = tickets.filter((t) => {
-    // Search query
     if (search) {
       const q = search.toLowerCase();
       const matchSearch =
@@ -237,7 +258,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
       if (!matchSearch) return false;
     }
 
-    // Status filter
     if (filterStatut === 'pending') {
       if (t.statut !== 'Signalé' && t.statut !== 'En attente') return false;
     } else if (filterStatut === 'in_progress') {
@@ -248,7 +268,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
       if (t.statut !== filterStatut) return false;
     }
 
-    // Imputation filter
     if (filterImputation !== 'all') {
       if (t.imputableA !== filterImputation) return false;
     }
@@ -269,7 +288,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with Summary & Actions */}
+      {/* Top Banner */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-[#C9A96E]/15 text-[#C9A96E] flex items-center justify-center border border-[#C9A96E]/30 shadow-inner">
@@ -278,27 +297,32 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold text-white tracking-tight">
-                Gestion des Travaux & Règlement des Frais
+                {currentUser?.role === 'PROPRIETAIRE' ? 'Mes Travaux & Dépenses' : 'Gestion des Travaux & Règlement des Frais'}
               </h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
-                Contrôle Agence FITAL
+                {currentUser?.role === 'PROPRIETAIRE' ? 'Vue Bailleur' : 'Contrôle Agence FITAL'}
               </span>
             </div>
             <p className="text-xs text-[#A8B4C4] mt-0.5">
-              Pilotage des réparations, artisans, validation des factures et imputation sur les reversements propriétaires.
+              {currentUser?.role === 'PROPRIETAIRE' 
+                ? 'Suivi des interventions techniques dans vos biens.'
+                : 'Pilotage des réparations, artisans, validation des factures et imputation sur les reversements propriétaires.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={() => setIsNewModalOpen(true)}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:brightness-110 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Ticket Travaux</span>
-          </button>
-        </div>
+        {/* 🔒 BOUTON "+ Nouveau Ticket" : UNIQUEMENT pour ADMIN/GESTIONNAIRE/AGENT */}
+        {canManageMaintenance && (
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={() => setIsNewModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:brightness-110 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouveau Ticket Travaux</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Stats Strip */}
@@ -389,7 +413,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
           <Wrench className="w-12 h-12 text-[#6B7C94] mx-auto mb-3 opacity-50" />
           <h3 className="text-sm font-bold text-white">Aucun ticket de travaux trouvé</h3>
           <p className="text-xs text-[#A8B4C4] mt-1 max-w-md mx-auto">
-            Aucune intervention ne correspond à vos critères de recherche ou de filtre. Cliquez sur "Nouveau Ticket Travaux" pour en enregistrer un.
+            Aucune intervention ne correspond à vos critères de recherche ou de filtre.
           </p>
         </div>
       ) : (
@@ -411,7 +435,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 }`}
               >
                 <div>
-                  {/* Top tags row */}
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-mono font-bold text-[#C9A96E] bg-[#1E2E45] px-2 py-0.5 rounded border border-[#C9A96E]/20">
@@ -455,13 +478,11 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Title & Description */}
                   <h3 className="text-sm font-bold text-white mb-1 leading-snug">{t.titre}</h3>
                   <p className="text-xs text-[#A8B4C4] leading-relaxed mb-3 line-clamp-2">
                     {t.description}
                   </p>
 
-                  {/* Details Card */}
                   <div className="p-3 rounded-xl bg-[#1E2E45]/50 border border-[#C9A96E]/15 text-xs space-y-1.5 mb-4">
                     <div className="flex justify-between items-center">
                       <span className="text-[#A8B4C4] flex items-center gap-1.5">
@@ -516,7 +537,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Row: Financials & Action Buttons */}
                 <div>
                   <div className="p-3 rounded-xl bg-[#141E30] border border-[#2A3447] flex items-center justify-between mb-3.5">
                     <div>
@@ -534,42 +554,50 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     </div>
                   </div>
 
-                  {/* ACTION BUTTONS ROW */}
+                  {/* 🔒 BOUTONS D'ACTION : UNIQUEMENT pour ADMIN/GESTIONNAIRE/AGENT */}
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#C9A96E]/15">
-                    {/* LE BOUTON CLÉ : CONFIRMER TRAITÉ & RÉGLER */}
-                    {!isRegle ? (
-                      <button
-                        onClick={() => handleOpenResolveModal(t)}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-[#0A111D] font-black text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                        title="Confirmer que les travaux sont terminés et régler les frais artisan"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Confirmer Traité & Régler</span>
-                      </button>
+                    {canManageMaintenance ? (
+                      <>
+                        {/* Bouton principal Traité & Réglé */}
+                        {!isRegle ? (
+                          <button
+                            onClick={() => handleOpenResolveModal(t)}
+                            className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-[#0A111D] font-black text-xs shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            title="Confirmer que les travaux sont terminés et régler les frais artisan"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Confirmer Traité & Régler</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenResolveModal(t)}
+                            className="py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                            title="Modifier ou réajuster les détails du règlement"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            <span>Détails Règlement</span>
+                          </button>
+                        )}
+
+                        {/* Bouton Démarrer */}
+                        {!isRegle && t.statut !== 'En cours' && (
+                          <button
+                            onClick={() => handleQuickStatusChange(t, 'En cours')}
+                            className="py-2 px-2.5 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-sky-300 border border-sky-500/20 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Marquer en cours d'intervention"
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Démarrer</span>
+                          </button>
+                        )}
+                      </>
                     ) : (
-                      <button
-                        onClick={() => handleOpenResolveModal(t)}
-                        className="py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                        title="Modifier ou réajuster les détails du règlement"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>Détails Règlement</span>
-                      </button>
+                      <div className="flex-1 py-2 px-3 rounded-xl bg-[#1E2E45]/50 border border-white/10 text-center text-[11px] text-[#A8B4C4] italic">
+                        Consultation seule — contactez votre gestionnaire pour toute action
+                      </div>
                     )}
 
-                    {/* Quick status cycle if not resolved */}
-                    {!isRegle && t.statut !== 'En cours' && (
-                      <button
-                        onClick={() => handleQuickStatusChange(t, 'En cours')}
-                        className="py-2 px-2.5 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-sky-300 border border-sky-500/20 text-xs font-semibold transition-colors flex items-center gap-1"
-                        title="Marquer en cours d'intervention"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Démarrer</span>
-                      </button>
-                    )}
-
-                    {/* Printable Work Order button */}
+                    {/* Bouton Bon Travaux (visible pour tous) */}
                     <button
                       onClick={() => setSelectedTicketForPrint(t)}
                       className="py-2 px-3 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#E8D5B0] border border-[#C9A96E]/20 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -586,13 +614,10 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 1: CONFIRMER TRAITÉ & RÉGLER (RÈGLEMENT FRAIS ET CLÔTURE TRAVAUX) */}
-      {/* ========================================================================= */}
-      {ticketToResolve && (
+      {/* MODAL 1: CONFIRMER TRAITÉ & RÉGLER — UNIQUEMENT si canManageMaintenance */}
+      {ticketToResolve && canManageMaintenance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-emerald-500/40 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col">
-            {/* Modal Header */}
             <div className="p-5 border-b border-emerald-500/20 flex items-center justify-between bg-[#1E2E45]/90">
               <div className="flex items-center gap-2.5 text-white font-bold text-sm">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
@@ -613,9 +638,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
               </button>
             </div>
 
-            {/* Modal Form */}
             <form onSubmit={handleConfirmResolution} className="p-6 space-y-4 text-xs overflow-y-auto max-h-[80vh]">
-              {/* Summary of Intervention */}
               <div className="p-3.5 rounded-xl bg-[#141E30] border border-[#2A3447] text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-[#A8B4C4]">Bien concerné :</span>
@@ -633,7 +656,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 </div>
               </div>
 
-              {/* Real Cost & Invoice Ref */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-[11px] font-bold text-[#E8D5B0] uppercase mb-1">
@@ -653,9 +675,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                       FCFA
                     </span>
                   </div>
-                  <span className="text-[10px] text-[#6B7C94] mt-1 block">
-                    Montant final qui sera réglé et déduit selon l'imputation.
-                  </span>
                 </div>
 
                 <div>
@@ -669,13 +688,9 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                     placeholder="Ex: FACT-2026-041"
                   />
-                  <span className="text-[10px] text-[#6B7C94] mt-1 block">
-                    Numéro justificatif fourni par le prestataire.
-                  </span>
                 </div>
               </div>
 
-              {/* Imputation & Payment Method */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -690,13 +705,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     <option value="Locataire">Locataire (Facturé au locataire / retenu caution)</option>
                     <option value="Agence">Agence (Prise en charge frais de gérance)</option>
                   </select>
-                  <span className="text-[10px] text-amber-300 mt-1 block">
-                    {imputationReglement === 'Propriétaire'
-                      ? '✓ Figurera automatiquement sur le bulletin de versement du propriétaire.'
-                      : imputationReglement === 'Locataire'
-                      ? 'À réclamer au locataire lors du prochain appel de loyer.'
-                      : 'Comptabilisé comme dépense d’exploitation de l’agence.'}
-                  </span>
                 </div>
 
                 <div>
@@ -714,11 +722,9 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     <option value="Virement">Virement bancaire</option>
                     <option value="Chèque">Chèque bancaire</option>
                   </select>
-                  <span className="text-[10px] text-[#6B7C94] mt-1 block">Canal financier utilisé pour payer l'artisan.</span>
                 </div>
               </div>
 
-              {/* Date of settlement */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Date du Règlement & Clôture
@@ -732,7 +738,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 />
               </div>
 
-              {/* Cash register deduction checkbox */}
               {modeReglement === 'Espèces' && (
                 <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
                   <input
@@ -753,7 +758,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 </div>
               )}
 
-              {/* Observations / Receipt notes */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Observations de Réception & Travaux Réalisés
@@ -767,7 +771,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 />
               </div>
 
-              {/* Submit / Action buttons */}
               <div className="pt-4 border-t border-[#C9A96E]/20 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -789,10 +792,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 2: CRÉATION D'UN NOUVEAU TICKET TRAVAUX */}
-      {/* ========================================================================= */}
-      {isNewModalOpen && (
+      {/* MODAL 2: CRÉATION TICKET — UNIQUEMENT si canManageMaintenance */}
+      {canManageMaintenance && isNewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
@@ -802,7 +803,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
               </div>
               <button
                 onClick={() => setIsNewModalOpen(false)}
-                className="text-[#A8B4C4] hover:text-white p-1 rounded-lg"
+                className="text-[#A8B4C4] hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 ✕
               </button>
@@ -930,7 +931,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
+                  className="px-4 py-2.5 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:text-white cursor-pointer"
                 >
                   Annuler
                 </button>
@@ -947,9 +948,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: IMPRESSION BON D'INTERVENTION & RÈGLEMENT */}
-      {/* ========================================================================= */}
+      {/* MODAL 3: IMPRESSION BON */}
       {selectedTicketForPrint && (
         <MaintenanceWorkOrderModal
           ticket={selectedTicketForPrint}
