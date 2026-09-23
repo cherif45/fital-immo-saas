@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'inspections' as ActiveTab, label: 'États des Lieux', icon: ClipboardList },
           ],
         },
-        {
+               {
           label: 'RECOUVREMENT & TRAVAUX',
           items: [
             { 
@@ -164,6 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             },
             { id: 'reminders' as ActiveTab, label: 'Relances IA & WhatsApp', icon: BellRing, highlight: true },
             { id: 'maintenance' as ActiveTab, label: 'Travaux & Dépenses', icon: Wrench },
+            { id: 'finance' as ActiveTab, label: 'Reversements Bailleurs', icon: WalletCards },
             { id: 'documents' as ActiveTab, label: 'Documents & Modèles', icon: FolderArchive },
           ],
         },

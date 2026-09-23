@@ -31,7 +31,7 @@ interface PaymentsViewProps {
   properties: Property[];
   owners: Owner[];
   currentUser?: UserAccount;
-  settings?: AgencySettings;   // ⬅️ AJOUT : pour les numéros Wave/OM
+  settings?: AgencySettings;
   onAddPayment: (payment: Payment) => void;
   onOpenReceipt: (payment: Payment) => void;
   isNewPaymentModalOpen: boolean;
@@ -56,7 +56,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'Payé' | 'Impayé'>('all');
   const [methodFilter, setMethodFilter] = useState<string>('all');
 
-  // Form State for Recording a Payment
   const [selectedTenantId, setSelectedTenantId] = useState<string>(initialTenantForPayment?.id || '');
   const [selectedPaymentForMobileMoney, setSelectedPaymentForMobileMoney] = useState<Payment | null>(null);
   const [periode, setPeriode] = useState<string>('Mai 2026');
@@ -69,16 +68,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [datePaiement, setDatePaiement] = useState<string>(new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useState<string>('Règlement loyer régulier');
 
-  // ============================================================
   // 🔒 MATRICE DE PERMISSIONS
-  // ============================================================
   const role = currentUser?.role || 'ADMIN';
   const isLocataire = role === 'LOCATAIRE';
-  const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER';
+  const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'GESTIONNAIRE';
   const canUseMobileMoney = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'GESTIONNAIRE' || role === 'LOCATAIRE';
   const canSeeOthers = !isLocataire;
 
-  // Auto populate values when tenant changes
   React.useEffect(() => {
     if (selectedTenantId) {
       const t = tenants.find((item) => item.id === selectedTenantId);
@@ -92,7 +88,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
   }, [selectedTenantId]);
 
-  // 🔒 Sécurité : si un LOCATAIRE essaie d'ouvrir la modale d'encaissement → on la ferme
   React.useEffect(() => {
     if (isLocataire && isNewPaymentModalOpen) {
       setIsNewPaymentModalOpen(false);
@@ -141,7 +136,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const handleSubmitPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 🔒 Sécurité : seul ADMIN/CAISSIER peut encaisser
     if (!canEncaisser) {
       alert("Vous n'avez pas les droits pour enregistrer un encaissement.");
       return;
@@ -194,9 +188,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         origin: { y: 0.6 },
         colors: ['#C9A96E', '#4CAF82', '#E8D5B0'],
       });
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     onOpenReceipt(newPayment);
   };
@@ -216,13 +208,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     exportToCSV('Registre_Paiements_FITAL_IMMO', rows, headers);
   };
 
-  // 🔒 Pour le locataire : choisir sa propre quittance impayée
   const getPayablePayment = (): Payment | null => {
     if (isLocataire) {
-      // Prendre sa première quittance impayée ou la plus récente
       return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
     }
-    // Pour les autres : première quittance impayée
     return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
   };
 
@@ -263,7 +252,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </div>
         </div>
 
-        {/* 🔒 BLOC "Encaissements & Moyens Mobiles" */}
         {canUseMobileMoney && (
           <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#162133] border border-[#C9A96E]/30 flex flex-col justify-between">
             <div className="text-xs text-white font-bold flex items-center gap-1.5">
@@ -271,7 +259,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               <span>{isLocataire ? 'Payer mon Loyer' : 'Encaissements & Moyens Mobiles'}</span>
             </div>
             <div className="mt-3 flex flex-col sm:flex-row gap-2">
-              {/* 🔒 Bouton "+ Enregistrer" — UNIQUEMENT pour ADMIN/CAISSIER */}
               {canEncaisser && (
                 <button
                   onClick={() => setIsNewPaymentModalOpen(true)}
@@ -280,7 +267,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   <Plus className="w-4 h-4" /> Enregistrer
                 </button>
               )}
-              {/* 🔒 Bouton "Wave / OM" */}
               <button
                 onClick={() => {
                   const target = getPayablePayment();
@@ -441,7 +427,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                             >
                               <Printer className="w-3 h-3" /> Quittance
                             </button>
-                            {/* 🔒 WhatsApp + Appel : UNIQUEMENT pour rôles non-locataire */}
                             {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
@@ -476,7 +461,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                           </>
                         ) : (
                           <>
-                            {/* 🔒 Bouton "Encaisser" : UNIQUEMENT ADMIN/CAISSIER */}
                             {canEncaisser && (
                               <button
                                 onClick={() => {
@@ -488,7 +472,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                                 Encaisser
                               </button>
                             )}
-                            {/* 🔒 Bouton "Wave / OM" */}
                             {canUseMobileMoney && (
                               <button
                                 onClick={() => setSelectedPaymentForMobileMoney(p)}
@@ -498,7 +481,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                                 <Smartphone className="w-3 h-3" /> Wave / OM
                               </button>
                             )}
-                            {/* 🔒 Appel : UNIQUEMENT pour rôles non-locataire */}
                             {canSeeOthers && (() => {
                               const t = tenants.find((item) => item.id === p.locataireId);
                               if (!t?.telephone) return null;
@@ -525,7 +507,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Enregistrer un Nouveau Paiement — 🔒 UNIQUEMENT ADMIN/CAISSIER */}
+      {/* Modal: Enregistrer un Nouveau Paiement */}
       {isNewPaymentModalOpen && canEncaisser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
@@ -685,7 +667,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         </div>
       )}
 
-      {/* Modal Mobile Money (Wave & Orange Money) */}
+      {/* Modal Mobile Money */}
       {selectedPaymentForMobileMoney && canUseMobileMoney && (
         <MobileMoneyPaymentModal
           isOpen={!!selectedPaymentForMobileMoney}

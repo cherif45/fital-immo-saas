@@ -200,7 +200,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
             <span>Excel / CSV</span>
           </button>
 
-          {!isTenant && (
+                    {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser?.role || '') && (
             <button
               onClick={() => setIsNewContractModalOpen(true)}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"

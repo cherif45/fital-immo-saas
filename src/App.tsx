@@ -318,8 +318,8 @@ export default function App() {
     if (user.role === 'AGENT') {
       return ['dashboard', 'inspections', 'properties', 'maintenance', 'recovery'].includes(tab);
     }
-    if (user.role === 'GESTIONNAIRE') {
-      return ['dashboard', 'owners', 'properties', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents'].includes(tab);
+        if (user.role === 'GESTIONNAIRE') {
+      return ['dashboard', 'owners', 'properties', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance'].includes(tab);
     }
     return false;
   };
@@ -1117,11 +1117,11 @@ export default function App() {
     return maintenance;
   })();
 
-  const scopedDisbursements = (() => {
+   const scopedDisbursements = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
     }
-    if (currentUser.role === 'GESTIONNAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'LOCATAIRE') {
+    if (currentUser.role === 'AGENT' || currentUser.role === 'LOCATAIRE') {
       return [];
     }
     return disbursements;
