@@ -72,7 +72,9 @@ export type ActiveTab =
   | 'payment-reports'
   | 'admin-control'
   | 'admin-users'
-  | 'admin-journal'
+  |  'admin-journal'
+  | 'archives'
+  | 'activity-logs'
   | 'audit';
 
 // ============================================================

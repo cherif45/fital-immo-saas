@@ -28,7 +28,6 @@ import { ReportsView } from './components/ReportsView';
 import { SettingsView } from './components/SettingsView';
 import { InvoicesView } from './components/InvoicesView';
 import { ReceiptModal } from './components/ReceiptModal';
-import { PaymentReceiptModal } from './components/PaymentReceiptModal';
 import { PaymentBulletinModal } from './components/PaymentBulletinModal';
 import { CashVoucherModal } from './components/CashVoucherModal';
 import { NewTenantWizardModal } from './components/NewTenantWizardModal';
@@ -51,6 +50,9 @@ import { PaymentMethodsConfigView } from './components/PaymentMethodsConfigView'
 import { PaymentMethodReportsView } from './components/PaymentMethodReportsView';
 import { LoginView } from './components/LoginView';
 import { OwnerBulletinModal } from './components/OwnerBulletinModal';
+import { PaymentReceiptModal } from './components/PaymentReceiptModal';
+import { ArchiveView } from './components/ArchiveView';
+import { ActivityLogView } from './components/ActivityLogView';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import {
   ActiveTab,
@@ -76,6 +78,8 @@ import {
   CashClosing,
   OwnerDeduction,
   BulletinVersement,
+  ArchiveRecord,
+  ActivityLog,
 } from './types';
 import {
   initialProperties,
@@ -132,6 +136,8 @@ import {
   saveOwnerDeductionToDb,
   deleteOwnerDeductionFromDb,
   saveBulletinVersementToDb,
+  saveArchiveToDb,
+  saveActivityLogToDb,
 } from './lib/supabase/service';
 
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
@@ -172,6 +178,8 @@ export default function App() {
   const [cashClosings, setCashClosings] = useState<CashClosing[]>(() => loadLocalCollection('cash_closings', initialCashClosings));
   const [ownerDeductions, setOwnerDeductions] = useState<OwnerDeduction[]>(() => loadLocalCollection('owner_deductions', []));
   const [bulletinsVersements, setBulletinsVersements] = useState<BulletinVersement[]>(() => loadLocalCollection('bulletin_versements', []));
+  const [archives, setArchives] = useState<ArchiveRecord[]>(() => loadLocalCollection('archives', []));
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadLocalCollection('activity_logs', []));
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -291,8 +299,8 @@ export default function App() {
         units: data.units?.length,
         owners: data.owners?.length,
         tenants: data.tenants?.length,
-        deductions: data.ownerDeductions?.length,
-        bulletins: data.bulletinVersements?.length,
+        archives: data.archives?.length,
+        activityLogs: data.activityLogs?.length,
       });
       if (data.properties && data.properties.length > 0) setProperties(data.properties);
       if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
@@ -316,6 +324,8 @@ export default function App() {
       if (data.settings) setSettings(data.settings);
       if (data.ownerDeductions && data.ownerDeductions.length > 0) setOwnerDeductions(data.ownerDeductions);
       if (data.bulletinVersements && data.bulletinVersements.length > 0) setBulletinsVersements(data.bulletinVersements);
+      if (data.archives && data.archives.length > 0) setArchives(data.archives);
+      if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
     });
   }, [currentUser?.agencyId]);
 
@@ -351,6 +361,9 @@ export default function App() {
 
   const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
     if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
+       if (tab === 'archives' || tab === 'activity-logs') {
+      return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(user.role);
+    }
     if (user.role === 'CAISSIER') {
       return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
     }
@@ -364,7 +377,7 @@ export default function App() {
       return ['dashboard', 'inspections', 'properties', 'buildings', 'units', 'maintenance', 'recovery'].includes(tab);
     }
     if (user.role === 'GESTIONNAIRE') {
-      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance'].includes(tab);
+      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance', 'archives'].includes(tab);
     }
     return false;
   };
@@ -410,7 +423,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('MODIFICATION_IMMEUBLE', 'BUILDINGS', `Mise à jour de l'immeuble ${updatedBuilding.nom}`, updatedBuilding.id);
   };
 
   const handleDeleteBuilding = (buildingId: string) => {
@@ -425,7 +437,6 @@ export default function App() {
       return next;
     });
     deleteBuildingFromDb(buildingId).catch(console.warn);
-    handleTriggerAuditLog('SUPPRESSION_IMMEUBLE', 'BUILDINGS', `Suppression de l'immeuble ID ${buildingId}`, buildingId);
   };
 
   // ============================================================
@@ -440,7 +451,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('AJOUT_ESPACE', 'UNITS', `Création de l'espace ${newUnit.nom}`, newUnit.id);
   };
 
   const handleUpdateUnit = (updatedUnit: Unit) => {
@@ -452,7 +462,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('MODIFICATION_ESPACE', 'UNITS', `Mise à jour de l'espace ${updatedUnit.nom}`, updatedUnit.id);
   };
 
   const handleDeleteUnit = (unitId: string) => {
@@ -462,11 +471,35 @@ export default function App() {
       return next;
     });
     deleteUnitFromDb(unitId).catch(console.warn);
-    handleTriggerAuditLog('SUPPRESSION_ESPACE', 'UNITS', `Suppression de l'espace ID ${unitId}`, unitId);
   };
 
   // ============================================================
-  // HANDLERS : OWNER DEDUCTIONS (NOUVEAU)
+  // HANDLERS : ARCHIVES & ACTIVITY LOGS
+  // ============================================================
+  const handleArchiveRecord = (archive: ArchiveRecord) => {
+    setArchives((prev) => {
+      const next = [archive, ...prev];
+      persistCollection('archives', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
+    }
+  };
+
+  const handleLogActivity = (activity: ActivityLog) => {
+    setActivityLogs((prev) => {
+      const next = [activity, ...prev];
+      persistCollection('activity_logs', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
+    }
+  };
+
+  // ============================================================
+  // HANDLERS : OWNER DEDUCTIONS
   // ============================================================
   const handleAddOwnerDeduction = (deduction: OwnerDeduction) => {
     setOwnerDeductions((prev) => {
@@ -477,7 +510,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('AJOUT_DEDUCTION', 'OWNER_DEDUCTIONS', `Déduction ${deduction.libelle} (${deduction.montant} FCFA)`, deduction.id);
   };
 
   const handleDeleteOwnerDeduction = (deductionId: string) => {
@@ -490,7 +522,7 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLERS : BULLETINS VERSEMENTS (NOUVEAU)
+  // HANDLERS : BULLETINS VERSEMENTS
   // ============================================================
   const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
     setBulletinsVersements((prev) => {
@@ -502,7 +534,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveBulletinVersementToDb(bulletin, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('GENERATION_BULLETIN', 'BULLETIN_VERSEMENTS', `Bulletin ${bulletin.reference} pour ${bulletin.proprietaireNom}`, bulletin.id);
   };
 
   // ============================================================
@@ -557,20 +588,25 @@ export default function App() {
       return next;
     });
 
-    const auditEntry: AuditLog = {
-      id: crypto.randomUUID(),
-      action: 'ENCAISSEMENT_LOYER',
-      entite: 'PAYMENT',
-      entiteId: newPayment.id,
-      utilisateur: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Système',
-      details: `Encaissement de ${newPayment.montantPaye} FCFA pour ${newPayment.locataireNom} (${newPayment.quittanceNumero})`,
-      createdAt: new Date().toISOString(),
-    };
-    setAuditLogs((prev) => {
-      const next = [auditEntry, ...prev];
-      persistCollection('audit_logs', next);
-      return next;
-    });
+    // LOG ACTIVITÉ
+    if (currentUser?.agencyId) {
+      handleLogActivity({
+        id: crypto.randomUUID(),
+        agencyId: currentUser.agencyId,
+        userId: currentUser.id,
+        userNom: `${currentUser.prenom} ${currentUser.nom}`,
+        activityType: 'PAYMENT',
+        entityType: 'payment',
+        entityId: newPayment.id,
+        entityRef: newPayment.quittanceNumero,
+        title: `Paiement ${newPayment.statut} — ${newPayment.locataireNom}`,
+        description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
+        montant: newPayment.montantPaye,
+        activityDate: new Date().toISOString().split('T')[0],
+        activityHour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        createdAt: new Date().toISOString(),
+      });
+    }
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -660,6 +696,7 @@ export default function App() {
       auteurId: currentUser?.id,
       auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
       dateHeurePaiement: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      typeRecu: 'QUITTANCE',
     };
 
     handleAddPayment(newPayment);
@@ -791,7 +828,6 @@ export default function App() {
           persistCollection('users', next);
           return next;
         });
-        handleTriggerAuditLog('CREATION_COMPTE', 'USERS', `Compte Supabase créé : ${user.email} (${user.role})`, result.user.id);
         return { success: true };
       }
       return { success: false, error: result.error };
@@ -802,10 +838,9 @@ export default function App() {
       persistCollection('users', next);
       return next;
     });
-    handleTriggerAuditLog('CREATION_COMPTE_LOCAL', 'USERS', `Compte local créé : ${user.email} (${user.role})`, user.id);
     return {
       success: true,
-      error: isSupabaseConfigured ? undefined : 'Compte enregistré localement — non visible sur les autres appareils.',
+      error: isSupabaseConfigured ? undefined : 'Compte enregistré localement.',
     };
   };
 
@@ -818,7 +853,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       savePropertyToDb(newProperty, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('AJOUT_BIEN_IMMOBILIER', 'PROPERTIES', `Création du lot ${newProperty.nom} (${newProperty.ref})`, newProperty.id);
   };
 
   const handleUpdateProperty = (updatedProperty: Property) => {
@@ -1378,6 +1412,20 @@ export default function App() {
             />
           )}
 
+                   {activeTab === 'archives' && (
+            <ArchiveView
+              archives={archives}
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'activity-logs' && (
+            <ActivityLogView
+              activities={activityLogs}
+              currentUser={currentUser}
+            />
+          )}
+
           {activeTab === 'caisse' && (
             <CashRegisterView
               cashMovements={cashMovements}
@@ -1626,7 +1674,7 @@ export default function App() {
         </main>
       </div>
       
-            {receiptModalPayment && (
+      {receiptModalPayment && (
         <PaymentReceiptModal
           payment={receiptModalPayment}
           settings={settings}

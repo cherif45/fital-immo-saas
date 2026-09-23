@@ -242,6 +242,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         items: [
           { id: 'reports' as ActiveTab, label: 'Rapports & Audit Financier', icon: FileText },
           { id: 'documents' as ActiveTab, label: 'Bibliothèque Documents', icon: FolderArchive },
+                          { id: 'archives' as ActiveTab, label: 'Archives & Historique', icon: FolderArchive },
+          { id: 'activity-logs' as ActiveTab, label: 'Journal des Activités', icon: CalendarDays },
           { id: 'settings' as ActiveTab, label: 'Paramètres Agence', icon: Settings },
         ],
       },

@@ -6,6 +6,7 @@ import {
   MaintenanceTicket, OwnerDisbursement, Invoice, CashVoucher, NotificationItem,
   AuditLog, AgencySettings, UserAccount, PaymentMethodConfig, CashMovement,
   CashClosing, Agency, Building, Unit, OwnerDeduction, BulletinVersement,
+  ArchiveRecord, ActivityLog,
 } from '../../types';
 
 export interface AppStateData {
@@ -32,6 +33,8 @@ export interface AppStateData {
   cashClosings: CashClosing[];
   ownerDeductions?: OwnerDeduction[];
   bulletinVersements?: BulletinVersement[];
+  archives?: ArchiveRecord[];
+  activityLogs?: ActivityLog[];
 }
 
 export const defaultSettings: AgencySettings = {
@@ -278,7 +281,6 @@ export function mapPaymentFromDb(r: any): Payment {
     auteurId: r.caissier_id || r.auteurId,
     auteurNom: r.caissier_nom || r.auteurNom,
     dateHeurePaiement: r.created_at || r.dateHeurePaiement,
-    // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
     typeRecu: r.type_recu || r.typeRecu || 'QUITTANCE',
     referencePaiementInitial: r.reference_paiement_initial || r.referencePaiementInitial,
     montantInitialDu: Number(r.montant_initial_du ?? r.montantInitialDu ?? 0),
@@ -333,6 +335,47 @@ export function mapBulletinVersementFromDb(r: any): BulletinVersement {
     notes: r.notes || '',
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
+  };
+}
+
+// ============================================================
+// MAPPERS : ARCHIVES
+// ============================================================
+export function mapArchiveFromDb(r: any): ArchiveRecord {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    entityType: r.entity_type || r.entityType,
+    entityId: r.entity_id || r.entityId,
+    entityRef: r.entity_ref || r.entityRef,
+    entityNom: r.entity_nom || r.entityNom,
+    data: r.data || {},
+    archivedAt: r.archived_at || r.archivedAt,
+    archivedBy: r.archived_by || r.archivedBy,
+    reason: r.reason,
+  };
+}
+
+// ============================================================
+// MAPPERS : ACTIVITY LOGS
+// ============================================================
+export function mapActivityLogFromDb(r: any): ActivityLog {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    userId: r.user_id || r.userId,
+    userNom: r.user_nom || r.userNom,
+    activityType: r.activity_type || r.activityType,
+    entityType: r.entity_type || r.entityType,
+    entityId: r.entity_id || r.entityId,
+    entityRef: r.entity_ref || r.entityRef,
+    title: r.title,
+    description: r.description,
+    montant: Number(r.montant ?? 0),
+    activityDate: r.activity_date || r.activityDate,
+    activityHour: r.activity_hour || r.activityHour,
+    metadata: r.metadata || {},
+    createdAt: r.created_at || r.createdAt,
   };
 }
 
@@ -530,6 +573,8 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   const localCashClosings = loadLocalCollection<CashClosing[]>('cash_closings', []);
   const localOwnerDeductions = loadLocalCollection<OwnerDeduction[]>('owner_deductions', []);
   const localBulletinVersements = loadLocalCollection<BulletinVersement[]>('bulletin_versements', []);
+  const localArchives = loadLocalCollection<ArchiveRecord[]>('archives', []);
+  const localActivityLogs = loadLocalCollection<ActivityLog[]>('activity_logs', []);
 
   const state: AppStateData = {
     agency: localAgency, properties: localProperties,
@@ -541,6 +586,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
     settings: localSettings, users: localUsers, paymentMethods: localPaymentMethods,
     cashMovements: localCashMovements, cashClosings: localCashClosings,
     ownerDeductions: localOwnerDeductions, bulletinVersements: localBulletinVersements,
+    archives: localArchives, activityLogs: localActivityLogs,
   };
 
   if (!isSupabaseConfigured || !supabase) return state;
@@ -552,7 +598,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyRes, propsRes, ownersRes, tenantsRes, contractsRes, paymentsRes,
       cashMovRes, cashCloseRes, maintRes, inspRes, disbRes, invRes, remindRes,
       auditRes, notifRes, pmRes, settingsRes, usersRes, buildingsRes, unitsRes,
-      deductionsRes, bulletinsRes,
+      deductionsRes, bulletinsRes, archivesRes, activitiesRes,
     ] = await Promise.allSettled([
       agencyId ? supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
@@ -576,6 +622,8 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('units').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('owner_deductions').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('bulletin_versements').select('*').order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('archives').select('*').order('archived_at', { ascending: false }).limit(200)),
+      agencyFilter(supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500)),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
@@ -661,6 +709,18 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
     if (bulletinsRes.status === 'fulfilled' && bulletinsRes.value.data && bulletinsRes.value.data.length > 0) {
       state.bulletinVersements = bulletinsRes.value.data.map(mapBulletinVersementFromDb);
       persistCollection('bulletin_versements', state.bulletinVersements);
+    }
+
+    // ARCHIVES
+    if (archivesRes.status === 'fulfilled' && archivesRes.value.data && archivesRes.value.data.length > 0) {
+      state.archives = archivesRes.value.data.map(mapArchiveFromDb);
+      persistCollection('archives', state.archives);
+    }
+
+    // ACTIVITY LOGS
+    if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data && activitiesRes.value.data.length > 0) {
+      state.activityLogs = activitiesRes.value.data.map(mapActivityLogFromDb);
+      persistCollection('activity_logs', state.activityLogs);
     }
 
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
@@ -946,6 +1006,109 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
 }
 
 // ============================================================
+// CRUD : ARCHIVES
+// ============================================================
+export async function saveArchiveToDb(archive: Partial<ArchiveRecord>, agencyId: string): Promise<{ success: boolean; data?: ArchiveRecord; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: archive as ArchiveRecord };
+  try {
+    const record = {
+      agency_id: agencyId,
+      entity_type: archive.entityType,
+      entity_id: archive.entityId,
+      entity_ref: archive.entityRef || null,
+      entity_nom: archive.entityNom || null,
+      data: archive.data || {},
+      archived_by: archive.archivedBy || null,
+      reason: archive.reason || null,
+    };
+    const { data, error } = await supabase.from('archives').insert([record]).select().single();
+    if (error) throw error;
+    return { success: true, data: mapArchiveFromDb(data) };
+  } catch (err: any) {
+    console.error('Erreur archivage:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function fetchArchivesFromDb(agencyId: string, entityType?: string): Promise<ArchiveRecord[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    let query = supabase.from('archives').select('*').eq('agency_id', agencyId);
+    if (entityType) query = query.eq('entity_type', entityType);
+    const { data, error } = await query.order('archived_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapArchiveFromDb);
+  } catch (err: any) {
+    console.error('Erreur fetch archives:', err);
+    return [];
+  }
+}
+
+// ============================================================
+// CRUD : ACTIVITY LOGS
+// ============================================================
+export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agencyId: string): Promise<{ success: boolean; data?: ActivityLog; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: activity as ActivityLog };
+  try {
+    const record = {
+      agency_id: agencyId,
+      user_id: activity.userId || null,
+      user_nom: activity.userNom || null,
+      activity_type: activity.activityType,
+      entity_type: activity.entityType || null,
+      entity_id: activity.entityId || null,
+      entity_ref: activity.entityRef || null,
+      title: activity.title,
+      description: activity.description || null,
+      montant: activity.montant || null,
+      activity_date: activity.activityDate || new Date().toISOString().split('T')[0],
+      activity_hour: activity.activityHour || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      metadata: activity.metadata || {},
+    };
+    const { data, error } = await supabase.from('activity_logs').insert([record]).select().single();
+    if (error) throw error;
+    return { success: true, data: mapActivityLogFromDb(data) };
+  } catch (err: any) {
+    console.error('Erreur activity log:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function fetchActivitiesByDate(agencyId: string, date: string): Promise<ActivityLog[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .eq('activity_date', date)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapActivityLogFromDb);
+  } catch (err: any) {
+    console.error('Erreur fetch activities by date:', err);
+    return [];
+  }
+}
+
+export async function fetchActivitiesByEntity(agencyId: string, entityId: string): Promise<ActivityLog[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .eq('entity_id', entityId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapActivityLogFromDb);
+  } catch (err: any) {
+    console.error('Erreur fetch activities by entity:', err);
+    return [];
+  }
+}
+
+// ============================================================
 // CRUD : PROPRIÉTÉS
 // ============================================================
 export async function savePropertyToDb(property: Partial<Property>, agencyId: string): Promise<{ success: boolean; data?: Property; error?: string }> {
@@ -972,7 +1135,7 @@ export async function savePropertyToDb(property: Partial<Property>, agencyId: st
     }
   } catch (err: any) {
     console.error('Erreur sauvegarde propriété:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le bien immobilier.' };
+    return { success: false, error: err.message || 'Impossible d\'enregistrer le bien.' };
   }
 }
 
@@ -1100,7 +1263,6 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       date_echeance: payment.dateEcheance || new Date().toISOString().split('T')[0],
       recu_par: payment.recuPar || 'Service Gérance',
       caissier_id: authorId || null, observation: payment.observation || '',
-      // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
       type_recu: payment.typeRecu || 'QUITTANCE',
       reference_paiement_initial: payment.referencePaiementInitial || null,
       montant_initial_du: payment.montantInitialDu || 0,
@@ -1165,7 +1327,7 @@ export async function saveCashMovementToDb(movement: Partial<CashMovement>, agen
     const { data, error } = await supabase.from('cash_movements').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashMovement };
-  } catch (err: any) { console.error('Erreur enregistrement mouvement caisse:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { console.error('Erreur mouvement caisse:', err); return { success: false, error: err.message }; }
 }
 
 export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyId: string, caissierId: string, caissierNom: string): Promise<{ success: boolean; data?: CashClosing; error?: string }> {
@@ -1187,7 +1349,7 @@ export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyI
     const { data, error } = await supabase.from('cash_closings').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashClosing };
-  } catch (err: any) { console.error('Erreur enregistrement clôture:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { console.error('Erreur clôture:', err); return { success: false, error: err.message }; }
 }
 
 // ============================================================
