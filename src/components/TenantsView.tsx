@@ -25,7 +25,7 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import { Tenant, Property, ActiveTab, Inspection } from '../types';
+import { Tenant, Property, ActiveTab, Inspection, UserAccount } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
@@ -33,6 +33,7 @@ import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
 interface TenantsViewProps {
   tenants: Tenant[];
   properties: Property[];
+  currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
   onAddTenant: (tenant: Tenant) => void;
@@ -44,6 +45,7 @@ interface TenantsViewProps {
 export const TenantsView: React.FC<TenantsViewProps> = ({
   tenants,
   properties,
+  currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
   onAddTenant,
@@ -76,6 +78,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [conjointTelephone, setConjointTelephone] = useState('');
 
   // ============================================================
+  // 🔒 MATRICE DE PERMISSIONS
+  // ============================================================
+  const role = currentUser?.role || 'ADMIN';
+  const isOwner = role === 'PROPRIETAIRE';
+  const isTenant = role === 'LOCATAIRE';
+  const canManageTenants = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'GESTIONNAIRE';
+  const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'GESTIONNAIRE' || role === 'CAISSIER';
+  const canContactTenant = !isOwner && !isTenant;
+
+  // ============================================================
   // 🔧 HELPERS : Statut réel du locataire
   // ============================================================
   const isTenantSorted = (t: Tenant): boolean => {
@@ -99,12 +111,11 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return t.solvabiliteScore || t.scoreSolvabilite || 85;
   };
 
-  // Filtrer : Actifs (par défaut) / Sortis / Tous
+  // Filtres
   const activeTenants = tenants.filter((t) => !isTenantSorted(t));
   const sortedTenants = tenants.filter((t) => isTenantSorted(t));
 
   const filteredTenants = tenants.filter((t) => {
-    // Filtre statut
     if (statusFilter === 'actifs' && isTenantSorted(t)) return false;
     if (statusFilter === 'sortis' && !isTenantSorted(t)) return false;
     if (statusFilter === 'a_jour' && (isTenantSorted(t) || t.statut !== 'À jour')) return false;
@@ -126,6 +137,10 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
   const handleSubmitTenant = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageTenants) {
+      alert("Action non autorisée.");
+      return;
+    }
     const prop = properties.find((p) => p.id === bienId);
     if (!prop || !prop.proprietaireId) {
       alert("Impossible : ce bien n'a pas de propriétaire associé.");
@@ -171,6 +186,10 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
   const handleConfirmExit = () => {
     if (!tenantForExit) return;
+    if (!canManageTenants) {
+      alert("Action non autorisée.");
+      return;
+    }
 
     if (onInitiateExit) {
       onInitiateExit(tenantForExit);
@@ -223,13 +242,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>Excel</span>
           </button>
-          <button
-            onClick={() => setIsAddTenantModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Locataire</span>
-          </button>
+          {/* 🔒 Bouton "+ Nouveau Locataire" : UNIQUEMENT ADMIN/GESTIONNAIRE */}
+          {canManageTenants && (
+            <button
+              onClick={() => setIsAddTenantModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouveau Locataire</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -335,8 +357,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                               {t.prenom} {t.nom}
                             </div>
                             <div className="text-[10px] text-[#A8B4C4] truncate max-w-[140px]">
-                              {t.profession} ({t.employeur})
-                            </div>
+                              {t.profession} ({t.employeur})                            </div>
                           </div>
                         </div>
                       </td>
@@ -352,32 +373,35 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       <td className="py-3 px-3 font-mono">
                         <div className="flex items-center gap-2">
                           <span className="text-white text-xs font-semibold">{t.telephone}</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => triggerPhoneCall(t.telephone)}
-                              className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all cursor-pointer"
-                              title="Appeler directement ce locataire"
-                            >
-                              <PhoneCall className="w-3 h-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
-                              className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all cursor-pointer"
-                              title="Écrire sur WhatsApp"
-                            >
-                              <Send className="w-3 h-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
-                              className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all cursor-pointer"
-                              title="Envoyer un SMS"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                            </button>
-                          </div>
+                          {/* 🔒 Boutons contact : UNIQUEMENT ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
+                          {canContactTenant && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => triggerPhoneCall(t.telephone)}
+                                className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all cursor-pointer"
+                                title="Appeler directement ce locataire"
+                              >
+                                <PhoneCall className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
+                                className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all cursor-pointer"
+                                title="Écrire sur WhatsApp"
+                              >
+                                <Send className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
+                                className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all cursor-pointer"
+                                title="Envoyer un SMS"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni}</div>
                       </td>
@@ -401,6 +425,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          {/* 👁 Voir détails : tous les rôles */}
                           <button
                             onClick={() => setSelectedTenantForDetails(t)}
                             className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all cursor-pointer"
@@ -409,60 +434,76 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 🔒 Actions cachées pour les sortis */}
+                          {/* 🔒 Actions cachées pour les sortis + cachées selon le rôle */}
                           {!sorted && (
                             <>
-                              <button
-                                onClick={() => {
-                                  if (onOpenMobileMoney) {
-                                    onOpenMobileMoney(t);
-                                  } else {
-                                    setSelectedTenantForPayment(t);
-                                  }
-                                }}
-                                className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                                title="Générer lien Wave ou Orange Money / Payer"
-                              >
-                                <Smartphone className="w-3 h-3 text-blue-400" />
-                                <span>Wave / OM</span>
-                              </button>
+                              {/* Wave/OM : ADMIN/GESTIONNAIRE/CAISSIER/LOCATAIRE (pas PROPRIÉTAIRE) */}
+                              {!isOwner && (
+                                <button
+                                  onClick={() => {
+                                    if (onOpenMobileMoney) {
+                                      onOpenMobileMoney(t);
+                                    } else {
+                                      setSelectedTenantForPayment(t);
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Générer lien Wave ou Orange Money / Payer"
+                                >
+                                  <Smartphone className="w-3 h-3 text-blue-400" />
+                                  <span>Wave / OM</span>
+                                </button>
+                              )}
 
-                              <button
-                                onClick={() => triggerPhoneCall(t.telephone)}
-                                className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all cursor-pointer"
-                                title={`Appeler directement ${t.prenom} (${t.telephone})`}
-                              >
-                                <PhoneCall className="w-3.5 h-3.5" />
-                              </button>
+                              {/* Appel : ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
+                              {canContactTenant && (
+                                <button
+                                  onClick={() => triggerPhoneCall(t.telephone)}
+                                  className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all cursor-pointer"
+                                  title={`Appeler directement ${t.prenom} (${t.telephone})`}
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                </button>
+                              )}
 
-                              <button
-                                onClick={() => {
-                                  const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
-                                  triggerWhatsApp(t.telephone, defaultMsg);
-                                }}
-                                className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
-                                title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                              </button>
+                              {/* WhatsApp : ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
+                              {canContactTenant && (
+                                <button
+                                  onClick={() => {
+                                    const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
+                                    triggerWhatsApp(t.telephone, defaultMsg);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
+                                  title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+                              )}
 
-                              <button
-                                onClick={() => setTenantForExit(t)}
-                                className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                                title="Enregistrer la sortie de ce locataire"
-                              >
-                                <LogOut className="w-3 h-3 text-rose-400" />
-                                <span>Sortie</span>
-                              </button>
+                              {/* Sortie : ADMIN/GESTIONNAIRE */}
+                              {canManageTenants && (
+                                <button
+                                  onClick={() => setTenantForExit(t)}
+                                  className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Enregistrer la sortie de ce locataire"
+                                >
+                                  <LogOut className="w-3 h-3 text-rose-400" />
+                                  <span>Sortie</span>
+                                </button>
+                              )}
 
-                              {t.statut !== 'À jour' ? (
+                              {/* Relance : ADMIN/GESTIONNAIRE/CAISSIER */}
+                              {canEncaisser && t.statut !== 'À jour' && (
                                 <button
                                   onClick={() => onOpenQuickReminder(t)}
                                   className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 transition-all cursor-pointer"
                                 >
                                   <Send className="w-3 h-3" /> Relance
                                 </button>
-                              ) : (
+                              )}
+
+                              {/* Encaisser : ADMIN/GESTIONNAIRE/CAISSIER */}
+                              {canEncaisser && t.statut === 'À jour' && (
                                 <button
                                   onClick={() => onOpenNewPayment(t)}
                                   className="px-2 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-[11px] font-medium transition-all cursor-pointer"
@@ -473,7 +514,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             </>
                           )}
 
-                          {/* Pour les sortis : message + bouton réactiver */}
+                          {/* Pour les sortis : message */}
                           {sorted && (
                             <span className="text-[10px] text-slate-500 italic px-2">Locataire sorti — historique</span>
                           )}
@@ -489,7 +530,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       </div>
 
       {/* MODAL : Confirmation de Sortie Locataire */}
-      {tenantForExit && (
+      {canManageTenants && tenantForExit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
           <div className="bg-[#162133] border border-rose-500/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-rose-500/30 flex items-center justify-between bg-[#1E2E45]/80">
@@ -726,8 +767,8 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Ajouter un Nouveau Locataire */}
-      {isAddTenantModalOpen && (
+      {/* Modal: Ajouter un Nouveau Locataire — UNIQUEMENT ADMIN/GESTIONNAIRE */}
+      {canManageTenants && isAddTenantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
