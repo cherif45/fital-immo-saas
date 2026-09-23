@@ -67,8 +67,20 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   // ============================================================
   // CALCUL DES REVERSEMENTS
   // ============================================================
-  const calculerReversements = (): ReversementPreview[] => {
-    const paiementsValides = payments.filter((p) => p.statut === 'Payé' && p.proprietaireId);
+   const calculerReversements = (): ReversementPreview[] => {
+    // 🔧 FIX : on filtre sur les paiements Payé avec un proprietaireId valide
+    // ET on exclut ceux déjà reversés (pas de double comptage)
+    const paiementsValides = payments.filter((p) => 
+      p.statut === 'Payé' && 
+      p.proprietaireId &&
+      // Si la propriété a un disbursement associé pour cette période, on exclut
+      !disbursements.some((d) => 
+        d.proprietaireId === p.proprietaireId && 
+        d.periode === p.periode &&
+        d.statut === 'Effectué'
+      )
+    );
+
     const grouped = new Map<string, ReversementPreview>();
 
     paiementsValides.forEach((p) => {
@@ -88,7 +100,8 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
       }
 
       const entry = grouped.get(owner.id)!;
-      entry.loyersBruts += p.loyerBase || 0;
+      // 🔧 FIX : on prend `montantPaye` si dispo, sinon loyerBase
+      entry.loyersBruts += (p.montantPaye || p.loyerBase || 0);
       entry.nbPaiements += 1;
       const bien = properties.find((pr) => pr.id === p.bienId);
       if (bien && !entry.biensConcernes.includes(bien.nom)) {
@@ -96,13 +109,14 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
       }
     });
 
-    // Calcul commission + net
+        // Calcul commission + net
     const results: ReversementPreview[] = [];
     grouped.forEach((entry) => {
       const tauxCommission = entry.proprietaire.tauxCommission || 10;
       entry.commissionAgence = Math.round((entry.loyersBruts * tauxCommission) / 100);
       // TVA sur commission (18% du montant de commission)
       entry.retenueTVA = Math.round(entry.commissionAgence * 0.18);
+      // 🔧 FIX : on déduit la commission du brut pour le net
       entry.montantNetPaye = entry.loyersBruts - entry.commissionAgence;
       results.push(entry);
     });

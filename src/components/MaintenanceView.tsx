@@ -32,6 +32,7 @@ import {
   MaintenanceImputation,
   MaintenancePaymentStatus,
   PaymentMethod,
+  UserAccount,
 } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
 import { MaintenanceWorkOrderModal } from './MaintenanceWorkOrderModal';
@@ -41,6 +42,7 @@ interface MaintenanceViewProps {
   properties: Property[];
   tenants: Tenant[];
   owners?: Owner[];
+  currentUser?: UserAccount;
   onAddTicket: (ticket: MaintenanceTicket) => void;
   onUpdateTicket?: (ticket: MaintenanceTicket) => void;
   onAddCashMovement?: (movement: CashMovement) => void;
@@ -57,6 +59,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   onAddCashMovement,
   onTriggerAuditLog,
 }) => {
+    // 🔒 MATRICE DE PERMISSIONS
+  const canManageMaintenance = true; // sera calculé via les props
   const [search, setSearch] = useState('');
   const [filterStatut, setFilterStatut] = useState<string>('all');
   const [filterImputation, setFilterImputation] = useState<string>('all');

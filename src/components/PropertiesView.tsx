@@ -51,11 +51,10 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Selected for Details / Edit
   const [selectedPropertyDetails, setSelectedPropertyDetails] = useState<Property | null>(null);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
-  // Form State for Adding a Property
+  // Form State
   const [nom, setNom] = useState('');
   const [type, setType] = useState<PropertyType>('Appartement');
   const [adresse, setAdresse] = useState('');
@@ -68,11 +67,34 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const [tauxGerance, setTauxGerance] = useState<number>(10);
   const [description, setDescription] = useState('');
 
-  // Rôle & Permissions Check: LES LOCATAIRES N'ONT PAS LE DROIT D'AJOUTER DES BIENS
+  // ============================================================
+  // 🔒 MATRICE DE PERMISSIONS
+  // ============================================================
   const isTenant = currentUser?.role === 'LOCATAIRE';
+  const isOwner = currentUser?.role === 'PROPRIETAIRE';
+  const isCashier = currentUser?.role === 'CAISSIER';
+  const isAgent = currentUser?.role === 'AGENT';
+
+  // Création/modification/suppression : UNIQUEMENT ADMIN/SUPER_ADMIN/GESTIONNAIRE
   const canManageProperties = currentUser
     ? ['SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE'].includes(currentUser.role)
     : true;
+
+  // 🔧 Helper : garantit qu'un nom de propriétaire est toujours affiché
+  const getOwnerDisplayName = (p: Property): string => {
+    if (p.proprietaireNom && p.proprietaireNom.trim() && p.proprietaireNom !== 'Propriétaire') {
+      return p.proprietaireNom;
+    }
+    const owner = owners.find((o) => o.id === p.proprietaireId);
+    if (owner) return `${owner.prenom} ${owner.nom}`;
+    return 'Bailleur non référencé';
+  };
+
+  // 🔧 Helper : récupère le locataire actuel via le bien
+  const getCurrentTenantName = (p: Property): string => {
+    if (p.locataireActuelNom && p.locataireActuelNom.trim()) return p.locataireActuelNom;
+    return '';
+  };
 
   // Filter properties based on role
   let displayableProperties = properties;
@@ -81,9 +103,9 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       (p) => p.id === currentUser.locataireId || p.locataireActuelNom?.toLowerCase().includes(currentUser.nom.toLowerCase())
     );
     if (displayableProperties.length === 0) {
-      displayableProperties = properties.slice(0, 1); // Display the leased property
+      displayableProperties = properties.slice(0, 1);
     }
-  } else if (currentUser?.role === 'PROPRIETAIRE' && currentUser?.proprietaireId) {
+  } else if (isOwner && currentUser?.proprietaireId) {
     displayableProperties = properties.filter(
       (p) => p.proprietaireId === currentUser.proprietaireId
     );
@@ -99,20 +121,19 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         p.adresse.toLowerCase().includes(q) ||
         p.quartier.toLowerCase().includes(q) ||
         p.locataireActuelNom?.toLowerCase().includes(q) ||
-        p.proprietaireNom.toLowerCase().includes(q)
+        p.proprietaireNom?.toLowerCase().includes(q)
       );
     }
     return true;
   });
 
-   const handleSubmitProperty = (e: React.FormEvent) => {
+  const handleSubmitProperty = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isTenant) {
-      alert("Accès refusé : En tant que locataire, vous n'avez pas l'autorisation d'ajouter ou d'enregistrer des biens.");
+    if (!canManageProperties) {
+      alert("Accès refusé : seuls les administrateurs et gestionnaires peuvent ajouter des biens.");
       return;
     }
 
-    // ⬇️ VÉRIFIER QU'UN PROPRIÉTAIRE EXISTE
     const owner = owners.find((o) => o.id === proprietaireId);
     if (!owner) {
       alert("Impossible : aucun propriétaire sélectionné. Créez d'abord un propriétaire.");
@@ -137,7 +158,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       dateCreation: new Date().toISOString().split('T')[0],
       loyerTotal: Number(loyerBase) + Number(charges),
       statut: 'Vacant',
-           proprietaireId: owner.id,
+      proprietaireId: owner.id,
       proprietaireNom: `${owner.prenom} ${owner.nom}`,
       tauxCommission: Number(tauxGerance),
       description: description || `${type} de haut standing situé à ${quartier}, Dakar.`,
@@ -154,6 +175,10 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProperty || !onUpdateProperty) return;
+    if (!canManageProperties) {
+      alert("Action non autorisée.");
+      return;
+    }
     onUpdateProperty(editingProperty);
     setEditingProperty(null);
   };
@@ -182,8 +207,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       p.loyerBase,
       p.charges,
       p.loyerTotal,
-      p.proprietaireNom,
-      p.locataireActuelNom || 'Vacant',
+      getOwnerDisplayName(p),
+      getCurrentTenantName(p) || 'Vacant',
     ]);
     exportToCSV('Parc_Immobilier_FITAL_IMMO', rows, headers);
   };
@@ -198,10 +223,15 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
           </div>
           <div>
             <div className="text-base font-bold text-white flex items-center gap-2">
-              {isTenant ? 'Mon Logement / Résidence en Location' : 'Catalogue & Gestion du Parc Immobilier'}
+              {isTenant ? 'Mon Logement / Résidence en Location' : isOwner ? 'Mes Biens Immobiliers' : 'Catalogue & Gestion du Parc Immobilier'}
               {isTenant && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   Vue Locataire Sécurisée
+                </span>
+              )}
+              {isOwner && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  Vue Bailleur
                 </span>
               )}
             </div>
@@ -214,17 +244,17 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Exporter CSV</span>
           </button>
 
-          {/* SÉCURITÉ : Bouton masqué pour les locataires */}
-          {!isTenant && canManageProperties && (
+          {/* 🔒 SÉCURITÉ : Bouton masqué pour LOCATAIRE, PROPRIÉTAIRE, CAISSIER, AGENT */}
+          {canManageProperties && (
             <button
               onClick={() => setIsNewPropertyModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Ajouter un Bien / Lot</span>
@@ -243,13 +273,23 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         </div>
       )}
 
+      {/* Info Banner pour Propriétaire */}
+      {isOwner && (
+        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-xs flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-blue-400 flex-shrink-0" />
+          <span>
+            Vous consultez le portefeuille de vos biens sous mandat. Pour toute modification, contactez votre gestionnaire FITAL-IMMO.
+          </span>
+        </div>
+      )}
+
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
                 statusFilter === 'all' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
               }`}
             >
@@ -257,7 +297,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Occupé')}
-              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
                 statusFilter === 'Occupé' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-emerald-400 hover:text-white'
               }`}
             >
@@ -265,7 +305,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Vacant')}
-              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
                 statusFilter === 'Vacant' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-sky-400 hover:text-white'
               }`}
             >
@@ -305,12 +345,12 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
           <Building2 className="w-10 h-10 mx-auto text-[#6B7C94]/50 mb-3" />
           <h3 className="text-sm font-bold text-white mb-1">Aucun bien immobilier répertorié</h3>
           <p className="text-xs text-[#A8B4C4] max-w-sm mx-auto mb-4">
-            Enregistrez un bien, un appartement ou une villa avec son loyer de référence pour commencer la gestion locative.
+            {isOwner || isTenant ? 'Aucun bien ne vous est actuellement rattaché.' : 'Enregistrez un bien, un appartement ou une villa avec son loyer de référence pour commencer la gestion locative.'}
           </p>
-          {!isTenant && canManageProperties && (
+          {canManageProperties && (
             <button
               onClick={() => setIsNewPropertyModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs cursor-pointer"
             >
               + Ajouter un premier bien
             </button>
@@ -320,6 +360,9 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProperties.map((p) => {
           const isOccupied = p.statut === 'Occupé';
+          const ownerName = getOwnerDisplayName(p);
+          const tenantName = getCurrentTenantName(p);
+
           return (
             <div
               key={p.id}
@@ -369,13 +412,13 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-[#6B7C94]">Propriétaire :</span>
                     <span className="font-semibold text-white truncate max-w-[140px]">
-                      {p.proprietaireNom}
+                      {ownerName}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[#6B7C94]">Locataire actif :</span>
                     <span className="font-semibold text-[#E8D5B0] truncate max-w-[140px]">
-                      {p.locataireActuelNom || <span className="text-sky-400 font-normal">Aucun (Vacant)</span>}
+                      {tenantName || <span className="text-sky-400 font-normal">Aucun (Vacant)</span>}
                     </span>
                   </div>
                 </div>
@@ -393,24 +436,25 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setSelectedPropertyDetails(p)}
-                    className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-slate-300 hover:text-white transition-colors"
+                    className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-slate-300 hover:text-white transition-colors cursor-pointer"
                     title="Voir la fiche détaillée"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
 
-                  {!isTenant && canManageProperties && (
+                  {/* 🔒 Boutons Modifier/Supprimer : UNIQUEMENT ADMIN/GESTIONNAIRE */}
+                  {canManageProperties && (
                     <>
                       <button
                         onClick={() => setEditingProperty(p)}
-                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-amber-300 hover:text-amber-200 transition-colors"
+                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
                         title="Modifier le bien"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(p.id, p.nom)}
-                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors"
+                        className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                         title="Archiver / Supprimer"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -439,7 +483,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                   <p className="text-xs text-[#A8B4C4]">Réf : {selectedPropertyDetails.ref} · {selectedPropertyDetails.type}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedPropertyDetails(null)} className="text-slate-400 hover:text-white p-2">✕</button>
+              <button onClick={() => setSelectedPropertyDetails(null)} className="text-slate-400 hover:text-white p-2 cursor-pointer">✕</button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -484,7 +528,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedPropertyDetails(null)}
-                className="px-5 py-2 bg-[#1E2E45] hover:bg-[#2A3F5C] text-white rounded-xl text-xs font-semibold"
+                className="px-5 py-2 bg-[#1E2E45] hover:bg-[#2A3F5C] text-white rounded-xl text-xs font-semibold cursor-pointer"
               >
                 Fermer
               </button>
@@ -494,12 +538,12 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       )}
 
       {/* MODAL : MODIFIER UN BIEN */}
-      {editingProperty && (
+      {editingProperty && canManageProperties && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#C9A96E]/20 pb-4">
               <h3 className="font-bold text-white text-base">Modifier les Données du Bien</h3>
-              <button onClick={() => setEditingProperty(null)} className="text-slate-400 hover:text-white">✕</button>
+              <button onClick={() => setEditingProperty(null)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleUpdateSubmit} className="space-y-4 text-xs">
@@ -588,13 +632,13 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setEditingProperty(null)}
-                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300 hover:bg-[#2A3F5C]"
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300 hover:bg-[#2A3F5C] cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold cursor-pointer"
                 >
                   Enregistrer les modifications
                 </button>
@@ -604,8 +648,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Ajouter un Nouveau Bien (ADMIN / GESTIONNAIRE SEULEMENT) */}
-      {!isTenant && isNewPropertyModalOpen && (
+      {/* Modal: Ajouter un Nouveau Bien */}
+      {canManageProperties && isNewPropertyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
@@ -615,7 +659,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
               </div>
               <button
                 onClick={() => setIsNewPropertyModalOpen(false)}
-                className="text-[#A8B4C4] hover:text-white"
+                className="text-[#A8B4C4] hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -767,13 +811,13 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewPropertyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C]"
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C] cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Enregistrer le Bien</span>
