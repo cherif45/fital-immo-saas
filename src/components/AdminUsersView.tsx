@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  UserAccount, 
-  UserRole, 
-  UserAccountStatus, 
-  Owner, 
-  Tenant 
+import {
+  UserAccount,
+  UserRole,
+  UserAccountStatus,
+  Owner,
+  Tenant,
+  Property,
+  Building,
 } from '../types';
-import { 
-  Users, 
-  UserPlus, 
-  ShieldCheck, 
-  Lock, 
-  Key, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  Search, 
-  Filter, 
-  Building2, 
-  Home, 
-  Phone, 
-  Mail, 
-  Eye, 
-  Edit3, 
-  RotateCcw, 
-  Sliders, 
+import {
+  Users,
+  UserPlus,
+  ShieldCheck,
+  Lock,
+  Key,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Search,
+  Filter,
+  Building2,
+  Home,
+  Phone,
+  Mail,
+  Eye,
+  Edit3,
+  RotateCcw,
+  Sliders,
   History,
   Check,
   X
@@ -34,6 +36,8 @@ interface AdminUsersViewProps {
   users: UserAccount[];
   owners: Owner[];
   tenants: Tenant[];
+  properties?: Property[];
+  buildings?: Building[];
   onAddUser: (user: UserAccount) => Promise<{ success: boolean; error?: string }>;
   onUpdateUser: (user: UserAccount) => void;
   onSwitchActiveUser: (user: UserAccount) => void;
@@ -114,6 +118,8 @@ export function AdminUsersView({
   users,
   owners,
   tenants,
+  properties = [],
+  buildings = [],
   onAddUser,
   onUpdateUser,
   onSwitchActiveUser,
@@ -130,7 +136,6 @@ export function AdminUsersView({
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserAccount | null>(null);
   const [activeTabSub, setActiveTabSub] = useState<'users' | 'roles' | 'security_log'>('users');
 
-  // Form State for New Account
   const [formData, setFormData] = useState<{
     nom: string;
     prenom: string;
@@ -154,6 +159,15 @@ export function AdminUsersView({
     organisation: '',
     permissions: [],
   });
+
+  // ============================================================
+  // 🔧 Helper : calcul dynamique des biens gérés
+  // ============================================================
+  const getOwnerTotalBiens = (ownerId: string): number => {
+    const nbProperties = properties.filter((p) => p.proprietaireId === ownerId).length;
+    const nbBuildings = buildings.filter((b) => b.proprietaireId === ownerId).length;
+    return nbProperties + nbBuildings;
+  };
 
   const filteredUsers = users.filter((u) => {
     const matchSearch =
@@ -258,7 +272,7 @@ export function AdminUsersView({
   };
 
   const toggleUserStatus = (user: UserAccount) => {
-    const nextStatus: UserAccountStatus = 
+    const nextStatus: UserAccountStatus =
       user.statut === 'actif' ? 'suspendu' : user.statut === 'suspendu' ? 'desactive' : 'actif';
     onUpdateUser({ ...user, statut: nextStatus });
   };
@@ -391,6 +405,9 @@ export function AdminUsersView({
               const linkedOwner = isOwner ? owners.find((o) => o.id === user.proprietaireId) : null;
               const linkedTenant = isTenant ? tenants.find((t) => t.id === user.locataireId) : null;
 
+              // 🔧 Calcul dynamique des biens gérés
+              const ownerTotalBiens = linkedOwner ? getOwnerTotalBiens(linkedOwner.id) : 0;
+
               return (
                 <div
                   key={user.id}
@@ -453,7 +470,7 @@ export function AdminUsersView({
                             <span>Bailleur Associé :</span>
                           </div>
                           <p className="text-white font-medium pl-5">
-                            {linkedOwner ? `${linkedOwner.prenom} ${linkedOwner.nom} (${linkedOwner.totalBiens || 0} biens gérés)` : 'Compte non rattaché'}
+                            {linkedOwner ? `${linkedOwner.prenom} ${linkedOwner.nom} (${ownerTotalBiens} biens gérés)` : 'Compte non rattaché'}
                           </p>
                         </div>
                       )}
@@ -465,14 +482,10 @@ export function AdminUsersView({
                             <span>Locataire Associé :</span>
                           </div>
                           <p className="text-white font-medium pl-5">
-                            {linkedTenant 
-  ? `${linkedTenant.prenom} ${linkedTenant.nom}${linkedTenant.bienNom ? ` — ${linkedTenant.bienNom}` : ''}` 
-  : 'Compte non rattaché'}
+                            {linkedTenant ? `${linkedTenant.prenom} ${linkedTenant.nom} — ${linkedTenant.bienNom || 'Logement'}` : 'Compte non rattaché'}
                           </p>
                         </div>
                       )}
-
-                     
 
                       <div className="text-[11px] text-slate-400 flex justify-between pt-1">
                         <span>Dernière connexion :</span>
@@ -617,7 +630,7 @@ export function AdminUsersView({
               </div>
               <button
                 onClick={() => setIsNewUserModalOpen(false)}
-                className="text-slate-400 hover:text-white p-2"
+                className="text-slate-400 hover:text-white p-2 cursor-pointer"
               >
                 ✕
               </button>
@@ -625,234 +638,243 @@ export function AdminUsersView({
 
             <form onSubmit={handleCreateAccount} className="space-y-4">
               {createError && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-                  {createError}
-                </div>
-              )}
-              {createSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-                  {createSuccess}
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Prénom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.prenom}
-                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    placeholder="Ex: Oumar"
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Nom de famille *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.nom}
-                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    placeholder="Ex: GUEYE"
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  />
-                </div>
-              </div>
+  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+    {createError}
+  </div>
+)}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Adresse Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="oumar.gueye@example.com"
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Téléphone *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.telephone}
-                    onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    placeholder="+221 77 000 00 00"
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  />
-                </div>
-              </div>
+                {createSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
+                    {createSuccess}
+                  </div>
+                )}
 
-              {/* Account Type Selection */}
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Type de Compte / Rôle *</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(Object.keys(ROLE_CONFIG) as UserRole[]).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => handleRoleChangeInForm(role)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        formData.role === role
-                          ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-white shadow-md'
-                          : 'bg-[#0A111D] border-white/10 text-slate-400 hover:text-white hover:border-white/20'
-                      }`}
+                {/* Identité */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Nom *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.nom}
+                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Prénom</label>
+                    <input
+                      type="text"
+                      value={formData.prenom}
+                      onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Téléphone</label>
+                    <input
+                      type="text"
+                      value={formData.telephone}
+                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Rôle */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Rôle *</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => handleRoleChangeInForm(e.target.value as UserRole)}
+                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                  >
+                    {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
+                      <option key={key} value={key}>{cfg.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400 mt-1">{ROLE_CONFIG[formData.role].desc}</p>
+                </div>
+
+                {/* Rattachement PROPRIETAIRE */}
+                {formData.role === 'PROPRIETAIRE' && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl space-y-2">
+                    <label className="text-xs font-bold text-blue-300">Propriétaire rattaché :</label>
+                    <select
+                      value={formData.proprietaireId}
+                      onChange={(e) => setFormData({ ...formData, proprietaireId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
                     >
-                      <div className="font-bold text-xs">{ROLE_CONFIG[role].label}</div>
-                      <div className="text-[10px] text-slate-400 mt-1 line-clamp-1">{ROLE_CONFIG[role].desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      <option value="">— Non rattaché —</option>
+                      {owners.map((o) => (
+                        <option key={o.id} value={o.id}>{o.prenom} {o.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {/* Conditional Owner Selector */}
-              {formData.role === 'PROPRIETAIRE' && (
-                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl space-y-2">
-                  <label className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" />
-                    Sélectionner le Propriétaire à rattacher à ce compte :
-                  </label>
-                  <select
-                    value={formData.proprietaireId}
-                    onChange={(e) => setFormData({ ...formData, proprietaireId: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  >
-                    {owners.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.prenom} {o.nom} — {o.mandatGerance || 'Mandat'} ({o.totalBiens || 0} biens)
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-slate-400">
-                    Ce compte ne verra STRICTEMENT que les biens, loyers, travaux et reversements de ce propriétaire.
-                  </p>
-                </div>
-              )}
+                {/* Rattachement LOCATAIRE */}
+                {formData.role === 'LOCATAIRE' && (
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl space-y-2">
+                    <label className="text-xs font-bold text-purple-300">Locataire rattaché :</label>
+                    <select
+                      value={formData.locataireId}
+                      onChange={(e) => setFormData({ ...formData, locataireId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                    >
+                      <option value="">— Non rattaché —</option>
+                      {tenants.map((t) => (
+                        <option key={t.id} value={t.id}>{t.prenom} {t.nom} — {t.bienNom || 'Logement'}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {/* Conditional Tenant Selector */}
-              {formData.role === 'LOCATAIRE' && (
-                <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl space-y-2">
-                  <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                    <Home className="w-4 h-4" />
-                    Sélectionner le Locataire à rattacher à ce compte :
-                  </label>
-                  <select
-                    value={formData.locataireId}
-                    onChange={(e) => setFormData({ ...formData, locataireId: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#C9A96E]"
-                  >
-                    {tenants.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.prenom} {t.nom} — Logement : {t.bienNom} (Loyer : {t.loyerMensuel.toLocaleString()} FCFA)
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-slate-400">
-                    Ce locataire n'aura accès qu'à ses propres quittances, contrat et historique d'échéances.
-                  </p>
-                </div>
-              )}
-
-              {/* Temporary Password */}
-              <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
+                {/* Mot de passe temporaire */}
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block">Mot de passe temporaire généré</label>
-                  <span className="font-mono text-sm text-[#E8D5B0] font-bold">{formData.tempPassword}</span>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Mot de passe temporaire *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.tempPassword}
+                    onChange={(e) => setFormData({ ...formData, tempPassword: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm font-mono text-white"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, tempPassword: 'Pass' + Math.floor(100000 + Math.random() * 900000) + '!' })}
-                  className="p-2 text-slate-400 hover:text-white"
-                  title="Régénérer un mot de passe"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setIsNewUserModalOpen(false)}
-                  className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-semibold cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-6 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer disabled:opacity-50"
-                >
-                  {isCreating ? 'Création en cours...' : 'Créer & Activer le Compte'}
-                </button>
-              </div>
-            </form>
+                {/* Permissions */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Permissions</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    {ALL_PERMISSIONS.map((perm) => (
+                      <label key={perm.id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.permissions.includes(perm.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, permissions: [...formData.permissions, perm.id] });
+                            } else {
+                              setFormData({ ...formData, permissions: formData.permissions.filter((p) => p !== perm.id) });
+                            }
+                          }}
+                          className="rounded border-white/20"
+                        />
+                        <span>{perm.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Boutons */}
+                <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewUserModalOpen(false)}
+                    className="px-4 py-2 bg-white/5 text-white rounded-xl text-xs"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="px-5 py-2 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer disabled:opacity-50"
+                  >
+                    {isCreating ? 'Création...' : 'Créer le Compte'}
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       )}
 
-      {/* Modal: Edit User & Permissions */}
+      {/* Modal: Edit User */}
       {selectedUserForEdit && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#111C2E] border border-white/10 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-5">
+          <div className="bg-[#111C2E] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="font-bold text-white text-lg">
-                Modifier les Permissions : {selectedUserForEdit.prenom} {selectedUserForEdit.nom}
-              </h3>
+              <h3 className="font-bold text-white text-lg">Modifier : {selectedUserForEdit.prenom} {selectedUserForEdit.nom}</h3>
               <button onClick={() => setSelectedUserForEdit(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
-            <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-300">Rôle Principal :</label>
-              <select
-                value={selectedUserForEdit.role}
-                onChange={(e) => setSelectedUserForEdit({ ...selectedUserForEdit, role: e.target.value as UserRole })}
-                className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
-              >
-                {(Object.keys(ROLE_CONFIG) as UserRole[]).map((r) => (
-                  <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
-                ))}
-              </select>
-
-              <label className="text-xs font-semibold text-slate-300 block pt-2">Permissions granulaires activées :</label>
-              <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
-                {ALL_PERMISSIONS.map((p) => {
-                  const hasPerm = selectedUserForEdit.permissions.includes('*') || selectedUserForEdit.permissions.includes(p.id);
-                  return (
-                    <label key={p.id} className="flex items-center justify-between p-2.5 bg-[#0A111D] rounded-lg border border-white/5 text-xs text-slate-300 cursor-pointer">
-                      <span>{p.label}</span>
-                      <input
-                        type="checkbox"
-                        checked={hasPerm}
-                        onChange={(e) => {
-                          let nextPerms = selectedUserForEdit.permissions.filter((x) => x !== '*' && x !== p.id);
-                          if (e.target.checked) nextPerms.push(p.id);
-                          setSelectedUserForEdit({ ...selectedUserForEdit, permissions: nextPerms });
-                        }}
-                        className="rounded border-white/20 text-[#C9A96E] focus:ring-[#C9A96E]"
-                      />
-                    </label>
-                  );
-                })}
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Rôle</label>
+                <select
+                  value={selectedUserForEdit.role}
+                  onChange={(e) => setSelectedUserForEdit({ ...selectedUserForEdit, role: e.target.value as UserRole })}
+                  className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                >
+                  {Object.entries(ROLE_CONFIG).map(([key, cfg]) => (
+                    <option key={key} value={key}>{cfg.label}</option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button
-                onClick={() => setSelectedUserForEdit(null)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm"
-              >
-                Fermer
-              </button>
-              <button
-                onClick={() => {
-                  onUpdateUser(selectedUserForEdit);
-                  setSelectedUserForEdit(null);
-                }}
-                className="px-5 py-2 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm"
-              >
-                Enregistrer les Modifications
-              </button>
+              {selectedUserForEdit.role === 'PROPRIETAIRE' && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl space-y-2">
+                  <label className="text-xs font-bold text-blue-300">Propriétaire rattaché :</label>
+                  <select
+                    value={selectedUserForEdit.proprietaireId || ''}
+                    onChange={(e) => setSelectedUserForEdit({ ...selectedUserForEdit, proprietaireId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                  >
+                    <option value="">— Non rattaché —</option>
+                    {owners.map((o) => (
+                      <option key={o.id} value={o.id}>{o.prenom} {o.nom}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {selectedUserForEdit.role === 'LOCATAIRE' && (
+                <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl space-y-2">
+                  <label className="text-xs font-bold text-purple-300">Locataire rattaché :</label>
+                  <select
+                    value={selectedUserForEdit.locataireId || ''}
+                    onChange={(e) => setSelectedUserForEdit({ ...selectedUserForEdit, locataireId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-sm text-white"
+                  >
+                    <option value="">— Non rattaché —</option>
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>{t.prenom} {t.nom} — {t.bienNom || 'Logement'}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUserForEdit(null)}
+                  className="px-4 py-2 bg-white/5 text-white rounded-xl text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateUser(selectedUserForEdit);
+                    setSelectedUserForEdit(null);
+                  }}
+                  className="px-5 py-2 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer"
+                >
+                  Enregistrer
+                </button>
+              </div>
             </div>
           </div>
         </div>

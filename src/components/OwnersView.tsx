@@ -17,7 +17,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
-import { Owner, Property, Payment } from '../types';
+import { Owner, Property, Payment, Building, Unit } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { OwnerMandateModal } from './OwnerMandateModal';
@@ -25,16 +25,22 @@ import { OwnerMandateModal } from './OwnerMandateModal';
 interface OwnersViewProps {
   owners: Owner[];
   properties: Property[];
+  buildings?: Building[];
+  units?: Unit[];
   payments: Payment[];
   onOpenOwnerSlip: (owner: Owner) => void;
+  onOpenBulletin?: (owner: Owner) => void;
   onAddOwner: (owner: Owner) => void;
 }
 
 export const OwnersView: React.FC<OwnersViewProps> = ({
   owners,
   properties,
+  buildings = [],
+  units = [],
   payments,
   onOpenOwnerSlip,
+  onOpenBulletin,
   onAddOwner,
 }) => {
   const [search, setSearch] = useState('');
@@ -262,13 +268,19 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                     <span>Mandat</span>
                   </button>
 
-                  <button
-                    onClick={() => onOpenOwnerSlip(o)}
+                                    <button
+                    onClick={() => {
+                      if (onOpenBulletin) {
+                        onOpenBulletin(o);
+                      } else {
+                        onOpenOwnerSlip(o);
+                      }
+                    }}
                     className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
-                    title="Éditer le Bulletin de Versement Propriétaire (Doc Page 18)"
+                    title="Éditer le Bulletin de Versement Propriétaire complet"
                   >
                     <Printer className="w-3.5 h-3.5" />
-                    <span>Bulletin</span>
+                    <span>Bulletin de Versement</span>
                   </button>
                 </div>
               </div>

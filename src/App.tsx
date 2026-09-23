@@ -49,6 +49,7 @@ import { PendingPaymentsView } from './components/PendingPaymentsView';
 import { PaymentMethodsConfigView } from './components/PaymentMethodsConfigView';
 import { PaymentMethodReportsView } from './components/PaymentMethodReportsView';
 import { LoginView } from './components/LoginView';
+import { OwnerBulletinModal } from './components/OwnerBulletinModal';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import {
   ActiveTab,
@@ -72,6 +73,8 @@ import {
   PaymentMethodConfig,
   CashMovement,
   CashClosing,
+  OwnerDeduction,
+  BulletinVersement,
 } from './types';
 import {
   initialProperties,
@@ -125,6 +128,9 @@ import {
   deleteBuildingFromDb,
   saveUnitToDb,
   deleteUnitFromDb,
+  saveOwnerDeductionToDb,
+  deleteOwnerDeductionFromDb,
+  saveBulletinVersementToDb,
 } from './lib/supabase/service';
 
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
@@ -141,7 +147,6 @@ export default function App() {
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
-  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
@@ -164,6 +169,8 @@ export default function App() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>(() => loadLocalCollection('payment_methods', initialPaymentMethods));
   const [cashMovements, setCashMovements] = useState<CashMovement[]>(() => loadLocalCollection('cash_movements', initialCashMovements));
   const [cashClosings, setCashClosings] = useState<CashClosing[]>(() => loadLocalCollection('cash_closings', initialCashClosings));
+  const [ownerDeductions, setOwnerDeductions] = useState<OwnerDeduction[]>(() => loadLocalCollection('owner_deductions', []));
+  const [bulletinsVersements, setBulletinsVersements] = useState<BulletinVersement[]>(() => loadLocalCollection('bulletin_versements', []));
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -173,6 +180,7 @@ export default function App() {
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState<boolean>(false);
   const [receiptModalPayment, setReceiptModalPayment] = useState<Payment | null>(null);
   const [ownerSlipModalOwner, setOwnerSlipModalOwner] = useState<Owner | null>(null);
+  const [ownerBulletinModalOwner, setOwnerBulletinModalOwner] = useState<Owner | null>(null);
   const [cashVoucherModalOwner, setCashVoucherModalOwner] = useState<Owner | null>(null);
   const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] = useState<boolean>(false);
   const [isNewPropertyModalOpen, setIsNewPropertyModalOpen] = useState<boolean>(false);
@@ -199,9 +207,7 @@ export default function App() {
     daysLate?: number;
   } | null>(null);
 
-  // ============================================================
   // useEffect 1 : Détection reset password
-  // ============================================================
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('access_token') || hash.includes('type=recovery')) {
@@ -209,9 +215,7 @@ export default function App() {
     }
   }, []);
 
-  // ============================================================
   // useEffect 2 : Raccourci Ctrl+K
-  // ============================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -223,9 +227,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // ============================================================
-  // useEffect 3 : Chargement de la session auth (UNE SEULE FOIS)
-  // ============================================================
+  // useEffect 3 : Chargement session auth
   useEffect(() => {
     getAuthSession().then(async (session) => {
       try {
@@ -272,9 +274,7 @@ export default function App() {
     });
   }, []);
 
-  // ============================================================
   // useEffect 4 : Chargement des données APRÈS currentUser prêt
-  // ============================================================
   useEffect(() => {
     if (!currentUser?.agencyId) {
       console.log('⏳ Attente de currentUser.agencyId...');
@@ -290,6 +290,8 @@ export default function App() {
         units: data.units?.length,
         owners: data.owners?.length,
         tenants: data.tenants?.length,
+        deductions: data.ownerDeductions?.length,
+        bulletins: data.bulletinVersements?.length,
       });
       if (data.properties && data.properties.length > 0) setProperties(data.properties);
       if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
@@ -311,6 +313,8 @@ export default function App() {
       if (data.cashClosings && data.cashClosings.length > 0) setCashClosings(data.cashClosings);
       if (data.paymentMethods && data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
       if (data.settings) setSettings(data.settings);
+      if (data.ownerDeductions && data.ownerDeductions.length > 0) setOwnerDeductions(data.ownerDeductions);
+      if (data.bulletinVersements && data.bulletinVersements.length > 0) setBulletinsVersements(data.bulletinVersements);
     });
   }, [currentUser?.agencyId]);
 
@@ -382,7 +386,7 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLERS : BUILDINGS (Immeubles)
+  // HANDLERS : BUILDINGS
   // ============================================================
   const handleAddBuilding = (newBuilding: Building) => {
     setBuildings((prev) => {
@@ -424,7 +428,7 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLERS : UNITS (Espaces louables)
+  // HANDLERS : UNITS
   // ============================================================
   const handleAddUnit = (newUnit: Unit) => {
     setUnits((prev) => {
@@ -460,6 +464,49 @@ export default function App() {
     handleTriggerAuditLog('SUPPRESSION_ESPACE', 'UNITS', `Suppression de l'espace ID ${unitId}`, unitId);
   };
 
+  // ============================================================
+  // HANDLERS : OWNER DEDUCTIONS (NOUVEAU)
+  // ============================================================
+  const handleAddOwnerDeduction = (deduction: OwnerDeduction) => {
+    setOwnerDeductions((prev) => {
+      const next = [deduction, ...prev];
+      persistCollection('owner_deductions', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('AJOUT_DEDUCTION', 'OWNER_DEDUCTIONS', `Déduction ${deduction.libelle} (${deduction.montant} FCFA)`, deduction.id);
+  };
+
+  const handleDeleteOwnerDeduction = (deductionId: string) => {
+    setOwnerDeductions((prev) => {
+      const next = prev.filter((d) => d.id !== deductionId);
+      persistCollection('owner_deductions', next);
+      return next;
+    });
+    deleteOwnerDeductionFromDb(deductionId).catch(console.warn);
+  };
+
+  // ============================================================
+  // HANDLERS : BULLETINS VERSEMENTS (NOUVEAU)
+  // ============================================================
+  const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
+    setBulletinsVersements((prev) => {
+      const existing = prev.findIndex((b) => b.id === bulletin.id);
+      const next = existing >= 0 ? prev.map((b) => (b.id === bulletin.id ? bulletin : b)) : [bulletin, ...prev];
+      persistCollection('bulletin_versements', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveBulletinVersementToDb(bulletin, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('GENERATION_BULLETIN', 'BULLETIN_VERSEMENTS', `Bulletin ${bulletin.reference} pour ${bulletin.proprietaireNom}`, bulletin.id);
+  };
+
+  // ============================================================
+  // HANDLERS : PAIEMENTS
+  // ============================================================
   const handleAddPayment = (newPayment: Payment) => {
     setPayments((prev) => {
       const next = [newPayment, ...prev];
@@ -655,21 +702,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       validatePendingPaymentInDb(paymentId, currentUser.agencyId, currentUser.id).catch(console.warn);
     }
-
-    const auditEntry: AuditLog = {
-      id: crypto.randomUUID(),
-      action: 'VALIDATION_PAIEMENT_DIGITAL',
-      entite: 'PAYMENT',
-      entiteId: paymentId,
-      utilisateur: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
-      details: `Validation du paiement dématérialisé ${paymentId}`,
-      createdAt: new Date().toISOString(),
-    };
-    setAuditLogs((prev) => {
-      const next = [auditEntry, ...prev];
-      persistCollection('audit_logs', next);
-      return next;
-    });
   };
 
   const handleRejectPendingPayment = (paymentId: string, reason: string) => {
@@ -776,26 +808,6 @@ export default function App() {
     };
   };
 
-  const handleUpdateUserStatus = (userId: string, status: 'ACTIF' | 'INACTIF' | 'SUSPENDU') => {
-    setUsers((prev) => {
-      const next = prev.map((u) => (u.id === userId ? { ...u, statut: status } : u));
-      persistCollection('users', next);
-      const targetUser = next.find((u) => u.id === userId);
-      if (targetUser) saveUserToDb(targetUser, currentUser?.agencyId).catch(console.warn);
-      return next;
-    });
-  };
-
-  const handleUpdateUserRole = (userId: string, newRole: any) => {
-    setUsers((prev) => {
-      const next = prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u));
-      persistCollection('users', next);
-      const targetUser = next.find((u) => u.id === userId);
-      if (targetUser) saveUserToDb(targetUser, currentUser?.agencyId).catch(console.warn);
-      return next;
-    });
-  };
-
   const handleAddProperty = (newProperty: Property) => {
     setProperties((prev) => {
       const next = [newProperty, ...prev];
@@ -817,7 +829,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       savePropertyToDb(updatedProperty, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('MODIFICATION_BIEN', 'PROPERTIES', `Mise à jour des informations du lot ${updatedProperty.nom}`, updatedProperty.id);
   };
 
   const handleDeleteProperty = (propertyId: string) => {
@@ -827,7 +838,6 @@ export default function App() {
       return next;
     });
     softDeleteRecord('properties', propertyId).catch(console.warn);
-    handleTriggerAuditLog('SUPPRESSION_BIEN', 'PROPERTIES', `Archivage / suppression du bien ID ${propertyId}`, propertyId);
   };
 
   const handleAddContract = (newContract: LeaseContract) => {
@@ -839,7 +849,6 @@ export default function App() {
     if (currentUser?.agencyId) {
       saveContractToDb(newContract, currentUser.agencyId).catch(console.warn);
     }
-    handleTriggerAuditLog('CREATION_CONTRAT_BAIL', 'CONTRACTS', `Signature du bail ${newContract.ref} pour ${newContract.locataireNom}`, newContract.id);
   };
 
   const handleUpdateContract = (updatedContract: LeaseContract) => {
@@ -872,7 +881,7 @@ export default function App() {
               locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
             };
             if (currentUser?.agencyId) {
-              savePropertyToDb(updatedP, currentUser.agencyId).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
+              savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
             }
             return updatedP;
           }
@@ -894,80 +903,28 @@ export default function App() {
     const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) {
       console.error('❌ Locataire refusé:', tenantResult.error);
-
       const errorMsg = tenantResult.error || '';
       let userMessage = 'Impossible de créer le locataire.';
-
       if (errorMsg.includes('uq_tenant_active_per_bien') || errorMsg.includes('duplicate key')) {
-        userMessage = "Ce bien est déjà occupé par un autre locataire actif.\n\nVeuillez :\n1. Soit choisir un autre bien\n2. Soit enregistrer d'abord la sortie de l'occupant actuel";
+        userMessage = "Ce bien est déjà occupé par un autre locataire actif.";
       } else if (errorMsg.includes('violates foreign key')) {
-        userMessage = "Erreur de liaison : le propriétaire ou le bien n'existe pas dans la base.";
-      } else if (errorMsg.includes('null value in column')) {
-        userMessage = "Certains champs obligatoires sont vides. Vérifiez le nom, le téléphone et le bien.";
-      } else {
-        userMessage = 'Impossible de créer le locataire : ' + errorMsg;
+        userMessage = "Erreur de liaison.";
       }
-
       alert(userMessage);
       return;
     }
 
     const realTenantId = tenantResult.data?.id || data.tenant.id;
-    console.log('✅ Locataire créé avec id Supabase :', realTenantId);
-
     const tenantToSave = { ...data.tenant, id: realTenantId };
     const contractToSave = { ...data.contract, locataireId: realTenantId };
     const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
 
-    const contractResult = await saveContractToDb(contractToSave, currentUser.agencyId);
-    if (!contractResult.success) {
-      console.error('❌ Contrat refusé:', contractResult.error);
-    }
+    await saveContractToDb(contractToSave, currentUser.agencyId);
+    await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
 
-    const inspectionResult = await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
-    if (!inspectionResult.success) {
-      console.error('❌ État des lieux refusé:', inspectionResult.error);
-    }
-
-    setTenants((prev) => {
-      const next = [tenantToSave, ...prev];
-      persistCollection('tenants', next);
-      return next;
-    });
-    setContracts((prev) => {
-      const next = [contractToSave, ...prev];
-      persistCollection('contracts', next);
-      return next;
-    });
-    setInspections((prev) => {
-      const next = [inspectionToSave, ...prev];
-      persistCollection('inspections', next);
-      return next;
-    });
-    setProperties((prev) => {
-      const next = prev.map((p) =>
-        p.id === tenantToSave.bienId
-          ? { ...p, statut: 'Occupé' as const, locataireActuelNom: `${tenantToSave.prenom} ${tenantToSave.nom}` }
-          : p
-      );
-      persistCollection('properties', next);
-      return next;
-    });
-
-    const updatedProp = properties.find((p) => p.id === tenantToSave.bienId);
-    if (updatedProp && currentUser?.agencyId) {
-      savePropertyToDb(
-        { ...updatedProp, statut: 'Occupé', locataireActuelNom: `${tenantToSave.prenom} ${tenantToSave.nom}` },
-        currentUser.agencyId
-      ).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
-    }
-
-    handleTriggerAuditLog(
-      'WIZARD_NOUVEAU_LOCATAIRE',
-      'TENANTS',
-      `Locataire ${tenantToSave.prenom} ${tenantToSave.nom} créé via wizard`,
-      tenantToSave.id
-    );
+    setTenants((prev) => [tenantToSave, ...prev]);
+    setContracts((prev) => [contractToSave, ...prev]);
+    setInspections((prev) => [inspectionToSave, ...prev]);
   };
 
   const handleCompleteTenantExit = (data: {
@@ -978,27 +935,13 @@ export default function App() {
     retenueCaution: number;
     restitutionCaution: number;
   }) => {
-    setInspections((prev) => {
-      const next = [data.inspection, ...prev];
-      persistCollection('inspections', next);
-      return next;
-    });
-    setTenants((prev) => {
-      const next = prev.map((t) =>
-        t.id === data.tenantId
-          ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie }
-          : t
-      );
-      persistCollection('tenants', next);
-      return next;
-    });
-    setProperties((prev) => {
-      const next = prev.map((p) =>
-        p.id === data.bienId ? { ...p, statut: 'Vacant' as const, locataireActuelNom: undefined } : p
-      );
-      persistCollection('properties', next);
-      return next;
-    });
+    setInspections((prev) => [data.inspection, ...prev]);
+    setTenants((prev) =>
+      prev.map((t) => (t.id === data.tenantId ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie } : t))
+    );
+    setProperties((prev) =>
+      prev.map((p) => (p.id === data.bienId ? { ...p, statut: 'Vacant' as const, locataireActuelNom: undefined } : p))
+    );
     if (currentUser?.agencyId) {
       saveInspectionToDb(data.inspection, currentUser.agencyId).catch(console.warn);
     }
@@ -1100,6 +1043,10 @@ export default function App() {
       setInitialTenantForPayment(null);
     }
     setIsNewPaymentModalOpen(true);
+  };
+
+  const handleOpenBulletinVersement = (owner: Owner) => {
+    setOwnerBulletinModalOwner(owner);
   };
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
@@ -1414,6 +1361,8 @@ export default function App() {
               currentUser={currentUser}
               owners={owners}
               tenants={tenants}
+              properties={properties}
+              buildings={buildings}
               onAddUser={handleAddUser}
               isSupabaseOnline={isSupabaseConfigured}
               onUpdateUser={(updatedUser) => {
@@ -1576,8 +1525,11 @@ export default function App() {
             <OwnersView
               owners={owners}
               properties={properties}
+              buildings={buildings}
+              units={units}
               payments={payments}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+              onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
               onAddOwner={handleAddOwner}
             />
           )}
@@ -1633,7 +1585,14 @@ export default function App() {
               payments={scopedPayments}
               owners={owners}
               properties={scopedProperties}
+              buildings={scopedBuildings}
+              units={scopedUnits}
+              tenants={scopedTenants}
+              invoices={invoices}
+              maintenance={scopedMaintenance}
+              ownerDeductions={ownerDeductions}
               onAddDisbursement={handleAddDisbursement}
+              onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
             />
           )}
 
@@ -1679,6 +1638,25 @@ export default function App() {
           tickets={maintenance}
           selectedPeriod={selectedPeriod}
           onClose={() => setOwnerSlipModalOwner(null)}
+        />
+      )}
+
+      {ownerBulletinModalOwner && (
+        <OwnerBulletinModal
+          owner={ownerBulletinModalOwner}
+          properties={properties}
+          buildings={buildings}
+          units={units}
+          tenants={tenants}
+          payments={payments}
+          invoices={invoices}
+          maintenance={maintenance}
+          deductions={ownerDeductions}
+          selectedPeriod={selectedPeriod}
+          onClose={() => setOwnerBulletinModalOwner(null)}
+          onSaveDeduction={handleAddOwnerDeduction}
+          onDeleteDeduction={handleDeleteOwnerDeduction}
+          onSaveBulletin={handleSaveBulletinVersement}
         />
       )}
 
