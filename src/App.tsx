@@ -15,6 +15,8 @@ import { RecoveryTrackerView } from './components/RecoveryTrackerView';
 import { AutomatedRemindersView } from './components/AutomatedRemindersView';
 import { PaymentsView } from './components/PaymentsView';
 import { PropertiesView } from './components/PropertiesView';
+import { BuildingsView } from './components/BuildingsView';
+import { UnitsView } from './components/UnitsView';
 import { TenantsView } from './components/TenantsView';
 import { OwnersView } from './components/OwnersView';
 import { ContractsView } from './components/ContractsView';
@@ -51,6 +53,8 @@ import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import {
   ActiveTab,
   Property,
+  Building,
+  Unit,
   Owner,
   Tenant,
   LeaseContract,
@@ -117,6 +121,10 @@ import {
   createUserAccountInSupabase,
   getOrCreateDefaultAgency,
   fetchAgencyUsers,
+  saveBuildingToDb,
+  deleteBuildingFromDb,
+  saveUnitToDb,
+  deleteUnitFromDb,
 } from './lib/supabase/service';
 
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
@@ -138,6 +146,8 @@ export default function App() {
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
   const [properties, setProperties] = useState<Property[]>(() => loadLocalCollection('properties', initialProperties));
+  const [buildings, setBuildings] = useState<Building[]>(() => loadLocalCollection('buildings', []));
+  const [units, setUnits] = useState<Unit[]>(() => loadLocalCollection('units', []));
   const [owners, setOwners] = useState<Owner[]>(() => loadLocalCollection('owners', initialOwners));
   const [tenants, setTenants] = useState<Tenant[]>(() => loadLocalCollection('tenants', initialTenants));
   const [contracts, setContracts] = useState<LeaseContract[]>(() => loadLocalCollection('contracts', initialContracts));
@@ -209,23 +219,25 @@ export default function App() {
 
   useEffect(() => {
     loadFullApplicationData(currentUser?.agencyId).then((data) => {
-      if (data.properties.length > 0) setProperties(data.properties);
-      if (data.owners.length > 0) setOwners(data.owners);
-      if (data.tenants.length > 0) setTenants(data.tenants);
-      if (data.contracts.length > 0) setContracts(data.contracts);
-      if (data.payments.length > 0) setPayments(data.payments);
-      if (data.reminders.length > 0) setReminders(data.reminders);
-      if (data.inspections.length > 0) setInspections(data.inspections);
-      if (data.maintenance.length > 0) setMaintenance(data.maintenance);
-      if (data.disbursements.length > 0) setDisbursements(data.disbursements);
-      if (data.invoices.length > 0) setInvoices(data.invoices);
-      if (data.cashVouchers.length > 0) setCashVouchers(data.cashVouchers);
-      if (data.notifications.length > 0) setNotifications(data.notifications);
-      if (data.auditLogs.length > 0) setAuditLogs(data.auditLogs);
-      if (data.users.length > 0) setUsers(data.users);
-      if (data.cashMovements.length > 0) setCashMovements(data.cashMovements);
-      if (data.cashClosings.length > 0) setCashClosings(data.cashClosings);
-      if (data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
+      if (data.properties && data.properties.length > 0) setProperties(data.properties);
+      if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
+      if (data.units && data.units.length > 0) setUnits(data.units);
+      if (data.owners && data.owners.length > 0) setOwners(data.owners);
+      if (data.tenants && data.tenants.length > 0) setTenants(data.tenants);
+      if (data.contracts && data.contracts.length > 0) setContracts(data.contracts);
+      if (data.payments && data.payments.length > 0) setPayments(data.payments);
+      if (data.reminders && data.reminders.length > 0) setReminders(data.reminders);
+      if (data.inspections && data.inspections.length > 0) setInspections(data.inspections);
+      if (data.maintenance && data.maintenance.length > 0) setMaintenance(data.maintenance);
+      if (data.disbursements && data.disbursements.length > 0) setDisbursements(data.disbursements);
+      if (data.invoices && data.invoices.length > 0) setInvoices(data.invoices);
+      if (data.cashVouchers && data.cashVouchers.length > 0) setCashVouchers(data.cashVouchers);
+      if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
+      if (data.auditLogs && data.auditLogs.length > 0) setAuditLogs(data.auditLogs);
+      if (data.users && data.users.length > 0) setUsers(data.users);
+      if (data.cashMovements && data.cashMovements.length > 0) setCashMovements(data.cashMovements);
+      if (data.cashClosings && data.cashClosings.length > 0) setCashClosings(data.cashClosings);
+      if (data.paymentMethods && data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
       if (data.settings) setSettings(data.settings);
     });
 
@@ -307,19 +319,19 @@ export default function App() {
   const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
     if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
     if (user.role === 'CAISSIER') {
-      return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'finance', 'documents'].includes(tab);
+      return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
     }
     if (user.role === 'PROPRIETAIRE') {
-      return ['dashboard', 'properties', 'tenants', 'payments', 'finance', 'maintenance', 'documents'].includes(tab);
+      return ['dashboard', 'properties', 'buildings', 'units', 'tenants', 'payments', 'finance', 'maintenance', 'documents'].includes(tab);
     }
     if (user.role === 'LOCATAIRE') {
-      return ['dashboard', 'properties', 'payments', 'maintenance'].includes(tab);
+      return ['dashboard', 'properties', 'units', 'payments', 'maintenance'].includes(tab);
     }
     if (user.role === 'AGENT') {
-      return ['dashboard', 'inspections', 'properties', 'maintenance', 'recovery'].includes(tab);
+      return ['dashboard', 'inspections', 'properties', 'buildings', 'units', 'maintenance', 'recovery'].includes(tab);
     }
-        if (user.role === 'GESTIONNAIRE') {
-      return ['dashboard', 'owners', 'properties', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance'].includes(tab);
+    if (user.role === 'GESTIONNAIRE') {
+      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance'].includes(tab);
     }
     return false;
   };
@@ -339,6 +351,85 @@ export default function App() {
     } else {
       setActiveTab('dashboard');
     }
+  };
+
+  // ============================================================
+  // HANDLERS : BUILDINGS (Immeubles)
+  // ============================================================
+  const handleAddBuilding = (newBuilding: Building) => {
+    setBuildings((prev) => {
+      const next = [newBuilding, ...prev];
+      persistCollection('buildings', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('AJOUT_IMMEUBLE', 'BUILDINGS', `Création de l'immeuble ${newBuilding.nom}`, newBuilding.id);
+  };
+
+  const handleUpdateBuilding = (updatedBuilding: Building) => {
+    setBuildings((prev) => {
+      const next = prev.map((b) => (b.id === updatedBuilding.id ? updatedBuilding : b));
+      persistCollection('buildings', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('MODIFICATION_IMMEUBLE', 'BUILDINGS', `Mise à jour de l'immeuble ${updatedBuilding.nom}`, updatedBuilding.id);
+  };
+
+  const handleDeleteBuilding = (buildingId: string) => {
+    setBuildings((prev) => {
+      const next = prev.filter((b) => b.id !== buildingId);
+      persistCollection('buildings', next);
+      return next;
+    });
+    setUnits((prev) => {
+      const next = prev.filter((u) => u.buildingId !== buildingId);
+      persistCollection('units', next);
+      return next;
+    });
+    deleteBuildingFromDb(buildingId).catch(console.warn);
+    handleTriggerAuditLog('SUPPRESSION_IMMEUBLE', 'BUILDINGS', `Suppression de l'immeuble ID ${buildingId}`, buildingId);
+  };
+
+  // ============================================================
+  // HANDLERS : UNITS (Espaces louables)
+  // ============================================================
+  const handleAddUnit = (newUnit: Unit) => {
+    setUnits((prev) => {
+      const next = [newUnit, ...prev];
+      persistCollection('units', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('AJOUT_ESPACE', 'UNITS', `Création de l'espace ${newUnit.nom}`, newUnit.id);
+  };
+
+  const handleUpdateUnit = (updatedUnit: Unit) => {
+    setUnits((prev) => {
+      const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
+      persistCollection('units', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
+    }
+    handleTriggerAuditLog('MODIFICATION_ESPACE', 'UNITS', `Mise à jour de l'espace ${updatedUnit.nom}`, updatedUnit.id);
+  };
+
+  const handleDeleteUnit = (unitId: string) => {
+    setUnits((prev) => {
+      const next = prev.filter((u) => u.id !== unitId);
+      persistCollection('units', next);
+      return next;
+    });
+    deleteUnitFromDb(unitId).catch(console.warn);
+    handleTriggerAuditLog('SUPPRESSION_ESPACE', 'UNITS', `Suppression de l'espace ID ${unitId}`, unitId);
   };
 
   const handleAddPayment = (newPayment: Payment) => {
@@ -867,7 +958,7 @@ export default function App() {
     setTenants((prev) => {
       const next = prev.map((t) =>
         t.id === data.tenantId
-          ? { ...t, statut: 'À jour' as const, bienNom: `${t.bienNom} (Sorti le ${data.dateSortie})` }
+          ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie }
           : t
       );
       persistCollection('tenants', next);
@@ -985,6 +1076,108 @@ export default function App() {
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
+
+  // SCOPED DATA
+  const scopedProperties = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
+    }
+    return properties;
+  })();
+
+  const scopedBuildings = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId);
+    }
+    return buildings;
+  })();
+
+  const scopedUnits = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      if (myTenant) {
+        return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id);
+      }
+    }
+    return units;
+  })();
+
+  const scopedTenants = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return tenants.filter((t) => myBienIds.includes(t.bienId));
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      return tenants.filter((t) => t.id === currentUser.locataireId);
+    }
+    return tenants;
+  })();
+
+  const scopedPayments = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      return payments.filter((p) => p.locataireId === currentUser.locataireId);
+    }
+    if (currentUser?.role === 'AGENT') {
+      return [];
+    }
+    return payments;
+  })();
+
+  const scopedContracts = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      return contracts.filter((c) => c.locataireId === currentUser.locataireId);
+    }
+    return contracts;
+  })();
+
+  const scopedInspections = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return inspections.filter((i) => myBienIds.includes(i.bienId));
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      return inspections.filter((i) => i.locataireId === currentUser.locataireId);
+    }
+    return inspections;
+  })();
+
+  const scopedMaintenance = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = myProps.map((p) => p.id);
+      return maintenance.filter((m) => myBienIds.includes(m.bienId));
+    }
+    if (currentUser?.role === 'LOCATAIRE') {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : [];
+    }
+    return maintenance;
+  })();
+
+  const scopedDisbursements = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
+    }
+    if (currentUser?.role === 'AGENT' || currentUser?.role === 'LOCATAIRE') {
+      return [];
+    }
+    return disbursements;
+  })();
   
   if (isResetPasswordMode) {
     return (
@@ -1038,94 +1231,6 @@ export default function App() {
       />
     );
   }
-
-  // ============================================================
-  // 🔒 SCOPED DATA PAR RÔLE — Matrice de permissions
-  // ============================================================
-
-  const scopedProperties = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
-      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
-    }
-    return properties;
-  })();
-
-  const scopedTenants = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return tenants.filter((t) => myBienIds.includes(t.bienId));
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      return tenants.filter((t) => t.id === currentUser.locataireId);
-    }
-    return tenants;
-  })();
-
-  const scopedPayments = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      return payments.filter((p) => p.locataireId === currentUser.locataireId);
-    }
-    if (currentUser.role === 'AGENT') {
-      return [];
-    }
-    return payments;
-  })();
-
-  const scopedContracts = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      return contracts.filter((c) => c.locataireId === currentUser.locataireId);
-    }
-    if (currentUser.role === 'AGENT') {
-      return contracts;
-    }
-    return contracts;
-  })();
-
-  const scopedInspections = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return inspections.filter((i) => myBienIds.includes(i.bienId));
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      return inspections.filter((i) => i.locataireId === currentUser.locataireId);
-    }
-    return inspections;
-  })();
-
-  const scopedMaintenance = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return maintenance.filter((m) => myBienIds.includes(m.bienId));
-    }
-    if (currentUser.role === 'LOCATAIRE') {
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
-      return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : [];
-    }
-    return maintenance;
-  })();
-
-   const scopedDisbursements = (() => {
-    if (currentUser.role === 'PROPRIETAIRE') {
-      return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser.role === 'AGENT' || currentUser.role === 'LOCATAIRE') {
-      return [];
-    }
-    return disbursements;
-  })();
 
   return (
     <div className="min-h-screen bg-[#0A111D] text-[#F0EDE8] flex font-sans antialiased selection:bg-[#C9A96E]/30 selection:text-[#E8D5B0]">
@@ -1373,7 +1478,33 @@ export default function App() {
             />
           )}
 
-                    {activeTab === 'properties' && (
+          {activeTab === 'buildings' && (
+            <BuildingsView
+              buildings={scopedBuildings}
+              units={scopedUnits}
+              owners={owners}
+              currentUser={currentUser}
+              onAddBuilding={handleAddBuilding}
+              onUpdateBuilding={handleUpdateBuilding}
+              onDeleteBuilding={handleDeleteBuilding}
+              onSelectBuilding={() => handleSafeTabChange('units')}
+            />
+          )}
+
+          {activeTab === 'units' && (
+            <UnitsView
+              units={scopedUnits}
+              buildings={scopedBuildings}
+              owners={owners}
+              tenants={scopedTenants}
+              currentUser={currentUser}
+              onAddUnit={handleAddUnit}
+              onUpdateUnit={handleUpdateUnit}
+              onDeleteUnit={handleDeleteUnit}
+            />
+          )}
+
+          {activeTab === 'properties' && (
             <PropertiesView
               properties={scopedProperties}
               owners={owners}
@@ -1402,6 +1533,7 @@ export default function App() {
               <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
+                currentUser={currentUser}
                 onOpenQuickReminder={handleOpenQuickReminder}
                 onOpenNewPayment={handleOpenNewPaymentForTenant}
                 onAddTenant={handleAddTenant}
@@ -1643,13 +1775,13 @@ export default function App() {
 
         {currentUser.role !== 'LOCATAIRE' && (
           <button
-            onClick={() => handleSafeTabChange('properties')}
+            onClick={() => handleSafeTabChange('buildings')}
             className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-              activeTab === 'properties' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
+              activeTab === 'buildings' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
             }`}
           >
             <Building2 className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Biens</span>
+            <span className="text-[10px]">Immeubles</span>
           </button>
         )}
 

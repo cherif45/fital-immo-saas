@@ -5,12 +5,14 @@ import {
   Property, Owner, Tenant, LeaseContract, Payment, TenantReminder, Inspection,
   MaintenanceTicket, OwnerDisbursement, Invoice, CashVoucher, NotificationItem,
   AuditLog, AgencySettings, UserAccount, PaymentMethodConfig, CashMovement,
-  CashClosing, Agency,
+  CashClosing, Agency, Building, Unit,
 } from '../../types';
 
 export interface AppStateData {
   agency: Agency | null;
   properties: Property[];
+  buildings: Building[];
+  units: Unit[];
   owners: Owner[];
   tenants: Tenant[];
   contracts: LeaseContract[];
@@ -90,9 +92,60 @@ export function persistCollection<T>(key: string, data: T): void {
 }
 
 // ============================================================
-// MAPPERS
+// MAPPERS : BUILDINGS (Immeubles)
 // ============================================================
+export function mapBuildingFromDb(r: any): Building {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
+    nom: r.nom || 'Immeuble',
+    adresse: r.adresse || '',
+    quartier: r.quartier || '',
+    ville: r.ville || 'Dakar',
+    type: r.type || 'Immeuble',
+    nombreEtages: Number(r.nombre_etages ?? r.nombreEtages ?? 0),
+    description: r.description || '',
+    dateCreation: r.date_creation || r.dateCreation,
+    statut: r.statut || 'Actif',
+    nbUnites: Number(r.nb_unites ?? 0),
+    nbUnitesOccupees: Number(r.nb_unites_occupees ?? 0),
+    nbUnitesVacantes: Number(r.nb_unites_vacantes ?? 0),
+    loyerTotalMensuel: Number(r.loyer_total_mensuel ?? 0),
+  };
+}
 
+// ============================================================
+// MAPPERS : UNITS (Espaces louables)
+// ============================================================
+export function mapUnitFromDb(r: any): Unit {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    buildingId: r.building_id || r.buildingId || '',
+    buildingNom: r.building_nom || r.buildingNom,
+    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
+    nom: r.nom || 'Espace',
+    type: r.type || 'Appartement',
+    etage: r.etage || '',
+    superficie: Number(r.superficie ?? 0),
+    nombrePieces: Number(r.nombre_pieces ?? r.nombrePieces ?? 1),
+    loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
+    charges: Number(r.charges ?? 0),
+    statut: r.statut || 'Vacant',
+    locataireActuelId: r.locataire_actuel_id || r.locataireActuelId,
+    locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
+    description: r.description || '',
+    equipements: r.equipements || [],
+    dateCreation: r.created_at || r.dateCreation,
+  };
+}
+
+// ============================================================
+// MAPPERS : PROPERTIES
+// ============================================================
 export function mapPropertyFromDb(r: any): Property {
   return {
     id: r.id,
@@ -120,6 +173,9 @@ export function mapPropertyFromDb(r: any): Property {
   };
 }
 
+// ============================================================
+// MAPPERS : OWNERS
+// ============================================================
 export function mapOwnerFromDb(r: any): Owner {
   return {
     id: r.id, ref: r.ref || `PRO-${r.id.slice(0, 6)}`,
@@ -137,6 +193,9 @@ export function mapOwnerFromDb(r: any): Owner {
   };
 }
 
+// ============================================================
+// MAPPERS : TENANTS
+// ============================================================
 export function mapTenantFromDb(r: any): Tenant {
   return {
     id: r.id, ref: r.ref || `LOC-${r.id.slice(0, 6)}`,
@@ -157,6 +216,9 @@ export function mapTenantFromDb(r: any): Tenant {
   };
 }
 
+// ============================================================
+// MAPPERS : CONTRACTS
+// ============================================================
 export function mapContractFromDb(r: any): LeaseContract {
   return {
     id: r.id, ref: r.ref || `BAIL-${r.id.slice(0, 6)}`,
@@ -180,6 +242,9 @@ export function mapContractFromDb(r: any): LeaseContract {
   };
 }
 
+// ============================================================
+// MAPPERS : PAYMENTS
+// ============================================================
 export function mapPaymentFromDb(r: any): Payment {
   return {
     id: r.id, ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
@@ -212,6 +277,9 @@ export function mapPaymentFromDb(r: any): Payment {
   };
 }
 
+// ============================================================
+// MAPPERS : CASH MOVEMENTS
+// ============================================================
 export function mapCashMovementFromDb(r: any): CashMovement {
   return {
     id: r.id, reference: r.reference || r.id, type: r.type,
@@ -227,6 +295,9 @@ export function mapCashMovementFromDb(r: any): CashMovement {
   };
 }
 
+// ============================================================
+// MAPPERS : CASH CLOSINGS
+// ============================================================
 export function mapCashClosingFromDb(r: any): CashClosing {
   return {
     id: r.id, reference: r.reference || r.id,
@@ -245,6 +316,9 @@ export function mapCashClosingFromDb(r: any): CashClosing {
   };
 }
 
+// ============================================================
+// MAPPERS : INSPECTIONS
+// ============================================================
 export function mapInspectionFromDb(r: any): Inspection {
   return {
     id: r.id, ref: r.ref || `EDL-${r.id.slice(0, 6)}`,
@@ -263,6 +337,9 @@ export function mapInspectionFromDb(r: any): Inspection {
   };
 }
 
+// ============================================================
+// MAPPERS : MAINTENANCE
+// ============================================================
 export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
   return {
     id: r.id, ref: r.ref || `TRV-${r.id.slice(0, 6)}`,
@@ -293,6 +370,9 @@ export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
   };
 }
 
+// ============================================================
+// MAPPERS : DISBURSEMENTS
+// ============================================================
 export function mapDisbursementFromDb(r: any): OwnerDisbursement {
   return {
     id: r.id, ref: r.ref || `REV-${r.id.slice(0, 6)}`,
@@ -318,6 +398,9 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
   };
 }
 
+// ============================================================
+// MAPPERS : INVOICES
+// ============================================================
 export function mapInvoiceFromDb(r: any): Invoice {
   const tot = Number(r.montant_total ?? r.total ?? 0);
   return {
@@ -337,6 +420,9 @@ export function mapInvoiceFromDb(r: any): Invoice {
   };
 }
 
+// ============================================================
+// MAPPERS : REMINDERS
+// ============================================================
 export function mapReminderFromDb(r: any): TenantReminder {
   return {
     id: r.id, locataireId: r.locataire_id || r.locataireId || '',
@@ -355,12 +441,14 @@ export function mapReminderFromDb(r: any): TenantReminder {
   };
 }
 
-/**
- * Charge l'ensemble des données d'une agence.
- */
+// ============================================================
+// CHARGEMENT DE L'APPLICATION
+// ============================================================
 export async function loadFullApplicationData(agencyId?: string): Promise<AppStateData> {
   const localAgency = loadLocalCollection<Agency | null>('agency', null);
   const localProperties = loadLocalCollection<Property[]>('properties', []);
+  const localBuildings = loadLocalCollection<Building[]>('buildings', []);
+  const localUnits = loadLocalCollection<Unit[]>('units', []);
   const localOwners = loadLocalCollection<Owner[]>('owners', []);
   const localTenants = loadLocalCollection<Tenant[]>('tenants', []);
   const localContracts = loadLocalCollection<LeaseContract[]>('contracts', []);
@@ -380,12 +468,13 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   const localCashClosings = loadLocalCollection<CashClosing[]>('cash_closings', []);
 
   const state: AppStateData = {
-    agency: localAgency, properties: localProperties, owners: localOwners,
-    tenants: localTenants, contracts: localContracts, payments: localPayments,
-    reminders: localReminders, inspections: localInspections, maintenance: localMaintenance,
-    disbursements: localDisbursements, invoices: localInvoices, cashVouchers: localCashVouchers,
-    notifications: localNotifications, auditLogs: localAuditLogs, settings: localSettings,
-    users: localUsers, paymentMethods: localPaymentMethods,
+    agency: localAgency, properties: localProperties,
+    buildings: localBuildings, units: localUnits,
+    owners: localOwners, tenants: localTenants, contracts: localContracts,
+    payments: localPayments, reminders: localReminders, inspections: localInspections,
+    maintenance: localMaintenance, disbursements: localDisbursements, invoices: localInvoices,
+    cashVouchers: localCashVouchers, notifications: localNotifications, auditLogs: localAuditLogs,
+    settings: localSettings, users: localUsers, paymentMethods: localPaymentMethods,
     cashMovements: localCashMovements, cashClosings: localCashClosings,
   };
 
@@ -397,7 +486,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
     const [
       agencyRes, propsRes, ownersRes, tenantsRes, contractsRes, paymentsRes,
       cashMovRes, cashCloseRes, maintRes, inspRes, disbRes, invRes, remindRes,
-      auditRes, notifRes, pmRes, settingsRes, usersRes,
+      auditRes, notifRes, pmRes, settingsRes, usersRes, buildingsRes, unitsRes,
     ] = await Promise.allSettled([
       agencyId ? supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
@@ -417,6 +506,8 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('payment_methods_config').select('*')),
       agencyId ? supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
       agencyFilter(supabase.from('profiles').select('*')),
+      agencyFilter(supabase.from('buildings').select('*').order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('units').select('*').order('created_at', { ascending: false })),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
@@ -484,7 +575,19 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       persistCollection('payment_methods', state.paymentMethods);
     }
 
-    // ⬇️⬇️⬇️ CHARGEMENT DES PARAMÈTRES DEPUIS SUPABASE (CORRIGÉ) ⬇️⬇️⬇️
+    // BUILDINGS
+    if (buildingsRes.status === 'fulfilled' && buildingsRes.value.data && buildingsRes.value.data.length > 0) {
+      state.buildings = buildingsRes.value.data.map(mapBuildingFromDb);
+      persistCollection('buildings', state.buildings);
+    }
+
+    // UNITS
+    if (unitsRes.status === 'fulfilled' && unitsRes.value.data && unitsRes.value.data.length > 0) {
+      state.units = unitsRes.value.data.map(mapUnitFromDb);
+      persistCollection('units', state.units);
+    }
+
+    // SETTINGS
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
@@ -579,6 +682,106 @@ export async function logSystemAudit(log: Partial<AuditLog>, agencyId?: string):
 async function recordExists(table: string, id: string, agencyId: string): Promise<boolean> {
   const { data } = await supabase!.from(table).select('id').eq('id', id).eq('agency_id', agencyId).maybeSingle();
   return !!data;
+}
+
+// ============================================================
+// CRUD : BUILDINGS (Immeubles)
+// ============================================================
+export async function saveBuildingToDb(building: Partial<Building>, agencyId: string): Promise<{ success: boolean; data?: Building; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: building as Building };
+  try {
+    const record = {
+      agency_id: agencyId,
+      proprietaire_id: building.proprietaireId,
+      nom: building.nom,
+      adresse: building.adresse || '',
+      quartier: building.quartier || '',
+      ville: building.ville || 'Dakar',
+      type: building.type || 'Immeuble',
+      nombre_etages: building.nombreEtages || 0,
+      description: building.description || '',
+      statut: building.statut || 'Actif',
+      updated_at: new Date().toISOString(),
+    };
+
+    const exists = building.id ? await recordExists('buildings', building.id, agencyId) : false;
+    if (exists) {
+      const { data, error } = await supabase.from('buildings').update(record).eq('id', building.id).eq('agency_id', agencyId).select().single();
+      if (error) throw error;
+      return { success: true, data: mapBuildingFromDb(data) };
+    } else {
+      const { data, error } = await supabase.from('buildings').insert([record]).select().single();
+      if (error) throw error;
+      return { success: true, data: mapBuildingFromDb(data) };
+    }
+  } catch (err: any) {
+    console.error('Erreur sauvegarde immeuble:', err);
+    return { success: false, error: err.message || 'Impossible d’enregistrer l’immeuble.' };
+  }
+}
+
+export async function deleteBuildingFromDb(buildingId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.from('buildings').delete().eq('id', buildingId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('Erreur suppression immeuble:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================
+// CRUD : UNITS (Espaces louables)
+// ============================================================
+export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promise<{ success: boolean; data?: Unit; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true, data: unit as Unit };
+  try {
+    const record = {
+      agency_id: agencyId,
+      building_id: unit.buildingId,
+      proprietaire_id: unit.proprietaireId,
+      nom: unit.nom,
+      type: unit.type || 'Appartement',
+      etage: unit.etage || '',
+      superficie: unit.superficie || 0,
+      nombre_pieces: unit.nombrePieces || 1,
+      loyer_base: unit.loyerBase || 0,
+      charges: unit.charges || 0,
+      statut: unit.statut || 'Vacant',
+      locataire_actuel_id: unit.locataireActuelId || null,
+      description: unit.description || '',
+      equipements: unit.equipements || [],
+      updated_at: new Date().toISOString(),
+    };
+
+    const exists = unit.id ? await recordExists('units', unit.id, agencyId) : false;
+    if (exists) {
+      const { data, error } = await supabase.from('units').update(record).eq('id', unit.id).eq('agency_id', agencyId).select().single();
+      if (error) throw error;
+      return { success: true, data: mapUnitFromDb(data) };
+    } else {
+      const { data, error } = await supabase.from('units').insert([record]).select().single();
+      if (error) throw error;
+      return { success: true, data: mapUnitFromDb(data) };
+    }
+  } catch (err: any) {
+    console.error('Erreur sauvegarde espace:', err);
+    return { success: false, error: err.message || 'Impossible d’enregistrer l’espace.' };
+  }
+}
+
+export async function deleteUnitFromDb(unitId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.from('units').delete().eq('id', unitId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('Erreur suppression espace:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 // ============================================================
@@ -1038,7 +1241,7 @@ export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: s
 }
 
 // ============================================================
-// CRUD : PARAMÈTRES (CORRIGÉ)
+// CRUD : PARAMÈTRES
 // ============================================================
 export async function saveSettingsToDb(settings: AgencySettings, agencyId?: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return { success: true };

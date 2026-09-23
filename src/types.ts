@@ -159,6 +159,80 @@ export interface Property {
   locataireActuelNom?: string;
 }
 
+// ============================================================
+// NOUVELLE ARCHITECTURE : Immeuble → Espaces louables
+// ============================================================
+
+export type BuildingType = 
+  | 'Immeuble'
+  | 'Villa'
+  | 'Résidence'
+  | 'Cité'
+  | 'Duplex'
+  | 'Autre';
+
+export type BuildingStatus = 'Actif' | 'Inactif' | 'En travaux';
+
+export interface Building {
+  id: string;
+  agencyId?: string;
+  proprietaireId: string;
+  proprietaireNom?: string;
+  nom: string;
+  adresse?: string;
+  quartier?: string;
+  ville?: string;
+  type: BuildingType;
+  nombreEtages: number;
+  description?: string;
+  dateCreation?: string;
+  statut: BuildingStatus;
+  // Champs calculés
+  nbUnites?: number;
+  nbUnitesOccupees?: number;
+  nbUnitesVacantes?: number;
+  loyerTotalMensuel?: number;
+  // Relations
+  unites?: Unit[];
+}
+
+export type UnitType = 
+  | 'Appartement'
+  | 'Studio'
+  | 'Chambre'
+  | 'Salle de bain'
+  | 'Magasin'
+  | 'Bureau'
+  | 'Terrasse'
+  | 'Entrepôt'
+  | 'Autre';
+
+export type UnitStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige';
+
+export interface Unit {
+  id: string;
+  agencyId?: string;
+  buildingId: string;
+  buildingNom?: string;
+  proprietaireId: string;
+  proprietaireNom?: string;
+  nom: string;
+  type: UnitType;
+  etage?: string;
+  superficie?: number;
+  nombrePieces?: number;
+  loyerBase: number;
+  charges: number;
+  statut: UnitStatus;
+  locataireActuelId?: string;
+  locataireActuelNom?: string;
+  description?: string;
+  equipements?: string[];
+  dateCreation?: string;
+  // Relations
+  building?: Building;
+}
+
 export interface Owner {
   id: string;
   ref?: string;

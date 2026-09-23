@@ -2,6 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard,
   Building2,
+  Layers,
   Users,
   UserCheck,
   CreditCard,
@@ -57,7 +58,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const role = currentUser.role;
 
-  // Build navigation items based on active role
   const getNavSections = () => {
     if (role === 'CAISSIER') {
       return [
@@ -66,9 +66,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           items: [
             { id: 'dashboard' as ActiveTab, label: 'Tableau de bord Caisse', icon: LayoutDashboard },
             { id: 'caisse' as ActiveTab, label: 'Journal de Caisse & Clôture', icon: Coins },
-            { 
-              id: 'pending-payments' as ActiveTab, 
-              label: 'Paiements en Attente', 
+            {
+              id: 'pending-payments' as ActiveTab,
+              label: 'Paiements en Attente',
               icon: Clock,
               badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} à valider` : undefined,
               badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -77,10 +77,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ],
         },
         {
-          label: 'FINANCES & CONSULTATION',
+          label: 'CONSULTATION',
           items: [
-            { id: 'payment-reports' as ActiveTab, label: 'Rapports Moyens Paiement', icon: BarChart3 },
+            { id: 'buildings' as ActiveTab, label: 'Immeubles', icon: Building2 },
+            { id: 'units' as ActiveTab, label: 'Espaces Louables', icon: Layers },
             { id: 'tenants' as ActiveTab, label: 'Annuaire Locataires', icon: Users },
+            { id: 'payment-reports' as ActiveTab, label: 'Rapports Moyens Paiement', icon: BarChart3 },
             { id: 'finance' as ActiveTab, label: 'Reversements Bailleurs', icon: WalletCards },
             { id: 'documents' as ActiveTab, label: 'Bibliothèque Quittances', icon: FolderArchive },
           ],
@@ -94,7 +96,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'ESPACE BAILLEUR',
           items: [
             { id: 'dashboard' as ActiveTab, label: 'Mon Tableau de Bord', icon: LayoutDashboard },
-            { id: 'properties' as ActiveTab, label: 'Mes Biens Immobiliers', icon: Building2 },
+            { id: 'buildings' as ActiveTab, label: 'Mes Immeubles', icon: Building2 },
+            { id: 'units' as ActiveTab, label: 'Mes Espaces Louables', icon: Layers },
             { id: 'tenants' as ActiveTab, label: 'Mes Locataires', icon: Users },
           ],
         },
@@ -116,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: 'ESPACE LOCATAIRE',
           items: [
             { id: 'dashboard' as ActiveTab, label: 'Mon Espace Locataire', icon: Home },
-            { id: 'properties' as ActiveTab, label: 'Mon Logement & Bail', icon: Building2 },
+            { id: 'units' as ActiveTab, label: 'Mon Logement & Bail', icon: Building2 },
             { id: 'payments' as ActiveTab, label: 'Mes Quittances de Loyer', icon: Receipt },
             { id: 'maintenance' as ActiveTab, label: 'Signaler une Panne', icon: Wrench },
           ],
@@ -131,7 +134,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           items: [
             { id: 'dashboard' as ActiveTab, label: 'Tableau de bord Terrain', icon: LayoutDashboard },
             { id: 'inspections' as ActiveTab, label: 'États des Lieux (PV)', icon: ClipboardList },
-            { id: 'properties' as ActiveTab, label: 'Biens Vacants & Visites', icon: Building2 },
+            { id: 'buildings' as ActiveTab, label: 'Immeubles', icon: Building2 },
+            { id: 'units' as ActiveTab, label: 'Espaces & Visites', icon: Layers },
             { id: 'maintenance' as ActiveTab, label: 'Signalements Travaux', icon: Wrench },
             { id: 'recovery' as ActiveTab, label: 'Relances Amiables Terrain', icon: TrendingUp },
           ],
@@ -146,18 +150,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           items: [
             { id: 'dashboard' as ActiveTab, label: 'Tableau de Bord Gérance', icon: LayoutDashboard },
             { id: 'owners' as ActiveTab, label: 'Propriétaires Mandants', icon: UserCheck },
-            { id: 'properties' as ActiveTab, label: 'Biens & Immeubles', icon: Building2 },
+            { id: 'buildings' as ActiveTab, label: 'Immeubles & Résidences', icon: Building2 },
+            { id: 'units' as ActiveTab, label: 'Espaces Louables', icon: Layers },
             { id: 'tenants' as ActiveTab, label: 'Locataires & Baux', icon: Users },
             { id: 'contracts' as ActiveTab, label: 'Contrats de Bail', icon: FileCheck2 },
             { id: 'inspections' as ActiveTab, label: 'États des Lieux', icon: ClipboardList },
           ],
         },
-               {
+        {
           label: 'RECOUVREMENT & TRAVAUX',
           items: [
-            { 
-              id: 'recovery' as ActiveTab, 
-              label: 'Suivi Recouvrement', 
+            {
+              id: 'recovery' as ActiveTab,
+              label: 'Suivi Recouvrement',
               icon: TrendingUp,
               badge: unpaidCount > 0 ? `${unpaidCount} impayés` : undefined,
               badgeColor: 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
@@ -186,7 +191,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: 'GESTION IMMOBILIÈRE',
         items: [
           { id: 'owners' as ActiveTab, label: 'Propriétaires Mandants', icon: UserCheck },
-          { id: 'properties' as ActiveTab, label: 'Biens & Immeubles', icon: Building2 },
+          { id: 'buildings' as ActiveTab, label: 'Immeubles & Résidences', icon: Building2 },
+          { id: 'units' as ActiveTab, label: 'Espaces Louables', icon: Layers },
+          { id: 'properties' as ActiveTab, label: 'Biens Anciens', icon: Building2 },
           { id: 'tenants' as ActiveTab, label: 'Locataires & Fiches', icon: Users },
           { id: 'contracts' as ActiveTab, label: 'Contrats de Baux', icon: FileCheck2 },
           { id: 'inspections' as ActiveTab, label: 'États des Lieux', icon: ClipboardList },
@@ -196,9 +203,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: 'FINANCES, CAISSE & PAIEMENTS',
         items: [
           { id: 'payments' as ActiveTab, label: 'Paiements & Quittances', icon: CreditCard },
-          { 
-            id: 'pending-payments' as ActiveTab, 
-            label: 'Paiements en Attente', 
+          {
+            id: 'pending-payments' as ActiveTab,
+            label: 'Paiements en Attente',
             icon: Clock,
             badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount}` : undefined,
             badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -245,7 +252,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
@@ -254,13 +260,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Sidebar Container */}
       <aside
         className={`w-72 md:w-64 bg-[#162133] border-r border-[#C9A96E]/15 flex flex-col h-screen fixed top-0 left-0 z-50 select-none shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* Brand Header */}
         <div className="p-4 sm:p-5 border-b border-[#C9A96E]/15 flex items-center justify-between bg-gradient-to-b from-[#1E2E45]/40 to-transparent">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#C9A96E] via-[#D4B982] to-[#A07840] flex items-center justify-center text-[#0F1B2D] font-bold text-lg shadow-lg shadow-[#C9A96E]/20 flex-shrink-0">
@@ -277,7 +281,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Close button on mobile */}
           <button
             onClick={onCloseMobile}
             className="md:hidden p-2 rounded-xl text-[#A8B4C4] hover:text-white hover:bg-[#1E2E45] border border-transparent hover:border-[#C9A96E]/30 transition-all cursor-pointer"
@@ -287,7 +290,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Navigation List */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navSections.map((section, idx) => (
             <div key={idx}>
@@ -340,7 +342,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
 
-        {/* User / Workspace Footer */}
         <div className="p-3 border-t border-[#C9A96E]/15 bg-[#162133]/90">
           <div
             onClick={() => {
