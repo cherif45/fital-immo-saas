@@ -1556,9 +1556,10 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TenantsView
+                            <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
+                units={scopedUnits}
                 currentUser={currentUser}
                 onOpenQuickReminder={handleOpenQuickReminder}
                 onOpenNewPayment={handleOpenNewPaymentForTenant}

@@ -33,6 +33,7 @@ import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
 interface TenantsViewProps {
   tenants: Tenant[];
   properties: Property[];
+  units?: any[];
   currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
@@ -45,6 +46,7 @@ interface TenantsViewProps {
 export const TenantsView: React.FC<TenantsViewProps> = ({
   tenants,
   properties,
+  units = [],
   currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
@@ -72,8 +74,8 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [profession, setProfession] = useState('');
   const [employeur, setEmployeur] = useState('');
   const [revenuMensuel, setRevenuMensuel] = useState<number>(1000000);
-  const [bienId, setBienId] = useState<string>(properties[0]?.id || '');
-  const [loyerMensuel, setLoyerMensuel] = useState<number>(350000);
+  const [bienId, setBienId] = useState<string>('');
+  const [loyerMensuel, setLoyerMensuel] = useState<number>(0);
   const [conjointNom, setConjointNom] = useState('');
   const [conjointTelephone, setConjointTelephone] = useState('');
 
@@ -129,34 +131,75 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         t.prenom.toLowerCase().includes(q) ||
         t.telephone.includes(q) ||
         t.bienNom.toLowerCase().includes(q) ||
-        t.cni.toLowerCase().includes(q)
+        (t.cni || '').toLowerCase().includes(q)
       );
     }
     return true;
   });
 
+  // ============================================================
+  // BIENS VACANTS (properties + units)
+  // ============================================================
+  const vacantProperties = properties.filter((p) => p.statut === 'Vacant');
+  const vacantUnits = (units as any[]).filter((u: any) => u.statut === 'Vacant');
+  const allVacantOptions = [...vacantProperties, ...vacantUnits];
+
+  // ============================================================
+  // HANDLER : Créer un locataire
+  // ============================================================
   const handleSubmitTenant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManageTenants) {
       alert("Action non autorisée.");
       return;
     }
+
+    if (!bienId) {
+      alert("Veuillez sélectionner un bien à louer.");
+      return;
+    }
+
+    // Chercher dans properties PUIS dans units
     const prop = properties.find((p) => p.id === bienId);
-    if (!prop || !prop.proprietaireId) {
+    const unit = !prop ? (units as any[]).find((u: any) => u.id === bienId) : null;
+
+    if (!prop && !unit) {
+      alert("Impossible : ce bien n'existe pas dans la base.");
+      return;
+    }
+
+    const bienNomResolu = prop?.nom || unit?.nom || 'Bien non assigné';
+    const bienProprioId = prop?.proprietaireId || unit?.proprietaireId || null;
+    const statutActuel = prop?.statut || unit?.statut || 'Vacant';
+
+    if (!bienProprioId) {
       alert("Impossible : ce bien n'a pas de propriétaire associé.");
       return;
     }
+
+    // Vérifier qu'aucun locataire actif n'occupe ce bien
     const bienDejaOccupe = tenants.some(
-      (t) => t.bienId === bienId && !t.dateSortie
+      (t) =>
+        t.bienId === bienId &&
+        (!t.dateSortie || t.dateSortie.trim() === '')
     );
+
     if (bienDejaOccupe) {
-      alert("Ce bien est déjà occupé par un locataire actif.\n\nVeuillez d'abord enregistrer sa sortie.");
+      alert(
+        "Ce bien est déjà occupé par un locataire actif.\n\n" +
+        "Veuillez d'abord enregistrer sa sortie."
+      );
       return;
     }
-    if (prop.statut !== 'Vacant') {
-      alert(`Ce bien est actuellement "${prop.statut}". Impossible d'y ajouter un locataire. Libérez-le d'abord.`);
+
+    if (statutActuel !== 'Vacant') {
+      alert(
+        `Ce bien est actuellement "${statutActuel}".\n\n` +
+        `Impossible d'y ajouter un locataire. Libérez-le d'abord.`
+      );
       return;
     }
+
     const newTenant: Tenant = {
       id: crypto.randomUUID(),
       nom: nom.toUpperCase(),
@@ -168,8 +211,8 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       employeur,
       revenuMensuel: Number(revenuMensuel),
       bienId,
-      bienNom: prop?.nom || 'Bien non assigné',
-      proprietaireId: prop?.proprietaireId || null,
+      bienNom: bienNomResolu,
+      proprietaireId: bienProprioId,
       dateEntree: new Date().toISOString().split('T')[0],
       loyerMensuel: Number(loyerMensuel),
       statut: 'À jour',
@@ -181,7 +224,21 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     };
 
     onAddTenant(newTenant);
+
+    // Reset
     setIsAddTenantModalOpen(false);
+    setNom('');
+    setPrenom('');
+    setCni('');
+    setTelephone('+221 77 ');
+    setEmail('');
+    setProfession('');
+    setEmployeur('');
+    setRevenuMensuel(1000000);
+    setBienId('');
+    setLoyerMensuel(0);
+    setConjointNom('');
+    setConjointTelephone('');
   };
 
   const handleConfirmExit = () => {
@@ -217,7 +274,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     ]);
     exportToCSV('Repertoire_Locataires_FITAL_IMMO', rows, headers);
   };
-
+  
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -242,7 +299,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>Excel</span>
           </button>
-          {/* 🔒 Bouton "+ Nouveau Locataire" : UNIQUEMENT ADMIN/GESTIONNAIRE */}
           {canManageTenants && (
             <button
               onClick={() => setIsAddTenantModalOpen(true)}
@@ -349,15 +405,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${realStatus.bg} ${realStatus.text} ${realStatus.border} border`}
                           >
-                            {t.prenom[0]}
-                            {t.nom[0]}
+                            {(t.prenom || '?')[0]}
+                            {(t.nom || '?')[0]}
                           </div>
                           <div>
                             <div className="font-bold text-white">
                               {t.prenom} {t.nom}
                             </div>
                             <div className="text-[10px] text-[#A8B4C4] truncate max-w-[140px]">
-                              {t.profession} ({t.employeur})                            </div>
+                              {t.profession} ({t.employeur})
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -373,30 +430,29 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       <td className="py-3 px-3 font-mono">
                         <div className="flex items-center gap-2">
                           <span className="text-white text-xs font-semibold">{t.telephone}</span>
-                          {/* 🔒 Boutons contact : UNIQUEMENT ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
                           {canContactTenant && (
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => triggerPhoneCall(t.telephone)}
                                 className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all cursor-pointer"
-                                title="Appeler directement ce locataire"
+                                title="Appeler"
                               >
                                 <PhoneCall className="w-3 h-3" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte concernant votre logement ${t.bienNom}.`)}
+                                onClick={() => triggerWhatsApp(t.telephone, `Bonjour ${t.prenom} ${t.nom}, l'agence FITAL-IMMO vous contacte.`)}
                                 className="p-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all cursor-pointer"
-                                title="Écrire sur WhatsApp"
+                                title="WhatsApp"
                               >
                                 <Send className="w-3 h-3" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de l'agence FITAL-IMMO.`)}
+                                onClick={() => triggerSMS(t.telephone, `Bonjour ${t.prenom} ${t.nom}, message de FITAL-IMMO.`)}
                                 className="p-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all cursor-pointer"
-                                title="Envoyer un SMS"
+                                title="SMS"
                               >
                                 <MessageSquare className="w-3 h-3" />
                               </button>
@@ -425,19 +481,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          {/* 👁 Voir détails : tous les rôles */}
                           <button
                             onClick={() => setSelectedTenantForDetails(t)}
                             className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/20 transition-all cursor-pointer"
-                            title="Voir Fiche de Renseignements Détaillée"
+                            title="Voir Fiche"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 🔒 Actions cachées pour les sortis + cachées selon le rôle */}
                           {!sorted && (
                             <>
-                              {/* Wave/OM : ADMIN/GESTIONNAIRE/CAISSIER/LOCATAIRE (pas PROPRIÉTAIRE) */}
                               {!isOwner && (
                                 <button
                                   onClick={() => {
@@ -448,51 +501,46 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                                     }
                                   }}
                                   className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                                  title="Générer lien Wave ou Orange Money / Payer"
                                 >
                                   <Smartphone className="w-3 h-3 text-blue-400" />
                                   <span>Wave / OM</span>
                                 </button>
                               )}
 
-                              {/* Appel : ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
                               {canContactTenant && (
                                 <button
                                   onClick={() => triggerPhoneCall(t.telephone)}
                                   className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition-all cursor-pointer"
-                                  title={`Appeler directement ${t.prenom} (${t.telephone})`}
+                                  title="Appeler"
                                 >
                                   <PhoneCall className="w-3.5 h-3.5" />
                                 </button>
                               )}
 
-                              {/* WhatsApp : ADMIN/GESTIONNAIRE/CAISSIER/AGENT */}
                               {canContactTenant && (
                                 <button
                                   onClick={() => {
-                                    const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement FITAL-IMMO'} : `;
+                                    const defaultMsg = `Bonjour ${t.prenom}, concernant votre location pour ${t.bienNom || 'le logement'} : `;
                                     triggerWhatsApp(t.telephone, defaultMsg);
                                   }}
                                   className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
-                                  title={`Envoyer un message WhatsApp à ${t.prenom} (${t.telephone})`}
+                                  title="WhatsApp"
                                 >
                                   <MessageSquare className="w-3.5 h-3.5" />
                                 </button>
                               )}
 
-                              {/* Sortie : ADMIN/GESTIONNAIRE */}
                               {canManageTenants && (
                                 <button
                                   onClick={() => setTenantForExit(t)}
                                   className="px-2 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                                  title="Enregistrer la sortie de ce locataire"
+                                  title="Sortie"
                                 >
                                   <LogOut className="w-3 h-3 text-rose-400" />
                                   <span>Sortie</span>
                                 </button>
                               )}
 
-                              {/* Relance : ADMIN/GESTIONNAIRE/CAISSIER */}
                               {canEncaisser && t.statut !== 'À jour' && (
                                 <button
                                   onClick={() => onOpenQuickReminder(t)}
@@ -502,7 +550,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                                 </button>
                               )}
 
-                              {/* Encaisser : ADMIN/GESTIONNAIRE/CAISSIER */}
                               {canEncaisser && t.statut === 'À jour' && (
                                 <button
                                   onClick={() => onOpenNewPayment(t)}
@@ -514,7 +561,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             </>
                           )}
 
-                          {/* Pour les sortis : message */}
                           {sorted && (
                             <span className="text-[10px] text-slate-500 italic px-2">Locataire sorti — historique</span>
                           )}
@@ -536,7 +582,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <div className="p-5 border-b border-rose-500/30 flex items-center justify-between bg-[#1E2E45]/80">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <LogOut className="w-5 h-5 text-rose-400" />
-                <span>Confirmer la Sortie du Locataire</span>
+                <span>Confirmer la Sortie</span>
               </div>
               <button
                 onClick={() => setTenantForExit(null)}
@@ -551,18 +597,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 <div className="font-bold text-white text-sm">
                   {tenantForExit.prenom} {tenantForExit.nom}
                 </div>
-                <div className="text-[#A8B4C4] mt-0.5">
-                  Bien : {tenantForExit.bienNom}
-                </div>
-                <div className="text-[#A8B4C4]">
-                  Loyer : {formatNumber(tenantForExit.loyerMensuel)} FCFA
-                </div>
+                <div className="text-[#A8B4C4] mt-0.5">Bien : {tenantForExit.bienNom}</div>
+                <div className="text-[#A8B4C4]">Loyer : {formatNumber(tenantForExit.loyerMensuel)} FCFA</div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                  Date de sortie effective
-                </label>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Date de sortie</label>
                 <input
                   type="date"
                   value={exitDate}
@@ -572,9 +612,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                  Retenue sur caution (FCFA)
-                </label>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Retenue sur caution (FCFA)</label>
                 <input
                   type="number"
                   value={retenueCaution}
@@ -582,21 +620,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   min={0}
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                 />
-                <div className="text-[10px] text-[#6B7C94] mt-1">
-                  Laissez 0 si aucune dégradation n'est constatée.
-                </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                  Observations (dégradations, état général)
-                </label>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Observations</label>
                 <textarea
                   value={exitObservations}
                   onChange={(e) => setExitObservations(e.target.value)}
                   rows={2}
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  placeholder="Ex: Murs corrects, robinetterie changée, aucune dégradation majeure."
+                  placeholder="Dégradations, état général..."
                 />
               </div>
 
@@ -629,14 +662,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Fiche de Renseignements Locataire Détaillée */}
+      {/* Modal: Fiche de Renseignements */}
       {selectedTenantForDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
             <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 no-print">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <FileText className="w-5 h-5 text-[#C9A96E]" />
-                <span>Fiche de Renseignements Locataire (Modèle Officiel)</span>
+                <span>Fiche de Renseignements Locataire</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -660,14 +693,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   FICHE DE RENSEIGNEMENTS DU LOCATAIRE
                 </h2>
                 <div className="text-[10px] text-neutral-600 font-semibold uppercase">
-                  FITAL-IMMO · DOSSIER DE LOCATION RÉSIDENTIELLE & COMMERCIALE
+                  FITAL-IMMO · DOSSIER DE LOCATION
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
-                    1. ÉTAT CIVIL & IDENTIFICATION DU LOCATAIRE
+                    1. ÉTAT CIVIL & IDENTIFICATION
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -675,11 +708,11 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       <strong className="text-neutral-900">{selectedTenantForDetails.prenom} {selectedTenantForDetails.nom}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">N° CNI / Passeport : </span>
+                      <span className="text-neutral-500">N° CNI : </span>
                       <strong className="font-mono text-neutral-900">{selectedTenantForDetails.cni}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Téléphone Mobile : </span>
+                      <span className="text-neutral-500">Téléphone : </span>
                       <strong className="text-neutral-900">{selectedTenantForDetails.telephone}</strong>
                     </div>
                     <div>
@@ -695,27 +728,27 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       <strong className="text-neutral-900">{selectedTenantForDetails.employeur}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Salaire Mensuel Net : </span>
+                      <span className="text-neutral-500">Salaire Mensuel : </span>
                       <strong className="font-mono text-neutral-900">{formatCurrency(selectedTenantForDetails.revenuMensuel)}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Score de Solvabilité : </span>
-                      <strong className="text-emerald-700 font-bold">{getSolvabilite(selectedTenantForDetails)}/100 (Excellent)</strong>
+                      <span className="text-neutral-500">Solvabilité : </span>
+                      <strong className="text-emerald-700 font-bold">{getSolvabilite(selectedTenantForDetails)}/100</strong>
                     </div>
                   </div>
                 </div>
 
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
-                    2. RENSEIGNEMENTS SUR LE / LA CONJOINT(E)
+                    2. CONJOINT(E)
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-neutral-500">Nom du Conjoint : </span>
+                      <span className="text-neutral-500">Nom : </span>
                       <strong className="text-neutral-900">{selectedTenantForDetails.conjointNom || 'Non renseigné'}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Téléphone Conjoint : </span>
+                      <span className="text-neutral-500">Téléphone : </span>
                       <strong className="text-neutral-900">{selectedTenantForDetails.conjointTelephone || 'Non renseigné'}</strong>
                     </div>
                   </div>
@@ -723,25 +756,25 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
                 <div className="border border-neutral-300 rounded-xl p-4 bg-neutral-50">
                   <div className="font-bold text-neutral-900 uppercase text-[11px] mb-2 border-b border-neutral-200 pb-1">
-                    3. CONDITIONS DU LOGEMENT ATTRIBUÉ
+                    3. LOGEMENT
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-neutral-500">Bien Assigné : </span>
+                      <span className="text-neutral-500">Bien : </span>
                       <strong className="text-neutral-900">{selectedTenantForDetails.bienNom}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Loyer Mensuel : </span>
+                      <span className="text-neutral-500">Loyer : </span>
                       <strong className="text-neutral-900 font-mono">{formatCurrency(selectedTenantForDetails.loyerMensuel)}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Date Prise d'Effet : </span>
+                      <span className="text-neutral-500">Date d'entrée : </span>
                       <strong className="text-neutral-900">{formatDate(selectedTenantForDetails.dateEntree)}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">Statut Financier Actuel : </span>
+                      <span className="text-neutral-500">Statut : </span>
                       <strong className={selectedTenantForDetails.statut === 'À jour' ? 'text-emerald-700' : 'text-rose-700'}>
-                        {selectedTenantForDetails.statut} ({selectedTenantForDetails.arrieresCumules || 0} FCFA d'arriéré)
+                        {selectedTenantForDetails.statut}
                       </strong>
                     </div>
                   </div>
@@ -750,13 +783,13 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-8 pt-6 mt-6 border-t border-neutral-300">
                 <div>
-                  <div className="font-bold text-neutral-700">Signature du Locataire :</div>
+                  <div className="font-bold text-neutral-700">Signature Locataire :</div>
                   <div className="h-14 border border-dashed border-neutral-400 rounded-lg mt-1 p-1">
-                    <span className="text-[10px] text-neutral-400 italic">Précédé de la mention "Lu et approuvé"</span>
+                    <span className="text-[10px] text-neutral-400 italic">Lu et approuvé</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-neutral-700">Visa de la Gérance FITAL-IMMO :</div>
+                  <div className="font-bold text-neutral-700">Visa Gérance :</div>
                   <div className="h-14 border border-dashed border-neutral-400 rounded-lg mt-1 p-1 flex items-center justify-center">
                     <span className="text-[10px] font-bold text-amber-800 uppercase">★ DOSSIER VALIDÉ ★</span>
                   </div>
@@ -767,14 +800,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Ajouter un Nouveau Locataire — UNIQUEMENT ADMIN/GESTIONNAIRE */}
+      {/* Modal: Ajouter un Nouveau Locataire */}
       {canManageTenants && isAddTenantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <Users className="w-5 h-5 text-[#C9A96E]" />
-                <span>Nouveau Locataire (Fiche & Renseignements)</span>
+                <span>Nouveau Locataire</span>
               </div>
               <button onClick={() => setIsAddTenantModalOpen(false)} className="text-[#A8B4C4] hover:text-white cursor-pointer">
                 ✕
@@ -795,7 +828,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Nom de famille</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Nom</label>
                   <input
                     type="text"
                     value={nom}
@@ -809,7 +842,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° CNI / Passeport</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° CNI</label>
                   <input
                     type="text"
                     value={cni}
@@ -820,7 +853,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Téléphone Mobile</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Téléphone</label>
                   <input
                     type="text"
                     value={telephone}
@@ -840,18 +873,18 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     onChange={(e) => setProfession(e.target.value)}
                     required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                    placeholder="Ingénieur Telecom, Médecin..."
+                    placeholder="Ingénieur, Médecin..."
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Employeur / Société</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Employeur</label>
                   <input
                     type="text"
                     value={employeur}
                     onChange={(e) => setEmployeur(e.target.value)}
                     required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                    placeholder="Orange Sonatel, TotalEnergies..."
+                    placeholder="Orange, Total..."
                   />
                 </div>
               </div>
@@ -862,32 +895,56 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   <select
                     value={bienId}
                     onChange={(e) => {
-                      setBienId(e.target.value);
-                      const selectedProp = properties.find((p) => p.id === e.target.value);
-                      if (selectedProp) setLoyerMensuel(selectedProp.loyerTotal || selectedProp.loyerBase);
+                      const newId = e.target.value;
+                      setBienId(newId);
+                      const selectedProp = properties.find((p) => p.id === newId);
+                      if (selectedProp) {
+                        setLoyerMensuel(selectedProp.loyerTotal || (selectedProp.loyerBase + (selectedProp.charges || 0)));
+                        return;
+                      }
+                      const selectedUnit = (units as any[]).find((u: any) => u.id === newId);
+                      if (selectedUnit) {
+                        setLoyerMensuel((selectedUnit.loyerBase || 0) + (selectedUnit.charges || 0));
+                      }
                     }}
+                    required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   >
-                    {properties.filter((p) => p.statut === 'Vacant').length === 0 ? (
-                      <option value="">Aucun bien vacant disponible</option>
+                    <option value="">— Choisir un bien —</option>
+                    {allVacantOptions.length === 0 ? (
+                      <option value="" disabled>Aucun bien vacant disponible</option>
                     ) : (
-                      properties
-                        .filter((p) => p.statut === 'Vacant')
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nom} ({formatNumber(p.loyerTotal || (p.loyerBase + p.charges))} FCFA)
-                          </option>
-                        ))
+                      <>
+                        {vacantProperties.length > 0 && (
+                          <optgroup label="🏠 Biens simples">
+                            {vacantProperties.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nom} ({formatNumber(p.loyerTotal || (p.loyerBase + (p.charges || 0)))} FCFA)
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {vacantUnits.length > 0 && (
+                          <optgroup label="🏢 Espaces d'immeubles">
+                            {vacantUnits.map((u: any) => (
+                              <option key={u.id} value={u.id}>
+                                {u.nom} ({formatNumber((u.loyerBase || 0) + (u.charges || 0))} FCFA)
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </>
                     )}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Loyer Mensuel Net (FCFA)</label>
+                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Loyer Mensuel (FCFA)</label>
                   <input
                     type="number"
-                    value={loyerMensuel}
+                    value={loyerMensuel || ''}
                     onChange={(e) => setLoyerMensuel(Number(e.target.value))}
                     required
+                    min={0}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
                   />
                 </div>
@@ -914,7 +971,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
         </div>
       )}
 
-      {/* Mobile Money Payment & Redirection Modal */}
+      {/* Mobile Money Modal */}
       {selectedTenantForPayment && (
         <MobileMoneyPaymentModal
           isOpen={!!selectedTenantForPayment}
