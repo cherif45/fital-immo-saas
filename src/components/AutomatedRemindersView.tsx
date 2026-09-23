@@ -30,6 +30,7 @@ import {
 import { formatCurrency, formatNumber, formatDate, copyToClipboard } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { generateWavePaymentLink } from '../lib/payments/mobileMoney';
+import { PaymentReminderLetterModal } from './PaymentReminderLetterModal';
 
 interface AutomatedRemindersViewProps {
   tenants: Tenant[];
@@ -55,6 +56,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+    const [isLetterModalOpen, setIsLetterModalOpen] = useState<boolean>(false);
 
   const activeTenant = tenants.find((t) => t.id === selectedTenantId) || overdueTenants[0];
   const activeProperty = properties.find((p) => p.id === activeTenant?.bienId);
@@ -301,7 +303,18 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                     </div>
                     {selectedLevel === item.level && <CheckCircle2 className="w-4 h-4 text-[#C9A96E]" />}
                   </button>
-                ))}
+                                ))}
+
+                {/* ⬇️ NOUVEAU : Bouton Mise en Demeure (UNIQUEMENT Niveau 4) */}
+                {selectedLevel === 'Niveau 4: Mise en demeure juridique (J+25)' && (
+                  <button
+                    onClick={() => setIsLetterModalOpen(true)}
+                    className="w-full mt-2 p-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>📄 Imprimer la Lettre de Mise en Demeure</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -529,6 +542,19 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
           </table>
         </div>
       </div>
+          {/* ⬇️ NOUVEAU : Modale Lettre de Mise en Demeure */}
+      {isLetterModalOpen && activeTenant && (
+        <PaymentReminderLetterModal
+          tenant={activeTenant}
+          property={activeProperty}
+          settings={undefined}
+          montantDu={activeTenant.arrieresCumules || activeTenant.loyerMensuel}
+          penalites={activeTenant.joursRetard > 10 ? Math.round(activeTenant.loyerMensuel * 0.1) : 0}
+          joursRetard={activeTenant.joursRetard || 25}
+          periode={new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          onClose={() => setIsLetterModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
