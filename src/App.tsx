@@ -122,7 +122,6 @@ import {
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
 
 export default function App() {
-  // Authentication & Multi-Account State
   const [users, setUsers] = useState<UserAccount[]>(() => loadLocalCollection('users', initialUsers));
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
     const saved = loadLocalCollection<UserAccount | null>('current_user', null);
@@ -130,9 +129,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem('fital_immo_user');
       if (raw) return JSON.parse(raw);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
@@ -140,7 +137,6 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
-  // Core Data
   const [properties, setProperties] = useState<Property[]>(() => loadLocalCollection('properties', initialProperties));
   const [owners, setOwners] = useState<Owner[]>(() => loadLocalCollection('owners', initialOwners));
   const [tenants, setTenants] = useState<Tenant[]>(() => loadLocalCollection('tenants', initialTenants));
@@ -159,12 +155,10 @@ export default function App() {
   const [cashMovements, setCashMovements] = useState<CashMovement[]>(() => loadLocalCollection('cash_movements', initialCashMovements));
   const [cashClosings, setCashClosings] = useState<CashClosing[]>(() => loadLocalCollection('cash_closings', initialCashClosings));
 
-  // Navigation
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('Ce mois (Mai 2026)');
 
-  // Modals
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState<boolean>(false);
   const [receiptModalPayment, setReceiptModalPayment] = useState<Payment | null>(null);
@@ -195,7 +189,6 @@ export default function App() {
     daysLate?: number;
   } | null>(null);
 
-  // Détecte si on arrive depuis un lien de reset password
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('access_token') || hash.includes('type=recovery')) {
@@ -203,7 +196,6 @@ export default function App() {
     }
   }, []);
 
-  // Global search shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -215,7 +207,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load data + session
   useEffect(() => {
     loadFullApplicationData(currentUser?.agencyId).then((data) => {
       if (data.properties.length > 0) setProperties(data.properties);
@@ -272,9 +263,7 @@ export default function App() {
                 setCurrentUser(parsed);
                 persistCollection('current_user', parsed);
               }
-            } catch (e) {
-              // ignore
-            }
+            } catch (e) {}
           }
         }
       } catch (err) {
@@ -290,9 +279,7 @@ export default function App() {
     try {
       localStorage.removeItem('fital_immo_user');
       localStorage.removeItem('fital_immo_current_user');
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
     setCurrentUser(null);
     setIsProfileModalOpen(false);
   };
@@ -354,9 +341,6 @@ export default function App() {
     }
   };
 
-  // ============================================================
-  // PAYMENT HANDLERS
-  // ============================================================
   const handleAddPayment = (newPayment: Payment) => {
     setPayments((prev) => {
       const next = [newPayment, ...prev];
@@ -421,7 +405,7 @@ export default function App() {
       return next;
     });
   };
-  
+
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
     const t = tenant || tenants[0];
     setMobileMoneyModalConfig({
@@ -768,7 +752,7 @@ export default function App() {
               statut: 'Occupé' as const,
               locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
             };
-                       if (currentUser?.agencyId) {
+            if (currentUser?.agencyId) {
               savePropertyToDb(updatedP, currentUser.agencyId).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
             }
             return updatedP;
@@ -781,15 +765,14 @@ export default function App() {
     }
   };
 
-    const handleCompleteNewTenantWizard = async (data: {
+  const handleCompleteNewTenantWizard = async (data: {
     tenant: Tenant;
     contract: LeaseContract;
     inspection: Inspection;
   }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
-    // 1. Créer le locataire
-        const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
+    const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) {
       console.error('❌ Locataire refusé:', tenantResult.error);
 
@@ -810,7 +793,6 @@ export default function App() {
       return;
     }
 
-    // 2. Récupérer le VRAI id généré par Supabase
     const realTenantId = tenantResult.data?.id || data.tenant.id;
     console.log('✅ Locataire créé avec id Supabase :', realTenantId);
 
@@ -818,19 +800,16 @@ export default function App() {
     const contractToSave = { ...data.contract, locataireId: realTenantId };
     const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
 
-    // 3. Créer le contrat
     const contractResult = await saveContractToDb(contractToSave, currentUser.agencyId);
     if (!contractResult.success) {
       console.error('❌ Contrat refusé:', contractResult.error);
     }
 
-    // 4. Créer l'état des lieux
     const inspectionResult = await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
     if (!inspectionResult.success) {
       console.error('❌ État des lieux refusé:', inspectionResult.error);
     }
 
-    // 5. Mise à jour locale
     setTenants((prev) => {
       const next = [tenantToSave, ...prev];
       persistCollection('tenants', next);
@@ -846,7 +825,7 @@ export default function App() {
       persistCollection('inspections', next);
       return next;
     });
-       setProperties((prev) => {
+    setProperties((prev) => {
       const next = prev.map((p) =>
         p.id === tenantToSave.bienId
           ? { ...p, statut: 'Occupé' as const, locataireActuelNom: `${tenantToSave.prenom} ${tenantToSave.nom}` }
@@ -856,7 +835,6 @@ export default function App() {
       return next;
     });
 
-    // ⬇️ SYNCHRONISER AVEC SUPABASE
     const updatedProp = properties.find((p) => p.id === tenantToSave.bienId);
     if (updatedProp && currentUser?.agencyId) {
       savePropertyToDb(
@@ -865,7 +843,6 @@ export default function App() {
       ).catch((err) => console.error('❌ Erreur mise à jour bien:', err));
     }
 
-    // 6. Audit
     handleTriggerAuditLog(
       'WIZARD_NOUVEAU_LOCATAIRE',
       'TENANTS',
@@ -1008,7 +985,7 @@ export default function App() {
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
-
+  
   if (isResetPasswordMode) {
     return (
       <ResetPasswordView
@@ -1062,29 +1039,23 @@ export default function App() {
     );
   }
 
-   // ============================================================
+  // ============================================================
   // 🔒 SCOPED DATA PAR RÔLE — Matrice de permissions
-  // Basée sur les logiciels standard (TurboTenant, Matera, Lobby)
   // ============================================================
 
-  // 🔧 Biens visibles selon le rôle
   const scopedProperties = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
     }
     if (currentUser.role === 'LOCATAIRE') {
-      // Le locataire voit son bien via son locataireId → bienId
       const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
       return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
     }
-    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER (lecture), AGENT (lecture)
     return properties;
   })();
 
-  // 🔧 Locataires visibles selon le rôle
   const scopedTenants = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
-      // Propriétaire → locataires dans SES biens uniquement
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
       const myBienIds = myProps.map((p) => p.id);
       return tenants.filter((t) => myBienIds.includes(t.bienId));
@@ -1092,11 +1063,9 @@ export default function App() {
     if (currentUser.role === 'LOCATAIRE') {
       return tenants.filter((t) => t.id === currentUser.locataireId);
     }
-    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER (lecture), AGENT (lecture)
     return tenants;
   })();
 
-  // 🔧 Paiements visibles selon le rôle
   const scopedPayments = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
@@ -1104,15 +1073,12 @@ export default function App() {
     if (currentUser.role === 'LOCATAIRE') {
       return payments.filter((p) => p.locataireId === currentUser.locataireId);
     }
-    // 🔴 AGENT ne voit AUCUN paiement
     if (currentUser.role === 'AGENT') {
       return [];
     }
-    // ADMIN, SUPER_ADMIN, GESTIONNAIRE, CAISSIER
     return payments;
   })();
 
-  // 🔧 Contrats visibles selon le rôle
   const scopedContracts = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
@@ -1121,12 +1087,11 @@ export default function App() {
       return contracts.filter((c) => c.locataireId === currentUser.locataireId);
     }
     if (currentUser.role === 'AGENT') {
-      return contracts; // L'agent peut voir les baux pour les états des lieux
+      return contracts;
     }
     return contracts;
   })();
 
-  // 🔧 Inspections visibles selon le rôle
   const scopedInspections = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
@@ -1139,7 +1104,6 @@ export default function App() {
     return inspections;
   })();
 
-  // 🔧 Travaux visibles selon le rôle
   const scopedMaintenance = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
@@ -1153,12 +1117,10 @@ export default function App() {
     return maintenance;
   })();
 
-  // 🔧 Reversements visibles selon le rôle
   const scopedDisbursements = (() => {
     if (currentUser.role === 'PROPRIETAIRE') {
       return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
     }
-    // 🔴 Les autres rôles (sauf ADMIN/CAISSIER) ne devraient pas voir les reversements
     if (currentUser.role === 'GESTIONNAIRE' || currentUser.role === 'AGENT' || currentUser.role === 'LOCATAIRE') {
       return [];
     }
@@ -1241,8 +1203,8 @@ export default function App() {
               properties={scopedProperties}
               tenants={scopedTenants}
               payments={scopedPayments}
-              maintenance={maintenance}
-              disbursements={disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId || !currentUser.proprietaireId)}
+              maintenance={scopedMaintenance}
+              disbursements={scopedDisbursements}
               cashVouchers={cashVouchers.filter((v) => v.proprietaireId === currentUser.proprietaireId || !currentUser.proprietaireId)}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
@@ -1256,8 +1218,8 @@ export default function App() {
               property={properties.find((p) => p.id === (currentUser.bienId || tenants.find((t) => t.id === currentUser.locataireId)?.bienId))}
               contract={contracts.find((c) => c.locataireId === currentUser.locataireId)}
               payments={scopedPayments}
-              inspections={inspections.filter((i) => i.locataireId === currentUser.locataireId)}
-              maintenance={maintenance.filter((m) => m.bienId === currentUser.bienId || m.locataireNom.includes(currentUser.nom))}
+              inspections={scopedInspections}
+              maintenance={scopedMaintenance}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
             />
           )}
@@ -1267,8 +1229,8 @@ export default function App() {
               currentUser={currentUser}
               properties={properties}
               tenants={tenants}
-              inspections={inspections}
-              maintenance={maintenance}
+              inspections={scopedInspections}
+              maintenance={scopedMaintenance}
               reminders={reminders}
               onOpenInspectionModal={() => handleSafeTabChange('inspections')}
               onOpenMaintenanceModal={() => handleSafeTabChange('maintenance')}
@@ -1283,7 +1245,7 @@ export default function App() {
               owners={owners}
               contracts={contracts}
               payments={payments}
-              maintenance={maintenance}
+              maintenance={scopedMaintenance}
               reminders={reminders}
               onOpenNewContract={() => handleSafeTabChange('contracts')}
               onOpenNewTenant={() => setIsNewTenantWizardOpen(true)}
@@ -1343,7 +1305,7 @@ export default function App() {
             />
           )}
 
-                    {activeTab === 'pending-payments' && (
+          {activeTab === 'pending-payments' && (
             <PendingPaymentsView
               payments={payments}
               currentUser={currentUser}
@@ -1402,6 +1364,7 @@ export default function App() {
               properties={scopedProperties}
               owners={owners}
               currentUser={currentUser || undefined}
+              settings={settings}
               onAddPayment={handleAddPayment}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               isNewPaymentModalOpen={isNewPaymentModalOpen}
@@ -1435,7 +1398,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-                <TenantsView
+              <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 onOpenQuickReminder={handleOpenQuickReminder}
@@ -1460,7 +1423,7 @@ export default function App() {
 
           {activeTab === 'contracts' && (
             <ContractsView
-              contracts={contracts}
+              contracts={scopedContracts}
               tenants={scopedTenants}
               properties={scopedProperties}
               owners={owners}
@@ -1472,7 +1435,7 @@ export default function App() {
 
           {activeTab === 'inspections' && (
             <InspectionsView
-              inspections={inspections}
+              inspections={scopedInspections}
               tenants={scopedTenants}
               properties={scopedProperties}
               onAddInspection={handleAddInspection}
@@ -1481,10 +1444,11 @@ export default function App() {
 
           {activeTab === 'maintenance' && (
             <MaintenanceView
-              tickets={maintenance}
+              tickets={scopedMaintenance}
               properties={scopedProperties}
               tenants={scopedTenants}
               owners={owners}
+              currentUser={currentUser}
               onAddTicket={handleAddTicket}
               onUpdateTicket={handleUpdateTicket}
               onAddCashMovement={handleAddCashMovement}
@@ -1504,7 +1468,7 @@ export default function App() {
 
           {activeTab === 'finance' && (
             <FinanceView
-              disbursements={disbursements}
+              disbursements={scopedDisbursements}
               payments={scopedPayments}
               owners={owners}
               properties={scopedProperties}
@@ -1518,7 +1482,7 @@ export default function App() {
               tenants={scopedTenants}
               payments={scopedPayments}
               owners={owners}
-              disbursements={disbursements}
+              disbursements={scopedDisbursements}
               selectedPeriod={selectedPeriod}
             />
           )}
@@ -1528,7 +1492,7 @@ export default function App() {
               payments={scopedPayments}
               owners={owners}
               tenants={scopedTenants}
-              contracts={contracts}
+              contracts={scopedContracts}
               properties={scopedProperties}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
@@ -1540,7 +1504,7 @@ export default function App() {
           )}
         </main>
       </div>
-
+      
       {receiptModalPayment && (
         <ReceiptModal payment={receiptModalPayment} onClose={() => setReceiptModalPayment(null)} />
       )}
@@ -1631,8 +1595,8 @@ export default function App() {
           ]);
         }}
       />
-   {mobileMoneyModalConfig && console.log('🔍 DEBUG — settings.waveNumero =', settings.waveNumero, '| typeof =', typeof settings.waveNumero)}
-            {mobileMoneyModalConfig && (
+
+      {mobileMoneyModalConfig && (
         <MobileMoneyPaymentModal
           isOpen={mobileMoneyModalConfig.isOpen}
           onClose={() => setMobileMoneyModalConfig(null)}
