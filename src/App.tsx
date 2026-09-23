@@ -28,6 +28,7 @@ import { ReportsView } from './components/ReportsView';
 import { SettingsView } from './components/SettingsView';
 import { InvoicesView } from './components/InvoicesView';
 import { ReceiptModal } from './components/ReceiptModal';
+import { PaymentReceiptModal } from './components/PaymentReceiptModal';
 import { PaymentBulletinModal } from './components/PaymentBulletinModal';
 import { CashVoucherModal } from './components/CashVoucherModal';
 import { NewTenantWizardModal } from './components/NewTenantWizardModal';
@@ -1625,8 +1626,12 @@ export default function App() {
         </main>
       </div>
       
-      {receiptModalPayment && (
-        <ReceiptModal payment={receiptModalPayment} onClose={() => setReceiptModalPayment(null)} />
+            {receiptModalPayment && (
+        <PaymentReceiptModal
+          payment={receiptModalPayment}
+          settings={settings}
+          onClose={() => setReceiptModalPayment(null)}
+        />
       )}
 
       {ownerSlipModalOwner && (

@@ -279,6 +279,7 @@ export interface LeaseContract {
 // PAIEMENTS
 // ============================================================
 export type PaymentStatus = 'Payé' | 'Impayé' | 'Partiel' | 'En attente';
+export type ReceiptType = 'QUITTANCE' | 'RECU_ACOMPTE' | 'QUITTANCE_SOLDE';
 export type PaymentMethod = 'Espèces' | 'Virement' | 'Chèque' | 'Mobile Money' | 'Wave' | 'Orange Money';
 export type PaymentMethodCode = 'ESPECES' | 'WAVE' | 'ORANGE_MONEY' | 'VIREMENT' | 'CHEQUE' | 'FREE_MONEY' | 'AUTRE';
 export type VerificationStatus = 'valide' | 'en_attente' | 'rejete';
@@ -321,8 +322,13 @@ export interface Payment {
   observation?: string;
   auteurId?: string;
   auteurNom?: string;
-  dateHeurePaiement?: string;
+    dateHeurePaiement?: string;
+  // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
+  typeRecu?: ReceiptType;
+  referencePaiementInitial?: string;
+  montantInitialDu?: number;
 }
+
 
 // ============================================================
 // DÉDUCTIONS PROPRIÉTAIRE (NOUVEAU)

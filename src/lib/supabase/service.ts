@@ -6,7 +6,6 @@ import {
   MaintenanceTicket, OwnerDisbursement, Invoice, CashVoucher, NotificationItem,
   AuditLog, AgencySettings, UserAccount, PaymentMethodConfig, CashMovement,
   CashClosing, Agency, Building, Unit, OwnerDeduction, BulletinVersement,
-  ArchiveRecord, ActivityLog,
 } from '../../types';
 
 export interface AppStateData {
@@ -60,11 +59,11 @@ export const defaultSettings: AgencySettings = {
 };
 
 export const defaultPaymentMethods: PaymentMethodConfig[] = [
-  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espèces (Caisse Agence)', description: 'Règlement au comptoir avec reçu de caisse instantané.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets de la gérance.' },
-  { id: 'pm-wave', code: 'WAVE', libelle: 'Wave Mobile Money', description: 'Paiement sans frais par QR Code instantané.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 0, numeroCompteOuTelephone: '+221 76 328 58 29', instructions: 'Scannez le QR Code Wave.' },
+  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espèces (Caisse Agence)', description: 'Règlement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
+  { id: 'pm-wave', code: 'WAVE', libelle: 'Wave Mobile Money', description: 'Paiement par QR Code.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 0, numeroCompteOuTelephone: '+221 76 328 58 29', instructions: 'Scannez le QR Code Wave.' },
   { id: 'pm-orange-money', code: 'ORANGE_MONEY', libelle: 'Orange Money (OM)', description: 'Paiement via USSD #144#.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 1, numeroCompteOuTelephone: '784912', instructions: 'Composez le code marchand.' },
-  { id: 'pm-virement', code: 'VIREMENT', libelle: 'Virement Bancaire UEMOA', description: 'Règlement par transfert interbancaire.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 24, banqueNom: 'CBAO Attijariwafa Bank', instructions: 'Effectuez votre virement.' },
-  { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chèque Certifié', description: 'Dépôt de chèque certifié.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chèque certifié.' },
+  { id: 'pm-virement', code: 'VIREMENT', libelle: 'Virement Bancaire', description: 'Virement interbancaire.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 24, banqueNom: 'CBAO Attijariwafa Bank', instructions: 'Effectuez votre virement.' },
+  { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chèque Certifié', description: 'Dépôt de chèque.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chèque certifié.' },
 ];
 
 export function loadLocalCollection<T>(key: string, fallback: T): T {
@@ -279,11 +278,15 @@ export function mapPaymentFromDb(r: any): Payment {
     auteurId: r.caissier_id || r.auteurId,
     auteurNom: r.caissier_nom || r.auteurNom,
     dateHeurePaiement: r.created_at || r.dateHeurePaiement,
+    // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
+    typeRecu: r.type_recu || r.typeRecu || 'QUITTANCE',
+    referencePaiementInitial: r.reference_paiement_initial || r.referencePaiementInitial,
+    montantInitialDu: Number(r.montant_initial_du ?? r.montantInitialDu ?? 0),
   };
 }
 
 // ============================================================
-// MAPPERS : OWNER DEDUCTIONS (NOUVEAU)
+// MAPPERS : OWNER DEDUCTIONS
 // ============================================================
 export function mapOwnerDeductionFromDb(r: any): OwnerDeduction {
   return {
@@ -304,7 +307,7 @@ export function mapOwnerDeductionFromDb(r: any): OwnerDeduction {
 }
 
 // ============================================================
-// MAPPERS : BULLETIN VERSEMENTS (NOUVEAU)
+// MAPPERS : BULLETIN VERSEMENTS
 // ============================================================
 export function mapBulletinVersementFromDb(r: any): BulletinVersement {
   return {
@@ -640,31 +643,26 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       persistCollection('payment_methods', state.paymentMethods);
     }
 
-    // BUILDINGS
     if (buildingsRes.status === 'fulfilled' && buildingsRes.value.data && buildingsRes.value.data.length > 0) {
       state.buildings = buildingsRes.value.data.map(mapBuildingFromDb);
       persistCollection('buildings', state.buildings);
     }
 
-    // UNITS
     if (unitsRes.status === 'fulfilled' && unitsRes.value.data && unitsRes.value.data.length > 0) {
       state.units = unitsRes.value.data.map(mapUnitFromDb);
       persistCollection('units', state.units);
     }
 
-    // OWNER DEDUCTIONS
     if (deductionsRes.status === 'fulfilled' && deductionsRes.value.data && deductionsRes.value.data.length > 0) {
       state.ownerDeductions = deductionsRes.value.data.map(mapOwnerDeductionFromDb);
       persistCollection('owner_deductions', state.ownerDeductions);
     }
 
-    // BULLETIN VERSEMENTS
     if (bulletinsRes.status === 'fulfilled' && bulletinsRes.value.data && bulletinsRes.value.data.length > 0) {
       state.bulletinVersements = bulletinsRes.value.data.map(mapBulletinVersementFromDb);
       persistCollection('bulletin_versements', state.bulletinVersements);
     }
 
-    // SETTINGS
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
@@ -857,7 +855,7 @@ export async function deleteUnitFromDb(unitId: string): Promise<{ success: boole
 }
 
 // ============================================================
-// CRUD : OWNER DEDUCTIONS (NOUVEAU)
+// CRUD : OWNER DEDUCTIONS
 // ============================================================
 export async function saveOwnerDeductionToDb(deduction: Partial<OwnerDeduction>, agencyId: string): Promise<{ success: boolean; data?: OwnerDeduction; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: deduction as OwnerDeduction };
@@ -904,7 +902,7 @@ export async function deleteOwnerDeductionFromDb(deductionId: string): Promise<{
 }
 
 // ============================================================
-// CRUD : BULLETIN VERSEMENTS (NOUVEAU)
+// CRUD : BULLETIN VERSEMENTS
 // ============================================================
 export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersement>, agencyId: string): Promise<{ success: boolean; data?: BulletinVersement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: bulletin as BulletinVersement };
@@ -1074,7 +1072,7 @@ export async function saveContractToDb(contract: Partial<LeaseContract>, agencyI
     }
   } catch (err: any) {
     console.error('Erreur sauvegarde contrat:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le contrat de bail.' };
+    return { success: false, error: err.message || 'Impossible d\'enregistrer le contrat.' };
   }
 }
 
@@ -1102,6 +1100,10 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       date_echeance: payment.dateEcheance || new Date().toISOString().split('T')[0],
       recu_par: payment.recuPar || 'Service Gérance',
       caissier_id: authorId || null, observation: payment.observation || '',
+      // ⬇️ NOUVEAU : Gestion Reçu / Quittance de Solde
+      type_recu: payment.typeRecu || 'QUITTANCE',
+      reference_paiement_initial: payment.referencePaiementInitial || null,
+      montant_initial_du: payment.montantInitialDu || 0,
     };
     const exists = payment.id ? await recordExists('payments', payment.id, agencyId) : false;
     if (exists) {
@@ -1186,62 +1188,6 @@ export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyI
     if (error) throw error;
     return { success: true, data: data as unknown as CashClosing };
   } catch (err: any) { console.error('Erreur enregistrement clôture:', err); return { success: false, error: err.message }; }
-}
-
-// ============================================================
-// STORAGE
-// ============================================================
-export async function uploadFileToSupabaseStorage(
-  bucket: 'agency-logos' | 'property-images' | 'documents' | 'payment-proofs' | 'avatars',
-  filePath: string, file: File
-): Promise<{ success: boolean; url?: string; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase Storage non configuré.' };
-  try {
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, { cacheControl: '3600', upsert: true });
-    if (error) throw error;
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
-    return { success: true, url: publicUrlData.publicUrl };
-  } catch (err: any) { console.error('Erreur upload:', err); return { success: false, error: err.message }; }
-}
-
-// ============================================================
-// AUTH / SESSION
-// ============================================================
-export async function changeUserPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true };
-  try {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw error;
-    return { success: true };
-  } catch (err: any) { console.error('Erreur changement mot de passe:', err); return { success: false, error: err.message }; }
-}
-
-export async function signOutSession(): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    try { await supabase.auth.signOut(); } catch (err) { console.error('Erreur signOut:', err); }
-  }
-  localStorage.removeItem('fital_immo_session');
-  localStorage.removeItem('fital_immo_user');
-}
-
-export async function getAuthSession() {
-  if (!isSupabaseConfigured || !supabase) return null;
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) { console.warn('Erreur getSession:', error); return null; }
-    return data.session;
-  } catch (err) { console.warn('Erreur verification session:', err); return null; }
-}
-
-export async function softDeleteRecord(
-  table: 'properties' | 'owners' | 'tenants' | 'contracts' | 'invoices', id: string
-): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true };
-  try {
-    const { error } = await supabase.from(table).update({ statut: 'Archivé' }).eq('id', id);
-    if (error) throw error;
-    return { success: true };
-  } catch (err: any) { console.error(`Erreur archivage ${table}:`, err); return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1466,6 +1412,62 @@ export async function saveUserToDb(user: UserAccount, agencyId?: string): Promis
     if (error) throw error;
     return { success: true };
   } catch (err: any) { console.warn('Sync profil:', err); return { success: false, error: err.message }; }
+}
+
+// ============================================================
+// STORAGE
+// ============================================================
+export async function uploadFileToSupabaseStorage(
+  bucket: 'agency-logos' | 'property-images' | 'documents' | 'payment-proofs' | 'avatars',
+  filePath: string, file: File
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase Storage non configuré.' };
+  try {
+    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, { cacheControl: '3600', upsert: true });
+    if (error) throw error;
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (err: any) { console.error('Erreur upload:', err); return { success: false, error: err.message }; }
+}
+
+// ============================================================
+// AUTH / SESSION
+// ============================================================
+export async function changeUserPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) { console.error('Erreur changement mot de passe:', err); return { success: false, error: err.message }; }
+}
+
+export async function signOutSession(): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    try { await supabase.auth.signOut(); } catch (err) { console.error('Erreur signOut:', err); }
+  }
+  localStorage.removeItem('fital_immo_session');
+  localStorage.removeItem('fital_immo_user');
+}
+
+export async function getAuthSession() {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) { console.warn('Erreur getSession:', error); return null; }
+    return data.session;
+  } catch (err) { console.warn('Erreur verification session:', err); return null; }
+}
+
+export async function softDeleteRecord(
+  table: 'properties' | 'owners' | 'tenants' | 'contracts' | 'invoices', id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase.from(table).update({ statut: 'Archivé' }).eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) { console.error(`Erreur archivage ${table}:`, err); return { success: false, error: err.message }; }
 }
 
 // ============================================================
