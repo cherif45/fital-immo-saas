@@ -441,9 +441,12 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
       )}
 
       {/* Modal: Contrat de Bail Officiel Imprimable */}
-      {selectedContractForPrint && (
+            {selectedContractForPrint && (
         <LeaseContractModal
           contract={selectedContractForPrint}
+          property={properties.find((p) => p.id === selectedContractForPrint.bienId)}
+          tenant={tenants.find((t) => t.id === selectedContractForPrint.locataireId)}
+          owner={owners.find((o) => o.id === selectedContractForPrint.proprietaireId)}
           onClose={() => setSelectedContractForPrint(null)}
         />
       )}
