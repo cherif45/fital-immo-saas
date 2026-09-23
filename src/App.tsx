@@ -199,6 +199,9 @@ export default function App() {
     daysLate?: number;
   } | null>(null);
 
+  // ============================================================
+  // useEffect 1 : Détection reset password
+  // ============================================================
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('access_token') || hash.includes('type=recovery')) {
@@ -206,6 +209,9 @@ export default function App() {
     }
   }, []);
 
+  // ============================================================
+  // useEffect 2 : Raccourci Ctrl+K
+  // ============================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -217,30 +223,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // ============================================================
+  // useEffect 3 : Chargement de la session auth (UNE SEULE FOIS)
+  // ============================================================
   useEffect(() => {
-    loadFullApplicationData(currentUser?.agencyId).then((data) => {
-      if (data.properties && data.properties.length > 0) setProperties(data.properties);
-      if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
-      if (data.units && data.units.length > 0) setUnits(data.units);
-      if (data.owners && data.owners.length > 0) setOwners(data.owners);
-      if (data.tenants && data.tenants.length > 0) setTenants(data.tenants);
-      if (data.contracts && data.contracts.length > 0) setContracts(data.contracts);
-      if (data.payments && data.payments.length > 0) setPayments(data.payments);
-      if (data.reminders && data.reminders.length > 0) setReminders(data.reminders);
-      if (data.inspections && data.inspections.length > 0) setInspections(data.inspections);
-      if (data.maintenance && data.maintenance.length > 0) setMaintenance(data.maintenance);
-      if (data.disbursements && data.disbursements.length > 0) setDisbursements(data.disbursements);
-      if (data.invoices && data.invoices.length > 0) setInvoices(data.invoices);
-      if (data.cashVouchers && data.cashVouchers.length > 0) setCashVouchers(data.cashVouchers);
-      if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
-      if (data.auditLogs && data.auditLogs.length > 0) setAuditLogs(data.auditLogs);
-      if (data.users && data.users.length > 0) setUsers(data.users);
-      if (data.cashMovements && data.cashMovements.length > 0) setCashMovements(data.cashMovements);
-      if (data.cashClosings && data.cashClosings.length > 0) setCashClosings(data.cashClosings);
-      if (data.paymentMethods && data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
-      if (data.settings) setSettings(data.settings);
-    });
-
     getAuthSession().then(async (session) => {
       try {
         if (session?.user && supabase) {
@@ -285,6 +271,48 @@ export default function App() {
       }
     });
   }, []);
+
+  // ============================================================
+  // useEffect 4 : Chargement des données APRÈS currentUser prêt
+  // ============================================================
+  useEffect(() => {
+    if (!currentUser?.agencyId) {
+      console.log('⏳ Attente de currentUser.agencyId...');
+      return;
+    }
+
+    console.log('🔍 Chargement des données pour agence:', currentUser.agencyId);
+
+    loadFullApplicationData(currentUser.agencyId).then((data) => {
+      console.log('🔍 Données reçues:', {
+        properties: data.properties?.length,
+        buildings: data.buildings?.length,
+        units: data.units?.length,
+        owners: data.owners?.length,
+        tenants: data.tenants?.length,
+      });
+      if (data.properties && data.properties.length > 0) setProperties(data.properties);
+      if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
+      if (data.units && data.units.length > 0) setUnits(data.units);
+      if (data.owners && data.owners.length > 0) setOwners(data.owners);
+      if (data.tenants && data.tenants.length > 0) setTenants(data.tenants);
+      if (data.contracts && data.contracts.length > 0) setContracts(data.contracts);
+      if (data.payments && data.payments.length > 0) setPayments(data.payments);
+      if (data.reminders && data.reminders.length > 0) setReminders(data.reminders);
+      if (data.inspections && data.inspections.length > 0) setInspections(data.inspections);
+      if (data.maintenance && data.maintenance.length > 0) setMaintenance(data.maintenance);
+      if (data.disbursements && data.disbursements.length > 0) setDisbursements(data.disbursements);
+      if (data.invoices && data.invoices.length > 0) setInvoices(data.invoices);
+      if (data.cashVouchers && data.cashVouchers.length > 0) setCashVouchers(data.cashVouchers);
+      if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
+      if (data.auditLogs && data.auditLogs.length > 0) setAuditLogs(data.auditLogs);
+      if (data.users && data.users.length > 0) setUsers(data.users);
+      if (data.cashMovements && data.cashMovements.length > 0) setCashMovements(data.cashMovements);
+      if (data.cashClosings && data.cashClosings.length > 0) setCashClosings(data.cashClosings);
+      if (data.paymentMethods && data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
+      if (data.settings) setSettings(data.settings);
+    });
+  }, [currentUser?.agencyId]);
 
   const handleSignOut = async () => {
     await signOutSession();
