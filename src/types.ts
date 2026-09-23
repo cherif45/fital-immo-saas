@@ -75,6 +75,7 @@ export type ActiveTab =
   | 'admin-journal'
   | 'archives'
   | 'activity-logs'
+  | 'penalties'
   | 'audit';
 
 // ============================================================

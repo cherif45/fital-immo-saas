@@ -53,6 +53,7 @@ import { OwnerBulletinModal } from './components/OwnerBulletinModal';
 import { PaymentReceiptModal } from './components/PaymentReceiptModal';
 import { ArchiveView } from './components/ArchiveView';
 import { ActivityLogView } from './components/ActivityLogView';
+import { PenaltiesView } from './components/PenaltiesView';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import {
   ActiveTab,
@@ -80,6 +81,8 @@ import {
   BulletinVersement,
   ArchiveRecord,
   ActivityLog,
+  Penalty,
+  OwnerCharge,
 } from './types';
 import {
   initialProperties,
@@ -138,6 +141,8 @@ import {
   saveBulletinVersementToDb,
   saveArchiveToDb,
   saveActivityLogToDb,
+  savePenaltyToDb,
+  deletePenaltyFromDb,
 } from './lib/supabase/service';
 
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
@@ -180,6 +185,8 @@ export default function App() {
   const [bulletinsVersements, setBulletinsVersements] = useState<BulletinVersement[]>(() => loadLocalCollection('bulletin_versements', []));
   const [archives, setArchives] = useState<ArchiveRecord[]>(() => loadLocalCollection('archives', []));
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadLocalCollection('activity_logs', []));
+  const [penalties, setPenalties] = useState<Penalty[]>(() => loadLocalCollection('penalties', []));
+  const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>(() => loadLocalCollection('owner_charges', []));
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -216,7 +223,7 @@ export default function App() {
     daysLate?: number;
   } | null>(null);
 
-  // useEffect 1 : Détection reset password
+  // useEffect 1 : Reset password
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('access_token') || hash.includes('type=recovery')) {
@@ -224,7 +231,7 @@ export default function App() {
     }
   }, []);
 
-  // useEffect 2 : Raccourci Ctrl+K
+  // useEffect 2 : Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -236,7 +243,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // useEffect 3 : Chargement session auth
+  // useEffect 3 : Session auth
   useEffect(() => {
     getAuthSession().then(async (session) => {
       try {
@@ -283,25 +290,11 @@ export default function App() {
     });
   }, []);
 
-  // useEffect 4 : Chargement des données APRÈS currentUser prêt
+  // useEffect 4 : Chargement données
   useEffect(() => {
-    if (!currentUser?.agencyId) {
-      console.log('⏳ Attente de currentUser.agencyId...');
-      return;
-    }
-
-    console.log('🔍 Chargement des données pour agence:', currentUser.agencyId);
+    if (!currentUser?.agencyId) return;
 
     loadFullApplicationData(currentUser.agencyId).then((data) => {
-      console.log('🔍 Données reçues:', {
-        properties: data.properties?.length,
-        buildings: data.buildings?.length,
-        units: data.units?.length,
-        owners: data.owners?.length,
-        tenants: data.tenants?.length,
-        archives: data.archives?.length,
-        activityLogs: data.activityLogs?.length,
-      });
       if (data.properties && data.properties.length > 0) setProperties(data.properties);
       if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
       if (data.units && data.units.length > 0) setUnits(data.units);
@@ -326,6 +319,8 @@ export default function App() {
       if (data.bulletinVersements && data.bulletinVersements.length > 0) setBulletinsVersements(data.bulletinVersements);
       if (data.archives && data.archives.length > 0) setArchives(data.archives);
       if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
+      if (data.penalties && data.penalties.length > 0) setPenalties(data.penalties);
+      if (data.ownerCharges && data.ownerCharges.length > 0) setOwnerCharges(data.ownerCharges);
     });
   }, [currentUser?.agencyId]);
 
@@ -344,14 +339,9 @@ export default function App() {
     const userRole = currentUser ? currentUser.role : 'SYSTÈME';
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
-      action,
-      entite: module,
-      entiteId: entityRef || 'SYSTÈME',
+      action, entite: module, entiteId: entityRef || 'SYSTÈME',
       utilisateur: `${userLabel} (${userRole})`,
-      userNom: userLabel,
-      module,
-      entityRef,
-      details,
+      userNom: userLabel, module, entityRef, details,
       date: new Date().toISOString().replace('T', ' ').substring(0, 19),
       createdAt: new Date().toISOString(),
     };
@@ -361,8 +351,11 @@ export default function App() {
 
   const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
     if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
-       if (tab === 'archives' || tab === 'activity-logs') {
+    if (tab === 'archives' || tab === 'activity-logs') {
       return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(user.role);
+    }
+    if (tab === 'penalties') {
+      return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'].includes(user.role);
     }
     if (user.role === 'CAISSIER') {
       return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
@@ -377,7 +370,7 @@ export default function App() {
       return ['dashboard', 'inspections', 'properties', 'buildings', 'units', 'maintenance', 'recovery'].includes(tab);
     }
     if (user.role === 'GESTIONNAIRE') {
-      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance', 'archives'].includes(tab);
+      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance', 'archives', 'activity-logs', 'penalties'].includes(tab);
     }
     return false;
   };
@@ -386,9 +379,7 @@ export default function App() {
     setCurrentUser(newUser);
     persistCollection('current_user', newUser);
     localStorage.setItem('fital_immo_user', JSON.stringify(newUser));
-    if (!checkAccessPermission(activeTab, newUser)) {
-      setActiveTab('dashboard');
-    }
+    if (!checkAccessPermission(activeTab, newUser)) setActiveTab('dashboard');
   };
 
   const handleSafeTabChange = (targetTab: ActiveTab) => {
@@ -403,39 +394,16 @@ export default function App() {
   // HANDLERS : BUILDINGS
   // ============================================================
   const handleAddBuilding = (newBuilding: Building) => {
-    setBuildings((prev) => {
-      const next = [newBuilding, ...prev];
-      persistCollection('buildings', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
-    }
-    handleTriggerAuditLog('AJOUT_IMMEUBLE', 'BUILDINGS', `Création de l'immeuble ${newBuilding.nom}`, newBuilding.id);
+    setBuildings((prev) => { const next = [newBuilding, ...prev]; persistCollection('buildings', next); return next; });
+    if (currentUser?.agencyId) saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
   };
-
   const handleUpdateBuilding = (updatedBuilding: Building) => {
-    setBuildings((prev) => {
-      const next = prev.map((b) => (b.id === updatedBuilding.id ? updatedBuilding : b));
-      persistCollection('buildings', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(console.warn);
-    }
+    setBuildings((prev) => { const next = prev.map((b) => (b.id === updatedBuilding.id ? updatedBuilding : b)); persistCollection('buildings', next); return next; });
+    if (currentUser?.agencyId) saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(console.warn);
   };
-
   const handleDeleteBuilding = (buildingId: string) => {
-    setBuildings((prev) => {
-      const next = prev.filter((b) => b.id !== buildingId);
-      persistCollection('buildings', next);
-      return next;
-    });
-    setUnits((prev) => {
-      const next = prev.filter((u) => u.buildingId !== buildingId);
-      persistCollection('units', next);
-      return next;
-    });
+    setBuildings((prev) => { const next = prev.filter((b) => b.id !== buildingId); persistCollection('buildings', next); return next; });
+    setUnits((prev) => { const next = prev.filter((u) => u.buildingId !== buildingId); persistCollection('units', next); return next; });
     deleteBuildingFromDb(buildingId).catch(console.warn);
   };
 
@@ -443,86 +411,59 @@ export default function App() {
   // HANDLERS : UNITS
   // ============================================================
   const handleAddUnit = (newUnit: Unit) => {
-    setUnits((prev) => {
-      const next = [newUnit, ...prev];
-      persistCollection('units', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
-    }
+    setUnits((prev) => { const next = [newUnit, ...prev]; persistCollection('units', next); return next; });
+    if (currentUser?.agencyId) saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
   };
-
   const handleUpdateUnit = (updatedUnit: Unit) => {
-    setUnits((prev) => {
-      const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
-      persistCollection('units', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
-    }
+    setUnits((prev) => { const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u)); persistCollection('units', next); return next; });
+    if (currentUser?.agencyId) saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
   };
-
   const handleDeleteUnit = (unitId: string) => {
-    setUnits((prev) => {
-      const next = prev.filter((u) => u.id !== unitId);
-      persistCollection('units', next);
-      return next;
-    });
+    setUnits((prev) => { const next = prev.filter((u) => u.id !== unitId); persistCollection('units', next); return next; });
     deleteUnitFromDb(unitId).catch(console.warn);
   };
 
   // ============================================================
-  // HANDLERS : ARCHIVES & ACTIVITY LOGS
+  // HANDLERS : PENALTIES
   // ============================================================
-  const handleArchiveRecord = (archive: ArchiveRecord) => {
-    setArchives((prev) => {
-      const next = [archive, ...prev];
-      persistCollection('archives', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
-    }
+  const handleAddPenalty = (penalty: Penalty) => {
+    setPenalties((prev) => { const next = [penalty, ...prev]; persistCollection('penalties', next); return next; });
+    if (currentUser?.agencyId) savePenaltyToDb(penalty, currentUser.agencyId).catch(console.warn);
+  };
+  const handleDeletePenalty = (penaltyId: string) => {
+    setPenalties((prev) => { const next = prev.filter((p) => p.id !== penaltyId); persistCollection('penalties', next); return next; });
+    deletePenaltyFromDb(penaltyId).catch(console.warn);
+  };
+  const handleUpdatePenalty = (penalty: Penalty) => {
+    setPenalties((prev) => { const next = prev.map((p) => (p.id === penalty.id ? penalty : p)); persistCollection('penalties', next); return next; });
   };
 
+  // ============================================================
+  // HANDLERS : ARCHIVES & ACTIVITY
+  // ============================================================
+  const handleArchiveRecord = (archive: ArchiveRecord) => {
+    setArchives((prev) => { const next = [archive, ...prev]; persistCollection('archives', next); return next; });
+    if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
+  };
   const handleLogActivity = (activity: ActivityLog) => {
-    setActivityLogs((prev) => {
-      const next = [activity, ...prev];
-      persistCollection('activity_logs', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
-    }
+    setActivityLogs((prev) => { const next = [activity, ...prev]; persistCollection('activity_logs', next); return next; });
+    if (currentUser?.agencyId) saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
   };
 
   // ============================================================
   // HANDLERS : OWNER DEDUCTIONS
   // ============================================================
   const handleAddOwnerDeduction = (deduction: OwnerDeduction) => {
-    setOwnerDeductions((prev) => {
-      const next = [deduction, ...prev];
-      persistCollection('owner_deductions', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(console.warn);
-    }
+    setOwnerDeductions((prev) => { const next = [deduction, ...prev]; persistCollection('owner_deductions', next); return next; });
+    if (currentUser?.agencyId) saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(console.warn);
   };
-
   const handleDeleteOwnerDeduction = (deductionId: string) => {
-    setOwnerDeductions((prev) => {
-      const next = prev.filter((d) => d.id !== deductionId);
-      persistCollection('owner_deductions', next);
-      return next;
-    });
+    setOwnerDeductions((prev) => { const next = prev.filter((d) => d.id !== deductionId); persistCollection('owner_deductions', next); return next; });
     deleteOwnerDeductionFromDb(deductionId).catch(console.warn);
   };
 
   // ============================================================
-  // HANDLERS : BULLETINS VERSEMENTS
+  // HANDLERS : BULLETINS
   // ============================================================
   const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
     setBulletinsVersements((prev) => {
@@ -531,24 +472,15 @@ export default function App() {
       persistCollection('bulletin_versements', next);
       return next;
     });
-    if (currentUser?.agencyId) {
-      saveBulletinVersementToDb(bulletin, currentUser.agencyId).catch(console.warn);
-    }
+    if (currentUser?.agencyId) saveBulletinVersementToDb(bulletin, currentUser.agencyId).catch(console.warn);
   };
 
   // ============================================================
   // HANDLERS : PAIEMENTS
   // ============================================================
   const handleAddPayment = (newPayment: Payment) => {
-    setPayments((prev) => {
-      const next = [newPayment, ...prev];
-      persistCollection('payments', next);
-      return next;
-    });
-
-    if (currentUser?.agencyId) {
-      savePaymentToDb(newPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
-    }
+    setPayments((prev) => { const next = [newPayment, ...prev]; persistCollection('payments', next); return next; });
+    if (currentUser?.agencyId) savePaymentToDb(newPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
 
     if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
       const newCashEntry: CashMovement = {
@@ -562,25 +494,14 @@ export default function App() {
         justificatifRef: newPayment.quittanceNumero,
         moyenPaiementCode: 'ESPECES',
       };
-      setCashMovements((prev) => {
-        const next = [newCashEntry, ...prev];
-        persistCollection('cash_movements', next);
-        return next;
-      });
-      if (currentUser?.agencyId) {
-        saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(console.warn);
-      }
+      setCashMovements((prev) => { const next = [newCashEntry, ...prev]; persistCollection('cash_movements', next); return next; });
+      if (currentUser?.agencyId) saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(console.warn);
     }
 
     setTenants((prev) => {
       const next = prev.map((t) => {
         if (t.id === newPayment.locataireId) {
-          return {
-            ...t,
-            statut: newPayment.statut === 'Payé' ? ('À jour' as const) : ('Retard' as const),
-            joursRetard: newPayment.statut === 'Payé' ? 0 : t.joursRetard,
-            arrieresCumules: newPayment.montantRestant,
-          };
+          return { ...t, statut: newPayment.statut === 'Payé' ? ('À jour' as const) : ('Retard' as const), joursRetard: newPayment.statut === 'Payé' ? 0 : t.joursRetard, arrieresCumules: newPayment.montantRestant };
         }
         return t;
       });
@@ -588,7 +509,6 @@ export default function App() {
       return next;
     });
 
-    // LOG ACTIVITÉ
     if (currentUser?.agencyId) {
       handleLogActivity({
         id: crypto.randomUUID(),
@@ -623,35 +543,12 @@ export default function App() {
     });
   };
 
-  const handleOpenQuickComms = (contact?: {
-    name: string;
-    phone: string;
-    role?: string;
-    propertyNom?: string;
-    amount?: number;
-    daysLate?: number;
-  }) => {
+  const handleOpenQuickComms = (contact?: { name: string; phone: string; role?: string; propertyNom?: string; amount?: number; daysLate?: number; }) => {
     if (contact) {
-      setQuickCommsModalConfig({
-        isOpen: true,
-        recipientName: contact.name,
-        recipientPhone: contact.phone,
-        recipientRole: contact.role || 'Locataire',
-        propertyNom: contact.propertyNom,
-        dueAmount: contact.amount,
-        daysLate: contact.daysLate,
-      });
+      setQuickCommsModalConfig({ isOpen: true, recipientName: contact.name, recipientPhone: contact.phone, recipientRole: contact.role || 'Locataire', propertyNom: contact.propertyNom, dueAmount: contact.amount, daysLate: contact.daysLate });
     } else {
       const lateTenant = tenants.find((t) => t.statut === 'Retard') || tenants[0];
-      setQuickCommsModalConfig({
-        isOpen: true,
-        recipientName: lateTenant ? `${lateTenant.prenom} ${lateTenant.nom}` : 'Locataire FITAL-IMMO',
-        recipientPhone: lateTenant?.telephone || '+221 77 845 20 10',
-        recipientRole: 'Locataire',
-        propertyNom: lateTenant?.bienNom || 'Logement Dakar',
-        dueAmount: lateTenant?.arrieresCumules || lateTenant?.loyerMensuel || 150000,
-        daysLate: lateTenant?.joursRetard || 0,
-      });
+      setQuickCommsModalConfig({ isOpen: true, recipientName: lateTenant ? `${lateTenant.prenom} ${lateTenant.nom}` : 'Locataire FITAL-IMMO', recipientPhone: lateTenant?.telephone || '+221 77 845 20 10', recipientRole: 'Locataire', propertyNom: lateTenant?.bienNom || 'Logement Dakar', dueAmount: lateTenant?.arrieresCumules || lateTenant?.loyerMensuel || 150000, daysLate: lateTenant?.joursRetard || 0 });
     }
   };
 
@@ -660,18 +557,12 @@ export default function App() {
     const tenant = tenants.find((t) => t.id === tId) || tenants[0];
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
+    if (!tenant || !property) { alert('Impossible de valider le paiement.'); return; }
 
-    if (!tenant || !property) {
-      alert('Impossible de valider le paiement : locataire ou bien introuvable.');
-      return;
-    }
-
-    const paymentId = crypto.randomUUID();
-    const quittanceNum = `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`;
     const newPayment: Payment = {
-      id: paymentId,
+      id: crypto.randomUUID(),
       ref: transactionId || `PAY-MM-${Date.now().toString().slice(-6)}`,
-      quittanceNumero: quittanceNum,
+      quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
       locataireId: tenant.id,
       locataireNom: `${tenant.prenom} ${tenant.nom}`,
       bienId: property.id,
@@ -679,245 +570,116 @@ export default function App() {
       proprietaireId: owner?.id || '',
       proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
       periode: mobileMoneyModalConfig?.period || selectedPeriod,
-      loyerBase: amount,
-      charges: 0,
-      tva: 0,
-      tom: 0,
-      penalites: 0,
-      montantTotal: amount,
-      montantPaye: amount,
-      montantRestant: 0,
+      loyerBase: amount, charges: 0, tva: 0, tom: 0, penalites: 0,
+      montantTotal: amount, montantPaye: amount, montantRestant: 0,
       modePaiement: 'Mobile Money',
       moyenPaiementCode: method === 'WAVE' ? 'WAVE' : 'ORANGE_MONEY',
       numeroTransaction: transactionId,
       datePaiement: new Date().toISOString().split('T')[0],
       statut: 'Payé',
-      observation: `Règlement direct validé via ${method === 'WAVE' ? 'Wave Sénégal' : 'Orange Money'} (Tx: ${transactionId})`,
+      observation: `Règlement via ${method === 'WAVE' ? 'Wave' : 'Orange Money'} (Tx: ${transactionId})`,
       auteurId: currentUser?.id,
       auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
       dateHeurePaiement: new Date().toISOString().replace('T', ' ').substring(0, 16),
       typeRecu: 'QUITTANCE',
     };
-
     handleAddPayment(newPayment);
     setMobileMoneyModalConfig(null);
-
-    const notifItem: NotificationItem = {
-      id: crypto.randomUUID(),
-      titre: `Paiement ${method} Validé`,
-      message: `${amount.toLocaleString('fr-FR')} FCFA encaissés pour ${newPayment.locataireNom}. Quittance ${quittanceNum} émise.`,
-      type: 'PAIEMENT',
-      lu: false,
-      date: "À l'instant",
-    };
-    setNotifications((prev) => {
-      const next = [notifItem, ...prev];
-      persistCollection('notifications', next);
-      return next;
-    });
   };
 
   const handleValidatePendingPayment = (paymentId: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => {
-        if (p.id === paymentId) {
-          return {
-            ...p,
-            verificationStatut: 'valide' as const,
-            statut: 'Payé' as const,
-            quittanceNumero: p.quittanceNumero || `QUITT-VAL-${Math.floor(1000 + Math.random() * 9000)}`,
-            dateValidation: new Date().toISOString().split('T')[0],
-            valideParId: currentUser?.id,
-            valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
-          };
-        }
-        return p;
-      });
+      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'valide' as const, statut: 'Payé' as const, dateValidation: new Date().toISOString().split('T')[0], valideParId: currentUser?.id, valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système' } : p);
       persistCollection('payments', next);
       return next;
     });
-
-    if (currentUser?.agencyId) {
-      validatePendingPaymentInDb(paymentId, currentUser.agencyId, currentUser.id).catch(console.warn);
-    }
+    if (currentUser?.agencyId) validatePendingPaymentInDb(paymentId, currentUser.agencyId, currentUser.id).catch(console.warn);
   };
 
   const handleRejectPendingPayment = (paymentId: string, reason: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => {
-        if (p.id === paymentId) {
-          return { ...p, verificationStatut: 'rejete' as const, statut: 'Impayé' as const, motifRejet: reason };
-        }
-        return p;
-      });
+      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'rejete' as const, statut: 'Impayé' as const, motifRejet: reason } : p);
       persistCollection('payments', next);
       return next;
     });
-    if (currentUser?.agencyId) {
-      rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(console.warn);
-    }
+    if (currentUser?.agencyId) rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(console.warn);
   };
 
   const handleAddCashMovement = (mov: CashMovement) => {
-    setCashMovements((prev) => {
-      const next = [mov, ...prev];
-      persistCollection('cash_movements', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveCashMovementToDb(mov, currentUser.agencyId).catch(console.warn);
-    }
+    setCashMovements((prev) => { const next = [mov, ...prev]; persistCollection('cash_movements', next); return next; });
+    if (currentUser?.agencyId) saveCashMovementToDb(mov, currentUser.agencyId).catch(console.warn);
   };
 
   const handleAddCashClosing = (cls: CashClosing) => {
-    setCashClosings((prev) => {
-      const next = [cls, ...prev];
-      persistCollection('cash_closings', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveCashClosingToDb(cls, currentUser.agencyId, currentUser.id, `${currentUser.prenom} ${currentUser.nom}`).catch(console.warn);
-    }
+    setCashClosings((prev) => { const next = [cls, ...prev]; persistCollection('cash_closings', next); return next; });
+    if (currentUser?.agencyId) saveCashClosingToDb(cls, currentUser.agencyId, currentUser.id, `${currentUser.prenom} ${currentUser.nom}`).catch(console.warn);
   };
 
   const handleUpdatePaymentMethod = (method: PaymentMethodConfig) => {
-    setPaymentMethods((prev) => {
-      const next = prev.map((m) => (m.id === method.id ? method : m));
-      persistCollection('payment_methods', next);
-      return next;
-    });
+    setPaymentMethods((prev) => { const next = prev.map((m) => (m.id === method.id ? method : m)); persistCollection('payment_methods', next); return next; });
     savePaymentMethodToDb(method, currentUser?.agencyId).catch(console.warn);
   };
 
   const handleAddPaymentMethod = (method: PaymentMethodConfig) => {
-    setPaymentMethods((prev) => {
-      const next = [...prev, method];
-      persistCollection('payment_methods', next);
-      return next;
-    });
+    setPaymentMethods((prev) => { const next = [...prev, method]; persistCollection('payment_methods', next); return next; });
     savePaymentMethodToDb(method, currentUser?.agencyId).catch(console.warn);
   };
 
   const handleAddUser = async (user: UserAccount): Promise<{ success: boolean; error?: string }> => {
     let agencyId = currentUser?.agencyId;
-
     if (isSupabaseConfigured && supabase && (!agencyId || agencyId.startsWith('agency-'))) {
       const agency = await getOrCreateDefaultAgency();
       if (agency) agencyId = agency.id;
     }
-
     if (isSupabaseConfigured && agencyId && !agencyId.startsWith('agency-')) {
       const result = await createUserAccountInSupabase({
-        email: user.email,
-        password: user.password || `Pass${Date.now()}!`,
-        nom: user.nom,
-        prenom: user.prenom,
-        telephone: user.telephone,
-        role: user.role,
-        agencyId,
-        permissions: user.permissions,
-        proprietaireId: user.proprietaireId,
-        locataireId: user.locataireId,
-        organisation: user.organisation,
-        avatar: user.avatar,
+        email: user.email, password: user.password || `Pass${Date.now()}!`,
+        nom: user.nom, prenom: user.prenom, telephone: user.telephone,
+        role: user.role, agencyId, permissions: user.permissions,
+        proprietaireId: user.proprietaireId, locataireId: user.locataireId,
+        organisation: user.organisation, avatar: user.avatar,
       });
-
       if (result.success && result.user) {
-        setUsers((prev) => {
-          const next = [result.user!, ...prev.filter((u) => u.email !== user.email)];
-          persistCollection('users', next);
-          return next;
-        });
+        setUsers((prev) => { const next = [result.user!, ...prev.filter((u) => u.email !== user.email)]; persistCollection('users', next); return next; });
         return { success: true };
       }
       return { success: false, error: result.error };
     }
-
-    setUsers((prev) => {
-      const next = [user, ...prev];
-      persistCollection('users', next);
-      return next;
-    });
-    return {
-      success: true,
-      error: isSupabaseConfigured ? undefined : 'Compte enregistré localement.',
-    };
+    setUsers((prev) => { const next = [user, ...prev]; persistCollection('users', next); return next; });
+    return { success: true, error: isSupabaseConfigured ? undefined : 'Compte local.' };
   };
 
   const handleAddProperty = (newProperty: Property) => {
-    setProperties((prev) => {
-      const next = [newProperty, ...prev];
-      persistCollection('properties', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      savePropertyToDb(newProperty, currentUser.agencyId).catch(console.warn);
-    }
+    setProperties((prev) => { const next = [newProperty, ...prev]; persistCollection('properties', next); return next; });
+    if (currentUser?.agencyId) savePropertyToDb(newProperty, currentUser.agencyId).catch(console.warn);
   };
-
   const handleUpdateProperty = (updatedProperty: Property) => {
-    setProperties((prev) => {
-      const next = prev.map((p) => (p.id === updatedProperty.id ? updatedProperty : p));
-      persistCollection('properties', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      savePropertyToDb(updatedProperty, currentUser.agencyId).catch(console.warn);
-    }
+    setProperties((prev) => { const next = prev.map((p) => (p.id === updatedProperty.id ? updatedProperty : p)); persistCollection('properties', next); return next; });
+    if (currentUser?.agencyId) savePropertyToDb(updatedProperty, currentUser.agencyId).catch(console.warn);
   };
-
   const handleDeleteProperty = (propertyId: string) => {
-    setProperties((prev) => {
-      const next = prev.filter((p) => p.id !== propertyId);
-      persistCollection('properties', next);
-      return next;
-    });
+    setProperties((prev) => { const next = prev.filter((p) => p.id !== propertyId); persistCollection('properties', next); return next; });
     softDeleteRecord('properties', propertyId).catch(console.warn);
   };
 
   const handleAddContract = (newContract: LeaseContract) => {
-    setContracts((prev) => {
-      const next = [newContract, ...prev];
-      persistCollection('contracts', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveContractToDb(newContract, currentUser.agencyId).catch(console.warn);
-    }
+    setContracts((prev) => { const next = [newContract, ...prev]; persistCollection('contracts', next); return next; });
+    if (currentUser?.agencyId) saveContractToDb(newContract, currentUser.agencyId).catch(console.warn);
   };
-
   const handleUpdateContract = (updatedContract: LeaseContract) => {
-    setContracts((prev) => {
-      const next = prev.map((c) => (c.id === updatedContract.id ? updatedContract : c));
-      persistCollection('contracts', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
-    }
+    setContracts((prev) => { const next = prev.map((c) => (c.id === updatedContract.id ? updatedContract : c)); persistCollection('contracts', next); return next; });
+    if (currentUser?.agencyId) saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
   };
 
   const handleAddTenant = (newTenant: Tenant) => {
-    setTenants((prev) => {
-      const next = [newTenant, ...prev];
-      persistCollection('tenants', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
-    }
+    setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
+    if (currentUser?.agencyId) saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
     if (newTenant.bienId) {
       setProperties((prev) => {
         const next = prev.map((p) => {
           if (p.id === newTenant.bienId) {
-            const updatedP = {
-              ...p,
-              statut: 'Occupé' as const,
-              locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
-            };
-            if (currentUser?.agencyId) {
-              savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
-            }
+            const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` };
+            if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
             return updatedP;
           }
           return p;
@@ -928,264 +690,116 @@ export default function App() {
     }
   };
 
-  const handleCompleteNewTenantWizard = async (data: {
-    tenant: Tenant;
-    contract: LeaseContract;
-    inspection: Inspection;
-  }) => {
+  const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
     if (!currentUser?.agencyId || !supabase) return;
-
     const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
-    if (!tenantResult.success) {
-      console.error('❌ Locataire refusé:', tenantResult.error);
-      const errorMsg = tenantResult.error || '';
-      let userMessage = 'Impossible de créer le locataire.';
-      if (errorMsg.includes('uq_tenant_active_per_bien') || errorMsg.includes('duplicate key')) {
-        userMessage = "Ce bien est déjà occupé par un autre locataire actif.";
-      } else if (errorMsg.includes('violates foreign key')) {
-        userMessage = "Erreur de liaison.";
-      }
-      alert(userMessage);
-      return;
-    }
-
+    if (!tenantResult.success) { alert('Erreur création locataire : ' + tenantResult.error); return; }
     const realTenantId = tenantResult.data?.id || data.tenant.id;
     const tenantToSave = { ...data.tenant, id: realTenantId };
     const contractToSave = { ...data.contract, locataireId: realTenantId };
     const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
-
     await saveContractToDb(contractToSave, currentUser.agencyId);
     await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
-
     setTenants((prev) => [tenantToSave, ...prev]);
     setContracts((prev) => [contractToSave, ...prev]);
     setInspections((prev) => [inspectionToSave, ...prev]);
   };
 
-  const handleCompleteTenantExit = (data: {
-    tenantId: string;
-    bienId: string;
-    dateSortie: string;
-    inspection: Inspection;
-    retenueCaution: number;
-    restitutionCaution: number;
-  }) => {
+  const handleCompleteTenantExit = (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     setInspections((prev) => [data.inspection, ...prev]);
-    setTenants((prev) =>
-      prev.map((t) => (t.id === data.tenantId ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie } : t))
-    );
-    setProperties((prev) =>
-      prev.map((p) => (p.id === data.bienId ? { ...p, statut: 'Vacant' as const, locataireActuelNom: undefined } : p))
-    );
-    if (currentUser?.agencyId) {
-      saveInspectionToDb(data.inspection, currentUser.agencyId).catch(console.warn);
-    }
+    setTenants((prev) => prev.map((t) => (t.id === data.tenantId ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie } : t)));
+    setProperties((prev) => prev.map((p) => (p.id === data.bienId ? { ...p, statut: 'Vacant' as const, locataireActuelNom: undefined } : p)));
+    if (currentUser?.agencyId) saveInspectionToDb(data.inspection, currentUser.agencyId).catch(console.warn);
   };
 
   const handleAddOwner = (newOwner: Owner) => {
-    setOwners((prev) => {
-      const next = [newOwner, ...prev];
-      persistCollection('owners', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveOwnerToDb(newOwner, currentUser.agencyId).catch(console.warn);
-    }
+    setOwners((prev) => { const next = [newOwner, ...prev]; persistCollection('owners', next); return next; });
+    if (currentUser?.agencyId) saveOwnerToDb(newOwner, currentUser.agencyId).catch(console.warn);
   };
-
   const handleAddReminder = (newReminder: TenantReminder) => {
-    setReminders((prev) => {
-      const next = [newReminder, ...prev];
-      persistCollection('reminders', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
-    }
+    setReminders((prev) => { const next = [newReminder, ...prev]; persistCollection('reminders', next); return next; });
+    if (currentUser?.agencyId) saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
   };
-
   const handleAddInspection = (newInspection: Inspection) => {
-    setInspections((prev) => {
-      const next = [newInspection, ...prev];
-      persistCollection('inspections', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveInspectionToDb(newInspection, currentUser.agencyId).catch(console.warn);
-    }
+    setInspections((prev) => { const next = [newInspection, ...prev]; persistCollection('inspections', next); return next; });
+    if (currentUser?.agencyId) saveInspectionToDb(newInspection, currentUser.agencyId).catch(console.warn);
   };
-
   const handleAddTicket = (newTicket: MaintenanceTicket) => {
-    setMaintenance((prev) => {
-      const next = [newTicket, ...prev];
-      persistCollection('maintenance', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveMaintenanceToDb(newTicket, currentUser.agencyId).catch(console.warn);
-    }
+    setMaintenance((prev) => { const next = [newTicket, ...prev]; persistCollection('maintenance', next); return next; });
+    if (currentUser?.agencyId) saveMaintenanceToDb(newTicket, currentUser.agencyId).catch(console.warn);
   };
-
   const handleUpdateTicket = (updatedTicket: MaintenanceTicket) => {
-    setMaintenance((prev) => {
-      const next = prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t));
-      persistCollection('maintenance', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveMaintenanceToDb(updatedTicket, currentUser.agencyId).catch(console.warn);
-    }
+    setMaintenance((prev) => { const next = prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)); persistCollection('maintenance', next); return next; });
+    if (currentUser?.agencyId) saveMaintenanceToDb(updatedTicket, currentUser.agencyId).catch(console.warn);
   };
-
   const handleAddDisbursement = (newDisbursement: OwnerDisbursement) => {
-    setDisbursements((prev) => {
-      const next = [newDisbursement, ...prev];
-      persistCollection('disbursements', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveDisbursementToDb(newDisbursement, currentUser.agencyId).catch(console.warn);
-    }
+    setDisbursements((prev) => { const next = [newDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
+    if (currentUser?.agencyId) saveDisbursementToDb(newDisbursement, currentUser.agencyId).catch(console.warn);
   };
-
   const handleAddInvoice = (newInvoice: Invoice) => {
-    setInvoices((prev) => {
-      const next = [newInvoice, ...prev];
-      persistCollection('invoices', next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveInvoiceToDb(newInvoice, currentUser.agencyId).catch(console.warn);
-    }
+    setInvoices((prev) => { const next = [newInvoice, ...prev]; persistCollection('invoices', next); return next; });
+    if (currentUser?.agencyId) saveInvoiceToDb(newInvoice, currentUser.agencyId).catch(console.warn);
   };
-
   const handleSaveSettings = (newSettings: AgencySettings) => {
     setSettings(newSettings);
     persistCollection('settings', newSettings);
-    if (currentUser?.agencyId) {
-      saveSettingsToDb(newSettings, currentUser.agencyId).catch(console.warn);
-    }
+    if (currentUser?.agencyId) saveSettingsToDb(newSettings, currentUser.agencyId).catch(console.warn);
   };
-
-  const handleOpenQuickReminder = (tenant: Tenant) => {
-    setActiveTab('reminders');
-  };
-
+  const handleOpenQuickReminder = (tenant: Tenant) => { setActiveTab('reminders'); };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
-    if (tenant) {
-      setInitialTenantForPayment(tenant);
-    } else {
-      setInitialTenantForPayment(null);
-    }
+    if (tenant) setInitialTenantForPayment(tenant);
+    else setInitialTenantForPayment(null);
     setIsNewPaymentModalOpen(true);
   };
-
-  const handleOpenBulletinVersement = (owner: Owner) => {
-    setOwnerBulletinModalOwner(owner);
-  };
+  const handleOpenBulletinVersement = (owner: Owner) => { setOwnerBulletinModalOwner(owner); };
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
 
   // SCOPED DATA
   const scopedProperties = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
-      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : []; }
     return properties;
   })();
-
   const scopedBuildings = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId);
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId);
     return buildings;
   })();
-
   const scopedUnits = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
-      if (myTenant) {
-        return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id);
-      }
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); if (myTenant) return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id); }
     return units;
   })();
-
   const scopedTenants = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return tenants.filter((t) => myBienIds.includes(t.bienId));
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      return tenants.filter((t) => t.id === currentUser.locataireId);
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return tenants.filter((t) => myBienIds.includes(t.bienId)); }
+    if (currentUser?.role === 'LOCATAIRE') return tenants.filter((t) => t.id === currentUser.locataireId);
     return tenants;
   })();
-
   const scopedPayments = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      return payments.filter((p) => p.locataireId === currentUser.locataireId);
-    }
-    if (currentUser?.role === 'AGENT') {
-      return [];
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === 'LOCATAIRE') return payments.filter((p) => p.locataireId === currentUser.locataireId);
+    if (currentUser?.role === 'AGENT') return [];
     return payments;
   })();
-
   const scopedContracts = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      return contracts.filter((c) => c.locataireId === currentUser.locataireId);
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === 'LOCATAIRE') return contracts.filter((c) => c.locataireId === currentUser.locataireId);
     return contracts;
   })();
-
   const scopedInspections = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return inspections.filter((i) => myBienIds.includes(i.bienId));
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      return inspections.filter((i) => i.locataireId === currentUser.locataireId);
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return inspections.filter((i) => myBienIds.includes(i.bienId)); }
+    if (currentUser?.role === 'LOCATAIRE') return inspections.filter((i) => i.locataireId === currentUser.locataireId);
     return inspections;
   })();
-
   const scopedMaintenance = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = myProps.map((p) => p.id);
-      return maintenance.filter((m) => myBienIds.includes(m.bienId));
-    }
-    if (currentUser?.role === 'LOCATAIRE') {
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
-      return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : [];
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return maintenance.filter((m) => myBienIds.includes(m.bienId)); }
+    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : []; }
     return maintenance;
   })();
-
   const scopedDisbursements = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
-    }
-    if (currentUser?.role === 'AGENT' || currentUser?.role === 'LOCATAIRE') {
-      return [];
-    }
+    if (currentUser?.role === 'PROPRIETAIRE') return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === 'AGENT' || currentUser?.role === 'LOCATAIRE') return [];
     return disbursements;
   })();
   
@@ -1412,17 +1026,23 @@ export default function App() {
             />
           )}
 
-                   {activeTab === 'archives' && (
-            <ArchiveView
-              archives={archives}
-              currentUser={currentUser}
-            />
+          {activeTab === 'archives' && (
+            <ArchiveView archives={archives} currentUser={currentUser} />
           )}
 
           {activeTab === 'activity-logs' && (
-            <ActivityLogView
-              activities={activityLogs}
+            <ActivityLogView activities={activityLogs} currentUser={currentUser} />
+          )}
+
+          {activeTab === 'penalties' && (
+            <PenaltiesView
+              penalties={penalties}
+              tenants={scopedTenants}
+              payments={scopedPayments}
               currentUser={currentUser}
+              onAddPenalty={handleAddPenalty}
+              onDeletePenalty={handleDeletePenalty}
+              onUpdatePenalty={handleUpdatePenalty}
             />
           )}
 
@@ -1556,7 +1176,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-                            <TenantsView
+              <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 units={scopedUnits}

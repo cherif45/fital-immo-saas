@@ -28,7 +28,8 @@ import {
   BarChart3,
   UserCog,
   Smartphone,
-  Home,
+   Home,
+  AlertTriangle,
   X
 } from 'lucide-react';
 import { ActiveTab, UserAccount, UserRole } from '../types';
@@ -167,9 +168,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               badge: unpaidCount > 0 ? `${unpaidCount} impayés` : undefined,
               badgeColor: 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
             },
-            { id: 'reminders' as ActiveTab, label: 'Relances IA & WhatsApp', icon: BellRing, highlight: true },
+                       { id: 'reminders' as ActiveTab, label: 'Relances IA & WhatsApp', icon: BellRing, highlight: true },
             { id: 'maintenance' as ActiveTab, label: 'Travaux & Dépenses', icon: Wrench },
             { id: 'finance' as ActiveTab, label: 'Reversements Bailleurs', icon: WalletCards },
+            { id: 'penalties' as ActiveTab, label: 'Pénalités de Retard', icon: AlertTriangle },
+            { id: 'archives' as ActiveTab, label: 'Archives & Historique', icon: FolderArchive },
             { id: 'documents' as ActiveTab, label: 'Documents & Modèles', icon: FolderArchive },
           ],
         },
@@ -237,13 +240,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           },
         ],
       },
-      {
+           {
         label: 'DOCUMENTS & SYSTÈME',
         items: [
           { id: 'reports' as ActiveTab, label: 'Rapports & Audit Financier', icon: FileText },
           { id: 'documents' as ActiveTab, label: 'Bibliothèque Documents', icon: FolderArchive },
-                          { id: 'archives' as ActiveTab, label: 'Archives & Historique', icon: FolderArchive },
+          { id: 'archives' as ActiveTab, label: 'Archives & Historique', icon: FolderArchive },
           { id: 'activity-logs' as ActiveTab, label: 'Journal des Activités', icon: CalendarDays },
+          { id: 'penalties' as ActiveTab, label: 'Pénalités de Retard', icon: AlertTriangle },
           { id: 'settings' as ActiveTab, label: 'Paramètres Agence', icon: Settings },
         ],
       },
