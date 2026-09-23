@@ -113,6 +113,14 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return t.solvabiliteScore || t.scoreSolvabilite || 85;
   };
 
+  // Helper : profession + employeur propre
+  const getProfessionEmployeur = (t: Tenant): string => {
+    if (t.profession && t.employeur) return `${t.profession} (${t.employeur})`;
+    if (t.profession) return t.profession;
+    if (t.employeur) return t.employeur;
+    return '—';
+  };
+
   // Filtres
   const activeTenants = tenants.filter((t) => !isTenantSorted(t));
   const sortedTenants = tenants.filter((t) => isTenantSorted(t));
@@ -138,7 +146,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   });
 
   // ============================================================
-  // BIENS VACANTS (properties + units)
+  // BIENS VACANTS
   // ============================================================
   const vacantProperties = properties.filter((p) => p.statut === 'Vacant');
   const vacantUnits = (units as any[]).filter((u: any) => u.statut === 'Vacant');
@@ -159,7 +167,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       return;
     }
 
-    // Chercher dans properties PUIS dans units
     const prop = properties.find((p) => p.id === bienId);
     const unit = !prop ? (units as any[]).find((u: any) => u.id === bienId) : null;
 
@@ -177,7 +184,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       return;
     }
 
-    // Vérifier qu'aucun locataire actif n'occupe ce bien
     const bienDejaOccupe = tenants.some(
       (t) =>
         t.bienId === bienId &&
@@ -397,6 +403,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   const sorted = isTenantSorted(t);
                   const realStatus = getRealStatus(t);
                   const solvabilite = getSolvabilite(t);
+                  const professionEmployeur = getProfessionEmployeur(t);
 
                   return (
                     <tr key={t.id} className={`hover:bg-[#1E2E45]/40 transition-colors ${sorted ? 'opacity-70' : ''}`}>
@@ -408,12 +415,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             {(t.prenom || '?')[0]}
                             {(t.nom || '?')[0]}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="font-bold text-white">
                               {t.prenom} {t.nom}
                             </div>
-                            <div className="text-[10px] text-[#A8B4C4] truncate max-w-[140px]">
-                              {t.profession} ({t.employeur})
+                            <div className="text-[10px] text-[#A8B4C4] truncate max-w-[160px]">
+                              {professionEmployeur}
                             </div>
                           </div>
                         </div>
@@ -429,7 +436,9 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
                       <td className="py-3 px-3 font-mono">
                         <div className="flex items-center gap-2">
-                          <span className="text-white text-xs font-semibold">{t.telephone}</span>
+                          <span className="text-white text-xs font-semibold whitespace-nowrap">
+                            {t.telephone || '—'}
+                          </span>
                           {canContactTenant && (
                             <div className="flex items-center gap-1">
                               <button
@@ -459,7 +468,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             </div>
                           )}
                         </div>
-                        <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni}</div>
+                        <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni || '—'}</div>
                       </td>
 
                       <td className="py-3 px-3 text-right font-mono font-bold text-white">
@@ -709,27 +718,27 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     </div>
                     <div>
                       <span className="text-neutral-500">N° CNI : </span>
-                      <strong className="font-mono text-neutral-900">{selectedTenantForDetails.cni}</strong>
+                      <strong className="font-mono text-neutral-900">{selectedTenantForDetails.cni || '—'}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Téléphone : </span>
-                      <strong className="text-neutral-900">{selectedTenantForDetails.telephone}</strong>
+                      <strong className="text-neutral-900">{selectedTenantForDetails.telephone || '—'}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Email : </span>
-                      <strong className="text-neutral-900">{selectedTenantForDetails.email}</strong>
+                      <strong className="text-neutral-900">{selectedTenantForDetails.email || '—'}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Profession : </span>
-                      <strong className="text-neutral-900">{selectedTenantForDetails.profession}</strong>
+                      <strong className="text-neutral-900">{selectedTenantForDetails.profession || '—'}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Employeur : </span>
-                      <strong className="text-neutral-900">{selectedTenantForDetails.employeur}</strong>
+                      <strong className="text-neutral-900">{selectedTenantForDetails.employeur || '—'}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Salaire Mensuel : </span>
-                      <strong className="font-mono text-neutral-900">{formatCurrency(selectedTenantForDetails.revenuMensuel)}</strong>
+                      <strong className="font-mono text-neutral-900">{formatCurrency(selectedTenantForDetails.revenuMensuel || 0)}</strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Solvabilité : </span>
@@ -871,7 +880,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     type="text"
                     value={profession}
                     onChange={(e) => setProfession(e.target.value)}
-                    required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                     placeholder="Ingénieur, Médecin..."
                   />
@@ -882,7 +890,6 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     type="text"
                     value={employeur}
                     onChange={(e) => setEmployeur(e.target.value)}
-                    required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                     placeholder="Orange, Total..."
                   />
