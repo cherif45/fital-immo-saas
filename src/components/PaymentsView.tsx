@@ -67,6 +67,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [tom, setTom] = useState<number>(0);
   const [datePaiement, setDatePaiement] = useState<string>(new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useState<string>('Règlement loyer régulier');
+  // ⬇️ NOUVEAU : Gestion acompte/solde
+  const [referencePaiementInitial, setReferencePaiementInitial] = useState<string>('');
 
   // 🔒 MATRICE DE PERMISSIONS
   const role = currentUser?.role || 'ADMIN';
@@ -133,6 +135,9 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const mobilePct = totalPaidSum > 0 ? Math.round((mobileSum / totalPaidSum) * 100) : 0;
   const especesPct = totalPaidSum > 0 ? Math.round((especesSum / totalPaidSum) * 100) : 0;
 
+  // ============================================================
+  // HANDLER : ENREGISTRER UN PAIEMENT
+  // ============================================================
   const handleSubmitPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -149,6 +154,21 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
     const totalCalculated = (t.loyerMensuel || 0) + charges + tva + tom + penalites;
     const isFull = montantPaye >= totalCalculated;
+
+    // ⬇️ NOUVEAU : Récupérer le paiement initial si lié
+    const initialPayment = referencePaiementInitial
+      ? payments.find((p) => p.ref === referencePaiementInitial)
+      : null;
+
+    // Déterminer le type de reçu
+    let typeRecu: 'QUITTANCE' | 'RECU_ACOMPTE' | 'QUITTANCE_SOLDE';
+    if (referencePaiementInitial && isFull) {
+      typeRecu = 'QUITTANCE_SOLDE';
+    } else if (!isFull) {
+      typeRecu = 'RECU_ACOMPTE';
+    } else {
+      typeRecu = 'QUITTANCE';
+    }
 
     const newPayment: Payment = {
       id: crypto.randomUUID(),
@@ -176,10 +196,17 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       dateEcheance: '2026-05-05',
       recuPar: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Caisse FITAL-IMMO',
       observation,
+      // ⬇️ NOUVEAU : Gestion acompte/solde
+      typeRecu,
+      referencePaiementInitial: referencePaiementInitial || undefined,
+      montantInitialDu: initialPayment?.montantTotal || totalCalculated,
     };
 
     onAddPayment(newPayment);
     setIsNewPaymentModalOpen(false);
+
+    // Reset
+    setReferencePaiementInitial('');
 
     try {
       confetti({
@@ -215,6 +242,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
   };
 
+  // Paiements partiels du locataire sélectionné (pour lier acompte → solde)
+  const partialPaymentsForTenant = payments.filter(
+    (p) => p.locataireId === selectedTenantId && p.statut === 'Partiel'
+  );
+  
   return (
     <div className="space-y-6">
       {/* Top Banner Stats */}
@@ -377,131 +409,111 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </tr>
               ) : (
                 filteredPayments.map((p) => {
-                const isPaid = p.statut === 'Payé';
-                return (
-                  <tr key={p.id} className="hover:bg-[#1E2E45]/40 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-mono font-bold text-white text-[11px]">{p.quittanceNumero}</div>
-                      <div className="text-[10px] text-[#6B7C94] font-mono">{p.ref}</div>
-                    </td>
-                    <td className="py-3 px-3 font-bold text-white">{p.locataireNom}</td>
-                    <td className="py-3 px-3 text-[#A8B4C4] max-w-[200px] truncate">{p.bienNom}</td>
-                    <td className="py-3 px-3 text-right font-mono font-bold">
-                      <span className={isPaid ? 'text-[#C9A96E]' : 'text-rose-400'}>
-                        {formatCurrency(p.montantPaye)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                          p.modePaiement === 'Virement'
-                            ? 'bg-sky-500/20 text-sky-300'
-                            : p.modePaiement === 'Mobile Money'
-                            ? 'bg-amber-500/20 text-amber-300'
-                            : 'bg-emerald-500/20 text-emerald-300'
-                        }`}
-                      >
-                        {p.modePaiement}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-[#A8B4C4]">{p.datePaiement ? formatDate(p.datePaiement) : '—'}</td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                          isPaid
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        }`}
-                      >
-                        {p.statut}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                        {isPaid ? (
-                          <>
-                            <button
-                              onClick={() => onOpenReceipt(p)}
-                              className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1"
-                              title="Imprimer la Quittance de loyer certifiée"
-                            >
-                              <Printer className="w-3 h-3" /> Quittance
-                            </button>
-                            {canSeeOthers && (() => {
-                              const t = tenants.find((item) => item.id === p.locataireId);
-                              if (!t?.telephone) return null;
-                              return (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      const text = getPaymentReceiptTemplate({
-                                        tenantName: p.locataireNom,
-                                        propertyNom: p.bienNom,
-                                        period: p.periode,
-                                        amount: p.montantPaye,
-                                        quittanceNumber: p.quittanceNumero,
-                                      });
-                                      triggerWhatsApp(t.telephone, text);
-                                    }}
-                                    className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 transition-all"
-                                    title="Envoyer la quittance par WhatsApp au locataire"
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => triggerPhoneCall(t.telephone)}
-                                    className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 text-sky-400 border border-sky-500/30 transition-all"
-                                    title="Appeler directement le locataire"
-                                  >
-                                    <PhoneCall className="w-3 h-3" />
-                                  </button>
-                                </>
-                              );
-                            })()}
-                          </>
-                        ) : (
-                          <>
-                            {canEncaisser && (
-                              <button
-                                onClick={() => {
-                                  setSelectedTenantId(p.locataireId);
-                                  setIsNewPaymentModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all flex items-center gap-1"
-                              >
-                                Encaisser
-                              </button>
-                            )}
-                            {canUseMobileMoney && (
-                              <button
-                                onClick={() => setSelectedPaymentForMobileMoney(p)}
-                                className="px-2 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 font-semibold text-[11px] transition-all flex items-center gap-1"
-                                title={isLocataire ? 'Payer ma quittance via Wave / OM' : 'Payer ou générer le lien Wave / OM'}
-                              >
-                                <Smartphone className="w-3 h-3" /> Wave / OM
-                              </button>
-                            )}
-                            {canSeeOthers && (() => {
-                              const t = tenants.find((item) => item.id === p.locataireId);
-                              if (!t?.telephone) return null;
-                              return (
+                  const isPaid = p.statut === 'Payé';
+                  const isAcompte = p.typeRecu === 'RECU_ACOMPTE';
+                  const isSolde = p.typeRecu === 'QUITTANCE_SOLDE';
+                  return (
+                    <tr key={p.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-mono font-bold text-white text-[11px]">{p.quittanceNumero}</div>
+                        <div className="text-[10px] text-[#6B7C94] font-mono">{p.ref}</div>
+                      </td>
+                      <td className="py-3 px-3 font-bold text-white">{p.locataireNom}</td>
+                      <td className="py-3 px-3 text-[#A8B4C4] max-w-[200px] truncate">{p.bienNom}</td>
+                      <td className="py-3 px-3 text-right font-mono font-bold">
+                        <span className={isPaid ? 'text-[#C9A96E]' : isAcompte ? 'text-blue-400' : 'text-rose-400'}>
+                          {formatCurrency(p.montantPaye)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                            p.modePaiement === 'Virement'
+                              ? 'bg-sky-500/20 text-sky-300'
+                              : p.modePaiement === 'Mobile Money'
+                              ? 'bg-amber-500/20 text-amber-300'
+                              : 'bg-emerald-500/20 text-emerald-300'
+                          }`}
+                        >
+                          {p.modePaiement}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-[#A8B4C4]">{p.datePaiement ? formatDate(p.datePaiement) : '—'}</td>
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                            isSolde
+                              ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                              : isAcompte
+                              ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                              : isPaid
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                          }`}
+                        >
+                          {isSolde ? 'SOLDE' : isAcompte ? 'ACOMPTE' : p.statut}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => onOpenReceipt(p)}
+                            className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1"
+                            title="Voir le document officiel"
+                          >
+                            <Printer className="w-3 h-3" />
+                            {isSolde ? 'Solde' : isAcompte ? 'Reçu' : 'Quittance'}
+                          </button>
+
+                          {canSeeOthers && (() => {
+                            const t = tenants.find((item) => item.id === p.locataireId);
+                            if (!t?.telephone) return null;
+                            return (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    const text = getPaymentReceiptTemplate({
+                                      tenantName: p.locataireNom,
+                                      propertyNom: p.bienNom,
+                                      period: p.periode,
+                                      amount: p.montantPaye,
+                                      quittanceNumber: p.quittanceNumero,
+                                    });
+                                    triggerWhatsApp(t.telephone, text);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 transition-all"
+                                  title="Envoyer par WhatsApp"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                </button>
                                 <button
                                   onClick={() => triggerPhoneCall(t.telephone)}
                                   className="p-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/40 text-sky-400 border border-sky-500/30 transition-all"
-                                  title="Appeler le locataire"
+                                  title="Appeler"
                                 >
                                   <PhoneCall className="w-3 h-3" />
                                 </button>
-                              );
-                            })()}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+                              </>
+                            );
+                          })()}
+
+                          {!isPaid && canEncaisser && (
+                            <button
+                              onClick={() => {
+                                setSelectedTenantId(p.locataireId);
+                                setIsNewPaymentModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all"
+                            >
+                              Encaisser
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -510,14 +522,17 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       {/* Modal: Enregistrer un Nouveau Paiement */}
       {isNewPaymentModalOpen && canEncaisser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <CreditCard className="w-5 h-5 text-[#C9A96E]" />
                 <span>Encaisser un Règlement de Loyer</span>
               </div>
               <button
-                onClick={() => setIsNewPaymentModalOpen(false)}
+                onClick={() => {
+                  setIsNewPaymentModalOpen(false);
+                  setReferencePaiementInitial('');
+                }}
                 className="text-[#A8B4C4] hover:text-white"
               >
                 ✕
@@ -633,6 +648,30 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </div>
               </div>
 
+              {/* ⬇️ NOUVEAU : Lier à un acompte existant */}
+              {partialPaymentsForTenant.length > 0 && (
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-2">
+                  <label className="block text-[11px] font-bold text-blue-300 uppercase">
+                    Lier à un acompte existant (optionnel)
+                  </label>
+                  <select
+                    value={referencePaiementInitial}
+                    onChange={(e) => setReferencePaiementInitial(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-blue-500/30 text-white text-xs"
+                  >
+                    <option value="">— Aucun (paiement indépendant) —</option>
+                    {partialPaymentsForTenant.map((p) => (
+                      <option key={p.id} value={p.ref}>
+                        {p.ref} — {formatNumber(p.montantPaye)} / {formatNumber(p.montantTotal)} FCFA ({p.periode})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-blue-200/70">
+                    Si ce paiement complète un acompte, sélectionnez-le. La quittance générée sera automatiquement une <strong>QUITTANCE DE SOLDE</strong>.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Observations / Référence reçu
@@ -649,7 +688,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsNewPaymentModalOpen(false)}
+                  onClick={() => {
+                    setIsNewPaymentModalOpen(false);
+                    setReferencePaiementInitial('');
+                  }}
                   className="px-4 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#A8B4C4] font-medium"
                 >
                   Annuler
@@ -659,7 +701,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg shadow-[#C9A96E]/30 hover:scale-105 transition-all flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Encaisser & Émettre Quittance</span>
+                  <span>Encaisser & Émettre Document</span>
                 </button>
               </div>
             </form>
@@ -693,6 +735,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               quittanceNumero: selectedPaymentForMobileMoney.quittanceNumero || quittanceNum,
               datePaiement: new Date().toISOString().split('T')[0],
               observation: `Règlement direct validé via ${method === 'WAVE' ? 'Wave Sénégal' : 'Orange Money'} (${transactionId})`,
+              typeRecu: 'QUITTANCE',
             };
             onAddPayment(updatedPayment);
             setSelectedPaymentForMobileMoney(null);

@@ -21,16 +21,22 @@ function nombreEnLettres(n: number): string {
   function convert(num: number): string {
     if (num === 0) return '';
     if (num < 10) return unites[num];
-    if (num < 20) return num === 10 ? 'dix' : num === 11 ? 'onze' : num === 12 ? 'douze' : num === 13 ? 'treize' : num === 14 ? 'quatorze' : num === 15 ? 'quinze' : num === 16 ? 'seize' : 'dix-' + unites[num - 10];
+    if (num < 20) {
+      const speciaux = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+      return speciaux[num - 10];
+    }
     if (num < 100) {
       const d = Math.floor(num / 10);
       const u = num % 10;
       if (d === 7 || d === 9) return dizaines[d - 1] + '-' + convert(10 + u);
+      if (d === 8 && u === 0) return 'quatre-vingts';
       return dizaines[d] + (u > 0 ? '-' + unites[u] : '');
     }
     const c = Math.floor(num / 100);
     const r = num % 100;
-    return centaines[c] + (r > 0 ? ' ' + convert(r) : '');
+    let prefix = centaines[c];
+    if (c > 1 && r === 0) prefix += 's';
+    return prefix + (r > 0 ? ' ' + convert(r) : '');
   }
 
   const milliards = Math.floor(n / 1000000000);
