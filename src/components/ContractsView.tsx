@@ -66,6 +66,33 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
 
   const isTenant = currentUser?.role === 'LOCATAIRE';
 
+  // ============================================================
+  // 🔧 HELPERS : Récupérer les noms même si les champs sont vides
+  // ============================================================
+  const getLocataireNom = (c: LeaseContract): string => {
+    if (c.locataireNom && c.locataireNom.trim()) return c.locataireNom;
+    const t = tenants.find((x) => x.id === c.locataireId);
+    return t ? `${t.prenom} ${t.nom}` : 'Locataire non référencé';
+  };
+
+  const getBienNom = (c: LeaseContract): string => {
+    if (c.bienNom && c.bienNom.trim()) return c.bienNom;
+    const p = properties.find((x) => x.id === c.bienId);
+    return p ? p.nom : 'Bien non référencé';
+  };
+
+  const getProprietaireNom = (c: LeaseContract): string => {
+    if (c.proprietaireNom && c.proprietaireNom.trim() && c.proprietaireNom !== 'Propriétaire') return c.proprietaireNom;
+    const o1 = owners.find((x) => x.id === c.proprietaireId);
+    if (o1) return `${o1.prenom} ${o1.nom}`;
+    const p = properties.find((x) => x.id === c.bienId);
+    if (p?.proprietaireId) {
+      const o2 = owners.find((x) => x.id === p.proprietaireId);
+      if (o2) return `${o2.prenom} ${o2.nom}`;
+    }
+    return 'Bailleur non référencé';
+  };
+
   // Filter for contracts
   let displayableContracts = contracts;
   if (isTenant && currentUser?.locataireId) {
@@ -80,9 +107,9 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
       const q = search.toLowerCase();
       return (
         c.ref.toLowerCase().includes(q) ||
-        c.locataireNom.toLowerCase().includes(q) ||
-        c.bienNom.toLowerCase().includes(q) ||
-        c.proprietaireNom.toLowerCase().includes(q)
+        getLocataireNom(c).toLowerCase().includes(q) ||
+        getBienNom(c).toLowerCase().includes(q) ||
+        getProprietaireNom(c).toLowerCase().includes(q)
       );
     }
     return true;
@@ -104,7 +131,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     const o = owners.find((owner) => owner.id === p?.proprietaireId) || owners[0];
 
     const newContract: LeaseContract = {
-      id: crypto.randomUUID(),      
+      id: crypto.randomUUID(),
       ref: `CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       locataireId: t.id,
       locataireNom: `${t.prenom} ${t.nom}`,
@@ -134,9 +161,9 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     const headers = ['Réf Contrat', 'Locataire', 'Bien', 'Propriétaire', 'Loyer Base', 'Charges', 'Taxes', 'Caution', 'Début', 'Fin', 'Statut'];
     const rows = filteredContracts.map((c) => [
       c.ref,
-      c.locataireNom,
-      c.bienNom,
-      c.proprietaireNom,
+      getLocataireNom(c),
+      getBienNom(c),
+      getProprietaireNom(c),
       c.loyerBase,
       c.charges,
       c.tva + c.tom + c.tlv,
@@ -167,7 +194,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-xs font-semibold text-[#E8D5B0] transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Excel / CSV</span>
@@ -176,7 +203,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
           {!isTenant && (
             <button
               onClick={() => setIsNewContractModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Rédiger un Nouveau Bail</span>
@@ -231,11 +258,11 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     </td>
 
                     <td className="py-3 px-3">
-                      <div className="font-bold text-white">{c.locataireNom}</div>
-                      <div className="text-[10px] text-[#A8B4C4] truncate max-w-[170px]">{c.bienNom}</div>
+                      <div className="font-bold text-white">{getLocataireNom(c)}</div>
+                      <div className="text-[10px] text-[#A8B4C4] truncate max-w-[170px]">{getBienNom(c)}</div>
                     </td>
 
-                    <td className="py-3 px-3 text-[#A8B4C4]">{c.proprietaireNom}</td>
+                    <td className="py-3 px-3 text-[#A8B4C4]">{getProprietaireNom(c)}</td>
 
                     <td className="py-3 px-3 text-right font-mono font-bold text-white">
                       {formatNumber(totalLoyer)}{' '}
@@ -264,7 +291,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => setSelectedContractForPrint(c)}
-                        className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto"
+                        className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto cursor-pointer"
                         title="Imprimer le Contrat de Bail Type FITAL-IMMO"
                       >
                         <Printer className="w-3 h-3" /> Imprimer Bail
@@ -287,7 +314,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                 <FileSignature className="w-5 h-5 text-[#C9A96E]" />
                 <span>Rédaction d'un Nouveau Contrat de Bail</span>
               </div>
-              <button onClick={() => setIsNewContractModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button onClick={() => setIsNewContractModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleCreateContract} className="space-y-4 text-xs">
@@ -387,7 +414,6 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                 </div>
               </div>
 
-              {/* Summary Calculation */}
               <div className="p-3 bg-[#0F1B2D] rounded-xl border border-[#C9A96E]/20 grid grid-cols-3 gap-2 text-[11px]">
                 <div><span className="text-slate-400">Total Mensuel :</span> <strong className="text-white block font-mono">{formatCurrency(loyerBase + charges + tva + tom + tlv)}</strong></div>
                 <div><span className="text-slate-400">Caution Totale :</span> <strong className="text-sky-300 block font-mono">{formatCurrency(cautionMontant)}</strong></div>
@@ -398,13 +424,13 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewContractModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300"
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300 cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg cursor-pointer"
                 >
                   Générer & Activer le Bail
                 </button>

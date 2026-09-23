@@ -31,12 +31,27 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
   const [search, setSearch] = useState('');
   const [selectedInspectionForPrint, setSelectedInspectionForPrint] = useState<Inspection | null>(null);
 
+  // ============================================================
+  // 🔧 HELPERS : Récupérer les noms même si les champs sont vides
+  // ============================================================
+  const getBienNom = (i: Inspection): string => {
+    if (i.bienNom && i.bienNom.trim() && i.bienNom !== 'Bien') return i.bienNom;
+    const p = properties.find((x) => x.id === i.bienId);
+    return p ? p.nom : 'Bien non référencé';
+  };
+
+  const getLocataireNom = (i: Inspection): string => {
+    if (i.locataireNom && i.locataireNom.trim()) return i.locataireNom;
+    const t = tenants.find((x) => x.id === i.locataireId);
+    return t ? `${t.prenom} ${t.nom}` : 'Locataire non référencé';
+  };
+
   const filtered = inspections.filter((i) => {
     if (search) {
       const q = search.toLowerCase();
       return (
-        i.locataireNom.toLowerCase().includes(q) ||
-        i.bienNom.toLowerCase().includes(q) ||
+        getLocataireNom(i).toLowerCase().includes(q) ||
+        getBienNom(i).toLowerCase().includes(q) ||
         i.type.toLowerCase().includes(q)
       );
     }
@@ -60,6 +75,23 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
         </div>
       </div>
 
+      {/* Search */}
+      <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex items-center justify-between gap-4">
+        <div className="text-xs font-medium text-slate-300">
+          Liste des PV d'états des lieux certifiés
+        </div>
+        <div className="relative w-72">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Rechercher par locataire, bien..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white placeholder-slate-500 focus:outline-none"
+          />
+        </div>
+      </div>
+
       {/* Table */}
       <div className="rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -76,45 +108,57 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#C9A96E]/10">
-              {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-[#1E2E45]/40 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-white text-xs">{item.type}</div>
-                    <div className="text-[10px] text-[#A8B4C4]">{formatDate(item.date)}</div>
-                  </td>
-
-                  <td className="py-3 px-3 font-medium text-white max-w-[180px] truncate">
-                    {item.bienNom}
-                  </td>
-
-                  <td className="py-3 px-3 font-bold text-[#E8D5B0]">{item.locataireNom}</td>
-
-                  <td className="py-3 px-3 text-[#A8B4C4]">{item.agentNom}</td>
-
-                  <td className="py-3 px-3 text-right font-mono font-bold text-rose-400">
-                    {item.coutDegradations > 0 ? `${formatNumber(item.coutDegradations)} FCFA` : '0 FCFA (Impeccable)'}
-                  </td>
-
-                  <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
-                    {item.montantRestitueCaution ? `${formatNumber(item.montantRestitueCaution)} FCFA` : '—'}
-                  </td>
-
-                  <td className="py-3 px-4 text-center">
-                    <button
-                      onClick={() => setSelectedInspectionForPrint(item)}
-                      className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto"
-                    >
-                      <Printer className="w-3 h-3" /> Imprimer PV
-                    </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[#6B7C94]">
+                    <ClipboardCheck className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
+                    <p className="text-xs font-semibold text-white">Aucun état des lieux</p>
+                    <p className="text-[11px] text-[#6B7C94] mt-1">Les PV apparaîtront ici après enregistrement.</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-white text-xs">{item.type}</div>
+                      <div className="text-[10px] text-[#A8B4C4]">{formatDate(item.date)}</div>
+                    </td>
+
+                    <td className="py-3 px-3 font-medium text-white max-w-[180px] truncate">
+                      {getBienNom(item)}
+                    </td>
+
+                    <td className="py-3 px-3 font-bold text-[#E8D5B0]">{getLocataireNom(item)}</td>
+
+                    <td className="py-3 px-3 text-[#A8B4C4]">{item.agentNom || item.inspecteurNom || 'Agent FITAL-IMMO'}</td>
+
+                    <td className="py-3 px-3 text-right font-mono font-bold text-rose-400">
+                      {(item.coutDegradations || item.totalDegats || 0) > 0
+                        ? `${formatNumber(item.coutDegradations || item.totalDegats || 0)} FCFA`
+                        : '0 FCFA (Impeccable)'}
+                    </td>
+
+                    <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                      {item.montantRestitueCaution ? `${formatNumber(item.montantRestitueCaution)} FCFA` : '—'}
+                    </td>
+
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => setSelectedInspectionForPrint(item)}
+                        className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto cursor-pointer"
+                      >
+                        <Printer className="w-3 h-3" /> Imprimer PV
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal Print État des Lieux (Doc Page 6) */}
+      {/* Modal Print État des Lieux */}
       {selectedInspectionForPrint && (
         <InspectionPrintModal
           inspection={selectedInspectionForPrint}
