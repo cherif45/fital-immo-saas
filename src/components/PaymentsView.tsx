@@ -170,37 +170,46 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       typeRecu = 'QUITTANCE';
     }
 
-    const newPayment: Payment = {
-      id: crypto.randomUUID(),
-      ref: `PAY-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
-      locataireId: t.id,
-      locataireNom: `${t.prenom} ${t.nom}`,
-      bienId: t.bienId,
-      bienNom: p?.nom || t.bienNom,
-      proprietaireId: o?.id || p?.proprietaireId || t.proprietaireId || '',
-      proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire',
-      periode,
-      loyerBase: t.loyerMensuel || 0,
-      charges,
-      tva,
-      tom,
-      penalites,
-      indemnitesOccupation: 0,
-      montantTotal: totalCalculated,
-      montantPaye: Number(montantPaye),
-      montantRestant: Math.max(0, totalCalculated - Number(montantPaye)),
-      statut: isFull ? 'Payé' : 'Partiel',
-      modePaiement,
-      datePaiement,
-      dateEcheance: '2026-05-05',
-      recuPar: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Caisse FITAL-IMMO',
-      observation,
-      // ⬇️ NOUVEAU : Gestion acompte/solde
-      typeRecu,
-      referencePaiementInitial: referencePaiementInitial || undefined,
-      montantInitialDu: initialPayment?.montantTotal || totalCalculated,
-    };
+    const isMobileMoney = modePaiement === 'Wave' || modePaiement === 'Orange Money' || modePaiement === 'Mobile Money';
+const moyenCode = modePaiement === 'Wave' ? 'WAVE' 
+                : modePaiement === 'Orange Money' ? 'ORANGE_MONEY'
+                : modePaiement === 'Mobile Money' ? 'WAVE'
+                : modePaiement === 'Virement' ? 'VIREMENT'
+                : modePaiement === 'Chèque' ? 'CHEQUE'
+                : 'ESPECES';
+
+const newPayment: Payment = {
+  id: crypto.randomUUID(),
+  ref: `PAY-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+  quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
+  locataireId: t.id,
+  locataireNom: `${t.prenom} ${t.nom}`,
+  bienId: t.bienId,
+  bienNom: p?.nom || t.bienNom,
+  proprietaireId: o?.id || p?.proprietaireId || t.proprietaireId || '',
+  proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire',
+  periode,
+  loyerBase: t.loyerMensuel || 0,
+  charges,
+  tva,
+  tom,
+  penalites,
+  indemnitesOccupation: 0,
+  montantTotal: totalCalculated,
+  montantPaye: Number(montantPaye),
+  montantRestant: Math.max(0, totalCalculated - Number(montantPaye)),
+  statut: isMobileMoney ? 'En attente' : (isFull ? 'Payé' : 'Partiel'),
+  modePaiement,
+  moyenPaiementCode: moyenCode,
+  verificationStatut: isMobileMoney ? 'en_attente' : 'valide',
+  datePaiement,
+  dateEcheance: '2026-05-05',
+  recuPar: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Caisse FITAL-IMMO',
+  observation,
+  typeRecu,
+  referencePaiementInitial: referencePaiementInitial || undefined,
+  montantInitialDu: initialPayment?.montantTotal || totalCalculated,
+};
 
     onAddPayment(newPayment);
     setIsNewPaymentModalOpen(false);

@@ -17,7 +17,7 @@ import {
   MessageSquare,
   Send,
 } from 'lucide-react';
-import { Owner, Property, Payment, Building, Unit } from '../types';
+import { Owner, Property, Payment, Unit } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { OwnerMandateModal } from './OwnerMandateModal';

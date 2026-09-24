@@ -55,6 +55,7 @@ import { ArchiveView } from './components/ArchiveView';
 import { ActivityLogView } from './components/ActivityLogView';
 import { PenaltiesView } from './components/PenaltiesView';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
+import { formatNumber } from './lib/utils';
 import {
   ActiveTab,
   Property,
@@ -446,9 +447,16 @@ export default function App() {
     if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-    setActivityLogs((prev) => { const next = [activity, ...prev]; persistCollection('activity_logs', next); return next; });
-    if (currentUser?.agencyId) saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
-  };
+  console.log('📝 handleLogActivity REÇU:', activity.title);
+  setActivityLogs((prev) => {
+    const next = [activity, ...prev];
+    persistCollection('activity_logs', next);
+    return next;
+  });
+  if (currentUser?.agencyId) {
+    saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
+  }
+};
 
   // ============================================================
   // HANDLERS : OWNER DEDUCTIONS
@@ -509,24 +517,28 @@ export default function App() {
       return next;
     });
 
-    if (currentUser?.agencyId) {
-      handleLogActivity({
-        id: crypto.randomUUID(),
-        agencyId: currentUser.agencyId,
-        userId: currentUser.id,
-        userNom: `${currentUser.prenom} ${currentUser.nom}`,
-        activityType: 'PAYMENT',
-        entityType: 'payment',
-        entityId: newPayment.id,
-        entityRef: newPayment.quittanceNumero,
-        title: `Paiement ${newPayment.statut} — ${newPayment.locataireNom}`,
-        description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
-        montant: newPayment.montantPaye,
-        activityDate: new Date().toISOString().split('T')[0],
-        activityHour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        createdAt: new Date().toISOString(),
-      });
-    }
+        // LOG ACTIVITÉ — toujours, même sans agencyId
+    const activityEntry: ActivityLog = {
+      id: crypto.randomUUID(),
+      agencyId: currentUser?.agencyId || 'local',
+      userId: currentUser?.id,
+      userNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
+      activityType: 'PAYMENT',
+      entityType: 'payment',
+      entityId: newPayment.id,
+      entityRef: newPayment.quittanceNumero,
+      title: `Paiement ${newPayment.statut} — ${newPayment.locataireNom}`,
+      description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
+      montant: newPayment.montantPaye,
+      activityDate: new Date().toISOString().split('T')[0],
+      activityHour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toISOString(),
+    };
+    handleLogActivity(activityEntry);
+    console.log('🔥 LOG ACTIVITÉ ENVOYÉ:', activityEntry.title);
+
+    // MESSAGE DE SUCCÈS
+    alert(`✅ Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -747,10 +759,14 @@ export default function App() {
   };
   const handleOpenQuickReminder = (tenant: Tenant) => { setActiveTab('reminders'); };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
-    if (tenant) setInitialTenantForPayment(tenant);
-    else setInitialTenantForPayment(null);
-    setIsNewPaymentModalOpen(true);
-  };
+  if (tenant) {
+    setInitialTenantForPayment(tenant);
+  } else {
+    setInitialTenantForPayment(null);
+  }
+  setIsNewPaymentModalOpen(true);
+  setActiveTab('payments');
+};
   const handleOpenBulletinVersement = (owner: Owner) => { setOwnerBulletinModalOwner(owner); };
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
