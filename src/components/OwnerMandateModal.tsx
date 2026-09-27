@@ -99,9 +99,19 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
 
           {/* Préambule */}
           <div className="space-y-3 text-[11px] text-justify">
-            <p>
+                        <p>
               Je soussigné <strong>Monsieur/Madame {owner.prenom} {owner.nom}</strong>,
-              {owner.ninea && <> Carte Nationale d'Identité / NINEA N° <strong>{owner.ninea}</strong>,</>}
+              {owner.cni && (
+                <>
+                  {' '}
+                  {owner.typePiece === 'PASSEPORT' ? 'Passeport'
+                    : owner.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
+                    : owner.typePiece === 'AUTRE' ? "Pièce d'identité"
+                    : 'CNI'}{' '}
+                  N° <strong>{owner.cni}</strong>,
+                </>
+              )}
+              {!owner.cni && owner.ninea && <> NINEA N° <strong>{owner.ninea}</strong>,</>}
               Propriétaire,
             </p>
             <p>

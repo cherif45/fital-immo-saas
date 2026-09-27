@@ -13,7 +13,7 @@ import {
   FileCheck,
   X,
 } from 'lucide-react';
-import { Payment, Owner, Tenant, LeaseContract, Property } from '../types';
+import { Payment, Owner, Tenant, LeaseContract, Property, UserAccount } from '../types';
 import { LeaseContractModal } from './LeaseContractModal';
 import { OwnerMandateModal } from './OwnerMandateModal';
 import { InspectionPrintModal } from './InspectionPrintModal';
@@ -24,6 +24,7 @@ interface DocumentsViewProps {
   tenants: Tenant[];
   contracts: LeaseContract[];
   properties: Property[];
+  currentUser?: UserAccount;
   onOpenReceipt: (payment: Payment) => void;
   onOpenOwnerSlip: (owner: Owner) => void;
 }
@@ -34,9 +35,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   tenants,
   contracts,
   properties,
+  currentUser,
   onOpenReceipt,
   onOpenOwnerSlip,
 }) => {
+  const role = currentUser?.role || 'ADMIN';
+  const isProprietaire = role === 'PROPRIETAIRE';
+  const isLocataire = role === 'LOCATAIRE';
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [dataNotice, setDataNotice] = useState<string | null>(null);
 
@@ -55,8 +60,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     }
     return true;
   };
-
-  const documentTemplates = [
+    const allDocumentTemplates = [
     {
       id: 'quittance',
       title: 'Quittance de Loyer & Reçu Officiel',
@@ -132,7 +136,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       color: 'text-rose-400',
       action: () => setSelectedDoc('mise_demeure'),
     },
-    {
+       {
       id: 'fiche',
       title: 'Fiche de Renseignements Locataire (P.14)',
       category: 'Gestion Locative',
@@ -142,6 +146,21 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       action: () => setSelectedDoc('fiche'),
     },
   ];
+
+  // Filtrage par rôle
+  const documentTemplates = (() => {
+    if (isProprietaire) {
+      // Propriétaire : mandat + bulletin + contrat + état des lieux + fiche
+      return allDocumentTemplates.filter((d) =>
+        ['mandat', 'bulletin', 'bail', 'etat_lieux', 'fiche'].includes(d.id)
+      );
+    }
+    if (isLocataire) {
+      // Locataire : quittance + état des lieux
+      return allDocumentTemplates.filter((d) => ['quittance', 'etat_lieux'].includes(d.id));
+    }
+    return allDocumentTemplates; // Admin, Caissier, Gestionnaire, Agent voient tout
+  })();
 
   return (
     <div className="space-y-6">

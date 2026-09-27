@@ -51,9 +51,7 @@ interface TopbarProps {
 
 // ============================================================
 // 🔒 MATRICE DE VISIBILITÉ DES BOUTONS PAR RÔLE
-// Basée sur les logiciels standard (TurboTenant, Matera, Lobby)
 // ============================================================
-
 const CAN_USE_MOBILE_MONEY = ['ADMIN', 'SUPER_ADMIN', 'CAISSIER', 'GESTIONNAIRE', 'LOCATAIRE'];
 const CAN_USE_QUICK_COMMS = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'];
 const CAN_USE_AI_REMINDERS = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'];
@@ -86,17 +84,36 @@ export const Topbar: React.FC<TopbarProps> = ({
 
   const noop = () => {};
 
+  // 👑 SUPER_ADMIN_SAAS n'a accès à AUCUN CTA métier
+  const isSaasAdmin = currentUser.role === 'SUPER_ADMIN_SAAS';
+
   // ⬇️ Filtrer les boutons selon le rôle
-  const showMobileMoneyBtn = onOpenMobileMoney && CAN_USE_MOBILE_MONEY.includes(currentUser.role);
-  const showQuickCommsBtn = onOpenQuickComms && CAN_USE_QUICK_COMMS.includes(currentUser.role);
-  const showAiRemindersBtn = CAN_USE_AI_REMINDERS.includes(currentUser.role);
+  const showMobileMoneyBtn = !isSaasAdmin && onOpenMobileMoney && CAN_USE_MOBILE_MONEY.includes(currentUser.role);
+  const showQuickCommsBtn = !isSaasAdmin && onOpenQuickComms && CAN_USE_QUICK_COMMS.includes(currentUser.role);
+  const showAiRemindersBtn = !isSaasAdmin && CAN_USE_AI_REMINDERS.includes(currentUser.role);
 
   const tabTitles: Record<string, { title: string; subtitle: string; ctaText?: string; ctaAction?: () => void; hideCta?: boolean }> = {
+    'saas-admin': {
+      title: 'Super-Admin SaaS',
+      subtitle: 'Pilotage global de la plateforme · Toutes les agences',
+      hideCta: true,
+    },
     dashboard: {
-      title: currentUser.role === 'PROPRIETAIRE' ? 'Espace Propriétaire Bailleur' : currentUser.role === 'LOCATAIRE' ? 'Espace Locataire Dédié' : currentUser.role === 'CAISSIER' ? 'Tableau de bord Caisse & Trésorerie' : currentUser.role === 'AGENT' ? 'Espace Opérations Terrain' : 'Tableau de bord de Gestion',
-      subtitle: `Vue d'ensemble financière & indicateurs clés — ${selectedPeriod}`,
-      ctaText: currentUser.role === 'LOCATAIRE' ? 'Payer mon loyer' : 'Encaisser un loyer',
-      ctaAction: onOpenNewPayment,
+      title: currentUser.role === 'SUPER_ADMIN_SAAS' ? 'Pilotage SaaS Global'
+           : currentUser.role === 'PROPRIETAIRE' ? 'Espace Propriétaire Bailleur'
+           : currentUser.role === 'LOCATAIRE' ? 'Espace Locataire Dédié'
+           : currentUser.role === 'CAISSIER' ? 'Tableau de bord Caisse & Trésorerie'
+           : currentUser.role === 'AGENT' ? 'Espace Opérations Terrain'
+           : 'Tableau de bord de Gestion',
+      subtitle: currentUser.role === 'SUPER_ADMIN_SAAS' 
+        ? "Vue d'ensemble de la plateforme SaaS · Toutes les agences"
+        : `Vue d'ensemble financière & indicateurs clés — ${selectedPeriod}`,
+      ctaText: currentUser.role === 'SUPER_ADMIN_SAAS' ? undefined
+             : currentUser.role === 'LOCATAIRE' ? 'Payer mon loyer'
+             : currentUser.role === 'PROPRIETAIRE' ? undefined
+             : 'Encaisser un loyer',
+      ctaAction: (currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'SUPER_ADMIN_SAAS') ? undefined : onOpenNewPayment,
+      hideCta: currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'SUPER_ADMIN_SAAS',
     },
     'admin-control': {
       title: 'Centre de Contrôle & Supervision Système',
@@ -104,13 +121,13 @@ export const Topbar: React.FC<TopbarProps> = ({
       hideCta: true,
     },
     'admin-journal': {
-      title: 'Journal d’Activité & Audit Immuable',
+      title: 'Journal d\'Activité & Audit Immuable',
       subtitle: 'Historique exhaustif de toutes les transactions, clôtures et modifications',
       hideCta: true,
     },
     'admin-users': {
       title: 'Gestion Multi-Comptes & Permissions',
-      subtitle: 'Contrôle d’accès par rôle (RBAC), sécurité Supabase Auth et rattachements',
+      subtitle: 'Contrôle d\'accès par rôle (RBAC), sécurité Supabase Auth et rattachements',
       hideCta: true,
     },
     caisse: {
@@ -164,9 +181,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     tenants: {
       title: currentUser.role === 'PROPRIETAIRE' ? 'Mes Locataires' : 'Répertoire des Locataires',
       subtitle: 'Fiches personnelles, solvabilité, coordonnées et historiques',
-      ctaText: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE' ? undefined : 'Nouveau Locataire',
-      ctaAction: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE' ? undefined : (onOpenNewTenant || onOpenNewPayment),
-      hideCta: currentUser.role === 'CAISSIER' || currentUser.role === 'AGENT' || currentUser.role === 'PROPRIETAIRE' || currentUser.role === 'LOCATAIRE',
+      hideCta: true,
     },
     owners: {
       title: 'Propriétaires & Mandats',
@@ -175,11 +190,11 @@ export const Topbar: React.FC<TopbarProps> = ({
     },
     contracts: {
       title: 'Contrats de Bail & Taxes',
-      subtitle: 'Calculs des taxes (TOM, TVA, TLV), charges et cautions d’adhésion',
+      subtitle: 'Calculs des taxes (TOM, TVA, TLV), charges et cautions d\'adhésion',
       hideCta: true,
     },
     inspections: {
-      title: 'États des Lieux d’Entrée & Sortie',
+      title: 'États des Lieux d\'Entrée & Sortie',
       subtitle: 'Inventaires détaillés, chiffrage des dégradations et déductions sur caution',
       hideCta: true,
     },
@@ -191,9 +206,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     finance: {
       title: currentUser.role === 'PROPRIETAIRE' ? 'Mes Reversements & Décomptes' : 'Comptabilité, Décaissements & Caisse',
       subtitle: 'Revenus agence, commissions, reversements propriétaires et solde de caisse',
-      ctaText: currentUser.role === 'PROPRIETAIRE' ? undefined : 'Nouveau Décaissement',
-      ctaAction: currentUser.role === 'PROPRIETAIRE' ? undefined : onOpenNewPayment,
-      hideCta: currentUser.role === 'PROPRIETAIRE',
+      hideCta: true,
     },
     documents: {
       title: 'Documents & Modèles Officiels',
@@ -202,7 +215,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     },
     invoices: {
       title: 'Facturation & Frais de Gestion',
-      subtitle: 'Édition des factures d’adhésion, travaux et frais de dossier',
+      subtitle: 'Édition des factures d\'adhésion, travaux et frais de dossier',
       ctaText: 'Nouvelle Facture',
       ctaAction: onOpenNewPayment,
     },
@@ -212,14 +225,14 @@ export const Topbar: React.FC<TopbarProps> = ({
       hideCta: true,
     },
     settings: {
-      title: 'Paramètres & Configuration de l’Agence',
+      title: 'Paramètres & Configuration de l\'Agence',
       subtitle: 'Paramétrage des coordonnées, devises FCFA, taux de gérance et préfixes',
       hideCta: true,
     },
   };
 
   const currentTab = tabTitles[activeTab] || tabTitles.dashboard;
-  const showPrimaryCta = !currentTab.hideCta && currentTab.ctaText && currentTab.ctaAction;
+  const showPrimaryCta = !isSaasAdmin && !currentTab.hideCta && currentTab.ctaText && currentTab.ctaAction;
 
   return (
     <header className="sticky top-0 z-30 bg-[#0F1B2D]/95 backdrop-blur-xl border-b border-[#C9A96E]/15 px-4 sm:px-6 md:px-8 py-3 sm:py-4 transition-all">
@@ -227,7 +240,6 @@ export const Topbar: React.FC<TopbarProps> = ({
         {/* Top line on mobile: Menu button + Title + Mobile quick icons */}
         <div className="flex items-center justify-between gap-3 min-w-0">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Hamburger Button (Mobile Only) */}
             <button
               onClick={onToggleMobileMenu}
               className="md:hidden p-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-[#A8B4C4] hover:text-white hover:border-[#C9A96E]/50 transition-all flex items-center justify-center flex-shrink-0 min-h-[44px] min-w-[44px] cursor-pointer"
@@ -236,7 +248,6 @@ export const Topbar: React.FC<TopbarProps> = ({
               <Menu className="w-5 h-5 text-[#C9A96E]" />
             </button>
 
-            {/* Title & Subtitle */}
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-white tracking-tight font-display truncate">
@@ -255,7 +266,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             </div>
           </div>
 
-          {/* Quick search shortcut button on mobile */}
           <div className="flex items-center gap-1.5 md:hidden">
             {onOpenGlobalSearch && (
               <button
@@ -269,9 +279,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           </div>
         </div>
 
-        {/* Action Controls & Filters */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between md:justify-end">
-          {/* Search Input on Desktop/Tablet */}
           <div className="relative flex-1 sm:flex-none">
             <Search className="w-4 h-4 text-[#6B7C94] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -291,7 +299,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
 
-          {/* Global Search trigger (Desktop) */}
           {onOpenGlobalSearch && (
             <button
               onClick={onOpenGlobalSearch}
@@ -303,7 +310,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          {/* Database Diagnostics & Config button */}
           <button
             onClick={() => setShowDbStatusModal(true)}
             className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer min-h-[40px] ${
@@ -311,16 +317,15 @@ export const Topbar: React.FC<TopbarProps> = ({
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
                 : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
             }`}
-            title="Vérifier la configuration et la connexion de la base de données"
+            title="Vérifier le statut du service"
           >
             <Database className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden sm:inline font-mono text-[10px]">
-              {isSupabaseConfigured ? 'Base OK' : 'Mode Local'}
+              {isSupabaseConfigured ? 'En ligne' : 'Opérationnel'}
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </button>
 
-          {/* User Account Switcher Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -387,7 +392,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
 
-          {/* Communications (Appels / WhatsApp / SMS) button */}
           {showQuickCommsBtn && (
             <button
               onClick={onOpenQuickComms}
@@ -399,19 +403,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          {/* Mobile Money direct action button */}
-          {showMobileMoneyBtn && (
-            <button
-              onClick={onOpenMobileMoney}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[40px]"
-              title="Paiement Wave & Orange Money"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-blue-400" />
-              <span>Wave / OM</span>
-            </button>
-          )}
-
-          {/* AI Reminders button */}
           {showAiRemindersBtn && (
             <button
               onClick={onOpenReminders}
@@ -423,7 +414,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          {/* Notifications Icon Button */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -436,7 +426,6 @@ export const Topbar: React.FC<TopbarProps> = ({
               )}
             </button>
 
-            {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-[#162133] border border-[#C9A96E]/30 rounded-2xl shadow-2xl p-3 sm:p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between pb-3 border-b border-[#C9A96E]/15">
@@ -481,7 +470,6 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
 
-          {/* Primary CTA Button */}
           {showPrimaryCta && (
             <button
               onClick={currentTab.ctaAction || noop}

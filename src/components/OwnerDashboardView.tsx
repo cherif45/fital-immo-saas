@@ -65,8 +65,10 @@ export function OwnerDashboardView({
   // STRICT FILTERING: Only items belonging to THIS owner
   const myProperties = properties.filter((p) => p.proprietaireId === owner.id);
   const myPropertyIds = myProperties.map((p) => p.id);
-
-  const myTenants = tenants.filter((t) => myPropertyIds.includes(t.bienId) || t.proprietaireId === owner.id);
+    const myTenants = tenants.filter((t) => 
+    (myPropertyIds.includes(t.bienId) || t.proprietaireId === owner.id) 
+    && !t.dateSortie
+  );
   const myPayments = payments.filter((p) => p.proprietaireId === owner.id || myPropertyIds.includes(p.bienId));
   const myMaintenance = maintenance.filter((m) => myPropertyIds.includes(m.bienId));
   const myDisbursements = disbursements.filter((d) => d.proprietaireId === owner.id);
@@ -280,7 +282,7 @@ export function OwnerDashboardView({
                 </div>
               ) : (
                 myProperties.map((prop) => {
-                const tenant = myTenants.find((t) => t.bienId === prop.id);
+                                  const tenant = myTenants.find((t) => t.bienId === prop.id && !t.dateSortie);
                 return (
                   <div key={prop.id} className="p-4 bg-[#0A111D] border border-white/5 rounded-xl space-y-3">
                     <div className="flex items-start justify-between">

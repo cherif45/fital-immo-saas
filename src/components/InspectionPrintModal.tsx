@@ -67,7 +67,7 @@ export const InspectionPrintModal: React.FC<InspectionPrintModalProps> = ({ insp
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 border-b border-neutral-300">
-              {inspection.elements.map((el, idx) => (
+                            {(inspection.elements || []).map((el, idx) => (
                 <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}>
                   <td className="py-2 px-3 font-semibold text-neutral-900">{el.nom}</td>
                   <td className="py-2 px-3">
@@ -101,19 +101,50 @@ export const InspectionPrintModal: React.FC<InspectionPrintModalProps> = ({ insp
             </div>
           </div>
 
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 pt-4 border-t border-neutral-300 text-xs">
+                   {/* Signatures & Traçabilité */}
+          <div className="grid grid-cols-3 gap-6 pt-6 mt-6 border-t-2 border-neutral-300 text-xs">
             <div>
-              <div className="font-bold text-neutral-800">Signature du Locataire :</div>
-              <div className="h-14 border border-dashed border-neutral-400 rounded-lg mt-1 p-1">
-                <span className="text-[10px] text-neutral-400 italic">Mention "Lu et approuvé sans réserve"</span>
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Le Locataire
+              </div>
+              <div className="text-sm font-bold text-neutral-900 mb-2">
+                {inspection.locataireNom || '—'}
+              </div>
+              <div className="font-bold text-neutral-700 text-[11px] mb-1">
+                Signature :
+              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg p-1">
+                <span className="text-[9px] text-neutral-400 italic">Lu et approuvé</span>
               </div>
             </div>
-            <div className="text-right">
-              <div className="font-bold text-neutral-800">Pour l'Agence FITAL-IMMO :</div>
-              <div className="h-14 border border-dashed border-neutral-400 rounded-lg mt-1 p-1 flex items-center justify-center">
-                <span className="text-[10px] font-black text-amber-800 uppercase">★ VISA DE CONFORMITÉ ★</span>
+
+            <div>
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Agent FITAL-IMMO
               </div>
+              <div className="text-sm font-bold text-neutral-900 mb-0.5">
+                {inspection.createdByNom || inspection.agentNom || 'Agent de gérance'}
+              </div>
+              <div className="text-[10px] uppercase font-semibold text-neutral-500 mb-2">
+                Rôle : {inspection.createdByRole || 'AGENT'}
+              </div>
+              <div className="font-bold text-neutral-700 text-[11px] mb-1">
+                Signature :
+              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
+            </div>
+
+            <div className="text-right">
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Le Propriétaire
+              </div>
+              <div className="text-sm font-bold text-neutral-900 mb-2">
+                {inspection.bienNom || '—'}
+              </div>
+              <div className="font-bold text-neutral-700 text-[11px] mb-1">
+                Signature :
+              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
             </div>
           </div>
         </div>

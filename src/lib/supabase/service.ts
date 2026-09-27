@@ -71,6 +71,31 @@ export const defaultPaymentMethods: PaymentMethodConfig[] = [
   { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chèque Certifié', description: 'Dépôt de chèque.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chèque certifié.' },
 ];
 
+// 🎯 Settings VIDES pour nouvelle agence (pas de fallback FITAL)
+export const emptySettings: AgencySettings = {
+  nomAgence: '',
+  slogan: '',
+  telephone: '',
+  email: '',
+  adresse: '',
+  ville: '',
+  pays: 'Sénégal',
+  ninea: '',
+  devise: 'FCFA',
+  tauxGeranceDefaut: 10,
+  penaliteDefaut: 10,
+  tvaTaux: 18,
+  prefixFacture: 'FAC-',
+  prefixQuittance: 'QUI-',
+  prefixPaiement: 'PAY-',
+  prefixContrat: 'BAIL-',
+  prefixBonCaisse: 'BCA-',
+  waveNumero: '',
+  orangeMoneyCode: '',
+  whatsappBusiness: '',
+  standardTelephone: '',
+};
+
 export function loadLocalCollection<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined' || !window.localStorage) return fallback;
   try {
@@ -99,19 +124,15 @@ export function persistCollection<T>(key: string, data: T): void {
 }
 
 // ============================================================
-// MAPPERS : BUILDINGS
+// MAPPERS (inchangés)
 // ============================================================
 export function mapBuildingFromDb(r: any): Building {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     proprietaireId: r.proprietaire_id || r.proprietaireId || '',
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
-    nom: r.nom || 'Immeuble',
-    adresse: r.adresse || '',
-    quartier: r.quartier || '',
-    ville: r.ville || 'Dakar',
-    type: r.type || 'Immeuble',
+    nom: r.nom || 'Immeuble', adresse: r.adresse || '', quartier: r.quartier || '',
+    ville: r.ville || 'Dakar', type: r.type || 'Immeuble',
     nombreEtages: Number(r.nombre_etages ?? r.nombreEtages ?? 0),
     description: r.description || '',
     dateCreation: r.date_creation || r.dateCreation,
@@ -123,44 +144,31 @@ export function mapBuildingFromDb(r: any): Building {
   };
 }
 
-// ============================================================
-// MAPPERS : UNITS
-// ============================================================
 export function mapUnitFromDb(r: any): Unit {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     buildingId: r.building_id || r.buildingId || '',
     buildingNom: r.building_nom || r.buildingNom,
     proprietaireId: r.proprietaire_id || r.proprietaireId || '',
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
-    nom: r.nom || 'Espace',
-    type: r.type || 'Appartement',
-    etage: r.etage || '',
-    superficie: Number(r.superficie ?? 0),
+    nom: r.nom || 'Espace', type: r.type || 'Appartement',
+    etage: r.etage || '', superficie: Number(r.superficie ?? 0),
     nombrePieces: Number(r.nombre_pieces ?? r.nombrePieces ?? 1),
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
     statut: r.statut || 'Vacant',
     locataireActuelId: r.locataire_actuel_id || r.locataireActuelId,
     locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
-    description: r.description || '',
-    equipements: r.equipements || [],
+    description: r.description || '', equipements: r.equipements || [],
     dateCreation: r.created_at || r.dateCreation,
   };
 }
 
-// ============================================================
-// MAPPERS : PROPERTIES
-// ============================================================
 export function mapPropertyFromDb(r: any): Property {
   return {
-    id: r.id,
-    ref: r.ref || `BIEN-${r.id.slice(0, 6)}`,
-    nom: r.nom || 'Bien Immobilier',
-    type: r.type || 'Appartement',
-    adresse: r.adresse || '',
-    quartier: r.quartier || 'Dakar',
+    id: r.id, ref: r.ref || `BIEN-${r.id.slice(0, 6)}`,
+    nom: r.nom || 'Bien Immobilier', type: r.type || 'Appartement',
+    adresse: r.adresse || '', quartier: r.quartier || 'Dakar',
     ville: r.ville || 'Dakar',
     proprietaireId: r.proprietaire_id || r.proprietaireId || '',
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom || 'Propriétaire',
@@ -180,9 +188,6 @@ export function mapPropertyFromDb(r: any): Property {
   };
 }
 
-// ============================================================
-// MAPPERS : OWNERS
-// ============================================================
 export function mapOwnerFromDb(r: any): Owner {
   return {
     id: r.id, ref: r.ref || `PRO-${r.id.slice(0, 6)}`,
@@ -200,9 +205,6 @@ export function mapOwnerFromDb(r: any): Owner {
   };
 }
 
-// ============================================================
-// MAPPERS : TENANTS
-// ============================================================
 export function mapTenantFromDb(r: any): Tenant {
   return {
     id: r.id, ref: r.ref || `LOC-${r.id.slice(0, 6)}`,
@@ -223,9 +225,6 @@ export function mapTenantFromDb(r: any): Tenant {
   };
 }
 
-// ============================================================
-// MAPPERS : CONTRACTS
-// ============================================================
 export function mapContractFromDb(r: any): LeaseContract {
   return {
     id: r.id, ref: r.ref || `BAIL-${r.id.slice(0, 6)}`,
@@ -248,12 +247,12 @@ export function mapContractFromDb(r: any): LeaseContract {
     dateFin: r.date_fin || r.dateFin || '',
     typeReglement: r.type_reglement || r.typeReglement || 'Mensuel',
     statut: r.statut || 'En cours',
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : PAYMENTS
-// ============================================================
 export function mapPaymentFromDb(r: any): Payment {
   return {
     id: r.id, ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
@@ -286,21 +285,19 @@ export function mapPaymentFromDb(r: any): Payment {
     typeRecu: r.type_recu || r.typeRecu || 'QUITTANCE',
     referencePaiementInitial: r.reference_paiement_initial || r.referencePaiementInitial,
     montantInitialDu: Number(r.montant_initial_du ?? r.montantInitialDu ?? 0),
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : PENALTIES
-// ============================================================
 export function mapPenaltyFromDb(r: any): Penalty {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     paymentId: r.payment_id || r.paymentId,
     locataireId: r.locataire_id || r.locataireId,
     locataireNom: r.locataire_nom || r.locataireNom,
-    bienId: r.bien_id || r.bienId,
-    bienNom: r.bien_nom || r.bienNom,
+    bienId: r.bien_id || r.bienId, bienNom: r.bien_nom || r.bienNom,
     periode: r.periode,
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
     tauxPenalite: Number(r.taux_penalite ?? r.tauxPenalite ?? 10),
@@ -315,57 +312,40 @@ export function mapPenaltyFromDb(r: any): Penalty {
   };
 }
 
-// ============================================================
-// MAPPERS : OWNER CHARGES
-// ============================================================
 export function mapOwnerChargeFromDb(r: any): OwnerCharge {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
     bulletinId: r.bulletin_id || r.bulletinId,
     periode: r.periode,
     typeCharge: r.type_charge || r.typeCharge || 'AUTRE',
-    libelle: r.libelle || '',
-    montant: Number(r.montant ?? 0),
+    libelle: r.libelle || '', montant: Number(r.montant ?? 0),
     referenceDocument: r.reference_document || r.referenceDocument,
     dateCharge: r.date_charge || r.dateCharge || new Date().toISOString().split('T')[0],
-    statut: r.statut || 'Validé',
-    notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt,
-    updatedAt: r.updated_at || r.updatedAt,
+    statut: r.statut || 'Validé', notes: r.notes || '',
+    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
   };
 }
 
-// ============================================================
-// MAPPERS : OWNER DEDUCTIONS (ancien système)
-// ============================================================
 export function mapOwnerDeductionFromDb(r: any): OwnerDeduction {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     bulletinRef: r.bulletin_ref || r.bulletinRef,
     periode: r.periode || 'Ce mois',
     typeDeduction: r.type_deduction || r.typeDeduction || 'AUTRE',
-    libelle: r.libelle || '',
-    montant: Number(r.montant ?? 0),
+    libelle: r.libelle || '', montant: Number(r.montant ?? 0),
     referenceDocument: r.reference_document || r.referenceDocument,
     dateDeduction: r.date_deduction || r.dateDeduction || new Date().toISOString().split('T')[0],
     notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt,
-    updatedAt: r.updated_at || r.updatedAt,
+    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
   };
 }
 
-// ============================================================
-// MAPPERS : BULLETIN VERSEMENTS
-// ============================================================
 export function mapBulletinVersementFromDb(r: any): BulletinVersement {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     reference: r.reference || `BV-${r.id.slice(0, 6)}`,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
@@ -384,18 +364,16 @@ export function mapBulletinVersementFromDb(r: any): BulletinVersement {
     modeReglement: r.mode_reglement || r.modeReglement,
     referenceVirement: r.reference_virement || r.referenceVirement,
     notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt,
-    updatedAt: r.updated_at || r.updatedAt,
+    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : ARCHIVES
-// ============================================================
 export function mapArchiveFromDb(r: any): ArchiveRecord {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
     entityType: r.entity_type || r.entityType,
     entityId: r.entity_id || r.entityId,
     entityRef: r.entity_ref || r.entityRef,
@@ -407,21 +385,15 @@ export function mapArchiveFromDb(r: any): ArchiveRecord {
   };
 }
 
-// ============================================================
-// MAPPERS : ACTIVITY LOGS
-// ============================================================
 export function mapActivityLogFromDb(r: any): ActivityLog {
   return {
-    id: r.id,
-    agencyId: r.agency_id || r.agencyId,
-    userId: r.user_id || r.userId,
-    userNom: r.user_nom || r.userNom,
+    id: r.id, agencyId: r.agency_id || r.agencyId,
+    userId: r.user_id || r.userId, userNom: r.user_nom || r.userNom,
     activityType: r.activity_type || r.activityType,
     entityType: r.entity_type || r.entityType,
     entityId: r.entity_id || r.entityId,
     entityRef: r.entity_ref || r.entityRef,
-    title: r.title,
-    description: r.description,
+    title: r.title, description: r.description,
     montant: Number(r.montant ?? 0),
     activityDate: r.activity_date || r.activityDate,
     activityHour: r.activity_hour || r.activityHour,
@@ -430,13 +402,9 @@ export function mapActivityLogFromDb(r: any): ActivityLog {
   };
 }
 
-// ============================================================
-// MAPPERS : CASH MOVEMENTS
-// ============================================================
 export function mapCashMovementFromDb(r: any): CashMovement {
   return {
-    id: r.id, reference: r.reference || r.id,
-    type: r.type,
+    id: r.id, reference: r.reference || r.id, type: r.type,
     montant: Number(r.montant || 0),
     description: r.description || '',
     libelle: r.description || r.libelle || '',
@@ -447,12 +415,12 @@ export function mapCashMovementFromDb(r: any): CashMovement {
     justificatifRef: r.justificatif_ref || r.justificatifRef || '',
     dateHeure: r.created_at || r.dateHeure || new Date().toISOString(),
     statut: r.statut || 'Validé',
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : CASH CLOSINGS
-// ============================================================
 export function mapCashClosingFromDb(r: any): CashClosing {
   return {
     id: r.id, reference: r.reference || r.id,
@@ -471,9 +439,6 @@ export function mapCashClosingFromDb(r: any): CashClosing {
   };
 }
 
-// ============================================================
-// MAPPERS : INSPECTIONS
-// ============================================================
 export function mapInspectionFromDb(r: any): Inspection {
   return {
     id: r.id, ref: r.ref || `EDL-${r.id.slice(0, 6)}`,
@@ -489,12 +454,12 @@ export function mapInspectionFromDb(r: any): Inspection {
     remarques: r.remarques || r.observations || '',
     statut: r.statut || 'Validé',
     signe: Boolean(r.signe ?? true),
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : MAINTENANCE
-// ============================================================
 export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
   return {
     id: r.id, ref: r.ref || `TRV-${r.id.slice(0, 6)}`,
@@ -523,12 +488,12 @@ export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
     dateResolution: r.date_resolution || r.dateResolution,
     prestataire: r.prestataire || '',
     artisanNom: r.artisan_nom || r.artisanNom,
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : DISBURSEMENTS
-// ============================================================
 export function mapDisbursementFromDb(r: any): OwnerDisbursement {
   return {
     id: r.id, ref: r.ref || `REV-${r.id.slice(0, 6)}`,
@@ -551,18 +516,20 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     dateReglement: r.date_versement || '',
     dateReversement: r.date_versement || '',
     referenceVirement: '',
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : INVOICES
-// ============================================================
 export function mapInvoiceFromDb(r: any): Invoice {
   const tot = Number(r.montant_total ?? r.total ?? 0);
   return {
     id: r.id, ref: r.ref || r.numero || `FAC-${r.id.slice(0, 6)}`,
     numero: r.numero || `FAC-${r.id.slice(0, 6)}`,
     type: r.type || 'Frais de dossier',
+    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || '',
     locataireId: r.locataire_id || r.locataireId || '',
     locataireNom: r.locataire_nom || r.locataireNom || '',
     bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
@@ -573,12 +540,12 @@ export function mapInvoiceFromDb(r: any): Invoice {
     sousTotal: Number(r.sous_total ?? r.sousTotal ?? tot),
     taxes: Number(r.taxes ?? 0), total: tot, montantTotal: tot,
     statut: r.statut || 'Émise', lignes: r.lignes || [],
+    createdById: r.created_by_id || r.createdById,
+    createdByNom: r.created_by_nom || r.createdByNom,
+    createdByRole: r.created_by_role || r.createdByRole,
   };
 }
 
-// ============================================================
-// MAPPERS : REMINDERS
-// ============================================================
 export function mapReminderFromDb(r: any): TenantReminder {
   return {
     id: r.id, locataireId: r.locataire_id || r.locataireId || '',
@@ -595,7 +562,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
     dateEnvoi: r.date_envoi || r.dateEnvoi,
   };
-} 
+}
 
 // ============================================================
 // CHARGEMENT DE L'APPLICATION
@@ -617,9 +584,10 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   const localCashVouchers = loadLocalCollection<CashVoucher[]>('cash_vouchers', []);
   const localNotifications = loadLocalCollection<NotificationItem[]>('notifications', []);
   const localAuditLogs = loadLocalCollection<AuditLog[]>('audit_logs', []);
-  const localSettings = loadLocalCollection<AgencySettings>('settings', defaultSettings);
+  // 🎯 Settings vides par défaut (pas de FITAL)
+  const localSettings = loadLocalCollection<AgencySettings>('settings', emptySettings);
   const localUsers = loadLocalCollection<UserAccount[]>('users', []);
-  const localPaymentMethods = loadLocalCollection<PaymentMethodConfig[]>('payment_methods', defaultPaymentMethods);
+  const localPaymentMethods = loadLocalCollection<PaymentMethodConfig[]>('payment_methods', []);
   const localCashMovements = loadLocalCollection<CashMovement[]>('cash_movements', []);
   const localCashClosings = loadLocalCollection<CashClosing[]>('cash_closings', []);
   const localOwnerDeductions = loadLocalCollection<OwnerDeduction[]>('owner_deductions', []);
@@ -645,8 +613,14 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
 
   if (!isSupabaseConfigured || !supabase) return state;
 
+  // 🛡️ SÉCURITÉ : Refuser de charger si pas d'agencyId
+  if (!agencyId) {
+    console.warn('⚠️ loadFullApplicationData : agencyId manquant → aucune donnée distante chargée.');
+    return state;
+  }
+
   try {
-    const agencyFilter = (query: any) => (agencyId ? query.eq('agency_id', agencyId) : query);
+    const agencyFilter = (query: any) => query.eq('agency_id', agencyId);
 
     const [
       agencyRes, propsRes, ownersRes, tenantsRes, contractsRes, paymentsRes,
@@ -655,7 +629,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       deductionsRes, bulletinsRes, archivesRes, activitiesRes,
       penaltiesRes, ownerChargesRes,
     ] = await Promise.allSettled([
-      agencyId ? supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
       agencyFilter(supabase.from('owners').select('*').is('deleted_at', null)),
       agencyFilter(supabase.from('tenants').select('*').is('deleted_at', null)),
@@ -671,7 +645,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)),
       agencyFilter(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)),
       agencyFilter(supabase.from('payment_methods_config').select('*')),
-      agencyId ? supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle(),
       agencyFilter(supabase.from('profiles').select('*')),
       agencyFilter(supabase.from('buildings').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('units').select('*').order('created_at', { ascending: false })),
@@ -724,7 +698,14 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       persistCollection('inspections', state.inspections);
     }
     if (disbRes.status === 'fulfilled' && disbRes.value.data && disbRes.value.data.length > 0) {
-      state.disbursements = disbRes.value.data.map(mapDisbursementFromDb);
+      state.disbursements = disbRes.value.data.map((d: any) => {
+        const mapped = mapDisbursementFromDb(d);
+        if (!mapped.proprietaireNom || mapped.proprietaireNom === 'Propriétaire') {
+          const owner = state.owners.find((o) => o.id === mapped.proprietaireId);
+          if (owner) mapped.proprietaireNom = `${owner.prenom} ${owner.nom}`;
+        }
+        return mapped;
+      });
       persistCollection('disbursements', state.disbursements);
     }
     if (invRes.status === 'fulfilled' && invRes.value.data && invRes.value.data.length > 0) {
@@ -747,72 +728,81 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       state.paymentMethods = pmRes.value.data as unknown as PaymentMethodConfig[];
       persistCollection('payment_methods', state.paymentMethods);
     }
-
     if (buildingsRes.status === 'fulfilled' && buildingsRes.value.data && buildingsRes.value.data.length > 0) {
       state.buildings = buildingsRes.value.data.map(mapBuildingFromDb);
       persistCollection('buildings', state.buildings);
     }
-
     if (unitsRes.status === 'fulfilled' && unitsRes.value.data && unitsRes.value.data.length > 0) {
       state.units = unitsRes.value.data.map(mapUnitFromDb);
       persistCollection('units', state.units);
     }
-
     if (deductionsRes.status === 'fulfilled' && deductionsRes.value.data && deductionsRes.value.data.length > 0) {
       state.ownerDeductions = deductionsRes.value.data.map(mapOwnerDeductionFromDb);
       persistCollection('owner_deductions', state.ownerDeductions);
     }
-
     if (bulletinsRes.status === 'fulfilled' && bulletinsRes.value.data && bulletinsRes.value.data.length > 0) {
       state.bulletinVersements = bulletinsRes.value.data.map(mapBulletinVersementFromDb);
       persistCollection('bulletin_versements', state.bulletinVersements);
     }
-
     if (archivesRes.status === 'fulfilled' && archivesRes.value.data && archivesRes.value.data.length > 0) {
       state.archives = archivesRes.value.data.map(mapArchiveFromDb);
       persistCollection('archives', state.archives);
     }
-
     if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data && activitiesRes.value.data.length > 0) {
       state.activityLogs = activitiesRes.value.data.map(mapActivityLogFromDb);
       persistCollection('activity_logs', state.activityLogs);
     }
-
     if (penaltiesRes.status === 'fulfilled' && penaltiesRes.value.data && penaltiesRes.value.data.length > 0) {
       state.penalties = penaltiesRes.value.data.map(mapPenaltyFromDb);
       persistCollection('penalties', state.penalties);
     }
-
     if (ownerChargesRes.status === 'fulfilled' && ownerChargesRes.value.data && ownerChargesRes.value.data.length > 0) {
       state.ownerCharges = ownerChargesRes.value.data.map(mapOwnerChargeFromDb);
       persistCollection('owner_charges', state.ownerCharges);
     }
 
+    // 🎯 MAPPING SETTINGS SANS FALLBACK FITAL
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
-        ...defaultSettings,
-        nomAgence: dbSettings.nom_agence || defaultSettings.nomAgence,
-        slogan: dbSettings.slogan || defaultSettings.slogan,
-        telephone: dbSettings.telephone || defaultSettings.telephone,
-        email: dbSettings.email || defaultSettings.email,
-        adresse: dbSettings.adresse || defaultSettings.adresse,
-        ville: dbSettings.ville || defaultSettings.ville,
-        pays: dbSettings.pays || defaultSettings.pays,
-        ninea: dbSettings.ninea || defaultSettings.ninea,
-        devise: dbSettings.devise || defaultSettings.devise,
-        tauxGeranceDefaut: Number(dbSettings.taux_gerance_defaut ?? defaultSettings.tauxGeranceDefaut),
-        penaliteDefaut: Number(dbSettings.penalite_defaut ?? defaultSettings.penaliteDefaut),
-        tvaTaux: Number(dbSettings.tva_taux ?? defaultSettings.tvaTaux),
-        prefixFacture: dbSettings.prefix_facture || defaultSettings.prefixFacture,
-        prefixQuittance: dbSettings.prefix_quittance || defaultSettings.prefixQuittance,
-        prefixPaiement: dbSettings.prefix_paiement || defaultSettings.prefixPaiement,
-        prefixContrat: dbSettings.prefix_contrat || defaultSettings.prefixContrat,
-        prefixBonCaisse: dbSettings.prefix_bon_caisse || defaultSettings.prefixBonCaisse,
-        waveNumero: dbSettings.wave_numero || localSettings.waveNumero || defaultSettings.waveNumero,
-        orangeMoneyCode: dbSettings.orange_money_code || localSettings.orangeMoneyCode || defaultSettings.orangeMoneyCode,
-        whatsappBusiness: dbSettings.whatsapp_business || localSettings.whatsappBusiness || defaultSettings.whatsappBusiness,
-        standardTelephone: dbSettings.standard_telephone || localSettings.standardTelephone || defaultSettings.standardTelephone,
+        nomAgence: dbSettings.nom_agence || '',
+        slogan: dbSettings.slogan || '',
+        telephone: dbSettings.telephone || '',
+        email: dbSettings.email || '',
+        adresse: dbSettings.adresse || '',
+        ville: dbSettings.ville || '',
+        pays: dbSettings.pays || 'Sénégal',
+        ninea: dbSettings.ninea || '',
+        devise: dbSettings.devise || 'FCFA',
+        tauxGeranceDefaut: Number(dbSettings.taux_gerance_defaut ?? 10),
+        penaliteDefaut: Number(dbSettings.penalite_defaut ?? 10),
+        tvaTaux: Number(dbSettings.tva_taux ?? 18),
+        prefixFacture: dbSettings.prefix_facture || 'FAC-',
+        prefixQuittance: dbSettings.prefix_quittance || 'QUI-',
+        prefixPaiement: dbSettings.prefix_paiement || 'PAY-',
+        prefixContrat: dbSettings.prefix_contrat || 'BAIL-',
+        prefixBonCaisse: dbSettings.prefix_bon_caisse || 'BCA-',
+        waveNumero: dbSettings.wave_numero || '',
+        orangeMoneyCode: dbSettings.orange_money_code || '',
+        whatsappBusiness: dbSettings.whatsapp_business || '',
+        standardTelephone: dbSettings.standard_telephone || '',
+        logoUrl: dbSettings.logo_url || '',
+        siteWeb: dbSettings.site_web || '',
+                // 🆕 Paiements
+        waveApiKey: dbSettings.wave_api_key || '',
+        waveWebhookSecret: dbSettings.wave_webhook_secret || '',
+        waveEnabled: dbSettings.wave_enabled || false,
+        orangeMoneyApiKey: dbSettings.orange_money_api_key || '',
+        orangeMoneyMerchantId: dbSettings.orange_money_merchant_id || '',
+        orangeMoneyEnabled: dbSettings.orange_money_enabled || false,
+        paydunyaMasterKey: dbSettings.paydunya_master_key || '',
+        paydunyaPrivateKey: dbSettings.paydunya_private_key || '',
+        paydunyaPublicKey: dbSettings.paydunya_public_key || '',
+        paydunyaToken: dbSettings.paydunya_token || '',
+        paydunyaMode: dbSettings.paydunya_mode || 'test',
+        paydunyaEnabled: dbSettings.paydunya_enabled || false,
+        paymentsEnabled: dbSettings.payments_enabled || false,
+        paymentsProvider: dbSettings.payments_provider || 'NONE',
       };
       persistCollection('settings', state.settings);
     }
@@ -824,7 +814,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
         permissions: p.permissions || [], avatar: p.avatar_url,
         proprietaireId: p.proprietaire_id, locataireId: p.locataire_id,
         derniereConnexion: p.derniere_connexion,
-        organisation: state.agency?.name || 'FITAL-IMMO',
+        organisation: state.agency?.name || '',
         createdAt: p.created_at, updatedAt: p.updated_at,
       }));
       persistCollection('users', state.users);
@@ -852,7 +842,7 @@ export async function fetchUserProfile(userId: string): Promise<UserAccount | nu
       role: profile.role, statut: profile.statut, permissions: profile.permissions || [],
       avatar: profile.avatar_url, proprietaireId: profile.proprietaire_id,
       locataireId: profile.locataire_id, derniereConnexion: profile.derniere_connexion,
-      organisation: profile.agencies?.name || 'FITAL-IMMO',
+      organisation: profile.agencies?.name || '',
       createdAt: profile.created_at, updatedAt: profile.updated_at,
     };
   } catch (e) { console.error('Erreur fetchUserProfile:', e); return null; }
@@ -888,12 +878,9 @@ export async function saveBuildingToDb(building: Partial<Building>, agencyId: st
   if (!isSupabaseConfigured || !supabase) return { success: true, data: building as Building };
   try {
     const record = {
-      agency_id: agencyId,
-      proprietaire_id: building.proprietaireId,
-      nom: building.nom,
-      adresse: building.adresse || '',
-      quartier: building.quartier || '',
-      ville: building.ville || 'Dakar',
+      agency_id: agencyId, proprietaire_id: building.proprietaireId,
+      nom: building.nom, adresse: building.adresse || '',
+      quartier: building.quartier || '', ville: building.ville || 'Dakar',
       type: building.type || 'Immeuble',
       nombre_etages: building.nombreEtages || 0,
       description: building.description || '',
@@ -910,10 +897,7 @@ export async function saveBuildingToDb(building: Partial<Building>, agencyId: st
       if (error) throw error;
       return { success: true, data: mapBuildingFromDb(data) };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde immeuble:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer l\'immeuble.' };
-  }
+  } catch (err: any) { console.error('Erreur immeuble:', err); return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 export async function deleteBuildingFromDb(buildingId: string): Promise<{ success: boolean; error?: string }> {
@@ -922,10 +906,7 @@ export async function deleteBuildingFromDb(buildingId: string): Promise<{ succes
     const { error } = await supabase.from('buildings').delete().eq('id', buildingId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) {
-    console.error('Erreur suppression immeuble:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -935,16 +916,11 @@ export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promi
   if (!isSupabaseConfigured || !supabase) return { success: true, data: unit as Unit };
   try {
     const record = {
-      agency_id: agencyId,
-      building_id: unit.buildingId,
-      proprietaire_id: unit.proprietaireId,
-      nom: unit.nom,
-      type: unit.type || 'Appartement',
-      etage: unit.etage || '',
-      superficie: unit.superficie || 0,
-      nombre_pieces: unit.nombrePieces || 1,
-      loyer_base: unit.loyerBase || 0,
-      charges: unit.charges || 0,
+      agency_id: agencyId, building_id: unit.buildingId,
+      proprietaire_id: unit.proprietaireId, nom: unit.nom,
+      type: unit.type || 'Appartement', etage: unit.etage || '',
+      superficie: unit.superficie || 0, nombre_pieces: unit.nombrePieces || 1,
+      loyer_base: unit.loyerBase || 0, charges: unit.charges || 0,
       statut: unit.statut || 'Vacant',
       locataire_actuel_id: unit.locataireActuelId || null,
       description: unit.description || '',
@@ -961,10 +937,7 @@ export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promi
       if (error) throw error;
       return { success: true, data: mapUnitFromDb(data) };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde espace:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer l\'espace.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 export async function deleteUnitFromDb(unitId: string): Promise<{ success: boolean; error?: string }> {
@@ -973,10 +946,7 @@ export async function deleteUnitFromDb(unitId: string): Promise<{ success: boole
     const { error } = await supabase.from('units').delete().eq('id', unitId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) {
-    console.error('Erreur suppression espace:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -986,12 +956,10 @@ export async function savePenaltyToDb(penalty: Partial<Penalty>, agencyId: strin
   if (!isSupabaseConfigured || !supabase) return { success: true, data: penalty as Penalty };
   try {
     const record = {
-      agency_id: agencyId,
-      payment_id: penalty.paymentId || null,
+      agency_id: agencyId, payment_id: penalty.paymentId || null,
       locataire_id: penalty.locataireId,
       locataire_nom: penalty.locataireNom || null,
-      bien_id: penalty.bienId || null,
-      bien_nom: penalty.bienNom || null,
+      bien_id: penalty.bienId || null, bien_nom: penalty.bienNom || null,
       periode: penalty.periode,
       jours_retard: penalty.joursRetard || 0,
       taux_penalite: penalty.tauxPenalite || 10,
@@ -1006,10 +974,7 @@ export async function savePenaltyToDb(penalty: Partial<Penalty>, agencyId: strin
     const { data, error } = await supabase.from('penalties').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: mapPenaltyFromDb(data) };
-  } catch (err: any) {
-    console.error('Erreur pénalité:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function deletePenaltyFromDb(penaltyId: string): Promise<{ success: boolean; error?: string }> {
@@ -1018,10 +983,7 @@ export async function deletePenaltyFromDb(penaltyId: string): Promise<{ success:
     const { error } = await supabase.from('penalties').delete().eq('id', penaltyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) {
-    console.error('Erreur suppression pénalité:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1031,14 +993,11 @@ export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId
   if (!isSupabaseConfigured || !supabase) return { success: true, data: charge as OwnerCharge };
   try {
     const record = {
-      agency_id: agencyId,
-      proprietaire_id: charge.proprietaireId,
+      agency_id: agencyId, proprietaire_id: charge.proprietaireId,
       proprietaire_nom: charge.proprietaireNom || null,
-      bulletin_id: charge.bulletinId || null,
-      periode: charge.periode,
+      bulletin_id: charge.bulletinId || null, periode: charge.periode,
       type_charge: charge.typeCharge || 'AUTRE',
-      libelle: charge.libelle,
-      montant: charge.montant || 0,
+      libelle: charge.libelle, montant: charge.montant || 0,
       reference_document: charge.referenceDocument || null,
       date_charge: charge.dateCharge || new Date().toISOString().split('T')[0],
       statut: charge.statut || 'Validé',
@@ -1048,10 +1007,7 @@ export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId
     const { data, error } = await supabase.from('owner_charges').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: mapOwnerChargeFromDb(data) };
-  } catch (err: any) {
-    console.error('Erreur charge propriétaire:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function deleteOwnerChargeFromDb(chargeId: string): Promise<{ success: boolean; error?: string }> {
@@ -1060,10 +1016,7 @@ export async function deleteOwnerChargeFromDb(chargeId: string): Promise<{ succe
     const { error } = await supabase.from('owner_charges').delete().eq('id', chargeId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) {
-    console.error('Erreur suppression charge:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1073,13 +1026,10 @@ export async function saveOwnerDeductionToDb(deduction: Partial<OwnerDeduction>,
   if (!isSupabaseConfigured || !supabase) return { success: true, data: deduction as OwnerDeduction };
   try {
     const record = {
-      agency_id: agencyId,
-      proprietaire_id: deduction.proprietaireId,
-      bulletin_ref: deduction.bulletinRef || null,
-      periode: deduction.periode,
+      agency_id: agencyId, proprietaire_id: deduction.proprietaireId,
+      bulletin_ref: deduction.bulletinRef || null, periode: deduction.periode,
       type_deduction: deduction.typeDeduction || 'AUTRE',
-      libelle: deduction.libelle,
-      montant: deduction.montant || 0,
+      libelle: deduction.libelle, montant: deduction.montant || 0,
       reference_document: deduction.referenceDocument || null,
       date_deduction: deduction.dateDeduction || new Date().toISOString().split('T')[0],
       notes: deduction.notes || '',
@@ -1095,10 +1045,7 @@ export async function saveOwnerDeductionToDb(deduction: Partial<OwnerDeduction>,
       if (error) throw error;
       return { success: true, data: mapOwnerDeductionFromDb(data) };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde déduction:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer la déduction.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 export async function deleteOwnerDeductionFromDb(deductionId: string): Promise<{ success: boolean; error?: string }> {
@@ -1107,10 +1054,7 @@ export async function deleteOwnerDeductionFromDb(deductionId: string): Promise<{
     const { error } = await supabase.from('owner_deductions').delete().eq('id', deductionId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) {
-    console.error('Erreur suppression déduction:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1120,12 +1064,10 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
   if (!isSupabaseConfigured || !supabase) return { success: true, data: bulletin as BulletinVersement };
   try {
     const record = {
-      agency_id: agencyId,
-      reference: bulletin.reference,
+      agency_id: agencyId, reference: bulletin.reference,
       proprietaire_id: bulletin.proprietaireId,
       proprietaire_nom: bulletin.proprietaireNom || null,
-      periode: bulletin.periode,
-      taux_commission: bulletin.tauxCommission || 10,
+      periode: bulletin.periode, taux_commission: bulletin.tauxCommission || 10,
       total_loyers_bruts: bulletin.totalLoyersBruts || 0,
       total_commission: bulletin.totalCommission || 0,
       total_tva_commission: bulletin.totalTvaCommission || 0,
@@ -1139,6 +1081,9 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
       mode_reglement: bulletin.modeReglement || null,
       reference_virement: bulletin.referenceVirement || null,
       notes: bulletin.notes || '',
+      created_by_id: bulletin.createdById || null,
+      created_by_nom: bulletin.createdByNom || null,
+      created_by_role: bulletin.createdByRole || null,
       updated_at: new Date().toISOString(),
     };
     const exists = bulletin.id ? await recordExists('bulletin_versements', bulletin.id, agencyId) : false;
@@ -1151,10 +1096,7 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
       if (error) throw error;
       return { success: true, data: mapBulletinVersementFromDb(data) };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde bulletin:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le bulletin.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 // ============================================================
@@ -1164,22 +1106,15 @@ export async function saveArchiveToDb(archive: Partial<ArchiveRecord>, agencyId:
   if (!isSupabaseConfigured || !supabase) return { success: true, data: archive as ArchiveRecord };
   try {
     const record = {
-      agency_id: agencyId,
-      entity_type: archive.entityType,
-      entity_id: archive.entityId,
-      entity_ref: archive.entityRef || null,
-      entity_nom: archive.entityNom || null,
-      data: archive.data || {},
-      archived_by: archive.archivedBy || null,
-      reason: archive.reason || null,
+      agency_id: agencyId, entity_type: archive.entityType,
+      entity_id: archive.entityId, entity_ref: archive.entityRef || null,
+      entity_nom: archive.entityNom || null, data: archive.data || {},
+      archived_by: archive.archivedBy || null, reason: archive.reason || null,
     };
     const { data, error } = await supabase.from('archives').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: mapArchiveFromDb(data) };
-  } catch (err: any) {
-    console.error('Erreur archivage:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function fetchArchivesFromDb(agencyId: string, entityType?: string): Promise<ArchiveRecord[]> {
@@ -1190,10 +1125,7 @@ export async function fetchArchivesFromDb(agencyId: string, entityType?: string)
     const { data, error } = await query.order('archived_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(mapArchiveFromDb);
-  } catch (err: any) {
-    console.error('Erreur fetch archives:', err);
-    return [];
-  }
+  } catch (err: any) { return []; }
 }
 
 // ============================================================
@@ -1203,15 +1135,13 @@ export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agency
   if (!isSupabaseConfigured || !supabase) return { success: true, data: activity as ActivityLog };
   try {
     const record = {
-      agency_id: agencyId,
-      user_id: activity.userId || null,
+      agency_id: agencyId, user_id: activity.userId || null,
       user_nom: activity.userNom || null,
       activity_type: activity.activityType,
       entity_type: activity.entityType || null,
       entity_id: activity.entityId || null,
       entity_ref: activity.entityRef || null,
-      title: activity.title,
-      description: activity.description || null,
+      title: activity.title, description: activity.description || null,
       montant: activity.montant || null,
       activity_date: activity.activityDate || new Date().toISOString().split('T')[0],
       activity_hour: activity.activityHour || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
@@ -1220,48 +1150,33 @@ export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agency
     const { data, error } = await supabase.from('activity_logs').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: mapActivityLogFromDb(data) };
-  } catch (err: any) {
-    console.error('Erreur activity log:', err);
-    return { success: false, error: err.message };
-  }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function fetchActivitiesByDate(agencyId: string, date: string): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('agency_id', agencyId)
-      .eq('activity_date', date)
-      .order('created_at', { ascending: false });
+      .from('activity_logs').select('*').eq('agency_id', agencyId)
+      .eq('activity_date', date).order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
-  } catch (err: any) {
-    console.error('Erreur fetch activities by date:', err);
-    return [];
-  }
+  } catch (err: any) { return []; }
 }
 
 export async function fetchActivitiesByEntity(agencyId: string, entityId: string): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('agency_id', agencyId)
-      .eq('entity_id', entityId)
-      .order('created_at', { ascending: false });
+      .from('activity_logs').select('*').eq('agency_id', agencyId)
+      .eq('entity_id', entityId).order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
-  } catch (err: any) {
-    console.error('Erreur fetch activities by entity:', err);
-    return [];
-  }
+  } catch (err: any) { return []; }
 }
 
 // ============================================================
-// CRUD : PROPRIÉTÉS
+// CRUD : PROPERTIES
 // ============================================================
 export async function savePropertyToDb(property: Partial<Property>, agencyId: string): Promise<{ success: boolean; data?: Property; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: property as Property };
@@ -1285,14 +1200,11 @@ export async function savePropertyToDb(property: Partial<Property>, agencyId: st
       if (error) throw error;
       return { success: true, data: data as unknown as Property };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde propriété:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le bien.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 // ============================================================
-// CRUD : PROPRIÉTAIRES
+// CRUD : OWNERS
 // ============================================================
 export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Promise<{ success: boolean; data?: Owner; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: owner as Owner };
@@ -1317,14 +1229,11 @@ export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Pr
       if (error) throw error;
       return { success: true, data: data as unknown as Owner };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde propriétaire:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le propriétaire.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 // ============================================================
-// CRUD : LOCATAIRES
+// CRUD : TENANTS
 // ============================================================
 export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string): Promise<{ success: boolean; data?: Tenant; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: tenant as Tenant };
@@ -1352,14 +1261,11 @@ export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string):
       if (error) throw error;
       return { success: true, data: data as unknown as Tenant };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde locataire:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le locataire.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 // ============================================================
-// CRUD : CONTRATS
+// CRUD : CONTRACTS
 // ============================================================
 export async function saveContractToDb(contract: Partial<LeaseContract>, agencyId: string): Promise<{ success: boolean; data?: LeaseContract; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: contract as LeaseContract };
@@ -1370,10 +1276,15 @@ export async function saveContractToDb(contract: Partial<LeaseContract>, agencyI
       locataire_id: contract.locataireId, bien_id: contract.bienId,
       proprietaire_id: contract.proprietaireId, loyer_base: contract.loyerBase,
       charges: contract.charges || 0, caution_loyer: contract.cautionLoyer || 0,
-      caution_eau: contract.cautionEau || 0, caution_electricite: contract.cautionElectricite || 0,
+      caution_eau: contract.cautionEau || 0,
+      caution_electricite: contract.cautionElectricite || 0,
       frais_adhesion: contract.fraisAdhesion || 0, date_debut: contract.dateDebut,
-      date_fin: contract.dateFin, type_reglement: contract.typeReglement || 'Mensuel',
+      date_fin: contract.dateFin,
+      type_reglement: contract.typeReglement || 'Mensuel',
       jour_echeance: 5, statut: contract.statut || 'En cours',
+      created_by_id: contract.createdById || null,
+      created_by_nom: contract.createdByNom || null,
+      created_by_role: contract.createdByRole || null,
     };
     const exists = contract.id ? await recordExists('contracts', contract.id, agencyId) : false;
     if (exists) {
@@ -1385,14 +1296,11 @@ export async function saveContractToDb(contract: Partial<LeaseContract>, agencyI
       if (error) throw error;
       return { success: true, data: data as unknown as LeaseContract };
     }
-  } catch (err: any) {
-    console.error('Erreur sauvegarde contrat:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le contrat.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 // ============================================================
-// CRUD : PAIEMENTS
+// CRUD : PAYMENTS
 // ============================================================
 export async function savePaymentToDb(payment: Partial<Payment>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: Payment; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: payment as Payment };
@@ -1401,6 +1309,8 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       agency_id: agencyId, ref: payment.ref || `PAY-${Date.now()}`,
       quittance_numero: payment.quittanceNumero || `QUI-${Date.now()}`,
       locataire_id: payment.locataireId, bien_id: payment.bienId,
+      locataire_nom: payment.locataireNom || null,
+      bien_nom: payment.bienNom || null,
       proprietaire_id: payment.proprietaireId, periode: payment.periode,
       loyer_base: payment.loyerBase, charges: payment.charges || 0,
       tva: payment.tva || 0, tom: payment.tom || 0, penalites: payment.penalites || 0,
@@ -1415,6 +1325,9 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       date_echeance: payment.dateEcheance || new Date().toISOString().split('T')[0],
       recu_par: payment.recuPar || 'Service Gérance',
       caissier_id: authorId || null, observation: payment.observation || '',
+      created_by_id: payment.createdById || null,
+      created_by_nom: payment.createdByNom || null,
+      created_by_role: payment.createdByRole || null,
       type_recu: payment.typeRecu || 'QUITTANCE',
       reference_paiement_initial: payment.referencePaiementInitial || null,
       montant_initial_du: payment.montantInitialDu || 0,
@@ -1429,10 +1342,7 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       if (error) throw error;
       return { success: true, data: data as unknown as Payment };
     }
-  } catch (err: any) {
-    console.error('Erreur enregistrement paiement:', err);
-    return { success: false, error: err.message || 'Impossible d\'enregistrer le paiement.' };
-  }
+  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 export async function validatePendingPaymentInDb(paymentId: string, agencyId: string, validatedBy: string): Promise<{ success: boolean; error?: string }> {
@@ -1444,7 +1354,7 @@ export async function validatePendingPaymentInDb(paymentId: string, agencyId: st
     }).eq('id', paymentId).eq('agency_id', agencyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.error('Erreur validation paiement:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function rejectPendingPaymentInDb(paymentId: string, agencyId: string, motif?: string): Promise<{ success: boolean; error?: string }> {
@@ -1452,16 +1362,16 @@ export async function rejectPendingPaymentInDb(paymentId: string, agencyId: stri
   try {
     const { error } = await supabase.from('payments').update({
       statut: 'Impayé', verification_statut: 'rejete',
-      observation: motif || 'Paiement rejeté par le responsable de caisse',
+      observation: motif || 'Paiement rejeté',
       updated_at: new Date().toISOString(),
     }).eq('id', paymentId).eq('agency_id', agencyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.error('Erreur rejet paiement:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// CRUD : CAISSE
+// CRUD : CASH
 // ============================================================
 export async function saveCashMovementToDb(movement: Partial<CashMovement>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: CashMovement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: movement as CashMovement };
@@ -1475,11 +1385,14 @@ export async function saveCashMovementToDb(movement: Partial<CashMovement>, agen
       user_id: authorId || null, user_nom: movement.auteurNom || 'Caissier',
       beneficiaire: movement.beneficiaire || null,
       justificatif_ref: movement.justificatifRef || null, statut: 'Validé',
+      created_by_id: movement.createdById || null,
+      created_by_nom: movement.createdByNom || null,
+      created_by_role: movement.createdByRole || null,
     };
     const { data, error } = await supabase.from('cash_movements').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashMovement };
-  } catch (err: any) { console.error('Erreur mouvement caisse:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyId: string, caissierId: string, caissierNom: string): Promise<{ success: boolean; data?: CashClosing; error?: string }> {
@@ -1501,7 +1414,7 @@ export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyI
     const { data, error } = await supabase.from('cash_closings').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashClosing };
-  } catch (err: any) { console.error('Erreur clôture:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1512,10 +1425,14 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
   try {
     const record: any = {
       agency_id: agencyId, bien_id: ticket.bienId, bien_nom: ticket.bienNom,
-      proprietaire_id: ticket.proprietaireId || null, proprietaire_nom: ticket.proprietaireNom || null,
-      locataire_id: ticket.locataireId || null, locataire_nom: ticket.locataireNom || '',
-      titre: ticket.titre || 'Signalement incident', description: ticket.description || '',
-      priorite: ticket.priorite || 'Moyenne', statut: ticket.statut || 'Signalé',
+      proprietaire_id: ticket.proprietaireId || null,
+      proprietaire_nom: ticket.proprietaireNom || null,
+      locataire_id: ticket.locataireId || null,
+      locataire_nom: ticket.locataireNom || '',
+      titre: ticket.titre || 'Signalement incident',
+      description: ticket.description || '',
+      priorite: ticket.priorite || 'Moyenne',
+      statut: ticket.statut || 'Signalé',
       statut_reglement: ticket.statutReglement || 'Non réglé',
       mode_reglement: ticket.modeReglement || null,
       date_reglement: ticket.dateReglement || null,
@@ -1530,6 +1447,9 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
       date_resolution: ticket.dateResolution || null,
       prestataire: ticket.prestataire || null,
       artisan_nom: ticket.artisanNom || null,
+      created_by_id: ticket.createdById || null,
+      created_by_nom: ticket.createdByNom || null,
+      created_by_role: ticket.createdByRole || null,
       updated_at: new Date().toISOString(),
     };
     if (ticket.ref) record.ref = ticket.ref;
@@ -1544,7 +1464,7 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
       if (error) throw error;
       return { success: true, data: mapMaintenanceFromDb(data) };
     }
-  } catch (err: any) { console.warn('Sync ticket:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1560,11 +1480,15 @@ export async function saveInspectionToDb(insp: Partial<Inspection>, agencyId: st
       date_inspection: insp.date || new Date().toISOString().split('T')[0],
       clefs_remises: 3,
       agent_nom: insp.agentNom || insp.inspecteurNom || 'Agent FITAL-IMMO',
-      elements: insp.elements || [], total_degats: insp.coutDegradations || 0,
+      elements: insp.elements || [],
+      total_degats: insp.coutDegradations || 0,
       retenue_caution: insp.retenueCaution || 0,
       montant_restitue_caution: insp.montantRestitueCaution || 0,
       statut: insp.statut || 'Validé',
       commentaires_generaux: insp.commentairesGeneraux || insp.remarques || '',
+      created_by_id: insp.createdById || null,
+      created_by_nom: insp.createdByNom || null,
+      created_by_role: insp.createdByRole || null,
     };
     const exists = insp.id ? await recordExists('property_inspections', insp.id, agencyId) : false;
     if (exists) {
@@ -1576,18 +1500,20 @@ export async function saveInspectionToDb(insp: Partial<Inspection>, agencyId: st
       if (error) throw error;
       return { success: true, data: mapInspectionFromDb(data) };
     }
-  } catch (err: any) { console.warn('Sync inspection:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// CRUD : REVERSEMENTS
+// CRUD : DISBURSEMENTS
 // ============================================================
 export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, agencyId: string): Promise<{ success: boolean; data?: OwnerDisbursement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: disb as OwnerDisbursement };
   try {
     const record = {
       agency_id: agencyId, ref: disb.ref || `REV-${Date.now()}`,
-      proprietaire_id: disb.proprietaireId, periode: disb.periode || 'Ce mois',
+      proprietaire_id: disb.proprietaireId,
+      proprietaire_nom: disb.proprietaireNom || null,
+      periode: disb.periode || 'Ce mois',
       loyers_bruts_recouvres: disb.loyersBruts || disb.montantBrut || 0,
       taux_commission: disb.tauxCommission || 10,
       montant_commission: disb.commissionAgence || 0,
@@ -1597,6 +1523,9 @@ export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, age
       mode_reglement: disb.modeReglement || disb.modeReversement || 'Virement',
       date_versement: disb.dateReglement || disb.dateReversement || new Date().toISOString().split('T')[0],
       statut: disb.statut || 'Effectué',
+      created_by_id: disb.createdById || null,
+      created_by_nom: disb.createdByNom || null,
+      created_by_role: disb.createdByRole || null,
     };
     const exists = disb.id ? await recordExists('disbursements', disb.id, agencyId) : false;
     if (exists) {
@@ -1608,11 +1537,11 @@ export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, age
       if (error) throw error;
       return { success: true, data: mapDisbursementFromDb(data) };
     }
-  } catch (err: any) { console.warn('Sync reversement:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// CRUD : FACTURES
+// CRUD : INVOICES
 // ============================================================
 export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): Promise<{ success: boolean; data?: Invoice; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: inv as Invoice };
@@ -1621,13 +1550,18 @@ export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): 
       agency_id: agencyId, ref: inv.ref || inv.numero || `FAC-${Date.now()}`,
       type: inv.type || 'Frais de dossier',
       proprietaire_id: inv.proprietaireId || null,
+      proprietaire_nom: inv.proprietaireNom || null,
       locataire_id: inv.locataireId || null,
-      bien_id: inv.bienId || null,
+      locataire_nom: inv.locataireNom || null,
+      bien_id: inv.bienId || null, bien_nom: inv.bienNom || null,
       date_facture: inv.dateFacture || new Date().toISOString().split('T')[0],
       date_echeance: inv.dateEcheance || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
       sous_total: inv.sousTotal || inv.montantTotal || 0,
       taxes: inv.taxes || 0, total: inv.total || inv.montantTotal || 0,
       statut: inv.statut || 'Émise', lignes: inv.lignes || [],
+      created_by_id: inv.createdById || null,
+      created_by_nom: inv.createdByNom || null,
+      created_by_role: inv.createdByRole || null,
     };
     const exists = inv.id ? await recordExists('invoices', inv.id, agencyId) : false;
     if (exists) {
@@ -1639,11 +1573,11 @@ export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): 
       if (error) throw error;
       return { success: true, data: mapInvoiceFromDb(data) };
     }
-  } catch (err: any) { console.warn('Sync facture:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// CRUD : RELANCES
+// CRUD : REMINDERS
 // ============================================================
 export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: string): Promise<{ success: boolean; data?: TenantReminder; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: rem as TenantReminder };
@@ -1659,26 +1593,21 @@ export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: s
     const { data, error } = await supabase.from('tenant_reminders').insert([record]).select().single();
     if (error) throw error;
     return { success: true, data: mapReminderFromDb(data) };
-  } catch (err: any) { console.warn('Sync relance:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// CRUD : PARAMÈTRES
+// CRUD : SETTINGS
 // ============================================================
 export async function saveSettingsToDb(settings: AgencySettings, agencyId?: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return { success: true };
   try {
-    const record = {
-      agency_id: agencyId,
-      nom_agence: settings.nomAgence,
-      slogan: settings.slogan,
-      telephone: settings.telephone,
-      email: settings.email,
-      adresse: settings.adresse,
-      ville: settings.ville,
-      pays: settings.pays,
-      ninea: settings.ninea,
-      devise: settings.devise,
+        const record = {
+      agency_id: agencyId, nom_agence: settings.nomAgence,
+      slogan: settings.slogan, telephone: settings.telephone,
+      email: settings.email, adresse: settings.adresse,
+      ville: settings.ville, pays: settings.pays,
+      ninea: settings.ninea, devise: settings.devise,
       taux_gerance_defaut: settings.tauxGeranceDefaut,
       penalite_defaut: settings.penaliteDefaut,
       tva_taux: settings.tvaTaux,
@@ -1691,12 +1620,30 @@ export async function saveSettingsToDb(settings: AgencySettings, agencyId?: stri
       orange_money_code: settings.orangeMoneyCode || null,
       whatsapp_business: settings.whatsappBusiness || null,
       standard_telephone: settings.standardTelephone || null,
+      logo_url: settings.logoUrl || null,
+      primary_color: settings.primaryColor || null,
+      website: settings.website || null,
+      // 🆕 Paiements
+      wave_api_key: settings.waveApiKey || null,
+      wave_webhook_secret: settings.waveWebhookSecret || null,
+      wave_enabled: settings.waveEnabled || false,
+      orange_money_api_key: settings.orangeMoneyApiKey || null,
+      orange_money_merchant_id: settings.orangeMoneyMerchantId || null,
+      orange_money_enabled: settings.orangeMoneyEnabled || false,
+      paydunya_master_key: settings.paydunyaMasterKey || null,
+      paydunya_private_key: settings.paydunyaPrivateKey || null,
+      paydunya_public_key: settings.paydunyaPublicKey || null,
+      paydunya_token: settings.paydunyaToken || null,
+      paydunya_mode: settings.paydunyaMode || 'test',
+      paydunya_enabled: settings.paydunyaEnabled || false,
+      payments_enabled: settings.paymentsEnabled || false,
+      payments_provider: settings.paymentsProvider || 'NONE',
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('agency_settings').upsert(record, { onConflict: 'agency_id' });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.warn('Sync parametres:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function savePaymentMethodToDb(method: PaymentMethodConfig, agencyId?: string): Promise<{ success: boolean; error?: string }> {
@@ -1705,7 +1652,7 @@ export async function savePaymentMethodToDb(method: PaymentMethodConfig, agencyI
     const { error } = await supabase.from('payment_methods_config').upsert({ agency_id: agencyId || null, ...method });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.warn('Sync moyen paiement:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function saveUserToDb(user: UserAccount, agencyId?: string): Promise<{ success: boolean; error?: string }> {
@@ -1725,7 +1672,7 @@ export async function saveUserToDb(user: UserAccount, agencyId?: string): Promis
     });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.warn('Sync profil:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1741,11 +1688,11 @@ export async function uploadFileToSupabaseStorage(
     if (error) throw error;
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
     return { success: true, url: publicUrlData.publicUrl };
-  } catch (err: any) { console.error('Erreur upload:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
-// AUTH / SESSION
+// AUTH
 // ============================================================
 export async function changeUserPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
@@ -1753,7 +1700,7 @@ export async function changeUserPassword(newPassword: string): Promise<{ success
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.error('Erreur changement mot de passe:', err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 export async function signOutSession(): Promise<void> {
@@ -1770,7 +1717,7 @@ export async function getAuthSession() {
     const { data, error } = await supabase.auth.getSession();
     if (error) { console.warn('Erreur getSession:', error); return null; }
     return data.session;
-  } catch (err) { console.warn('Erreur verification session:', err); return null; }
+  } catch (err) { console.warn('Erreur session:', err); return null; }
 }
 
 export async function softDeleteRecord(
@@ -1781,7 +1728,7 @@ export async function softDeleteRecord(
     const { error } = await supabase.from(table).update({ statut: 'Archivé' }).eq('id', id);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { console.error(`Erreur archivage ${table}:`, err); return { success: false, error: err.message }; }
+  } catch (err: any) { return { success: false, error: err.message }; }
 }
 
 // ============================================================
@@ -1790,8 +1737,7 @@ export async function softDeleteRecord(
 export async function getOrCreateDefaultAgency(): Promise<Agency | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const { data: existing, error: fetchError } = await supabase.from('agencies').select('*').eq('slug', 'fital-immo').maybeSingle();
-    if (fetchError && fetchError.code !== 'PGRST116') console.warn('Erreur lecture agence:', fetchError);
+    const { data: existing } = await supabase.from('agencies').select('*').eq('slug', 'fital-immo').maybeSingle();
     if (existing) { persistCollection('agency', existing as unknown as Agency); return existing as unknown as Agency; }
     const { data: created, error: insertError } = await supabase.from('agencies').insert([{
       name: defaultSettings.nomAgence, slug: 'fital-immo',
@@ -1802,11 +1748,11 @@ export async function getOrCreateDefaultAgency(): Promise<Agency | null> {
     if (insertError) {
       const { data: retry } = await supabase.from('agencies').select('*').limit(1).maybeSingle();
       if (retry) { persistCollection('agency', retry as unknown as Agency); return retry as unknown as Agency; }
-      console.warn('Impossible de créer l\'agence:', insertError); return null;
+      return null;
     }
     persistCollection('agency', created as unknown as Agency);
     return created as unknown as Agency;
-  } catch (err) { console.error('getOrCreateDefaultAgency:', err); return null; }
+  } catch (err) { return null; }
 }
 
 export async function bootstrapAdminProfile(
@@ -1835,7 +1781,7 @@ export async function bootstrapAdminProfile(
 }
 
 // ============================================================
-// CRÉATION DE COMPTE UTILISATEUR
+// CREATE USER
 // ============================================================
 export interface CreateUserAccountParams {
   email: string; password: string; nom: string; prenom: string;
@@ -1848,7 +1794,7 @@ export async function createUserAccountInSupabase(
   params: CreateUserAccountParams
 ): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !supabaseUrl || !supabaseAnonKey) {
-    return { success: false, error: 'Supabase n\'est pas configuré.' };
+    return { success: false, error: 'Supabase non configuré.' };
   }
   const cleanEmail = params.email.trim().toLowerCase();
   const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -1861,12 +1807,12 @@ export async function createUserAccountInSupabase(
     });
     if (signUpError) {
       if (signUpError.message?.toLowerCase().includes('already registered')) {
-        return { success: false, error: 'Cet email est déjà enregistré dans Supabase Auth.' };
+        return { success: false, error: 'Cet email est déjà enregistré.' };
       }
       return { success: false, error: signUpError.message };
     }
     const authUser = signUpData.user;
-    if (!authUser?.id) return { success: false, error: 'Compte Auth créé mais confirmation email requise.' };
+    if (!authUser?.id) return { success: false, error: 'Confirmation email requise.' };
     const { error: profileError } = await supabase.from('profiles').insert([{
       id: authUser.id, agency_id: params.agencyId, email: cleanEmail,
       nom: params.nom.toUpperCase(), prenom: params.prenom,
@@ -1876,20 +1822,19 @@ export async function createUserAccountInSupabase(
       locataire_id: params.locataireId || null,
       avatar_url: params.avatar || null,
     }]);
-    if (profileError) return { success: false, error: `Compte Auth créé mais profil refusé : ${profileError.message}.` };
+    if (profileError) return { success: false, error: `Profil refusé : ${profileError.message}.` };
     const userAccount: UserAccount = {
       id: authUser.id, agencyId: params.agencyId, email: cleanEmail,
       nom: params.nom.toUpperCase(), prenom: params.prenom,
       telephone: params.telephone, role: params.role, statut: 'actif',
       permissions: params.permissions || [],
       proprietaireId: params.proprietaireId, locataireId: params.locataireId,
-      organisation: params.organisation || defaultSettings.nomAgence,
+      organisation: params.organisation || '',
       avatar: params.avatar, createdAt: new Date().toISOString(),
       derniereConnexion: 'Jamais connecté',
     };
     return { success: true, user: userAccount };
   } catch (err: any) {
-    console.error('createUserAccountInSupabase:', err);
     return { success: false, error: err?.message || 'Erreur inconnue.' };
   }
 }
@@ -1905,8 +1850,251 @@ export async function fetchAgencyUsers(agencyId?: string): Promise<UserAccount[]
       role: p.role, statut: p.statut, permissions: p.permissions || [],
       avatar: p.avatar_url, proprietaireId: p.proprietaire_id, locataireId: p.locataire_id,
       derniereConnexion: p.derniere_connexion,
-      organisation: p.agencies?.name || defaultSettings.nomAgence,
+      organisation: p.agencies?.name || '',
       createdAt: p.created_at, updatedAt: p.updated_at,
     }));
-  } catch (err) { console.warn('fetchAgencyUsers:', err); return []; }
+  } catch (err) { return []; }
+}
+
+// ============================================================
+// RESTAURATION
+// ============================================================
+export async function restoreAllData(backup: any): Promise<{ success: boolean; count?: number; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase non configuré.' };
+  try {
+    const agencyId = backup?.agencies?.[0]?.id || backup?.users?.[0]?.agencyId || '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
+    let totalCount = 0;
+
+    const upsertTable = async (tableName: string, data: any[]) => {
+      if (!data || data.length === 0) return;
+      const cleaned = data.map((item) => ({
+        ...item,
+        agency_id: item.agency_id || item.agencyId || agencyId,
+        updated_at: new Date().toISOString(),
+      }));
+      const { error } = await supabase.from(tableName).upsert(cleaned, { onConflict: 'id' });
+      if (error) throw new Error(`${tableName} : ${error.message}`);
+      totalCount += cleaned.length;
+    };
+
+    if (backup.users) await upsertTable('profiles', backup.users);
+    if (backup.owners) await upsertTable('owners', backup.owners);
+    if (backup.buildings) await upsertTable('buildings', backup.buildings);
+    if (backup.units) await upsertTable('units', backup.units);
+    if (backup.properties) await upsertTable('properties', backup.properties);
+    if (backup.tenants) await upsertTable('tenants', backup.tenants);
+    if (backup.contracts) await upsertTable('contracts', backup.contracts);
+    if (backup.payments) await upsertTable('payments', backup.payments);
+    if (backup.invoices) await upsertTable('invoices', backup.invoices);
+    if (backup.bulletins) await upsertTable('bulletin_versements', backup.bulletins);
+    if (backup.ownerDeductions) await upsertTable('owner_deductions', backup.ownerDeductions);
+    if (backup.ownerCharges) await upsertTable('owner_charges', backup.ownerCharges);
+    if (backup.disbursements) await upsertTable('disbursements', backup.disbursements);
+    if (backup.cashMovements) await upsertTable('cash_movements', backup.cashMovements);
+    if (backup.cashClosings) await upsertTable('cash_closings', backup.cashClosings);
+    if (backup.inspections) await upsertTable('property_inspections', backup.inspections);
+    if (backup.maintenance) await upsertTable('maintenance_tickets', backup.maintenance);
+    if (backup.reminders) await upsertTable('tenant_reminders', backup.reminders);
+    if (backup.penalties) await upsertTable('penalties', backup.penalties);
+    if (backup.notifications) await upsertTable('notifications', backup.notifications);
+    if (backup.archives) await upsertTable('archives', backup.archives);
+    if (backup.activityLogs) await upsertTable('activity_logs', backup.activityLogs);
+    if (backup.auditLogs) await upsertTable('audit_logs', backup.auditLogs);
+    if (backup.paymentMethods) await upsertTable('payment_methods_config', backup.paymentMethods);
+    if (backup.settings) {
+      const { error } = await supabase.from('agency_settings').upsert({ ...backup.settings, agency_id: agencyId }, { onConflict: 'agency_id' });
+      if (error) console.warn('settings :', error.message);
+      else totalCount += 1;
+    }
+
+    return { success: true, count: totalCount };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================
+// SUPER-ADMIN SAAS
+// ============================================================
+export async function fetchAllAgencies(): Promise<any[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('agencies').select('*').order('created_at', { ascending: false });
+  if (error) { console.warn('fetchAllAgencies:', error.message); return []; }
+  return data || [];
+}
+
+export async function fetchAllUsers(): Promise<any[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('profiles').select('*, agencies(name, slug, status)').order('created_at', { ascending: false });
+  if (error) { console.warn('fetchAllUsers:', error.message); return []; }
+  return data || [];
+}
+
+export async function createAgencyWithAdmin(params: {
+  agencyName: string;
+  agencySlug: string;
+  agencyEmail: string;
+  agencyPhone: string;
+  agencyCity: string;
+  agencyAddress?: string;
+  agencyLogoUrl?: string;
+  agencyPrimaryColor?: string;
+  agencyWebsite?: string;
+  agencyNinea?: string;
+  agencyRc?: string;
+  agencyBankName?: string;
+  agencyBankAccount?: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminNom: string;
+  adminPrenom: string;
+  adminTelephone: string;
+}): Promise<{ success: boolean; agencyId?: string; error?: string }> {
+  let agencyId: string | null = null;
+
+  try {
+    const { data: agency, error: agencyError } = await supabase
+      .from('agencies')
+                 .insert({
+        name: params.agencyName,
+        slug: params.agencySlug,
+        email: params.agencyEmail,
+        phone: params.agencyPhone,
+        city: params.agencyCity,
+        address: params.agencyAddress || '',
+        logo_url: params.agencyLogoUrl || null,
+        primary_color: params.agencyPrimaryColor || '#C9A96E',
+        website: params.agencyWebsite || null,
+        ninea: params.agencyNinea || null,
+        rc: params.agencyRc || null,
+        bank_name: params.agencyBankName || null,
+        bank_account: params.agencyBankAccount || null,
+        plan: 'BASIC',
+        subscription_start: new Date().toISOString().split('T')[0],
+        subscription_end: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        status: 'active',
+      })
+      .select().single();
+
+    if (agencyError || !agency) {
+      return { success: false, error: 'Erreur création agence : ' + (agencyError?.message || 'inconnue') };
+    }
+    agencyId = agency.id;
+
+    const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+
+    const { data: authData, error: authError } = await ephemeralClient.auth.signUp({
+      email: params.adminEmail.trim().toLowerCase(),
+      password: params.adminPassword,
+      options: {
+        data: {
+          nom: params.adminNom, prenom: params.adminPrenom,
+          role: 'SUPER_ADMIN', agency_id: agency.id,
+        },
+      },
+    });
+
+    if (authError) {
+      await supabase.from('agencies').delete().eq('id', agency.id);
+      return { success: false, error: 'Erreur création compte : ' + authError.message };
+    }
+
+    if (!authData?.user?.id) {
+      await supabase.from('agencies').delete().eq('id', agency.id);
+      return { success: false, error: 'Compte Auth non créé. Vérifiez "Enable email signups".' };
+    }
+
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: authData.user.id, agency_id: agency.id,
+      email: params.adminEmail.trim().toLowerCase(),
+      nom: params.adminNom.toUpperCase(), prenom: params.adminPrenom,
+      telephone: params.adminTelephone, role: 'SUPER_ADMIN',
+      statut: 'actif', permissions: ['*'],
+    });
+
+    if (profileError) {
+      await supabase.from('agencies').delete().eq('id', agency.id);
+      return { success: false, error: 'Erreur création profil : ' + profileError.message };
+    }
+
+    // 🎯 Créer les configs par défaut pour la nouvelle agence
+    // Payment methods
+    try {
+      await supabase.from('payment_methods_config').insert([
+        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espèces', description: 'Règlement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
+        { agency_id: agency.id, code: 'WAVE', libelle: 'Wave', description: 'Paiement Wave', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
+        { agency_id: agency.id, code: 'ORANGE_MONEY', libelle: 'Orange Money', description: 'Paiement OM', actif: true, frais_pourcentage: 0, delai_validation_heures: 1 },
+        { agency_id: agency.id, code: 'VIREMENT', libelle: 'Virement', description: 'Virement bancaire', actif: true, frais_pourcentage: 0, delai_validation_heures: 24 },
+        { agency_id: agency.id, code: 'CHEQUE', libelle: 'Chèque', description: 'Dépôt de chèque', actif: true, frais_pourcentage: 0, delai_validation_heures: 48 },
+      ]);
+    } catch (e) { console.warn('Erreur création payment_methods:', e); }
+
+    // Settings par défaut
+    
+               try {
+      await supabase.from('agency_settings').insert({
+        agency_id: agency.id,
+        nom_agence: params.agencyName,
+        telephone: params.agencyPhone,
+        email: params.agencyEmail,
+        adresse: params.agencyAddress || '',
+        ville: params.agencyCity,
+        pays: 'Sénégal',
+        devise: 'FCFA',
+        ninea: params.agencyNinea || null,
+        taux_gerance_defaut: 10,
+        penalite_defaut: 10,
+        tva_taux: 18,
+        logo_url: params.agencyLogoUrl || null,
+        primary_color: params.agencyPrimaryColor || '#C9A96E',
+        website: params.agencyWebsite || null,
+      });
+    } catch (e) { console.warn('Erreur création settings:', e); }
+
+    return { success: true, agencyId: agency.id };
+  } catch (err: any) {
+    if (agencyId) {
+      await supabase.from('agencies').delete().eq('id', agencyId).catch(() => {});
+    }
+    return { success: false, error: err.message };
+  }
+}
+
+export async function toggleAgencyStatus(agencyId: string, newStatus: 'active' | 'suspendu'): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase non configuré.' };
+  const { error } = await supabase.from('agencies').update({ status: newStatus }).eq('id', agencyId);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function fetchGlobalStats(): Promise<{
+  totalAgencies: number; totalUsers: number; totalBuildings: number;
+  totalUnits: number; totalTenants: number; totalProperties: number;
+  totalPayments: number;
+}> {
+  if (!supabase) {
+    return { totalAgencies: 0, totalUsers: 0, totalBuildings: 0, totalUnits: 0, totalTenants: 0, totalProperties: 0, totalPayments: 0 };
+  }
+
+  const [agencies, users, buildings, units, tenants, properties, payments] = await Promise.all([
+    supabase.from('agencies').select('id', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('buildings').select('id', { count: 'exact', head: true }),
+    supabase.from('units').select('id', { count: 'exact', head: true }),
+    supabase.from('tenants').select('id', { count: 'exact', head: true }),
+    supabase.from('properties').select('id', { count: 'exact', head: true }),
+    supabase.from('payments').select('id', { count: 'exact', head: true }),
+  ]);
+
+  return {
+    totalAgencies: agencies.count || 0,
+    totalUsers: users.count || 0,
+    totalBuildings: buildings.count || 0,
+    totalUnits: units.count || 0,
+    totalTenants: tenants.count || 0,
+    totalProperties: properties.count || 0,
+    totalPayments: payments.count || 0,
+  };
 }

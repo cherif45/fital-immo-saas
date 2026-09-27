@@ -156,7 +156,7 @@ export function PaymentMethodsConfigView({
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" />
         <div>
           <p className="font-semibold text-blue-100">
-            Les numéros Wave et Orange Money sont pilotés depuis <strong>Paramètres → Mobile Money & Télécoms</strong>.
+                        Les numéros Wave et Orange Money sont pilotés depuis <strong>Paramètres → Moyens de Paiement</strong>.
           </p>
           <p className="text-blue-200/80 mt-0.5">
             Toute modification dans cette page est synchronisée automatiquement avec la modale de paiement des locataires.

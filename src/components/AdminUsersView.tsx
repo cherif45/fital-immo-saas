@@ -249,7 +249,7 @@ export function AdminUsersView({
 
     setCreateSuccess(
       isSupabaseOnline
-        ? `Compte ${newUser.email} créé dans Supabase. Mot de passe : ${formData.tempPassword}`
+        ? `Compte ${newUser.email} créé en ligne. Mot de passe : ${formData.tempPassword}`
         : `Compte local créé (navigateur uniquement). Mot de passe : ${formData.tempPassword}`
     );
 
@@ -294,7 +294,7 @@ export function AdminUsersView({
             </h1>
             <p className="text-sm text-slate-400">
               Contrôle d'accès par rôle (RBAC), séparation étanche des espaces et liaisons propriétaires/locataires.
-              {isSupabaseOnline ? ' Comptes synchronisés avec Supabase Auth.' : ' Mode local : comptes visibles uniquement sur ce navigateur.'}
+                            {isSupabaseOnline ? ' Comptes synchronisés en ligne.' : ' Mode local : comptes visibles uniquement sur ce navigateur.'}
             </p>
           </div>
         </div>

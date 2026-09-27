@@ -28,7 +28,7 @@ export function calculateRent(input: RentCalculationInput): RentCalculationResul
   const taxes = Math.max(0, Number(input.taxes) || 0);
   const penalites = Math.max(0, Number(input.penalites) || 0);
 
-  const totalDu = loyerBase + charges + taxes + penalites;
+  const totalDu = loyerBase + taxes + penalites;
 
   return {
     loyerBase,

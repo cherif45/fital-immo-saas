@@ -178,7 +178,7 @@ export function FinanceView({
     document.body.removeChild(link);
   };
 
-  return (
+    return (
     <div className="space-y-6">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
@@ -246,7 +246,7 @@ export function FinanceView({
       {/* Filtres */}
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <select
+                            <select
             value={selectedOwner}
             onChange={(e) => setSelectedOwner(e.target.value)}
             className="px-3 py-2 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none focus:border-[#C9A96E]"

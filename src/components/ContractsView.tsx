@@ -15,10 +15,12 @@ import {
   FileCheck,
   RotateCw,
   AlertCircle,
-  X
+  X,
+  Save,
+  Trash2,
 } from 'lucide-react';
-import { LeaseContract, Tenant, Property, Owner, UserAccount } from '../types';
-import { formatCurrency, formatNumber, formatDate, nombreEnLettres, exportToCSV } from '../lib/utils';
+import { LeaseContract, Tenant, Property, Owner, UserAccount, Unit, Building as BuildingType } from '../types';
+import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { LeaseContractModal } from './LeaseContractModal';
 
 interface ContractsViewProps {
@@ -30,6 +32,62 @@ interface ContractsViewProps {
   onAddContract: (contract: LeaseContract) => void;
   onUpdateContract?: (contract: LeaseContract) => void;
 }
+
+// ============================================================
+// Helper : Montant en lettres (français)
+// ============================================================
+function nombreEnLettres(n: number): string {
+  if (n === 0) return 'zéro';
+  const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+  const dizaines = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+  const centaines = ['', 'cent', 'deux cent', 'trois cent', 'quatre cent', 'cinq cent', 'six cent', 'sept cent', 'huit cent', 'neuf cent'];
+
+  function convert(num: number): string {
+    if (num === 0) return '';
+    if (num < 10) return unites[num];
+    if (num < 20) {
+      const speciaux = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+      return speciaux[num - 10];
+    }
+    if (num < 100) {
+      const d = Math.floor(num / 10);
+      const u = num % 10;
+      if (d === 7 || d === 9) return dizaines[d - 1] + '-' + convert(10 + u);
+      if (d === 8 && u === 0) return 'quatre-vingts';
+      return dizaines[d] + (u > 0 ? '-' + unites[u] : '');
+    }
+    const c = Math.floor(num / 100);
+    const r = num % 100;
+    let prefix = centaines[c];
+    if (c > 1 && r === 0) prefix += 's';
+    return prefix + (r > 0 ? ' ' + convert(r) : '');
+  }
+
+  const milliards = Math.floor(n / 1000000000);
+  const millions = Math.floor((n % 1000000000) / 1000000);
+  const milliers = Math.floor((n % 1000000) / 1000);
+  const reste = n % 1000;
+
+  let result = '';
+  if (milliards > 0) result += convert(milliards) + ' milliard' + (milliards > 1 ? 's' : '') + ' ';
+  if (millions > 0) result += convert(millions) + ' million' + (millions > 1 ? 's' : '') + ' ';
+  if (milliers > 0) result += (milliers === 1 ? 'mille' : convert(milliers) + ' mille') + ' ';
+  if (reste > 0) result += convert(reste);
+
+  return result.trim();
+}
+
+// ============================================================
+// Helper : Type de pièce libellé
+// ============================================================
+const getPieceLabel = (typePiece?: string): string => {
+  switch (typePiece) {
+    case 'PASSEPORT': return 'Passeport';
+    case 'CARTE_CONSULAIRE': return 'Carte Consulaire';
+    case 'AUTRE': return 'Pièce';
+    default: return 'CNI';
+  }
+};
 
 export const ContractsView: React.FC<ContractsViewProps> = ({
   contracts,
@@ -43,31 +101,43 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
   const [search, setSearch] = useState('');
   const [selectedContractForPrint, setSelectedContractForPrint] = useState<LeaseContract | null>(null);
   const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false);
+  const [editingContract, setEditingContract] = useState<LeaseContract | null>(null);
 
-  // New Contract State
+  // ============================================================
+  // NEW CONTRACT STATE (tous les champs de la capture)
+  // ============================================================
   const [locataireId, setLocataireId] = useState(tenants[0]?.id || '');
   const [bienId, setBienId] = useState(properties[0]?.id || '');
-  const [typeContrat, setTypeContrat] = useState<'Habitation' | 'Commercial' | 'Professionnel'>('Habitation');
-  const [loyerBase, setLoyerBase] = useState(properties[0]?.loyerBase || 350000);
-  const [charges, setCharges] = useState(properties[0]?.charges || 25000);
-  const [cautionMois, setCautionMois] = useState(2);
-  const [dateDebut, setDateDebut] = useState(new Date().toISOString().split('T')[0]);
-  const [dateFin, setDateFin] = useState(
-    new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
-  );
-  const [fraisAdhesion, setFraisAdhesion] = useState(50000);
+  const [refLocatif, setRefLocatif] = useState(`CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [dateContrat, setDateContrat] = useState(new Date().toISOString().split('T')[0]);
+  const [debutContrat, setDebutContrat] = useState(new Date().toISOString().split('T')[0]);
+  const [refPeriode, setRefPeriode] = useState(new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
+  
+  const [montantCaution, setMontantCaution] = useState(0);
+  const [acompteCaution, setAcompteCaution] = useState(0);
+  const [montantCommission, setMontantCommission] = useState(0);
+  const [avanceLoyer, setAvanceLoyer] = useState(0);
+  const [lb, setLb] = useState(properties[0]?.loyerBase || 0);
+  const [cautionEau, setCautionEau] = useState(0);
+  const [cautionElectricite, setCautionElectricite] = useState(0);
+  const [tvaManuel, setTvaManuel] = useState(0);
+  const [chargesDiverses, setChargesDiverses] = useState(0);
+  const [typeReglement, setTypeReglement] = useState('MENSUEL');
+  const [nombreMois, setNombreMois] = useState(1);
 
-  // Computed taxes (Sénégal standard)
-  const isCommercial = typeContrat === 'Commercial' || typeContrat === 'Professionnel';
-  const tva = isCommercial ? Math.round(loyerBase * 0.18) : 0;
-  const tom = Math.round(loyerBase * 0.036);
-  const tlv = isCommercial ? Math.round(loyerBase * 0.025) : 0;
-  const cautionMontant = loyerBase * cautionMois;
+  // ============================================================
+  // CALCULS AUTOMATIQUES
+  // ============================================================
+  const montantLocation = lb; // = LB
+  const montantTOM = Math.round(lb * 0.036);      // 3.6%
+  const montantTVA = Math.round(lb * 0.18);       // 18%
+  const montantTLV = Math.round(lb * 0.025);      // 2.5%
+  const montantLocationLettres = nombreEnLettres(montantLocation);
 
   const isTenant = currentUser?.role === 'LOCATAIRE';
 
   // ============================================================
-  // 🔧 HELPERS : Récupérer les noms même si les champs sont vides
+  // HELPERS NOMS
   // ============================================================
   const getLocataireNom = (c: LeaseContract): string => {
     if (c.locataireNom && c.locataireNom.trim()) return c.locataireNom;
@@ -93,7 +163,9 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     return 'Bailleur non référencé';
   };
 
-  // Filter for contracts
+  // ============================================================
+  // FILTRES
+  // ============================================================
   let displayableContracts = contracts;
   if (isTenant && currentUser?.locataireId) {
     displayableContracts = contracts.filter((c) => c.locataireId === currentUser.locataireId);
@@ -115,58 +187,91 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     return true;
   });
 
+  // ============================================================
+  // HANDLERS
+  // ============================================================
   const handlePropertySelect = (pId: string) => {
     setBienId(pId);
     const p = properties.find((item) => item.id === pId);
     if (p) {
-      setLoyerBase(p.loyerBase);
-      setCharges(p.charges || 0);
+      setLb(p.loyerBase || 0);
     }
   };
 
-  const handleCreateContract = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setLocataireId(tenants[0]?.id || '');
+    setBienId(properties[0]?.id || '');
+    setRefLocatif(`CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setDateContrat(new Date().toISOString().split('T')[0]);
+    setDebutContrat(new Date().toISOString().split('T')[0]);
+    setRefPeriode(new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
+    setMontantCaution(0);
+    setAcompteCaution(0);
+    setMontantCommission(0);
+    setAvanceLoyer(0);
+    setLb(properties[0]?.loyerBase || 0);
+    setCautionEau(0);
+    setCautionElectricite(0);
+    setTvaManuel(0);
+    setChargesDiverses(0);
+    setTypeReglement('MENSUEL');
+    setNombreMois(1);
+    setEditingContract(null);
+  };
+
+  const handleCreateOrUpdateContract = (e: React.FormEvent) => {
     e.preventDefault();
     const t = tenants.find((item) => item.id === locataireId) || tenants[0];
     const p = properties.find((item) => item.id === bienId) || properties[0];
     const o = owners.find((owner) => owner.id === p?.proprietaireId) || owners[0];
 
-    const newContract: LeaseContract = {
-      id: crypto.randomUUID(),
-      ref: `CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    const contractData: LeaseContract = {
+      id: editingContract?.id || crypto.randomUUID(),
+      ref: refLocatif,
       locataireId: t.id,
       locataireNom: `${t.prenom} ${t.nom}`,
       bienId: p.id,
       bienNom: p.nom,
       proprietaireId: o?.id || 'owner-1',
       proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire FITAL',
-      dateDebut,
-      dateFin,
-      loyerBase,
-      charges,
-      tva,
-      tom,
-      tlv,
-      cautionMontant,
-      cautionMois,
-      fraisAdhesion,
-      statut: 'Actif',
-      typeContrat,
+      typeContrat: 'Habitation',
+      dateDebut: debutContrat,
+      dateFin: (() => {
+        const d = new Date(debutContrat);
+        d.setFullYear(d.getFullYear() + 1);
+        return d.toISOString().split('T')[0];
+      })(),
+      loyerBase: lb,
+      charges: 0, // ⚠️ Supprimé (règle client)
+      tva: montantTVA,
+      tom: montantTOM,
+      tlv: montantTLV,
+      cautionMontant: montantCaution,
+      cautionMois: 1,
+      fraisAdhesion: 0,
+      statut: 'En cours',
     };
 
-    onAddContract(newContract);
+    if (editingContract && onUpdateContract) {
+      onUpdateContract(contractData);
+    } else {
+      onAddContract(contractData);
+    }
     setIsNewContractModalOpen(false);
+    resetForm();
   };
 
   const handleExportCSV = () => {
-    const headers = ['Réf Contrat', 'Locataire', 'Bien', 'Propriétaire', 'Loyer Base', 'Charges', 'Taxes', 'Caution', 'Début', 'Fin', 'Statut'];
+    const headers = ['Réf Contrat', 'Locataire', 'Bien', 'Propriétaire', 'Loyer Base', 'TOM', 'TVA', 'TLV', 'Caution', 'Début', 'Fin', 'Statut'];
     const rows = filteredContracts.map((c) => [
       c.ref,
       getLocataireNom(c),
       getBienNom(c),
       getProprietaireNom(c),
       c.loyerBase,
-      c.charges,
-      c.tva + c.tom + c.tlv,
+      c.tom,
+      c.tva,
+      c.tlv,
       c.cautionMontant,
       c.dateDebut,
       c.dateFin,
@@ -184,9 +289,9 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
             <FileSignature className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-white">Contrats de Bail, Taxes & Cautions de Garantie</div>
+            <div className="text-sm font-bold text-white">Contrats de Bail & Enregistrement</div>
             <div className="text-xs text-[#A8B4C4]">
-              {displayableContracts.length} baux répertoriés · Calcul automatique TOM, TVA (18%), TLV et frais d'enregistrement
+              {displayableContracts.length} baux · Calcul auto TOM (3.6%), TVA (18%), TLV (2.5%)
             </div>
           </div>
         </div>
@@ -200,28 +305,28 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
             <span>Excel / CSV</span>
           </button>
 
-                    {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser?.role || '') && (
+          {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser?.role || '') && (
             <button
-              onClick={() => setIsNewContractModalOpen(true)}
+              onClick={() => { resetForm(); setIsNewContractModalOpen(true); }}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Rédiger un Nouveau Bail</span>
+              <span>Nouveau Contrat</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Filter / Search */}
+      {/* Search */}
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex items-center justify-between gap-4">
         <div className="text-xs font-medium text-slate-300">
-          Liste des baux authentifiés FITAL-IMMO
+          Liste des baux FITAL-IMMO
         </div>
         <div className="relative w-72">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Rechercher par réf, locataire, bien..."
+            placeholder="Rechercher réf, locataire, bien..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white placeholder-slate-500 focus:outline-none"
@@ -229,210 +334,238 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         </div>
       </div>
 
-      {/* Contracts Table */}
+      {/* Table */}
       <div className="rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse min-w-[950px]">
             <thead>
               <tr className="bg-[#1E2E45]/80 text-[#A8B4C4] font-semibold uppercase tracking-wider text-[10px] border-b border-[#C9A96E]/20">
-                <th className="py-3 px-4">Réf Contrat & Type</th>
-                <th className="py-3 px-3">Locataire & Bien</th>
+                <th className="py-3 px-4">Réf Contrat</th>
+                <th className="py-3 px-3">Locataire</th>
+                <th className="py-3 px-3">Bien</th>
                 <th className="py-3 px-3">Propriétaire</th>
-                <th className="py-3 px-3 text-right">Loyer + Charges</th>
-                <th className="py-3 px-3 text-right">Taxes (TOM/TVA)</th>
-                <th className="py-3 px-3 text-right text-sky-400">Caution Déposée</th>
-                <th className="py-3 px-3">Échéance Bail</th>
+                <th className="py-3 px-3 text-right">Loyer Base</th>
+                <th className="py-3 px-3 text-right">TOM / TVA / TLV</th>
+                <th className="py-3 px-3 text-right text-sky-400">Caution</th>
+                <th className="py-3 px-3">Début → Fin</th>
                 <th className="py-3 px-3 text-center">Statut</th>
-                <th className="py-3 px-4 text-center">Bail Officiel</th>
+                <th className="py-3 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#C9A96E]/10">
-              {filteredContracts.map((c) => {
-                const totalLoyer = c.loyerBase + c.charges;
-                const totalTaxes = c.tva + c.tom + c.tlv;
-                return (
-                  <tr key={c.id} className="hover:bg-[#1E2E45]/40 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-mono font-bold text-white text-[11px]">{c.ref}</div>
-                      <div className="text-[10px] text-[#C9A96E] font-medium">{c.typeContrat}</div>
-                    </td>
-
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-white">{getLocataireNom(c)}</div>
-                      <div className="text-[10px] text-[#A8B4C4] truncate max-w-[170px]">{getBienNom(c)}</div>
-                    </td>
-
-                    <td className="py-3 px-3 text-[#A8B4C4]">{getProprietaireNom(c)}</td>
-
-                    <td className="py-3 px-3 text-right font-mono font-bold text-white">
-                      {formatNumber(totalLoyer)}{' '}
-                      <span className="text-[10px] text-[#A8B4C4]">FCFA</span>
-                    </td>
-
-                    <td className="py-3 px-3 text-right font-mono text-amber-300">
-                      {totalTaxes > 0 ? `${formatNumber(totalTaxes)} FCFA` : 'Exonéré'}
-                    </td>
-
-                    <td className="py-3 px-3 text-right font-mono font-bold text-sky-300">
-                      {formatNumber(c.cautionMontant)} FCFA
-                    </td>
-
-                    <td className="py-3 px-3 text-[11px] text-[#A8B4C4]">
-                      <div>{formatDate(c.dateDebut)}</div>
-                      <div className="text-[10px] text-[#6B7C94]">au {formatDate(c.dateFin)}</div>
-                    </td>
-
-                    <td className="py-3 px-3 text-center">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
-                        {c.statut}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => setSelectedContractForPrint(c)}
-                        className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto cursor-pointer"
-                        title="Imprimer le Contrat de Bail Type FITAL-IMMO"
-                      >
-                        <Printer className="w-3 h-3" /> Imprimer Bail
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredContracts.map((c) => (
+                <tr key={c.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                  <td className="py-3 px-4">
+                    <div className="font-mono font-bold text-white text-[11px]">{c.ref}</div>
+                    <div className="text-[10px] text-[#C9A96E]">{c.typeContrat}</div>
+                  </td>
+                  <td className="py-3 px-3 font-bold text-white">{getLocataireNom(c)}</td>
+                  <td className="py-3 px-3 text-[#A8B4C4]">{getBienNom(c)}</td>
+                  <td className="py-3 px-3 text-[#A8B4C4]">{getProprietaireNom(c)}</td>
+                  <td className="py-3 px-3 text-right font-mono font-bold text-white">
+                    {formatNumber(c.loyerBase)} <span className="text-[10px] text-[#A8B4C4]">F</span>
+                  </td>
+                  <td className="py-3 px-3 text-right font-mono text-amber-300">
+                    {formatNumber((c.tom || 0) + (c.tva || 0) + (c.tlv || 0))} F
+                  </td>
+                  <td className="py-3 px-3 text-right font-mono font-bold text-sky-300">
+                    {formatNumber(c.cautionMontant || 0)} F
+                  </td>
+                  <td className="py-3 px-3 text-[11px] text-[#A8B4C4]">
+                    <div>{formatDate(c.dateDebut)}</div>
+                    <div className="text-[10px] text-[#6B7C94]">→ {formatDate(c.dateFin)}</div>
+                  </td>
+                  <td className="py-3 px-3 text-center">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                      {c.statut}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <button
+                      onClick={() => setSelectedContractForPrint(c)}
+                      className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1 mx-auto cursor-pointer"
+                    >
+                      <Printer className="w-3 h-3" /> Imprimer
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal: Nouveau Contrat de Bail */}
+      {/* Modal Nouveau/Modifier Contrat */}
       {isNewContractModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#C9A96E]/20 pb-4">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <FileSignature className="w-5 h-5 text-[#C9A96E]" />
-                <span>Rédaction d'un Nouveau Contrat de Bail</span>
+                <span>{editingContract ? 'Modifier le Contrat' : 'Rédaction d\'un Nouveau Contrat'}</span>
               </div>
-              <button onClick={() => setIsNewContractModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
+              <button onClick={() => { setIsNewContractModalOpen(false); resetForm(); }} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
             </div>
 
-            <form onSubmit={handleCreateContract} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Locataire Preneur</label>
-                  <select
-                    value={locataireId}
-                    onChange={(e) => setLocataireId(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  >
-                    {tenants.map((t) => (
-                      <option key={t.id} value={t.id}>{t.prenom} {t.nom} ({t.telephone})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien Immobiliers / Lot</label>
-                  <select
-                    value={bienId}
-                    onChange={(e) => handlePropertySelect(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  >
-                    {properties.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nom} - {p.quartier} ({formatCurrency(p.loyerBase)})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Type de Bail</label>
-                  <select
-                    value={typeContrat}
-                    onChange={(e) => setTypeContrat(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  >
-                    <option value="Habitation">Habitation</option>
-                    <option value="Commercial">Commercial (TVA 18%)</option>
-                    <option value="Professionnel">Professionnel</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Loyer Base (FCFA)</label>
-                  <input
-                    type="number"
-                    value={loyerBase}
-                    onChange={(e) => setLoyerBase(Number(e.target.value))}
-                    required
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Charges (FCFA)</label>
-                  <input
-                    type="number"
-                    value={charges}
-                    onChange={(e) => setCharges(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
-                  />
+            <form onSubmit={handleCreateOrUpdateContract} className="space-y-4 text-xs">
+              {/* BLOC 1 : Locataire */}
+              <div className="p-3 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/15">
+                <div className="font-bold text-[#C9A96E] text-[11px] uppercase mb-2">Locataire</div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Locataire (sélection)</label>
+                    <select
+                      value={locataireId}
+                      onChange={(e) => setLocataireId(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                    >
+                      {tenants.map((t) => (
+                        <option key={t.id} value={t.id}>{t.prenom} {t.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Ref Locataire</label>
+                    <input type="text" value={tenants.find((t) => t.id === locataireId)?.ref || '—'} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-slate-400 font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Téléphone</label>
+                    <input type="text" value={tenants.find((t) => t.id === locataireId)?.telephone || '—'} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-slate-400 font-mono" />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-sky-400 uppercase mb-1">Caution (Mois)</label>
-                  <select
-                    value={cautionMois}
-                    onChange={(e) => setCautionMois(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-sky-500/40 text-white"
-                  >
-                    <option value={1}>1 Mois</option>
-                    <option value={2}>2 Mois (Légal Sénégal)</option>
-                    <option value={3}>3 Mois</option>
-                  </select>
+              {/* BLOC 2 : Bien */}
+              <div className="p-3 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/15">
+                <div className="font-bold text-[#C9A96E] text-[11px] uppercase mb-2">Bien & Contrat</div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien (sélection)</label>
+                    <select
+                      value={bienId}
+                      onChange={(e) => handlePropertySelect(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                    >
+                      {properties.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Ref Locatif</label>
+                    <input type="text" value={refLocatif} onChange={(e) => setRefLocatif(e.target.value)} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Ref Période</label>
+                    <input type="text" value={refPeriode} onChange={(e) => setRefPeriode(e.target.value)} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white" placeholder="Septembre 2026" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Date Début</label>
-                  <input
-                    type="date"
-                    value={dateDebut}
-                    onChange={(e) => setDateDebut(e.target.value)}
-                    required
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Date Échéance (1 an)</label>
-                  <input
-                    type="date"
-                    value={dateFin}
-                    onChange={(e) => setDateFin(e.target.value)}
-                    required
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                  />
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Date Contrat</label>
+                    <input type="date" value={dateContrat} onChange={(e) => setDateContrat(e.target.value)} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Début Contrat</label>
+                    <input type="date" value={debutContrat} onChange={(e) => setDebutContrat(e.target.value)} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Type Règlement</label>
+                    <select value={typeReglement} onChange={(e) => setTypeReglement(e.target.value)} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white">
+                      <option value="MENSUEL">MENSUEL</option>
+                      <option value="TRIMESTRIEL">TRIMESTRIEL</option>
+                      <option value="SEMESTRIEL">SEMESTRIEL</option>
+                      <option value="ANNUEL">ANNUEL</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#0F1B2D] rounded-xl border border-[#C9A96E]/20 grid grid-cols-3 gap-2 text-[11px]">
-                <div><span className="text-slate-400">Total Mensuel :</span> <strong className="text-white block font-mono">{formatCurrency(loyerBase + charges + tva + tom + tlv)}</strong></div>
-                <div><span className="text-slate-400">Caution Totale :</span> <strong className="text-sky-300 block font-mono">{formatCurrency(cautionMontant)}</strong></div>
-                <div><span className="text-slate-400">Taxes (TVA+TOM) :</span> <strong className="text-amber-300 block font-mono">{formatCurrency(tva + tom + tlv)}</strong></div>
+              {/* BLOC 3 : Montants */}
+              <div className="p-3 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/15">
+                <div className="font-bold text-[#C9A96E] text-[11px] uppercase mb-2">Montants (FCFA)</div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">LB *</label>
+                    <input type="number" value={lb || ''} onChange={(e) => setLb(Number(e.target.value))} required min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant caution</label>
+                    <input type="number" value={montantCaution || ''} onChange={(e) => setMontantCaution(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Acompte caution</label>
+                    <input type="number" value={acompteCaution || ''} onChange={(e) => setAcompteCaution(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant commission</label>
+                    <input type="number" value={montantCommission || ''} onChange={(e) => setMontantCommission(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-3 mt-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Avance Loyer</label>
+                    <input type="number" value={avanceLoyer || ''} onChange={(e) => setAvanceLoyer(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Caution Eau</label>
+                    <input type="number" value={cautionEau || ''} onChange={(e) => setCautionEau(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Caution Électricité</label>
+                    <input type="number" value={cautionElectricite || ''} onChange={(e) => setCautionElectricite(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Charges diverses</label>
+                    <input type="number" value={chargesDiverses || ''} onChange={(e) => setChargesDiverses(Number(e.target.value))} min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              {/* BLOC 4 : Calculs auto */}
+              <div className="p-3 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/15">
+                <div className="font-bold text-[#C9A96E] text-[11px] uppercase mb-2">Calculs automatiques</div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant Location</label>
+                    <input type="text" value={formatNumber(montantLocation)} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-amber-300 font-mono font-bold" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant TOM (3.6%)</label>
+                    <input type="text" value={formatNumber(montantTOM)} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-amber-300 font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant TVA (18%)</label>
+                    <input type="text" value={formatNumber(montantTVA)} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-amber-300 font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant TLV (2.5%)</label>
+                    <input type="text" value={formatNumber(montantTLV)} readOnly className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-amber-300 font-mono" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Montant Location en lettres</label>
+                  <div className="p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-amber-200 italic font-semibold">
+                    {montantLocationLettres} Francs CFA
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-[#C9A96E]/15">
                 <button
                   type="button"
-                  onClick={() => setIsNewContractModalOpen(false)}
+                  onClick={() => { setIsNewContractModalOpen(false); resetForm(); }}
                   className="px-4 py-2 rounded-xl bg-[#1E2E45] text-slate-300 cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg cursor-pointer flex items-center gap-2"
                 >
-                  Générer & Activer le Bail
+                  <Save className="w-4 h-4" />
+                  <span>{editingContract ? 'Enregistrer' : 'Créer le Contrat'}</span>
                 </button>
               </div>
             </form>
@@ -440,8 +573,8 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Contrat de Bail Officiel Imprimable */}
-            {selectedContractForPrint && (
+      {/* Modal Contrat imprimable */}
+      {selectedContractForPrint && (
         <LeaseContractModal
           contract={selectedContractForPrint}
           property={properties.find((p) => p.id === selectedContractForPrint.bienId)}

@@ -33,6 +33,20 @@ interface OwnersViewProps {
   onAddOwner: (owner: Owner) => void;
 }
 
+// Helper : libellé du type de pièce
+const getPieceLabel = (typePiece?: string): string => {
+  switch (typePiece) {
+    case 'PASSEPORT':
+      return 'Passeport';
+    case 'CARTE_CONSULAIRE':
+      return 'Carte Consulaire';
+    case 'AUTRE':
+      return 'Pièce';
+    default:
+      return 'CNI';
+  }
+};
+
 export const OwnersView: React.FC<OwnersViewProps> = ({
   owners,
   properties,
@@ -50,6 +64,8 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
   // Form State
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
+  const [typePiece, setTypePiece] = useState<string>('CNI'); // 🆕
+  const [cni, setCni] = useState(''); // 🆕
   const [telephone, setTelephone] = useState('+221 77 ');
   const [email, setEmail] = useState('');
   const [banque, setBanque] = useState('CBAO Groupe Attijariwafa');
@@ -74,12 +90,14 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newOwner: Owner = {
-      id: crypto.randomUUID(), 
+      id: crypto.randomUUID(),
       nom: nom.toUpperCase(),
       prenom,
       telephone,
       email: email || `${prenom.toLowerCase()}.${nom.toLowerCase()}@gmail.com`,
       adresse,
+      typePiece, // 🆕
+      cni,       // 🆕
       mandatGerance: `MANDAT-2026-${Math.floor(100 + Math.random() * 900)}`,
       dateMandat: new Date().toISOString().split('T')[0],
       tauxCommission: Number(tauxCommission),
@@ -90,12 +108,25 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
     };
     onAddOwner(newOwner);
     setIsAddModalOpen(false);
+    // Reset
+    setNom('');
+    setPrenom('');
+    setTypePiece('CNI');
+    setCni('');
+    setTelephone('+221 77 ');
+    setEmail('');
+    setBanque('CBAO Groupe Attijariwafa');
+    setCompteBancaire('');
+    setTauxCommission(10);
+    setAdresse('Dakar, Sénégal');
   };
 
   const handleExportCSV = () => {
-    const headers = ['Propriétaire', 'Mandat', 'Téléphone', 'Banque', 'Compte Bancaire', 'Taux Com (%)', 'Nombre de Biens'];
+    const headers = ['Propriétaire', 'Type Pièce', 'N° Pièce', 'Mandat', 'Téléphone', 'Banque', 'Compte Bancaire', 'Taux Com (%)', 'Nombre de Biens'];
     const rows = filteredOwners.map((o) => [
       `${o.prenom} ${o.nom}`,
+      getPieceLabel(o.typePiece),
+      o.cni || '',
       o.mandatGerance,
       o.telephone,
       o.banque,
@@ -192,6 +223,11 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                     <h3 className="text-base font-bold text-white mt-1.5 group-hover:text-[#C9A96E] transition-colors">
                       {o.prenom} {o.nom}
                     </h3>
+                    {o.cni && (
+                      <div className="text-[10px] text-[#A8B4C4] font-mono mt-0.5">
+                        {getPieceLabel(o.typePiece)}: {o.cni}
+                      </div>
+                    )}
                   </div>
                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-[#C9A96E]/20 text-[#E8D5B0] border border-[#C9A96E]/30 font-mono">
                     Com. {o.tauxCommission}%
@@ -268,7 +304,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                     <span>Mandat</span>
                   </button>
 
-                                    <button
+                  <button
                     onClick={() => {
                       if (onOpenBulletin) {
                         onOpenBulletin(o);
@@ -314,6 +350,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+              {/* Ligne 1 : Prénom + Nom */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Prénom</label>
@@ -339,6 +376,34 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                 </div>
               </div>
 
+              {/* 🆕 Ligne 2 : Type pièce + N° pièce */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Type de pièce</label>
+                  <select
+                    value={typePiece}
+                    onChange={(e) => setTypePiece(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  >
+                    <option value="CNI">CNI</option>
+                    <option value="PASSEPORT">Passeport</option>
+                    <option value="CARTE_CONSULAIRE">Carte Consulaire</option>
+                    <option value="AUTRE">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° de la pièce</label>
+                  <input
+                    type="text"
+                    value={cni}
+                    onChange={(e) => setCni(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                    placeholder={typePiece === 'CNI' ? '1 755 1989 00412' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'}
+                  />
+                </div>
+              </div>
+
+              {/* Ligne 3 : Téléphone + Email */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Téléphone</label>
@@ -362,6 +427,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                 </div>
               </div>
 
+              {/* Ligne 4 : Banque + Taux */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Banque Bénéficiaire</label>
@@ -387,6 +453,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                 </div>
               </div>
 
+              {/* Ligne 5 : RIB */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">RIB / Numéro de Compte</label>
                 <input

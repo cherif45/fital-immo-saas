@@ -78,7 +78,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     const buildingUnits = units.filter((u) => u.buildingId === buildingId);
     const occupes = buildingUnits.filter((u) => u.statut === 'Occupé').length;
     const vacants = buildingUnits.filter((u) => u.statut === 'Vacant').length;
-    const totalLoyer = buildingUnits.reduce((sum, u) => sum + u.loyerBase + u.charges, 0);
+    const totalLoyer = buildingUnits.reduce((sum, u) => sum + u.loyerBase, 0);
     return { total: buildingUnits.length, occupes, vacants, totalLoyer };
   };
 
@@ -87,9 +87,26 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     return owner ? `${owner.prenom} ${owner.nom}` : 'Bailleur non référencé';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
+
+    // 🚨 CONTRÔLE ANTI-DOUBLON IMMEUBLE
+    const immeubleExistant = buildings.find(
+      (b) =>
+        b.proprietaireId === proprietaireId &&
+        b.nom.trim().toLowerCase() === nom.trim().toLowerCase() &&
+        b.id !== editingBuilding?.id
+    );
+
+    if (immeubleExistant) {
+      alert(
+        `⚠️ IMMEUBLE EN DOUBLE DÉTECTÉ\n\n` +
+        `Un immeuble nommé "${nom}" existe déjà pour ce propriétaire.\n\n` +
+        `Utilisez un nom différent ou modifiez l'immeuble existant.`
+      );
+      return;
+    }
 
     const newBuilding: Building = {
       id: crypto.randomUUID(),

@@ -62,7 +62,6 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const [adresse, setAdresse] = useState('');
   const [quartier, setQuartier] = useState('Almadies');
   const [loyerBase, setLoyerBase] = useState<number>(350000);
-  const [charges, setCharges] = useState<number>(25000);
   const [proprietaireId, setProprietaireId] = useState<string>(owners[0]?.id || '');
   const [pieces, setPieces] = useState<number>(3);
   const [superficie, setSuperficie] = useState<number>(110);
@@ -147,6 +146,23 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       return;
     }
 
+        // 🚨 CONTRÔLE ANTI-DOUBLON BIEN
+    const bienExistant = properties.find(
+      (p) =>
+        p.proprietaireId === proprietaireId &&
+        p.nom.trim().toLowerCase() === nom.trim().toLowerCase() &&
+        p.id !== editingProperty?.id // Exclure le bien en cours de modification
+    );
+
+    if (bienExistant) {
+      alert(
+        `⚠️ BIEN EN DOUBLE DÉTECTÉ\n\n` +
+        `Un bien nommé "${nom}" existe déjà pour ${owner.prenom} ${owner.nom}.\n\n` +
+        `Si vous voulez modifier le bien existant, ouvrez-le et éditez-le.\n` +
+        `Sinon, utilisez un nom différent.`
+      );
+      return;
+    }
     const newProp: Property = {
       id: crypto.randomUUID(),
       ref: `LOT-${Math.floor(100 + Math.random() * 900)}`,
@@ -159,11 +175,11 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       nombrePieces: Number(pieces) || 3,
       pieces: Number(pieces) || 3,
       loyerBase: Number(loyerBase),
-      charges: Number(charges),
+      charges: 0,
       tvaApplicable: false,
       avatar: type === 'Villa' ? '🏠' : type === 'Commerce' ? '🏪' : '🏢',
       dateCreation: new Date().toISOString().split('T')[0],
-      loyerTotal: Number(loyerBase) + Number(charges),
+      loyerTotal: Number(loyerBase),
       statut: 'Vacant',
       proprietaireId: owner.id,
       proprietaireNom: `${owner.prenom} ${owner.nom}`,
@@ -203,7 +219,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   };
 
   const handleExportCSV = () => {
-    const headers = ['Réf', 'Nom', 'Type', 'Quartier', 'Adresse', 'Statut', 'Loyer Base (FCFA)', 'Charges', 'Loyer Total', 'Propriétaire', 'Locataire Actuel'];
+        const headers = ['Réf', 'Nom', 'Type', 'Quartier', 'Adresse', 'Statut', 'Loyer (FCFA)', 'Propriétaire', 'Locataire Actuel'];
     const rows = filteredProperties.map((p) => [
       p.ref,
       p.nom,
@@ -212,8 +228,6 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
       p.adresse,
       p.statut,
       p.loyerBase,
-      p.charges,
-      p.loyerTotal,
       getOwnerDisplayName(p),
       getCurrentTenantName(p) || 'Vacant',
     ]);
@@ -325,11 +339,22 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none focus:border-[#C9A96E]"
           >
-            <option value="all">Tous les Types de biens</option>
+                        <option value="all">Tous les Types de biens</option>
+            <option value="Studio">Studio</option>
+            <option value="Chambre simple">Chambres simples</option>
+            <option value="Chambre + Salle de bain">Chambres + SDB</option>
+            <option value="1 Chambre + Salon">1 Ch + Salon</option>
+            <option value="2 Chambres + Salon">2 Ch + Salon</option>
+            <option value="3 Chambres + Salon">3 Ch + Salon</option>
+            <option value="4 Chambres + Salon">4 Ch + Salon</option>
             <option value="Appartement">Appartements</option>
+            <option value="Duplex">Duplex</option>
             <option value="Villa">Villas</option>
-            <option value="Magasin">Magasins / Commerces</option>
-            <option value="Bureau">Bureaux / Locaux pro</option>
+            <option value="Villa duplex">Villas duplex</option>
+            <option value="Magasin">Magasins</option>
+            <option value="Bureau">Bureaux</option>
+            <option value="Entrepôt">Entrepôts</option>
+            <option value="Terrain">Terrains</option>
             <option value="Immeuble">Immeubles entiers</option>
           </select>
         </div>
@@ -435,8 +460,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
               <div className="mt-4 pt-3 border-t border-[#C9A96E]/15 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-[#6B7C94] uppercase">Loyer Mensuel Total</div>
-                  <div className="text-sm font-bold text-[#C9A96E] font-mono">
-                    {formatCurrency(p.loyerTotal || (p.loyerBase + p.charges))}
+                                    <div className="text-sm font-bold text-[#C9A96E] font-mono">
+                    {formatCurrency(p.loyerBase)}
                   </div>
                 </div>
 
@@ -510,13 +535,9 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 <span className="text-slate-400 block">Loyer de Base</span>
                 <strong className="text-[#C9A96E]">{formatCurrency(selectedPropertyDetails.loyerBase)}</strong>
               </div>
-              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
-                <span className="text-slate-400 block">Charges Mensuelles</span>
-                <strong className="text-slate-200">{formatCurrency(selectedPropertyDetails.charges)}</strong>
-              </div>
-              <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
-                <span className="text-slate-400 block">Loyer Total</span>
-                <strong className="text-emerald-300 font-bold">{formatCurrency(selectedPropertyDetails.loyerTotal || selectedPropertyDetails.loyerBase + selectedPropertyDetails.charges)}</strong>
+                            <div className="p-3 bg-[#1E2E45]/60 rounded-xl border border-white/5">
+                <span className="text-slate-400 block">Loyer Mensuel</span>
+                <strong className="text-emerald-300 font-bold">{formatCurrency(selectedPropertyDetails.loyerBase)}</strong>
               </div>
             </div>
 
@@ -590,7 +611,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+                           <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Loyer Base (FCFA)</label>
                   <input
@@ -601,27 +622,11 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                       setEditingProperty({
                         ...editingProperty,
                         loyerBase: base,
-                        loyerTotal: base + (editingProperty.charges || 0),
+                        loyerTotal: base,
                       });
                     }}
                     required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Charges (FCFA)</label>
-                  <input
-                    type="number"
-                    value={editingProperty.charges}
-                    onChange={(e) => {
-                      const chg = Number(e.target.value);
-                      setEditingProperty({
-                        ...editingProperty,
-                        charges: chg,
-                        loyerTotal: editingProperty.loyerBase + chg,
-                      });
-                    }}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                   />
                 </div>
                 <div>
@@ -692,16 +697,35 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                     Type de Bien
                   </label>
-                  <select
+                                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as PropertyType)}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                   >
-                    <option value="Appartement">Appartement</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Magasin">Magasin / Commerce</option>
-                    <option value="Bureau">Bureau / Local commercial</option>
-                    <option value="Immeuble">Immeuble entier</option>
+                    <optgroup label="🏠 Logements">
+                      <option value="Studio">Studio</option>
+                      <option value="Chambre simple">Chambre simple</option>
+                      <option value="Chambre + Salle de bain">Chambre + Salle de bain</option>
+                      <option value="1 Chambre + Salon">1 Chambre + Salon</option>
+                      <option value="2 Chambres + Salon">2 Chambres + Salon</option>
+                      <option value="3 Chambres + Salon">3 Chambres + Salon</option>
+                      <option value="4 Chambres + Salon">4 Chambres + Salon</option>
+                      <option value="Appartement">Appartement</option>
+                      <option value="Duplex">Duplex</option>
+                    </optgroup>
+                    <optgroup label="🏡 Villas">
+                      <option value="Villa">Villa</option>
+                      <option value="Villa duplex">Villa duplex</option>
+                    </optgroup>
+                    <optgroup label="💼 Professionnel">
+                      <option value="Magasin">Magasin / Commerce</option>
+                      <option value="Bureau">Bureau / Local pro</option>
+                      <option value="Entrepôt">Entrepôt</option>
+                    </optgroup>
+                    <optgroup label="🏗️ Autres">
+                      <option value="Terrain">Terrain</option>
+                      <option value="Immeuble">Immeuble entier</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>
@@ -751,7 +775,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+                           <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">
                     Loyer Base (FCFA)
@@ -763,17 +787,6 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                     required
                     min={1000}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                    Charges (FCFA)
-                  </label>
-                  <input
-                    type="number"
-                    value={charges}
-                    onChange={(e) => setCharges(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                   />
                 </div>
                 <div>

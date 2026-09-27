@@ -35,6 +35,7 @@ import { PaymentReminderLetterModal } from './PaymentReminderLetterModal';
 interface AutomatedRemindersViewProps {
   tenants: Tenant[];
   properties: Property[];
+  payments?: any[];
   reminders: TenantReminder[];
   onAddReminder: (reminder: TenantReminder) => void;
   onOpenReceipt?: (tenant: Tenant) => void;
@@ -43,10 +44,50 @@ interface AutomatedRemindersViewProps {
 export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   tenants,
   properties,
+  payments = [],
   reminders,
   onAddReminder,
 }) => {
-  const overdueTenants = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard');
+  // Normaliser une période pour comparaison
+  const normalizePeriode = (p: string): string => {
+    if (!p) return '';
+    const clean = p.toLowerCase().trim();
+    const moisMap: Record<string, string> = {
+      'janv': 'janvier', 'jan': 'janvier',
+      'févr': 'février', 'fev': 'février', 'fév': 'février', 'fevr': 'février',
+      'avr': 'avril',
+      'juil': 'juillet',
+      'août': 'août', 'aout': 'août',
+      'sept': 'septembre', 'sep': 'septembre',
+      'oct': 'octobre',
+      'nov': 'novembre',
+      'déc': 'décembre', 'dec': 'décembre',
+    };
+    let result = clean;
+    Object.entries(moisMap).forEach(([abbr, full]) => {
+      if (result.startsWith(abbr)) result = result.replace(abbr, full);
+    });
+    result = result.replace(/([a-zéû]+)(\d{4})/, '$1 $2');
+    return result;
+  };
+
+  const moisActuel = normalizePeriode(
+    new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toLowerCase().trim()
+  );
+
+  // Overdue = locataires actifs qui n'ont PAS payé le mois en cours (à 100%)
+  const overdueTenants = tenants.filter((t) => {
+    if (t.dateSortie) return false; // exclure les sortis
+    const paiementsMois = payments.filter(
+      (p: any) =>
+        p.locataireId === t.id &&
+        normalizePeriode(p.periode || '') === moisActuel
+    );
+    if (paiementsMois.length === 0) return true; // rien payé → à relancer
+    const totalPaye = paiementsMois.reduce((sum: number, p: any) => sum + (p.montantPaye || 0), 0);
+    const totalDu = paiementsMois[0].montantTotal || t.loyerMensuel || 0;
+    return totalPaye < totalDu; // paiement partiel → à relancer
+  });
   const [selectedTenantId, setSelectedTenantId] = useState<string>(
     overdueTenants[0]?.id || tenants[0]?.id || ''
   );

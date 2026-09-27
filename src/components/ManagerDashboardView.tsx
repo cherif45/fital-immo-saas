@@ -57,7 +57,7 @@ export function ManagerDashboardView({
   const vacantBiens = properties.filter((p) => p.statut === 'Vacant').length;
   const occupancyRate = totalBiens > 0 ? Math.round((occupiedBiens / totalBiens) * 100) : 0;
 
-  const totalMonthlyPotential = properties.reduce((sum, p) => sum + p.loyerBase + p.charges, 0);
+  const totalMonthlyPotential = properties.reduce((sum, p) => sum + p.loyerBase, 0);
   const totalLateTenants = tenants.filter((t) => t.statut === 'Retard' || t.statut === 'Impayé').length;
   const totalActiveRepairs = maintenance.filter((m) => m.statut !== 'Terminé').length;
 

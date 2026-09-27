@@ -10,9 +10,6 @@ import {
   EyeOff,
   RefreshCw,
   Globe,
-  User,
-  Building,
-  KeyRound,
 } from 'lucide-react';
 import {
   supabase,
@@ -41,15 +38,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Supabase automatic health diagnostic
+  // Diagnostic système (interne uniquement, non affiché à l'utilisateur)
   const [healthResult, setHealthResult] = useState<SupabaseHealthCheckResult | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
 
-  // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Diagnostic automatique au chargement
   useEffect(() => {
     runConnectionDiagnostic();
   }, []);
@@ -73,7 +68,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     }
   };
 
-  // Resolve active users pool from props, localStorage or initialUsers
   const getUsersPool = (): UserAccount[] => {
     if (availableUsers && availableUsers.length > 0) return availableUsers;
     const stored = loadLocalCollection<UserAccount[]>('users', initialUsers);
@@ -94,7 +88,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     setLoading(true);
 
     try {
-      // 1. Priorité Supabase Auth (production — comptes partagés entre tous les navigateurs)
+      // 1. Authentification cloud (comptes partagés)
       if (isSupabaseConfigured && supabase && healthResult?.connected) {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
@@ -121,7 +115,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
 
           profileData = existingProfile;
 
-          // Bootstrap : premier admin sans profil → créer agence + profil automatiquement
           if (!profileData) {
             await getOrCreateDefaultAgency();
             const bootstrapped = await bootstrapAdminProfile(authData.user.id, cleanEmail, {
@@ -132,9 +125,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               onLoginSuccess({ ...bootstrapped, derniereConnexion: 'À l\'instant' });
               return;
             }
-            setErrorMsg(
-              'Compte Auth valide mais profil absent. Exécutez le script SQL supabase/migrations/20260916_profiles_insert_and_bootstrap.sql dans Supabase, puis réessayez.'
-            );
+            setErrorMsg('Compte valide mais profil absent. Contactez l\'administrateur.');
             setLoading(false);
             return;
           }
@@ -167,7 +158,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         }
       }
 
-      // 2. Mode local / démo (uniquement si Supabase non connecté)
+      // 2. Mode local
       const pool = getUsersPool();
       const matchedUser = pool.find((u) => u.email.trim().toLowerCase() === cleanEmail);
 
@@ -188,11 +179,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         return;
       }
 
-      setErrorMsg(
-        isSupabaseConfigured && healthResult?.connected
-          ? 'Identifiants non reconnus. Utilisez un compte créé par l\'administrateur dans Supabase.'
-          : 'Identifiants non reconnus. En mode local, utilisez les comptes de démonstration ci-dessous.'
-      );
+      setErrorMsg('Identifiants non reconnus. Vérifiez votre email et mot de passe.');
     } catch (err: any) {
       console.error('Erreur authentification:', err);
       setErrorMsg(err.message || 'Impossible de se connecter pour le moment.');
@@ -215,23 +202,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         if (error) throw error;
         setSuccessMsg('Un lien de réinitialisation sécurisé a été transmis par email.');
       } else {
-        setSuccessMsg('En mode autonome, contactez l’administrateur général pour réinitialiser votre accès.');
+        setSuccessMsg('Contactez l\'administrateur pour réinitialiser votre accès.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Impossible d’envoyer le lien de réinitialisation.');
+      setErrorMsg(err.message || 'Impossible d\'envoyer le lien de réinitialisation.');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleQuickSelect = (userAccount: UserAccount) => {
-  setEmail(userAccount.email);
-  setPassword(userAccount.password || '');
-  setErrorMsg(null);
-};
-
-  const showDemoAccounts = false;
-  const demoAccounts = showDemoAccounts ? getUsersPool().slice(0, 6) : [];
 
   return (
     <div className="min-h-screen bg-[#0A111D] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 font-sans antialiased text-[#F0EDE8]">
@@ -255,33 +233,30 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           </p>
         </div>
 
-        {/* Supabase Connection Status Bar */}
+        {/* Statut Système (discret, sans mention technique) */}
         <div className="mb-5 rounded-2xl bg-[#0A111D]/90 border border-white/10 p-3 text-[11px] space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-slate-300 font-medium flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-[#C9A96E]" />
-              Connexion Supabase :
+              Statut du service :
             </span>
 
             {healthResult?.connected ? (
               <span className="text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 <CheckCircle2 className="w-3 h-3" />
-                Connecté • {healthResult.latencyMs ?? 15}ms {healthResult.sslActive ? '• SSL' : ''}
-              </span>
-            ) : isSupabaseConfigured ? (
-              <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Supabase Configuré
+                En ligne
               </span>
             ) : (
-              <span className="text-amber-400 font-semibold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                <AlertCircle className="w-3 h-3" /> Mode Local / Prêt
+              <span className="text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                <CheckCircle2 className="w-3 h-3" />
+                Opérationnel
               </span>
             )}
           </div>
 
           <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
             <span className="text-slate-400 truncate max-w-[240px]">
-              {healthResult?.message || (isSupabaseConfigured ? 'Prêt pour la production' : 'Environnement actif')}
+              {isSupabaseConfigured ? 'Accès sécurisé multi-utilisateurs' : 'Accès local sécurisé'}
             </span>
             <button
               type="button"
@@ -290,7 +265,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               className="text-[#C9A96E] hover:text-white font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
-              <span>{isCheckingHealth ? 'Test...' : 'Tester'}</span>
+              <span>{isCheckingHealth ? 'Test...' : 'Vérifier'}</span>
             </button>
           </div>
         </div>
@@ -317,7 +292,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
             Connexion à votre Espace
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            Accédez à vos données selon vos identifiants (Direction, Caisse, Propriétaire, Locataire)
+            Accédez à vos données selon vos identifiants
           </p>
         </div>
 
@@ -433,52 +408,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               )}
             </button>
           </form>
-        )}
-
-        {/* Quick-Access Role Selector */}
-        {!isForgotPassword && demoAccounts.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-                <KeyRound className="w-3 h-3 text-[#C9A96E]" />
-                Mode démo local (navigateur uniquement) :
-              </span>
-            </div>
-            <p className="text-[10px] text-amber-400/80 mb-2">
-              Ces comptes ne sont pas partagés en ligne. Connectez Supabase pour une utilisation multi-utilisateurs.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((acc) => {
-                const isSelected = email.toLowerCase() === acc.email.toLowerCase();
-                return (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => handleQuickSelect(acc)}
-                    className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-white'
-                        : 'bg-[#0A111D] border-white/5 hover:border-white/20 text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A96E]">
-                        {acc.role}
-                      </span>
-                      {isSelected && <CheckCircle2 className="w-3 h-3 text-[#C9A96E]" />}
-                    </div>
-                    <div className="text-xs font-semibold truncate mt-0.5">
-                      {acc.prenom} {acc.nom}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {acc.email}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         )}
       </div>
     </div>

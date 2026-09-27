@@ -45,8 +45,7 @@ export function NewTenantWizardModal({
   const [dateFin, setDateFin] = useState(
     new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
   );
-  const [loyerBase, setLoyerBase] = useState(selectedBien?.loyerBase || 300000);
-  const [charges, setCharges] = useState(selectedBien?.charges || 25000);
+    const [loyerBase, setLoyerBase] = useState(selectedBien?.loyerBase || 300000);
 
   // Step 4: Cautions
   const [cautionMois, setCautionMois] = useState(2);
@@ -105,7 +104,7 @@ export function NewTenantWizardModal({
       bienNom: selectedBien.nom,
       proprietaireId: selectedBien.proprietaireId,
       dateEntree: dateDebut,
-      loyerMensuel: loyerBase + charges,
+      loyerMensuel: loyerBase,
       arrieresCumules: 0,
       joursRetard: 0,
     };
@@ -120,8 +119,8 @@ export function NewTenantWizardModal({
       bienNom: selectedBien.nom,
       proprietaireId: selectedBien.proprietaireId,
       proprietaireNom: selectedBien.proprietaireNom,
-      loyerBase,
-      charges,
+           loyerBase,
+      charges: 0,
       tva: 0,
       tom: 0,
       tlv: 0,
@@ -319,10 +318,9 @@ export function NewTenantWizardModal({
                     {vacantProperties.map((p) => (
                       <div
                         key={p.id}
-                        onClick={() => {
+                                                onClick={() => {
                           setSelectedBienId(p.id);
                           setLoyerBase(p.loyerBase);
-                          setCharges(p.charges);
                           setCautionMontant(p.loyerBase * cautionMois);
                         }}
                         className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
@@ -338,7 +336,7 @@ export function NewTenantWizardModal({
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-bold text-[#C9A96E]">{formatCurrencyFCFA(p.loyerBase + p.charges)}/m</div>
+                        <div className="text-sm font-bold text-[#C9A96E]">{formatCurrencyFCFA(p.loyerBase)}/m</div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#10B981]/20 text-[#10B981]">
                             Vacant
                           </span>
@@ -376,21 +374,12 @@ export function NewTenantWizardModal({
                     className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Loyer Principal (FCFA)</label>
+                                <div className="col-span-2">
+                  <label className="block text-xs text-[#A0AEC0] mb-1">Loyer Mensuel (FCFA)</label>
                   <input
                     type="number"
                     value={loyerBase}
                     onChange={(e) => setLoyerBase(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Provisions Charges (FCFA)</label>
-                  <input
-                    type="number"
-                    value={charges}
-                    onChange={(e) => setCharges(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
                   />
                 </div>
@@ -496,9 +485,9 @@ export function NewTenantWizardModal({
                   <span className="text-[#A0AEC0]">Logement :</span>
                   <span className="font-bold text-[#C9A96E]">{selectedBien?.nom || '—'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#A0AEC0]">Loyer Mensuel Total :</span>
-                  <span className="font-bold text-[#10B981]">{formatCurrencyFCFA(loyerBase + charges)}</span>
+                                <div className="flex justify-between">
+                  <span className="text-[#A0AEC0]">Loyer Mensuel :</span>
+                  <span className="font-bold text-[#10B981]">{formatCurrencyFCFA(loyerBase)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#A0AEC0]">Dépôt de Garantie (Caution) :</span>

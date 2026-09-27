@@ -57,8 +57,8 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
     whatsappBusiness: whatsappBusiness || tenantPhone,
   };
 
-  if (!waveNumero && !orangeMoneyCode) {
-    console.error('❌ ERREUR CRITIQUE : Wave/OM non configurés dans Paramètres → Mobile Money.');
+    if (!waveNumero && !orangeMoneyCode) {
+    console.error('❌ Configuration Wave/OM manquante dans Paramètres → Moyens de Paiement.');
   }
 
   const wavePayUrl = generateWavePaymentUrl(amount, config.wavePhone, reference);

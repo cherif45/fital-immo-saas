@@ -3,7 +3,8 @@
 // ============================================================
 
 export type UserRole = 
-  | 'SUPER_ADMIN'
+  | 'SUPER_ADMIN_SAAS'   // 🆕 Propriétaire du SaaS (moi)
+  | 'SUPER_ADMIN'         // Admin d'une agence (FITAL-IMMO)
   | 'ADMIN'
   | 'CAISSIER'
   | 'GESTIONNAIRE'
@@ -44,6 +45,15 @@ export interface Agency {
   country?: string;
   ninea?: string;
   logoUrl?: string;
+  primaryColor?: string;
+  website?: string;
+  rc?: string;
+  tvaNumber?: string;
+  bankName?: string;
+  bankAccount?: string;
+  plan?: string;
+  subscriptionStart?: string;
+  subscriptionEnd?: string;
   status?: string;
   createdAt?: string;
 }
@@ -76,7 +86,18 @@ export type ActiveTab =
   | 'archives'
   | 'activity-logs'
   | 'penalties'
-  | 'audit';
+  | 'audit'
+  | 'saas-admin';   // 🆕 Super-Admin SaaS
+
+
+// ============================================================
+// SIGNATURE / TRAÇABILITÉ
+// ============================================================
+export interface AuditSignature {
+  createdById?: string;
+  createdByNom?: string;
+  createdByRole?: string;
+}
 
 // ============================================================
 // PROPRIÉTAIRES
@@ -89,6 +110,8 @@ export interface Owner {
   adresse?: string;
   telephone: string;
   email?: string;
+  typePiece?: string;   // 🆕 CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
+  cni?: string;  
   banque?: string;
   compteBancaire?: string;
   ninea?: string;
@@ -109,6 +132,7 @@ export type BuildingStatus = 'Actif' | 'Inactif' | 'En travaux';
 
 export interface Building {
   id: string;
+  ref?: string;   // 🆕 Numéro d'immeuble (ex: 564)
   agencyId?: string;
   proprietaireId: string;
   proprietaireNom?: string;
@@ -132,8 +156,22 @@ export interface Building {
 // ESPACES LOUABLES
 // ============================================================
 export type UnitType = 
-  | 'Appartement' | 'Studio' | 'Chambre' | 'Salle de bain'
-  | 'Magasin' | 'Bureau' | 'Terrasse' | 'Entrepôt' | 'Autre';
+  | 'Studio'
+  | 'Chambre simple'
+  | 'Chambre + Salle de bain'
+  | 'Chambre + Cuisine + SDB'
+  | 'Chambre + Salon + Cuisine + SDB'
+  | '1 Chambre + Salon'
+  | '2 Chambres + Salon'
+  | '3 Chambres + Salon'
+  | '4 Chambres + Salon'
+  | 'Appartement'
+  | 'Duplex'
+  | 'Magasin'
+  | 'Bureau'
+  | 'Terrasse'
+  | 'Entrepôt'
+  | 'Autre';
 
 export type UnitStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige';
 
@@ -164,8 +202,22 @@ export interface Unit {
 // BIENS
 // ============================================================
 export type PropertyType = 
-  | 'Appartement' | 'Villa' | 'Magasin' | 'Bureau'
-  | 'Immeuble' | 'Terrain' | 'Chambre' | 'Studio';
+  | 'Studio'
+  | 'Chambre simple'
+  | 'Chambre + Salle de bain'
+  | '1 Chambre + Salon'
+  | '2 Chambres + Salon'
+  | '3 Chambres + Salon'
+  | '4 Chambres + Salon'
+  | 'Duplex'
+  | 'Villa'
+  | 'Villa duplex'
+  | 'Appartement'
+  | 'Magasin'
+  | 'Bureau'
+  | 'Entrepôt'
+  | 'Terrain'
+  | 'Immeuble';
 
 export type PropertyStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige' | 'Archivé';
 
@@ -208,6 +260,7 @@ export interface Tenant {
   telephone: string;
   email?: string;
   cni?: string;
+  typePiece?: string;   // 🆕 CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
   fonction?: string;
   profession?: string;
   employeur?: string;
@@ -233,7 +286,7 @@ export interface Tenant {
 // ============================================================
 export type ContractStatus = 'En cours' | 'Terminé' | 'Résilié' | 'Archivé';
 
-export interface LeaseContract {
+export interface LeaseContract extends AuditSignature {
   id: string;
   ref: string;
   typeContrat: 'Habitation' | 'Commercial' | 'Professionnel' | 'Bail d\'habitation';
@@ -256,8 +309,18 @@ export interface LeaseContract {
   fraisAdhesion?: number;
   dateDebut: string;
   dateFin: string;
-  typeReglement?: string;
   statut: ContractStatus;
+  dateContrat?: string;
+  debutContrat?: string;
+  refPeriode?: string;
+  montantCaution?: number;
+  acompteCaution?: number;
+  montantCommission?: number;
+  avanceLoyer?: number;
+  lb?: number;
+  chargesDiverses?: number;
+  typeReglement?: string;
+  nombreMois?: number;
 }
 
 // ============================================================
@@ -269,7 +332,7 @@ export type PaymentMethod = 'Espèces' | 'Virement' | 'Chèque' | 'Mobile Money'
 export type PaymentMethodCode = 'ESPECES' | 'WAVE' | 'ORANGE_MONEY' | 'VIREMENT' | 'CHEQUE' | 'FREE_MONEY' | 'AUTRE';
 export type VerificationStatus = 'valide' | 'en_attente' | 'rejete';
 
-export interface Payment {
+export interface Payment extends AuditSignature {
   id: string;
   ref: string;
   quittanceNumero: string;
@@ -364,7 +427,7 @@ export interface OwnerCharge {
 }
 
 // ============================================================
-// DÉDUCTIONS PROPRIÉTAIRE (ANCIEN)
+// DÉDUCTIONS PROPRIÉTAIRE
 // ============================================================
 export type DeductionType = 'FACTURE' | 'PRET' | 'CREDIT' | 'REQUISITION' | 'AUTRE';
 
@@ -389,7 +452,7 @@ export interface OwnerDeduction {
 // ============================================================
 export type BulletinStatus = 'Brouillon' | 'Validé' | 'Payé' | 'Archivé';
 
-export interface BulletinVersement {
+export interface BulletinVersement extends AuditSignature {
   id: string;
   agencyId?: string;
   reference: string;
@@ -417,7 +480,7 @@ export interface BulletinVersement {
 // ============================================================
 // REVERSEMENTS
 // ============================================================
-export interface OwnerDisbursement {
+export interface OwnerDisbursement extends AuditSignature {
   id: string;
   ref: string;
   proprietaireId: string;
@@ -456,7 +519,7 @@ export interface InspectionElement {
   coutDegradation?: number;
 }
 
-export interface Inspection {
+export interface Inspection extends AuditSignature {
   id: string;
   ref?: string;
   bienId: string;
@@ -487,7 +550,7 @@ export type MaintenancePriority = 'Faible' | 'Moyenne' | 'Haute' | 'Urgente';
 export type MaintenanceImputation = 'Propriétaire' | 'Locataire' | 'Agence';
 export type MaintenancePaymentStatus = 'Non réglé' | 'Réglé' | 'Partiellement réglé';
 
-export interface MaintenanceTicket {
+export interface MaintenanceTicket extends AuditSignature {
   id: string;
   ref?: string;
   bienId: string;
@@ -552,13 +615,14 @@ export interface TenantReminder {
 export type InvoiceStatus = 'Émise' | 'Payée' | 'Annulée' | 'En retard';
 
 export interface InvoiceLine {
+  id: string;
   description: string;
   quantite: number;
   prixUnitaire: number;
   montant: number;
 }
 
-export interface Invoice {
+export interface Invoice extends AuditSignature {
   id: string;
   ref: string;
   numero: string;
@@ -579,6 +643,7 @@ export interface Invoice {
   montantTotal?: number;
   statut: InvoiceStatus;
   lignes?: InvoiceLine[];
+  notes?: string;
 }
 
 // ============================================================
@@ -587,7 +652,7 @@ export interface Invoice {
 export type CashMovementType = 'ENTREE' | 'SORTIE' | 'ENCAISSEMENT' | 'DECAISSEMENT';
 export type CashMovementCategory = 'ENCAISSEMENT_LOYER' | 'DEPENSE_MENUE' | 'AVANCE_PROPRIETAIRE' | 'APPORT_FOND' | 'AUTRE';
 
-export interface CashMovement {
+export interface CashMovement extends AuditSignature {
   id: string;
   reference?: string;
   ref?: string;
@@ -711,7 +776,31 @@ export interface AgencySettings {
   whatsappBusiness?: string;
   standardTelephone?: string;
   logoUrl?: string;
-  siteWeb?: string;
+  primaryColor?: string;
+  website?: string;
+  agencyId?: string;
+
+  // 🆕 Paiements - Wave
+  waveApiKey?: string;
+  waveWebhookSecret?: string;
+  waveEnabled?: boolean;
+
+  // 🆕 Paiements - Orange Money
+  orangeMoneyApiKey?: string;
+  orangeMoneyMerchantId?: string;
+  orangeMoneyEnabled?: boolean;
+
+  // 🆕 Paiements - PayDunya
+  paydunyaMasterKey?: string;
+  paydunyaPrivateKey?: string;
+  paydunyaPublicKey?: string;
+  paydunyaToken?: string;
+  paydunyaMode?: 'test' | 'prod';
+  paydunyaEnabled?: boolean;
+
+  // 🆕 Statut global paiements
+  paymentsEnabled?: boolean;
+  paymentsProvider?: 'WAVE' | 'ORANGE_MONEY' | 'PAYDUNYA' | 'MULTIPLE' | 'NONE';
 }
 
 // ============================================================

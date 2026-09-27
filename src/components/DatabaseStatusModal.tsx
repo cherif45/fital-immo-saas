@@ -48,8 +48,8 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Diagnostic & Statut de la Base de Données</h2>
-              <p className="text-[11px] text-[#A8B4C4]">Vérification de la configuration Supabase PostgreSQL & Sécurité RLS</p>
+              <h2 className="text-sm font-bold text-white">Diagnostic & Statut du Système</h2>
+              <p className="text-[11px] text-[#A8B4C4]">Vérification de la connexion sécurisée et de l'isolation des données</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-[#A8B4C4] hover:text-white hover:bg-[#162133]">
@@ -59,7 +59,6 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
 
         {/* Content */}
         <div className="p-6 space-y-4 text-xs">
-          {/* Main Status Alert */}
           {isLoading ? (
             <div className="p-5 rounded-2xl bg-[#1E2E45] border border-[#C9A96E]/20 flex items-center justify-center gap-3">
               <RefreshCw className="w-5 h-5 text-[#C9A96E] animate-spin" />
@@ -84,10 +83,10 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
                 <div className="space-y-1">
                   <div className="font-bold text-sm text-white">
                     {healthResult.connected
-                      ? 'Base Supabase Opérationnelle & Sécurisée'
+                      ? 'Base de données opérationnelle & sécurisée'
                       : healthResult.missingTables
-                      ? 'Serveur Connecté - Tables à initialiser'
-                      : 'Connexion Supabase Non Disponible (Mode Local Actif)'}
+                      ? 'Serveur connecté — Initialisation des tables requise'
+                      : 'Connexion au serveur momentanément indisponible'}
                   </div>
                   <p className="leading-relaxed text-xs">{healthResult.message}</p>
                   {healthResult.details && (
@@ -100,22 +99,22 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
             </div>
           ) : null}
 
-          {/* Config Breakdown Items */}
+          {/* Config Breakdown */}
           <div className="space-y-2.5">
             <div className="p-3 rounded-xl bg-[#141E30] border border-[#2A3447] flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#A8B4C4]">
                 <Server className="w-4 h-4 text-[#C9A96E]" />
-                <span>Endpoint Supabase :</span>
+                <span>Serveur principal :</span>
               </div>
               <span className="font-mono text-white text-[11px] truncate max-w-[260px]">
-                {supabaseUrl || 'Non configuré'}
+                {supabaseUrl ? 'Sécurisé (actif)' : 'Non configuré'}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#141E30] border border-[#2A3447] flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#A8B4C4]">
                 <Lock className="w-4 h-4 text-emerald-400" />
-                <span>Protocole de Chiffrement :</span>
+                <span>Protocole de chiffrement :</span>
               </div>
               <span className="font-semibold text-emerald-300 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" /> SSL / TLS Chiffré (HTTPS)
@@ -125,7 +124,7 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
             <div className="p-3 rounded-xl bg-[#141E30] border border-[#2A3447] flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#A8B4C4]">
                 <Clock className="w-4 h-4 text-sky-400" />
-                <span>Temps de réponse (Latence) :</span>
+                <span>Temps de réponse :</span>
               </div>
               <span className="font-mono text-white">
                 {healthResult?.latencyMs ? `${healthResult.latencyMs} ms` : 'En attente'}
@@ -138,15 +137,14 @@ export const DatabaseStatusModal: React.FC<DatabaseStatusModalProps> = ({ isOpen
                 <span>Tables Travaux & Finances :</span>
               </div>
               <span className="font-semibold text-emerald-300">
-                maintenance_tickets, cash_movements, payments OK
+                Opérationnelles
               </span>
             </div>
           </div>
 
-          {/* Guarantee info */}
           <div className="p-3.5 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/20 text-[11px] text-[#A8B4C4] leading-relaxed">
             <strong className="text-[#C9A96E] block mb-0.5">Mode Sécurisé & Résilience Hors-Ligne :</strong>
-            L'application fonctionne en continu avec sauvegarde instantanée locale chiffrée. Dès qu'une connexion à Supabase est active, toutes les données (travaux, quittances, baux, décaissements) sont synchronisées de façon bidirectionnelle sans perte.
+            L'application fonctionne en continu avec sauvegarde instantanée locale chiffrée. Dès qu'une connexion est active, toutes les données (travaux, quittances, baux, décaissements) sont synchronisées de façon bidirectionnelle sans perte.
           </div>
         </div>
 

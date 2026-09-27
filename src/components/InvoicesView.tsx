@@ -19,6 +19,8 @@ import { formatCurrencyFCFA, numberToWordsFrench } from '../lib/calculations/fin
 interface InvoicesViewProps {
   invoices: Invoice[];
   properties: Property[];
+  buildings?: any[];
+  units?: any[];
   owners: Owner[];
   tenants: Tenant[];
   onAddInvoice: (newInvoice: Invoice) => void;
@@ -27,6 +29,8 @@ interface InvoicesViewProps {
 export function InvoicesView({
   invoices,
   properties,
+  buildings = [],
+  units = [],
   owners,
   tenants,
   onAddInvoice,
@@ -54,18 +58,47 @@ export function InvoicesView({
     return matchSearch && matchType;
   });
 
-  const handleCreateInvoice = (e: React.FormEvent) => {
+    const handleCreateInvoice = (e: React.FormEvent) => {
     e.preventDefault();
-    const owner = owners.find((o) => o.id === targetOwnerId);
+    const isForTenant = type === 'Frais de dossier';
+    const owner = isForTenant ? null : owners.find((o) => o.id === targetOwnerId);
+    const tenant = isForTenant ? tenants.find((t) => t.id === targetOwnerId) : null;
     const taxes = tvaApplicable ? Math.round(montantHT * 0.18) : 0;
     const total = montantHT + taxes;
 
+    // 🚨 CONTRÔLE ANTI-DOUBLON FACTURE (Adhésion / Frais de dossier)
+    if (type === 'Adhésion' || type === 'Frais de dossier') {
+      const factureExistante = invoices.find(
+        (inv) =>
+          inv.type === type &&
+          inv.statut !== 'Annulée' &&
+          (
+            (owner && inv.proprietaireId === owner.id && inv.bienNom === targetBienNom) ||
+            (tenant && inv.locataireId === tenant.id && inv.bienNom === targetBienNom)
+          )
+      );
+
+      if (factureExistante) {
+        alert(
+          `⚠️ FACTURE EN DOUBLE DÉTECTÉE\n\n` +
+          `Une facture ${type} a DÉJÀ été émise pour ce bien.\n\n` +
+          `📄 Référence : ${factureExistante.ref}\n` +
+          `💰 Montant : ${formatCurrencyFCFA(factureExistante.total)}\n` +
+          `📅 Date : ${factureExistante.dateFacture}\n\n` +
+          `Annulez d'abord l'ancienne facture pour en émettre une nouvelle.`
+        );
+        return;
+      }
+    }
+
     const newInv: Invoice = {
       id: crypto.randomUUID(),
-      ref: `FAC-2026-${String(invoices.length + 1).padStart(4, '0')}`,
+      ref: `FAC-2026-${String(invoices.length + 1).padStart(4, '0')}-${String(Date.now()).slice(-4)}`,
       type,
-      proprietaireId: owner?.id,
-      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
+           proprietaireId: owner?.id,
+      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : undefined,
+      locataireId: tenant?.id,
+      locataireNom: tenant ? `${tenant.prenom} ${tenant.nom}` : undefined,
       bienNom: targetBienNom,
       dateFacture: new Date().toISOString().split('T')[0],
       dateEcheance: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
@@ -222,37 +255,107 @@ export function InvoicesView({
                 </select>
               </div>
 
-              <div>
+                            <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
-                  Propriétaire Destinataire
+                  {type === 'Frais de dossier' ? 'Locataire Destinataire' : 'Propriétaire Destinataire'}
                 </label>
-                <select
-                  value={targetOwnerId}
-                  onChange={(e) => setTargetOwnerId(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
-                >
-                  {owners.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.prenom} {o.nom} - {o.telephone}
-                    </option>
-                  ))}
-                </select>
+                {type === 'Frais de dossier' ? (
+                  <select
+                    value={targetOwnerId}
+                    onChange={(e) => setTargetOwnerId(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  >
+                    <option value="">— Choisir un locataire —</option>
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.prenom} {t.nom} - {t.telephone}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={targetOwnerId}
+                    onChange={(e) => setTargetOwnerId(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  >
+                    {owners.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.prenom} {o.nom} - {o.telephone}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
-                  Bien Immobilier Concerné
+                  Bien / Immeuble / Espace Concerné
                 </label>
                 <select
                   value={targetBienNom}
                   onChange={(e) => setTargetBienNom(e.target.value)}
                   className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.nom}>
-                      {p.nom} ({p.quartier})
-                    </option>
-                  ))}
+                  <option value="">— Choisir —</option>
+
+                  {/* Biens simples du propriétaire sélectionné */}
+                  {(() => {
+                    const filteredProps = type === 'Frais de dossier'
+                      ? properties.filter((p) => {
+                          const t = tenants.find((x) => x.id === targetOwnerId);
+                          return t && t.bienId === p.id;
+                        })
+                      : properties.filter((p) => p.proprietaireId === targetOwnerId);
+
+                    const filteredBuildings = type === 'Frais de dossier'
+                      ? []
+                      : buildings.filter((b: any) => b.proprietaireId === targetOwnerId);
+
+                    const filteredUnits = type === 'Frais de dossier'
+                      ? units.filter((u: any) => {
+                          const t = tenants.find((x) => x.id === targetOwnerId);
+                          return t && t.bienId === u.id;
+                        })
+                      : units.filter((u: any) => u.proprietaireId === targetOwnerId);
+
+                    const hasAny = filteredProps.length > 0 || filteredBuildings.length > 0 || filteredUnits.length > 0;
+
+                    if (!hasAny) {
+                      return <option value="" disabled>Aucun bien lié à ce destinataire</option>;
+                    }
+
+                    return (
+                      <>
+                        {filteredProps.length > 0 && (
+                          <optgroup label="🏠 Biens simples">
+                            {filteredProps.map((p) => (
+                              <option key={p.id} value={p.nom}>
+                                {p.nom} ({p.quartier})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {filteredBuildings.length > 0 && (
+                          <optgroup label="🏢 Immeubles">
+                            {filteredBuildings.map((b: any) => (
+                              <option key={b.id} value={b.nom}>
+                                {b.nom} ({b.quartier || b.adresse})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {filteredUnits.length > 0 && (
+                          <optgroup label="🔑 Espaces / Unités">
+                            {filteredUnits.map((u: any) => (
+                              <option key={u.id} value={u.nom}>
+                                {u.nom} — {u.loyerBase} FCFA
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </>
+                    );
+                  })()}
                 </select>
               </div>
 
@@ -392,9 +495,52 @@ export function InvoicesView({
               </div>
             </div>
 
-            <div className="bg-amber-50 p-3 rounded-lg text-xs text-amber-950 font-medium">
+                       <div className="bg-amber-50 p-3 rounded-lg text-xs text-amber-950 font-medium">
               Arrêtée la présente facture à la somme de : <br />
               <strong className="text-sm font-bold">{numberToWordsFrench(selectedInvoice.total)}</strong>
+            </div>
+
+            {/* Signatures & Traçabilité */}
+            <div className="grid grid-cols-2 gap-8 pt-6 mt-6 border-t-2 border-gray-300">
+              <div>
+                <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
+                  Émis par
+                </div>
+                <div className="text-sm font-bold text-gray-900">
+                  {selectedInvoice.createdByNom || 'Service Facturation'}
+                </div>
+                <div className="text-[11px] uppercase font-semibold text-gray-500 mt-0.5">
+                  Rôle : {selectedInvoice.createdByRole || '—'}
+                </div>
+                {selectedInvoice.createdById && (
+                  <div className="text-[9px] font-mono text-gray-400 mt-0.5">
+                    ID : {selectedInvoice.createdById.slice(0, 8)}…
+                  </div>
+                )}
+                <div className="text-[10px] text-gray-500 mt-1">
+                  Le {new Date(selectedInvoice.dateFacture || Date.now()).toLocaleDateString('fr-FR')}
+                </div>
+                <div className="font-bold text-gray-700 text-xs mt-3 mb-1">
+                  Signature de l'Émetteur :
+                </div>
+                <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
+                  Pour l'Agence
+                </div>
+                <div className="text-sm font-bold text-gray-900">
+                  FITAL-IMMO
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  Cachet officiel
+                </div>
+                <div className="font-bold text-gray-700 text-xs mt-3 mb-1">
+                  Cachet & Signature Agence :
+                </div>
+                <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t border-gray-200 no-print">

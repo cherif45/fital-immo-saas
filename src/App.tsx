@@ -36,6 +36,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { MobileMoneyPaymentModal } from './components/MobileMoneyPaymentModal';
 import { QuickCommsModal } from './components/QuickCommsModal';
 import { AdminControlCenterView } from './components/AdminControlCenterView';
+import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { AdminActivityJournalView } from './components/AdminActivityJournalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { AdminUsersView } from './components/AdminUsersView';
@@ -191,8 +192,10 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('Ce mois (Mai 2026)');
-
+    const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
+    const now = new Date();
+    return now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState<boolean>(false);
   const [receiptModalPayment, setReceiptModalPayment] = useState<Payment | null>(null);
@@ -292,10 +295,18 @@ export default function App() {
   }, []);
 
   // useEffect 4 : Chargement données
-  useEffect(() => {
-    if (!currentUser?.agencyId) return;
+ // useEffect 4 : Chargement données
+useEffect(() => {
+  // 🛡️ Attendre que l'agencyId soit RÉELLEMENT défini
+  if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
+    console.log('⏳ En attente de l\'agencyId pour charger les données...');
+    return;
+  }
 
-    loadFullApplicationData(currentUser.agencyId).then((data) => {
+  console.log('📥 Chargement données pour agency:', currentUser.agencyId);
+
+  loadFullApplicationData(currentUser.agencyId).then((data) => {
+    // ... reste inchangé
       if (data.properties && data.properties.length > 0) setProperties(data.properties);
       if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
       if (data.units && data.units.length > 0) setUnits(data.units);
@@ -347,10 +358,15 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
-    logSystemAudit(newLog);
-  };
+    logSystemAudit(newLog, currentUser?.agencyId);
+};
 
-  const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
+    const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
+    // 👑 SUPER_ADMIN_SAAS : accès uniquement à sa page
+    if (user.role === 'SUPER_ADMIN_SAAS') {
+      return tab === 'saas-admin' || tab === 'dashboard';
+    }
+    
     if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
     if (tab === 'archives' || tab === 'activity-logs') {
       return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(user.role);
@@ -361,11 +377,12 @@ export default function App() {
     if (user.role === 'CAISSIER') {
       return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
     }
-    if (user.role === 'PROPRIETAIRE') {
-      return ['dashboard', 'properties', 'buildings', 'units', 'tenants', 'payments', 'finance', 'maintenance', 'documents'].includes(tab);
+              if (user.role === 'PROPRIETAIRE') {
+      // 🔒 RESTRICTION STRICTE : le propriétaire voit uniquement ses biens, locataires (noms), reversements
+      return ['dashboard', 'buildings', 'units', 'tenants', 'finance'].includes(tab);
     }
     if (user.role === 'LOCATAIRE') {
-      return ['dashboard', 'properties', 'units', 'payments', 'maintenance'].includes(tab);
+      return ['dashboard', 'payments', 'maintenance'].includes(tab);
     }
     if (user.role === 'AGENT') {
       return ['dashboard', 'inspections', 'properties', 'buildings', 'units', 'maintenance', 'recovery'].includes(tab);
@@ -473,23 +490,33 @@ export default function App() {
   // ============================================================
   // HANDLERS : BULLETINS
   // ============================================================
-  const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
+    const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
+    const enrichedBulletin: BulletinVersement = {
+      ...bulletin,
+      createdById: bulletin.createdById || currentUser?.id,
+      createdByNom: bulletin.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: bulletin.createdByRole || currentUser?.role,
+    };
     setBulletinsVersements((prev) => {
-      const existing = prev.findIndex((b) => b.id === bulletin.id);
-      const next = existing >= 0 ? prev.map((b) => (b.id === bulletin.id ? bulletin : b)) : [bulletin, ...prev];
+      const existing = prev.findIndex((b) => b.id === enrichedBulletin.id);
+      const next = existing >= 0 ? prev.map((b) => (b.id === enrichedBulletin.id ? enrichedBulletin : b)) : [enrichedBulletin, ...prev];
       persistCollection('bulletin_versements', next);
       return next;
     });
-    if (currentUser?.agencyId) saveBulletinVersementToDb(bulletin, currentUser.agencyId).catch(console.warn);
+    if (currentUser?.agencyId) saveBulletinVersementToDb(enrichedBulletin, currentUser.agencyId).catch(console.warn);
   };
-
   // ============================================================
   // HANDLERS : PAIEMENTS
   // ============================================================
-  const handleAddPayment = (newPayment: Payment) => {
-    setPayments((prev) => { const next = [newPayment, ...prev]; persistCollection('payments', next); return next; });
-    if (currentUser?.agencyId) savePaymentToDb(newPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
-
+    const handleAddPayment = (newPayment: Payment) => {
+    const enrichedPayment: Payment = {
+      ...newPayment,
+      createdById: newPayment.createdById || currentUser?.id,
+      createdByNom: newPayment.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newPayment.createdByRole || currentUser?.role,
+    };
+    setPayments((prev) => { const next = [enrichedPayment, ...prev]; persistCollection('payments', next); return next; });
+    if (currentUser?.agencyId) savePaymentToDb(enrichedPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
     if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
       const newCashEntry: CashMovement = {
         id: crypto.randomUUID(),
@@ -506,12 +533,32 @@ export default function App() {
       if (currentUser?.agencyId) saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(console.warn);
     }
 
-    setTenants((prev) => {
+        setTenants((prev) => {
       const next = prev.map((t) => {
-        if (t.id === newPayment.locataireId) {
-          return { ...t, statut: newPayment.statut === 'Payé' ? ('À jour' as const) : ('Retard' as const), joursRetard: newPayment.statut === 'Payé' ? 0 : t.joursRetard, arrieresCumules: newPayment.montantRestant };
+        if (t.id !== newPayment.locataireId) return t;
+
+        const total = newPayment.montantTotal || 0;
+        const paye = newPayment.montantPaye || 0;
+        const percent = total > 0 ? (paye / total) * 100 : 0;
+
+        // Option B : >= 50% = À jour
+        let newStatut: 'À jour' | 'Retard' | 'Impayé';
+        if (percent >= 100) {
+          newStatut = 'À jour';
+        } else if (percent >= 50) {
+          newStatut = 'À jour'; // ACOMPTE accepté
+        } else if (percent > 0) {
+          newStatut = 'Retard';
+        } else {
+          newStatut = 'Impayé';
         }
-        return t;
+
+        return {
+          ...t,
+          statut: newStatut,
+          joursRetard: newStatut === 'À jour' ? 0 : t.joursRetard,
+          arrieresCumules: Math.max(0, total - paye),
+        };
       });
       persistCollection('tenants', next);
       return next;
@@ -581,7 +628,7 @@ export default function App() {
       bienNom: property.nom,
       proprietaireId: owner?.id || '',
       proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
-      periode: mobileMoneyModalConfig?.period || selectedPeriod,
+      periode: selectedPeriod, // Toujours le mois actuel standardisé
       loyerBase: amount, charges: 0, tva: 0, tom: 0, penalites: 0,
       montantTotal: amount, montantPaye: amount, montantRestant: 0,
       modePaiement: 'Mobile Money',
@@ -617,9 +664,15 @@ export default function App() {
     if (currentUser?.agencyId) rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(console.warn);
   };
 
-  const handleAddCashMovement = (mov: CashMovement) => {
-    setCashMovements((prev) => { const next = [mov, ...prev]; persistCollection('cash_movements', next); return next; });
-    if (currentUser?.agencyId) saveCashMovementToDb(mov, currentUser.agencyId).catch(console.warn);
+   const handleAddCashMovement = (mov: CashMovement) => {
+    const enrichedMov: CashMovement = {
+      ...mov,
+      createdById: mov.createdById || currentUser?.id,
+      createdByNom: mov.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: mov.createdByRole || currentUser?.role,
+    };
+    setCashMovements((prev) => { const next = [enrichedMov, ...prev]; persistCollection('cash_movements', next); return next; });
+    if (currentUser?.agencyId) saveCashMovementToDb(enrichedMov, currentUser.agencyId).catch(console.warn);
   };
 
   const handleAddCashClosing = (cls: CashClosing) => {
@@ -674,35 +727,69 @@ export default function App() {
     softDeleteRecord('properties', propertyId).catch(console.warn);
   };
 
-  const handleAddContract = (newContract: LeaseContract) => {
-    setContracts((prev) => { const next = [newContract, ...prev]; persistCollection('contracts', next); return next; });
-    if (currentUser?.agencyId) saveContractToDb(newContract, currentUser.agencyId).catch(console.warn);
+   const handleAddContract = (newContract: LeaseContract) => {
+    const enrichedContract: LeaseContract = {
+      ...newContract,
+      createdById: newContract.createdById || currentUser?.id,
+      createdByNom: newContract.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newContract.createdByRole || currentUser?.role,
+    };
+    setContracts((prev) => { const next = [enrichedContract, ...prev]; persistCollection('contracts', next); return next; });
+    if (currentUser?.agencyId) saveContractToDb(enrichedContract, currentUser.agencyId).catch(console.warn);
   };
   const handleUpdateContract = (updatedContract: LeaseContract) => {
     setContracts((prev) => { const next = prev.map((c) => (c.id === updatedContract.id ? updatedContract : c)); persistCollection('contracts', next); return next; });
     if (currentUser?.agencyId) saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
   };
 
-  const handleAddTenant = (newTenant: Tenant) => {
+    const handleAddTenant = (newTenant: Tenant) => {
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
+    
     if (newTenant.bienId) {
-      setProperties((prev) => {
-        const next = prev.map((p) => {
-          if (p.id === newTenant.bienId) {
-            const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` };
-            if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
-            return updatedP;
-          }
-          return p;
+      // Vérifier si c'est une PROPERTY
+      const existingProp = properties.find((p) => p.id === newTenant.bienId);
+      if (existingProp) {
+        setProperties((prev) => {
+          const next = prev.map((p) => {
+            if (p.id === newTenant.bienId) {
+              const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` };
+              if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
+              return updatedP;
+            }
+            return p;
+          });
+          persistCollection('properties', next);
+          return next;
         });
-        persistCollection('properties', next);
-        return next;
-      });
+        return;
+      }
+      
+      // Sinon, vérifier si c'est une UNIT
+      const existingUnit = units.find((u) => u.id === newTenant.bienId);
+      if (existingUnit) {
+        setUnits((prev) => {
+          const next = prev.map((u) => {
+            if (u.id === newTenant.bienId) {
+              const updatedU = { 
+                ...u, 
+                statut: 'Occupé' as const, 
+                locataireActuelId: newTenant.id,
+                locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` 
+              };
+              if (currentUser?.agencyId) saveUnitToDb(updatedU, currentUser.agencyId).catch(console.warn);
+              return updatedU;
+            }
+            return u;
+          });
+          persistCollection('units', next);
+          return next;
+        });
+      }
     }
   };
 
-  const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
+    const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
     if (!currentUser?.agencyId || !supabase) return;
     const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) { alert('Erreur création locataire : ' + tenantResult.error); return; }
@@ -712,16 +799,68 @@ export default function App() {
     const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
     await saveContractToDb(contractToSave, currentUser.agencyId);
     await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
+    
+    // Mettre à jour UNIT ou PROPERTY
+    const existingUnit = units.find((u) => u.id === data.tenant.bienId);
+    const existingProp = properties.find((p) => p.id === data.tenant.bienId);
+    
+    if (existingUnit) {
+      const updatedU = { ...existingUnit, statut: 'Occupé' as const, locataireActuelId: realTenantId, locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}` };
+      await saveUnitToDb(updatedU, currentUser.agencyId);
+      setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
+    } else if (existingProp) {
+      const updatedP = { ...existingProp, statut: 'Occupé' as const, locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}` };
+      await savePropertyToDb(updatedP, currentUser.agencyId);
+      setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
+    }
+    
     setTenants((prev) => [tenantToSave, ...prev]);
     setContracts((prev) => [contractToSave, ...prev]);
     setInspections((prev) => [inspectionToSave, ...prev]);
   };
 
-  const handleCompleteTenantExit = (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
-    setInspections((prev) => [data.inspection, ...prev]);
-    setTenants((prev) => prev.map((t) => (t.id === data.tenantId ? { ...t, statut: 'À jour' as const, dateSortie: data.dateSortie } : t)));
-    setProperties((prev) => prev.map((p) => (p.id === data.bienId ? { ...p, statut: 'Vacant' as const, locataireActuelNom: undefined } : p)));
-    if (currentUser?.agencyId) saveInspectionToDb(data.inspection, currentUser.agencyId).catch(console.warn);
+    const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
+    if (!currentUser?.agencyId) return;
+
+    // 1. Locataire — sauvegarder en DB
+    const tenantToUpdate = tenants.find((t) => t.id === data.tenantId);
+    if (tenantToUpdate) {
+      const updatedTenant = {
+        ...tenantToUpdate,
+        statut: 'À jour' as const,
+        dateSortie: data.dateSortie,
+      };
+      const res = await saveTenantToDb(updatedTenant, currentUser.agencyId);
+      if (res.success) {
+        setTenants((prev) => prev.map((t) => (t.id === data.tenantId ? updatedTenant : t)));
+      }
+    }
+
+    // 2. Bien ou Unit — sauvegarder en DB
+    const property = properties.find((p) => p.id === data.bienId);
+    const unit = units.find((u) => u.id === data.bienId);
+
+    if (property) {
+      const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined };
+      const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
+      if (res.success) {
+        setProperties((prev) => prev.map((p) => (p.id === data.bienId ? updatedProp : p)));
+      }
+    } else if (unit) {
+      const updatedUnit = { ...unit, statut: 'Vacant' as const, locataireActuelId: undefined, locataireActuelNom: undefined };
+      const res = await saveUnitToDb(updatedUnit, currentUser.agencyId);
+      if (res.success) {
+        setUnits((prev) => prev.map((u) => (u.id === data.bienId ? updatedUnit : u)));
+      }
+    }
+
+    // 3. Inspection — sauvegarder en DB
+    const inspRes = await saveInspectionToDb(data.inspection, currentUser.agencyId);
+    if (inspRes.success && inspRes.data) {
+      setInspections((prev) => [inspRes.data!, ...prev]);
+    } else {
+      setInspections((prev) => [data.inspection, ...prev]);
+    }
   };
 
   const handleAddOwner = (newOwner: Owner) => {
@@ -732,25 +871,50 @@ export default function App() {
     setReminders((prev) => { const next = [newReminder, ...prev]; persistCollection('reminders', next); return next; });
     if (currentUser?.agencyId) saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
   };
-  const handleAddInspection = (newInspection: Inspection) => {
-    setInspections((prev) => { const next = [newInspection, ...prev]; persistCollection('inspections', next); return next; });
-    if (currentUser?.agencyId) saveInspectionToDb(newInspection, currentUser.agencyId).catch(console.warn);
+  
+   const handleAddInspection = (newInspection: Inspection) => {
+    const enrichedInspection: Inspection = {
+      ...newInspection,
+      createdById: newInspection.createdById || currentUser?.id,
+      createdByNom: newInspection.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newInspection.createdByRole || currentUser?.role,
+    };
+    setInspections((prev) => { const next = [enrichedInspection, ...prev]; persistCollection('inspections', next); return next; });
+    if (currentUser?.agencyId) saveInspectionToDb(enrichedInspection, currentUser.agencyId).catch(console.warn);
   };
   const handleAddTicket = (newTicket: MaintenanceTicket) => {
-    setMaintenance((prev) => { const next = [newTicket, ...prev]; persistCollection('maintenance', next); return next; });
-    if (currentUser?.agencyId) saveMaintenanceToDb(newTicket, currentUser.agencyId).catch(console.warn);
+    const enrichedTicket: MaintenanceTicket = {
+      ...newTicket,
+      createdById: newTicket.createdById || currentUser?.id,
+      createdByNom: newTicket.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newTicket.createdByRole || currentUser?.role,
+    };
+    setMaintenance((prev) => { const next = [enrichedTicket, ...prev]; persistCollection('maintenance', next); return next; });
+    if (currentUser?.agencyId) saveMaintenanceToDb(enrichedTicket, currentUser.agencyId).catch(console.warn);
   };
   const handleUpdateTicket = (updatedTicket: MaintenanceTicket) => {
     setMaintenance((prev) => { const next = prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)); persistCollection('maintenance', next); return next; });
     if (currentUser?.agencyId) saveMaintenanceToDb(updatedTicket, currentUser.agencyId).catch(console.warn);
   };
   const handleAddDisbursement = (newDisbursement: OwnerDisbursement) => {
-    setDisbursements((prev) => { const next = [newDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
-    if (currentUser?.agencyId) saveDisbursementToDb(newDisbursement, currentUser.agencyId).catch(console.warn);
+    const enrichedDisbursement: OwnerDisbursement = {
+      ...newDisbursement,
+      createdById: newDisbursement.createdById || currentUser?.id,
+      createdByNom: newDisbursement.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newDisbursement.createdByRole || currentUser?.role,
+    };
+    setDisbursements((prev) => { const next = [enrichedDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
+    if (currentUser?.agencyId) saveDisbursementToDb(enrichedDisbursement, currentUser.agencyId).catch(console.warn);
   };
-  const handleAddInvoice = (newInvoice: Invoice) => {
-    setInvoices((prev) => { const next = [newInvoice, ...prev]; persistCollection('invoices', next); return next; });
-    if (currentUser?.agencyId) saveInvoiceToDb(newInvoice, currentUser.agencyId).catch(console.warn);
+   const handleAddInvoice = (newInvoice: Invoice) => {
+    const enrichedInvoice: Invoice = {
+      ...newInvoice,
+      createdById: newInvoice.createdById || currentUser?.id,
+      createdByNom: newInvoice.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByRole: newInvoice.createdByRole || currentUser?.role,
+    };
+    setInvoices((prev) => { const next = [enrichedInvoice, ...prev]; persistCollection('invoices', next); return next; });
+    if (currentUser?.agencyId) saveInvoiceToDb(enrichedInvoice, currentUser.agencyId).catch(console.warn);
   };
   const handleSaveSettings = (newSettings: AgencySettings) => {
     setSettings(newSettings);
@@ -773,9 +937,20 @@ export default function App() {
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
 
   // SCOPED DATA
-  const scopedProperties = (() => {
+    const scopedProperties = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : []; }
+    if (currentUser?.role === 'LOCATAIRE') { 
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId); 
+      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : []; 
+    }
+    return properties;
+  })();
+
+  // Pour le propriétaire, les "biens" incluent properties + units
+  const scopedPropertiesOrUnits = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+    }
     return properties;
   })();
   const scopedBuildings = (() => {
@@ -787,13 +962,37 @@ export default function App() {
     if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); if (myTenant) return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id); }
     return units;
   })();
-  const scopedTenants = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return tenants.filter((t) => myBienIds.includes(t.bienId)); }
+        const scopedTenants = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      // Inclure les biens (properties) ET les espaces (units) du propriétaire
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
+      const filtered = tenants.filter((t) => myBienIds.includes(t.bienId) || t.proprietaireId === currentUser.proprietaireId);
+      
+      // 🔒 ANONYMISATION : on ne transmet que le nom, pas les infos perso/statut
+      return filtered.map((t) => ({
+        ...t,
+        telephone: '',
+        email: '',
+        cni: '',
+        typePiece: undefined,
+        profession: '',
+        employeur: '',
+        revenuMensuel: 0,
+        statut: 'À jour' as const,   // Neutralise le statut
+        joursRetard: 0,
+        arrieresCumules: 0,
+        observations: '',
+        conjointNom: '',
+        conjointTelephone: '',
+      }));
+    }
     if (currentUser?.role === 'LOCATAIRE') return tenants.filter((t) => t.id === currentUser.locataireId);
     return tenants;
   })();
-  const scopedPayments = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return payments.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+   const scopedPayments = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') return []; // 🔒 Le propriétaire ne voit AUCUN paiement
     if (currentUser?.role === 'LOCATAIRE') return payments.filter((p) => p.locataireId === currentUser.locataireId);
     if (currentUser?.role === 'AGENT') return [];
     return payments;
@@ -803,13 +1002,23 @@ export default function App() {
     if (currentUser?.role === 'LOCATAIRE') return contracts.filter((c) => c.locataireId === currentUser.locataireId);
     return contracts;
   })();
-  const scopedInspections = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return inspections.filter((i) => myBienIds.includes(i.bienId)); }
+    const scopedInspections = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
+      return inspections.filter((i) => myBienIds.includes(i.bienId));
+    }
     if (currentUser?.role === 'LOCATAIRE') return inspections.filter((i) => i.locataireId === currentUser.locataireId);
     return inspections;
   })();
-  const scopedMaintenance = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') { const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId); const myBienIds = myProps.map((p) => p.id); return maintenance.filter((m) => myBienIds.includes(m.bienId)); }
+   const scopedMaintenance = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') {
+      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
+      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
+      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
+      return maintenance.filter((m) => myBienIds.includes(m.bienId));
+    }
     if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : []; }
     return maintenance;
   })();
@@ -874,18 +1083,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0A111D] text-[#F0EDE8] flex font-sans antialiased selection:bg-[#C9A96E]/30 selection:text-[#E8D5B0]">
-      <Sidebar
+          <Sidebar
         activeTab={activeTab}
         setActiveTab={handleSafeTabChange}
         unpaidCount={unpaidCount}
+        settings={settings}
         urgentMaintenanceCount={maintenance.filter((m) => m.priorite === 'Urgente').length}
-        currentUser={currentUser}
+        currentUser={{
+          ...currentUser,
+          __ownerBuildingsCount: currentUser.role === 'PROPRIETAIRE'
+            ? buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId).length
+            : buildings.length,
+          __ownerUnitsCount: currentUser.role === 'PROPRIETAIRE'
+            ? units.filter((u) => u.proprietaireId === currentUser.proprietaireId).length
+            : units.length,
+        } as any}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         pendingPaymentsCount={pendingPaymentsCount}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
-
       <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         <Topbar
           activeTab={activeTab}
@@ -998,8 +1215,11 @@ export default function App() {
               setActiveTab={handleSafeTabChange}
             />
           )}
+          {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
+            <SuperAdminDashboard currentUser={currentUser} />
+          )}
 
-          {activeTab === 'admin-control' && (
+                    {activeTab === 'admin-control' && (
             <AdminControlCenterView
               users={users}
               properties={properties}
@@ -1012,6 +1232,20 @@ export default function App() {
               auditLogs={auditLogs}
               settings={settings}
               maintenance={maintenance}
+              buildings={buildings}
+              units={units}
+              contracts={contracts}
+              invoices={invoices}
+              disbursements={disbursements}
+              bulletins={bulletinsVersements}
+              ownerDeductions={ownerDeductions}
+              ownerCharges={ownerCharges}
+              inspections={inspections}
+              activityLogs={activityLogs}
+              reminders={reminders}
+              penalties={penalties}
+              archives={archives}
+              notifications={notifications}
               onTriggerAuditLog={handleTriggerAuditLog}
             />
           )}
@@ -1042,9 +1276,23 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'archives' && (
-            <ArchiveView archives={archives} currentUser={currentUser} />
-          )}
+         {activeTab === 'archives' && (
+  <ArchiveView
+    currentUser={currentUser}
+    tenants={tenants}
+    owners={owners}
+    properties={properties}
+    buildings={buildings}
+    units={units}
+    contracts={contracts}
+    payments={payments}
+    disbursements={disbursements}
+    inspections={inspections}
+    maintenance={maintenance}
+    invoices={invoices}
+    bulletins={bulletinsVersements}
+  />
+)}
 
           {activeTab === 'activity-logs' && (
             <ActivityLogView activities={activityLogs} currentUser={currentUser} />
@@ -1116,9 +1364,10 @@ export default function App() {
           )}
 
           {activeTab === 'reminders' && (
-            <AutomatedRemindersView
+                        <AutomatedRemindersView
               tenants={scopedTenants}
               properties={scopedProperties}
+              payments={scopedPayments}
               reminders={reminders}
               onAddReminder={handleAddReminder}
             />
@@ -1192,10 +1441,11 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TenantsView
+                            <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 units={scopedUnits}
+                payments={scopedPayments}
                 currentUser={currentUser}
                 onOpenQuickReminder={handleOpenQuickReminder}
                 onOpenNewPayment={handleOpenNewPaymentForTenant}
@@ -1220,10 +1470,10 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'contracts' && (
+                    {activeTab === 'contracts' && (
             <ContractsView
               contracts={scopedContracts}
-              tenants={scopedTenants}
+              tenants={tenants}
               properties={scopedProperties}
               owners={owners}
               currentUser={currentUser}
@@ -1255,21 +1505,25 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'invoices' && (
+                    {activeTab === 'invoices' && (
             <InvoicesView
               invoices={invoices}
               properties={scopedProperties}
+              buildings={scopedBuildings}
+              units={scopedUnits}
               owners={owners}
               tenants={scopedTenants}
               onAddInvoice={handleAddInvoice}
             />
           )}
 
-          {activeTab === 'finance' && (
+                    {activeTab === 'finance' && (
             <FinanceView
               disbursements={scopedDisbursements}
               payments={scopedPayments}
-              owners={owners}
+              owners={currentUser?.role === 'PROPRIETAIRE'
+                ? owners.filter((o) => o.id === currentUser.proprietaireId)
+                : owners}
               properties={scopedProperties}
               buildings={scopedBuildings}
               units={scopedUnits}
@@ -1293,13 +1547,14 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'documents' && (
+                    {activeTab === 'documents' && (
             <DocumentsView
               payments={scopedPayments}
               owners={owners}
               tenants={scopedTenants}
               contracts={scopedContracts}
               properties={scopedProperties}
+              currentUser={currentUser}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
             />
@@ -1332,7 +1587,8 @@ export default function App() {
       )}
 
       {ownerBulletinModalOwner && (
-        <OwnerBulletinModal
+          <OwnerBulletinModal
+          currentUser={currentUser}
           owner={ownerBulletinModalOwner}
           properties={properties}
           buildings={buildings}
@@ -1374,9 +1630,10 @@ export default function App() {
         );
       })()}
 
-      {isNewTenantWizardOpen && (
+           {isNewTenantWizardOpen && (
         <NewTenantWizardModal
           properties={properties}
+          units={units}
           onComplete={handleCompleteNewTenantWizard}
           onClose={() => setIsNewTenantWizardOpen(false)}
         />

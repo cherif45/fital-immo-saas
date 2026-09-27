@@ -58,7 +58,7 @@ export function UserProfileModal({
     try {
       const res = await changeUserPassword(newPassword);
       if (res.success) {
-        setSuccessMsg('Votre mot de passe a été modifié avec succès sur Supabase Auth.');
+        setSuccessMsg('Votre mot de passe a été modifié avec succès.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -113,9 +113,9 @@ export function UserProfileModal({
 
         {/* Change Password Form */}
         <div className="space-y-3 pt-2">
-          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
             <Lock className="w-4 h-4 text-[#C9A96E]" />
-            Changer mon Mot de Passe (Supabase Auth)
+            Changer mon Mot de Passe
           </h4>
 
           {successMsg && (

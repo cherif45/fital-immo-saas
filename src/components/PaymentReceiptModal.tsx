@@ -72,14 +72,12 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   // Auto-détection si non spécifié
   if (!payment.typeRecu) {
     if (montantPaye >= montantTotal && montantRestant === 0) {
-      // Paiement complet
       if (payment.referencePaiementInitial && payment.referencePaiementInitial !== payment.ref) {
         receiptType = 'QUITTANCE_SOLDE';
       } else {
         receiptType = 'QUITTANCE';
       }
     } else if (montantPaye < montantTotal && montantPaye > 0) {
-      // Paiement partiel
       receiptType = 'RECU_ACOMPTE';
     }
   }
@@ -118,10 +116,17 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   const waveNumero = settings?.waveNumero || '+221 76 328 58 29';
   const omCode = settings?.orangeMoneyCode || '784912';
 
+  // ============================================================
+  // SIGNATAIRE (traçabilité)
+  // ============================================================
+  const signataireNom = payment.createdByNom || payment.auteurNom || payment.recuPar || 'Service Caisse';
+  const signataireRole = payment.createdByRole || '—';
+  const signataireId = payment.createdById || payment.auteurId;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Header (masqué à l'impression) */}
+        {/* Header */}
         <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#C9A96E]/20 text-[#E8D5B0] flex items-center justify-center">
@@ -391,25 +396,51 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             )}
           </div>
 
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t border-neutral-300">
+          {/* ============================================================ */}
+          {/* SIGNATURES & TRAÇABILITÉ */}
+          {/* ============================================================ */}
+          <div className="grid grid-cols-2 gap-8 mt-10 pt-6 border-t-2 border-neutral-300">
+            {/* Signature Émetteur (Traçabilité) */}
             <div>
-              <div className="font-bold text-neutral-700 text-xs">
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Émis par
+              </div>
+              <div className="text-sm font-bold text-neutral-900">
+                {signataireNom}
+              </div>
+              <div className="text-[11px] uppercase font-semibold text-neutral-500 mt-0.5">
+                Rôle : {signataireRole}
+              </div>
+              {signataireId && (
+                <div className="text-[9px] font-mono text-neutral-400 mt-0.5">
+                  ID : {signataireId.slice(0, 8)}…
+                </div>
+              )}
+              <div className="text-[10px] text-neutral-500 mt-1">
+                Le {new Date().toLocaleDateString('fr-FR')} à{' '}
+                {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div className="font-bold text-neutral-700 text-xs mt-3 mb-1">
                 Signature du Caissier :
               </div>
-              <div className="h-16 border border-dashed border-neutral-400 rounded-lg mt-2"></div>
-              <div className="text-[10px] text-neutral-500 mt-1 italic">
-                {payment.recuPar || 'Service Caisse'}
-              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
             </div>
+
+            {/* Cachet Agence */}
             <div className="text-right">
-              <div className="font-bold text-neutral-700 text-xs">
-                Cachet & Signature Agence :
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Pour l'Agence
               </div>
-              <div className="h-16 border border-dashed border-neutral-400 rounded-lg mt-2"></div>
-              <div className="text-[10px] text-neutral-500 mt-1 italic">
+              <div className="text-sm font-bold text-neutral-900">
                 {nomAgence}
               </div>
+              <div className="text-[11px] text-neutral-500 mt-0.5">
+                Cachet officiel
+              </div>
+              <div className="font-bold text-neutral-700 text-xs mt-3 mb-1">
+                Cachet & Signature Agence :
+              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
             </div>
           </div>
 

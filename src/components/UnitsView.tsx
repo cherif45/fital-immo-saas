@@ -52,12 +52,11 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
   // Form state
   const [nom, setNom] = useState('');
   const [buildingId, setBuildingId] = useState(buildings[0]?.id || '');
-  const [type, setType] = useState<'Appartement' | 'Studio' | 'Chambre' | 'Salle de bain' | 'Magasin' | 'Bureau' | 'Terrasse' | 'Entrepôt' | 'Autre'>('Appartement');
+    const [type, setType] = useState<string>('Studio');
   const [etage, setEtage] = useState('RDC');
   const [superficie, setSuperficie] = useState(0);
   const [nombrePieces, setNombrePieces] = useState(1);
-  const [loyerBase, setLoyerBase] = useState(150000);
-  const [charges, setCharges] = useState(15000);
+    const [loyerBase, setLoyerBase] = useState(150000);
   const [statut, setStatut] = useState<'Occupé' | 'Vacant' | 'Maintenance' | 'En litige'>('Vacant');
   const [locataireActuelId, setLocataireActuelId] = useState<string>('');
   const [description, setDescription] = useState('');
@@ -105,6 +104,41 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     }
     return unit.locataireActuelNom || '';
   };
+  // 🔧 Auto-génération du nom de l'espace
+  const generateUnitName = (unitType: string, unitEtage: string, buildingId: string, currentUnits: any[]): string => {
+    const siblings = currentUnits.filter(
+      (u: any) =>
+        u.buildingId === buildingId &&
+        u.type === unitType &&
+        u.etage === unitEtage
+    );
+    
+    const num = siblings.length + 1;
+    
+    const typeShort: Record<string, string> = {
+      'Studio': 'Studio',
+      'Chambre simple': 'Ch',
+      'Chambre + Salle de bain': 'Ch+SDB',
+      'Chambre + Cuisine + SDB': 'Ch+Cuis+SDB',
+      'Chambre + Salon + Cuisine + SDB': 'T1',
+      '1 Chambre + Salon': 'T1',
+      '2 Chambres + Salon': 'T2',
+      '3 Chambres + Salon': 'T3',
+      '4 Chambres + Salon': 'T4',
+      'Appartement': 'Apt',
+      'Duplex': 'Duplex',
+      'Magasin': 'Mag',
+      'Bureau': 'Bur',
+      'Entrepôt': 'Ent',
+      'Terrasse': 'Ter',
+      'Autre': 'Lot',
+    };
+    
+    const prefix = typeShort[unitType] || 'Lot';
+    const etageLabel = unitEtage && unitEtage !== 'RDC' ? unitEtage : (unitEtage || 'RDC');
+    
+    return `${prefix} ${etageLabel} ${num}`.trim();
+  };
 
   const resetForm = () => {
     setNom('');
@@ -113,20 +147,36 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setEtage('RDC');
     setSuperficie(0);
     setNombrePieces(1);
-    setLoyerBase(150000);
-    setCharges(15000);
+       setLoyerBase(150000);
     setStatut('Vacant');
     setLocataireActuelId('');
     setDescription('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
 
     const building = buildings.find((b) => b.id === buildingId);
     if (!building) {
       alert('Impossible : sélectionnez un immeuble.');
+      return;
+    }
+
+    // 🚨 CONTRÔLE ANTI-DOUBLON ESPACE
+    const espaceExistant = units.find(
+      (u) =>
+        u.buildingId === buildingId &&
+        u.nom.trim().toLowerCase() === nom.trim().toLowerCase() &&
+        u.id !== editingUnit?.id
+    );
+
+    if (espaceExistant) {
+      alert(
+        `⚠️ ESPACE EN DOUBLE DÉTECTÉ\n\n` +
+        `Un espace nommé "${nom}" existe déjà dans cet immeuble.\n\n` +
+        `Utilisez un nom différent ou modifiez l'espace existant.`
+      );
       return;
     }
 
@@ -142,8 +192,8 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
       etage,
       superficie: Number(superficie) || 0,
       nombrePieces: Number(nombrePieces) || 1,
-      loyerBase: Number(loyerBase) || 0,
-      charges: Number(charges) || 0,
+            loyerBase: Number(loyerBase) || 0,
+      charges: 0,
       statut,
       locataireActuelId: locataireActuelId || undefined,
       locataireActuelNom: tenant ? `${tenant.prenom} ${tenant.nom}` : undefined,
@@ -170,8 +220,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setEtage(unit.etage || 'RDC');
     setSuperficie(unit.superficie || 0);
     setNombrePieces(unit.nombrePieces || 1);
-    setLoyerBase(unit.loyerBase || 0);
-    setCharges(unit.charges || 0);
+        setLoyerBase(unit.loyerBase || 0);
     setStatut(unit.statut);
     setLocataireActuelId(unit.locataireActuelId || '');
     setDescription(unit.description || '');
@@ -260,11 +309,15 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none"
           >
-            <option value="all">Tous les types</option>
-            <option value="Appartement">Appartements</option>
+                       <option value="all">Tous les types</option>
             <option value="Studio">Studios</option>
-            <option value="Chambre">Chambres</option>
-            <option value="Salle de bain">Salles de bain</option>
+            <option value="Chambre simple">Chambres simples</option>
+            <option value="Chambre + Salle de bain">Chambres + SDB</option>
+            <option value="1 Chambre + Salon">1 Ch + Salon</option>
+            <option value="2 Chambres + Salon">2 Ch + Salon</option>
+            <option value="3 Chambres + Salon">3 Ch + Salon</option>
+            <option value="Appartement">Appartements</option>
+            <option value="Duplex">Duplex</option>
             <option value="Magasin">Magasins</option>
             <option value="Bureau">Bureaux</option>
             <option value="Terrasse">Terrasses</option>
@@ -339,8 +392,8 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                         )}
                       </td>
 
-                      <td className="py-3 px-3 text-right font-mono font-bold text-white">
-                        {formatNumber(u.loyerBase + u.charges)}{' '}
+                                            <td className="py-3 px-3 text-right font-mono font-bold text-white">
+                        {formatNumber(u.loyerBase)}{' '}
                         <span className="text-[10px] text-[#C9A96E]">FCFA</span>
                       </td>
 
@@ -415,18 +468,34 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                     ))}
                   </select>
                 </div>
-                <div>
+                               <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                     Nom de l'espace *
                   </label>
-                  <input
-                    type="text"
-                    value={nom}
-                    onChange={(e) => setNom(e.target.value)}
-                    required
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                    placeholder="Ex: Appartement 101"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={nom}
+                      onChange={(e) => setNom(e.target.value)}
+                      required
+                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                      placeholder="Ex: Apt 2e 1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const generated = generateUnitName(type, etage, buildingId, units);
+                        setNom(generated);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#C9A96E] font-semibold text-[11px] whitespace-nowrap cursor-pointer flex items-center gap-1"
+                      title="Générer automatiquement un nom unique"
+                    >
+                      🎲 Auto
+                    </button>
+                  </div>
+                                    <p className="text-[10px] text-[#6B7C94] mt-1">
+                    Cliquez sur "Auto" pour générer un nom unique basé sur le type et l'étage
+                  </p>
                 </div>
               </div>
 
@@ -438,26 +507,56 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                     onChange={(e) => setType(e.target.value as any)}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   >
-                    <option value="Appartement">Appartement</option>
-                    <option value="Studio">Studio</option>
-                    <option value="Chambre">Chambre</option>
-                    <option value="Salle de bain">Salle de bain</option>
-                    <option value="Magasin">Magasin</option>
-                    <option value="Bureau">Bureau</option>
-                    <option value="Terrasse">Terrasse</option>
-                    <option value="Entrepôt">Entrepôt</option>
-                    <option value="Autre">Autre</option>
+                    <optgroup label="🏠 Logements">
+                      <option value="Studio">Studio</option>
+                      <option value="Chambre simple">Chambre simple</option>
+                      <option value="Chambre + Salle de bain">Chambre + SDB</option>
+                      <option value="Chambre + Cuisine + SDB">Chambre + Cuisine + SDB</option>
+                      <option value="Chambre + Salon + Cuisine + SDB">Chambre + Salon + Cuisine + SDB</option>
+                      <option value="1 Chambre + Salon">1 Chambre + Salon</option>
+                      <option value="2 Chambres + Salon">2 Chambres + Salon</option>
+                      <option value="3 Chambres + Salon">3 Chambres + Salon</option>
+                      <option value="4 Chambres + Salon">4 Chambres + Salon</option>
+                      <option value="Appartement">Appartement</option>
+                      <option value="Duplex">Duplex</option>
+                    </optgroup>
+                    <optgroup label="💼 Professionnel">
+                      <option value="Magasin">Magasin</option>
+                      <option value="Bureau">Bureau</option>
+                      <option value="Entrepôt">Entrepôt</option>
+                    </optgroup>
+                    <optgroup label="🏗️ Autres">
+                      <option value="Terrasse">Terrasse</option>
+                      <option value="Autre">Autre</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Étage</label>
-                  <input
-                    type="text"
-                    value={etage}
-                    onChange={(e) => setEtage(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                    placeholder="Ex: RDC, 1er, 2e..."
-                  />
+                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Étage</label>
+<select
+  value={etage}
+  onChange={(e) => setEtage(e.target.value)}
+  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+>
+  <option value="">— Choisir —</option>
+  <option value="Sous-sol">Sous-sol</option>
+  <option value="RDC">RDC (Rez-de-chaussée)</option>
+  {(() => {
+    const selectedBuilding = buildings.find((b) => b.id === buildingId);
+    const maxEtages = selectedBuilding?.nombreEtages || 5;
+    const options = [];
+    for (let i = 1; i <= maxEtages; i++) {
+      const suffix = i === 1 ? 'er' : 'e';
+      options.push(
+        <option key={i} value={`${i}${suffix}`}>
+          {i}{suffix} étage
+        </option>
+      );
+    }
+    return options;
+  })()}
+  <option value="Toit-terrasse">Toit-terrasse</option>
+</select>
                 </div>
               </div>
 
@@ -488,32 +587,18 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">
-                    Loyer base (FCFA) *
-                  </label>
-                  <input
-                    type="number"
-                    value={loyerBase}
-                    onChange={(e) => setLoyerBase(Number(e.target.value))}
-                    required
-                    min={0}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                    Charges (FCFA)
-                  </label>
-                  <input
-                    type="number"
-                    value={charges}
-                    onChange={(e) => setCharges(Number(e.target.value))}
-                    min={0}
-                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
-                  />
-                </div>
+                           <div>
+                <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">
+                  Loyer Mensuel (FCFA) *
+                </label>
+                <input
+                  type="number"
+                  value={loyerBase}
+                  onChange={(e) => setLoyerBase(Number(e.target.value))}
+                  required
+                  min={0}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

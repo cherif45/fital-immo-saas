@@ -30,6 +30,60 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [selectedInspectionForPrint, setSelectedInspectionForPrint] = useState<Inspection | null>(null);
+    // ============================================================
+  // ÉTATS POUR LA CRÉATION D'INSPECTION
+  // ============================================================
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formBienId, setFormBienId] = useState('');
+  const [formLocataireId, setFormLocataireId] = useState('');
+  const [formType, setFormType] = useState<'Entrée' | 'Sortie' | 'Périodique'>('Entrée');
+  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formAgentNom, setFormAgentNom] = useState('Agent FITAL-IMMO');
+  const [formEtatGeneral, setFormEtatGeneral] = useState('Bon état');
+  const [formRemarques, setFormRemarques] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitInspection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    if (!formBienId || !formLocataireId) {
+      alert('Veuillez sélectionner un bien et un locataire.');
+      setIsSubmitting(false);
+      return;
+    }
+    const bien = properties.find((p) => p.id === formBienId);
+    const locataire = tenants.find((t) => t.id === formLocataireId);
+
+    const newInspection: Inspection = {
+      id: crypto.randomUUID(),
+      ref: `EDL-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      bienId: formBienId,
+      bienNom: bien?.nom || 'Bien',
+      locataireId: formLocataireId,
+      locataireNom: locataire ? `${locataire.prenom} ${locataire.nom}` : 'Locataire',
+      type: formType,
+      date: formDate,
+      agentNom: formAgentNom,
+      inspecteurNom: formAgentNom,
+      etatGeneral: formEtatGeneral,
+      remarques: formRemarques,
+      statut: 'Validé',
+      signe: true,
+    };
+
+    onAddInspection(newInspection);
+setIsAddModalOpen(false);
+setIsSubmitting(false);
+
+    // Reset
+    setFormBienId('');
+    setFormLocataireId('');
+    setFormType('Entrée');
+    setFormDate(new Date().toISOString().split('T')[0]);
+    setFormRemarques('');
+    setFormEtatGeneral('Bon état');
+  };
 
   // ============================================================
   // 🔧 HELPERS : Récupérer les noms même si les champs sont vides
@@ -75,20 +129,29 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
         </div>
       </div>
 
-      {/* Search */}
-      <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex items-center justify-between gap-4">
+            {/* Search + Bouton Ajouter */}
+      <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-xs font-medium text-slate-300">
-          Liste des PV d'états des lieux certifiés
+          Liste des PV d'états des lieux certifiés ({inspections.length})
         </div>
-        <div className="relative w-72">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Rechercher par locataire, bien..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white placeholder-slate-500 focus:outline-none"
-          />
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:w-72">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Rechercher par locataire, bien..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white placeholder-slate-500 focus:outline-none"
+            />
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouvelle Inspection</span>
+          </button>
         </div>
       </div>
 
@@ -157,6 +220,135 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
           </table>
         </div>
       </div>
+
+           {/* Modal : Nouvelle Inspection */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <ClipboardCheck className="w-5 h-5 text-[#C9A96E]" />
+                <span>Nouvelle Inspection (État des Lieux)</span>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-[#A8B4C4] hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitInspection} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien / Logement *</label>
+                <select
+                  value={formBienId}
+                  onChange={(e) => setFormBienId(e.target.value)}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                >
+                  <option value="">— Choisir un bien —</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nom}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Locataire *</label>
+                <select
+                  value={formLocataireId}
+                  onChange={(e) => setFormLocataireId(e.target.value)}
+                  required
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                >
+                  <option value="">— Choisir un locataire —</option>
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>{t.prenom} {t.nom} — {t.bienNom}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Type *</label>
+                  <select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value as 'Entrée' | 'Sortie' | 'Périodique')}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  >
+                    <option value="Entrée">Entrée</option>
+                    <option value="Sortie">Sortie</option>
+                    <option value="Périodique">Périodique</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Date *</label>
+                  <input
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    required
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Agent</label>
+                <input
+                  type="text"
+                  value={formAgentNom}
+                  onChange={(e) => setFormAgentNom(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">État général</label>
+                <select
+                  value={formEtatGeneral}
+                  onChange={(e) => setFormEtatGeneral(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                >
+                  <option value="Bon état">Bon état</option>
+                  <option value="État moyen">État moyen</option>
+                  <option value="Mauvais état">Mauvais état</option>
+                  <option value="Neuf">Neuf</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Observations</label>
+                <textarea
+                  value={formRemarques}
+                  onChange={(e) => setFormRemarques(e.target.value)}
+                  rows={3}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  placeholder="Détails de l'état des lieux..."
+                />
+              </div>
+
+              <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Créer l'Inspection</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Print État des Lieux */}
       {selectedInspectionForPrint && (

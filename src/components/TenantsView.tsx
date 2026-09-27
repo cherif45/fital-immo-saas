@@ -34,6 +34,7 @@ interface TenantsViewProps {
   tenants: Tenant[];
   properties: Property[];
   units?: any[];
+  payments?: any[];
   currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
@@ -43,10 +44,25 @@ interface TenantsViewProps {
   onInitiateExit?: (tenant: Tenant) => void;
 }
 
+// Helper : libellé du type de pièce
+const getPieceLabel = (typePiece?: string): string => {
+  switch (typePiece) {
+    case 'PASSEPORT':
+      return 'Passeport';
+    case 'CARTE_CONSULAIRE':
+      return 'Carte Consulaire';
+    case 'AUTRE':
+      return 'Pièce';
+    default:
+      return 'CNI';
+  }
+};
+
 export const TenantsView: React.FC<TenantsViewProps> = ({
   tenants,
   properties,
   units = [],
+  payments = [],
   currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
@@ -69,6 +85,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [cni, setCni] = useState('');
+  const [typePiece, setTypePiece] = useState<string>('CNI'); // 🆕
   const [telephone, setTelephone] = useState('+221 77 ');
   const [email, setEmail] = useState('');
   const [profession, setProfession] = useState('');
@@ -111,6 +128,49 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
   const getSolvabilite = (t: Tenant): number => {
     return t.solvabiliteScore || t.scoreSolvabilite || 85;
+  };
+
+  // ============================================================
+  // HELPER : Le loyer du mois en cours est-il payé ?
+  // ============================================================
+  const getPaidThisMonth = (t: Tenant): {
+    status: 'paid' | 'partial' | 'unpaid' | 'none';
+    paymentRef: string;
+    amount: number;
+    remaining: number;
+    percent: number;
+  } => {
+    const now = new Date();
+    const mois = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toLowerCase().trim();
+
+    const allThisMonth = payments.filter((p: any) => {
+      if (p.locataireId !== t.id) return false;
+      const per = (p.periode || '').toLowerCase().trim();
+      return per === mois && (p.statut === 'Payé' || p.statut === 'Partiel' || p.statut === 'En attente');
+    });
+
+    const found = allThisMonth.sort((a: any, b: any) => {
+      if (a.statut === 'Payé' && b.statut !== 'Payé') return -1;
+      if (b.statut === 'Payé' && a.statut !== 'Payé') return 1;
+      return (b.montantPaye || 0) - (a.montantPaye || 0);
+    })[0];
+
+    if (!found) {
+      return { status: 'none', paymentRef: '', amount: 0, remaining: 0, percent: 0 };
+    }
+
+    const total = found.montantTotal || t.loyerMensuel || 0;
+    const paye = found.montantPaye || 0;
+    const reste = Math.max(0, total - paye);
+    const percent = total > 0 ? Math.round((paye / total) * 100) : 0;
+
+    if (found.statut === 'Payé' && reste === 0) {
+      return { status: 'paid', paymentRef: found.quittanceNumero, amount: paye, remaining: 0, percent: 100 };
+    }
+    if (percent >= 50) {
+      return { status: 'partial', paymentRef: found.quittanceNumero, amount: paye, remaining: reste, percent };
+    }
+    return { status: 'unpaid', paymentRef: found.quittanceNumero, amount: paye, remaining: reste, percent };
   };
 
   // Helper : profession + employeur propre
@@ -211,6 +271,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       nom: nom.toUpperCase(),
       prenom,
       cni,
+      typePiece, // 🆕
       telephone,
       email: email || `${prenom.toLowerCase()}.${nom.toLowerCase()}@gmail.com`,
       profession,
@@ -236,6 +297,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     setNom('');
     setPrenom('');
     setCni('');
+    setTypePiece('CNI'); // 🆕
     setTelephone('+221 77 ');
     setEmail('');
     setProfession('');
@@ -265,10 +327,11 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   };
 
   const handleExportCSV = () => {
-    const headers = ['Nom', 'Prénom', 'CNI', 'Téléphone', 'Email', 'Bien', 'Loyer Mensuel', 'Statut', 'Arriérés', 'Employeur'];
+    const headers = ['Nom', 'Prénom', 'Type Pièce', 'N° Pièce', 'Téléphone', 'Email', 'Bien', 'Loyer Mensuel', 'Statut', 'Arriérés', 'Employeur'];
     const rows = filteredTenants.map((t) => [
       t.nom,
       t.prenom,
+      getPieceLabel(t.typePiece),
       t.cni,
       t.telephone,
       t.email,
@@ -280,7 +343,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     ]);
     exportToCSV('Repertoire_Locataires_FITAL_IMMO', rows, headers);
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -382,7 +445,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
               <tr className="bg-[#1E2E45]/80 text-[#A8B4C4] font-semibold uppercase tracking-wider text-[10px] border-b border-[#C9A96E]/20">
                 <th className="py-3 px-4">Locataire</th>
                 <th className="py-3 px-3">Bien Loué</th>
-                <th className="py-3 px-3">Contact & CNI</th>
+                <th className="py-3 px-3">Contact & Pièce</th>
                 <th className="py-3 px-3 text-right">Loyer Mensuel</th>
                 <th className="py-3 px-3 text-center">Solvabilité</th>
                 <th className="py-3 px-3 text-center">Statut</th>
@@ -427,7 +490,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-3">
-                        <div className="font-medium text-white max-w-[180px] truncate">{t.bienNom}</div>
+                        <div className="font-medium text-white max-w-[180px] truncate">
+                          {t.bienNom
+                            || properties.find((p) => p.id === t.bienId)?.nom
+                            || (units as any[]).find((u: any) => u.id === t.bienId)?.nom
+                            || '—'}
+                        </div>
                         <div className="text-[10px] text-[#6B7C94]">
                           Entrée : {formatDate(t.dateEntree)}
                           {sorted && t.dateSortie && ` · Sortie : ${formatDate(t.dateSortie)}`}
@@ -468,7 +536,9 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             </div>
                           )}
                         </div>
-                        <div className="text-[10px] text-[#6B7C94]">CNI: {t.cni || '—'}</div>
+                        <div className="text-[10px] text-[#6B7C94]">
+                          {getPieceLabel(t.typePiece)}: {t.cni || '—'}
+                        </div>
                       </td>
 
                       <td className="py-3 px-3 text-right font-mono font-bold text-white">
@@ -483,9 +553,36 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-3 text-center">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${realStatus.bg} ${realStatus.text} ${realStatus.border}`}>
-                          {realStatus.label}
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${realStatus.bg} ${realStatus.text} ${realStatus.border}`}>
+                            {realStatus.label}
+                          </span>
+                          {!sorted && (() => {
+                            const info = getPaidThisMonth(t);
+                            if (info.status === 'paid') {
+                              return (
+                                <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-500/40" title={`Quittance : ${info.paymentRef}`}>
+                                  ✓ PAYÉ CE MOIS
+                                </span>
+                              );
+                            }
+                            if (info.status === 'partial') {
+                              return (
+                                <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40" title={`Reste : ${info.remaining.toLocaleString('fr-FR')} FCFA`}>
+                                  ⚠ ACOMPTE — RESTE {info.remaining.toLocaleString('fr-FR')} F
+                                </span>
+                              );
+                            }
+                            if (t.statut !== 'À jour') {
+                              return (
+                                <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-rose-500/30 text-rose-300 border border-rose-500/40">
+                                  ⚠ DOIT PAYER
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 text-center">
@@ -717,7 +814,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       <strong className="text-neutral-900">{selectedTenantForDetails.prenom} {selectedTenantForDetails.nom}</strong>
                     </div>
                     <div>
-                      <span className="text-neutral-500">N° CNI : </span>
+                      <span className="text-neutral-500">{getPieceLabel(selectedTenantForDetails.typePiece)} : </span>
                       <strong className="font-mono text-neutral-900">{selectedTenantForDetails.cni || '—'}</strong>
                     </div>
                     <div>
@@ -770,7 +867,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <span className="text-neutral-500">Bien : </span>
-                      <strong className="text-neutral-900">{selectedTenantForDetails.bienNom}</strong>
+                      <strong className="text-neutral-900">
+                        {selectedTenantForDetails.bienNom
+                          || properties.find((p) => p.id === selectedTenantForDetails.bienId)?.nom
+                          || (units as any[]).find((u: any) => u.id === selectedTenantForDetails.bienId)?.nom
+                          || 'Bien non référencé'}
+                      </strong>
                     </div>
                     <div>
                       <span className="text-neutral-500">Loyer : </span>
@@ -824,6 +926,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             </div>
 
             <form onSubmit={handleSubmitTenant} className="p-6 space-y-4 text-xs">
+              {/* Ligne 1 : Prénom + Nom */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Prénom</label>
@@ -849,18 +952,36 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 </div>
               </div>
 
+              {/* Ligne 2 : Type pièce + N° pièce */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° CNI</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Type de pièce</label>
+                  <select
+                    value={typePiece}
+                    onChange={(e) => setTypePiece(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                  >
+                    <option value="CNI">CNI</option>
+                    <option value="PASSEPORT">Passeport</option>
+                    <option value="CARTE_CONSULAIRE">Carte Consulaire</option>
+                    <option value="AUTRE">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° de la pièce</label>
                   <input
                     type="text"
                     value={cni}
                     onChange={(e) => setCni(e.target.value)}
                     required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
-                    placeholder="1 755 1989 00412"
+                    placeholder={typePiece === 'CNI' ? '1 755 1989 00412' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'}
                   />
                 </div>
+              </div>
+
+              {/* Ligne 3 : Téléphone + Email */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Téléphone</label>
                   <input
@@ -871,8 +992,19 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   />
                 </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Email (optionnel)</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
+                    placeholder="nom@email.com"
+                  />
+                </div>
               </div>
 
+              {/* Ligne 4 : Profession + Employeur */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Profession</label>
@@ -896,6 +1028,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 </div>
               </div>
 
+              {/* Ligne 5 : Bien + Loyer */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Bien à Louer</label>
@@ -926,7 +1059,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                           <optgroup label="🏠 Biens simples">
                             {vacantProperties.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.nom} ({formatNumber(p.loyerTotal || (p.loyerBase + (p.charges || 0)))} FCFA)
+                                {p.nom} ({formatNumber(p.loyerTotal || (p.loyerBase))} FCFA)
                               </option>
                             ))}
                           </optgroup>

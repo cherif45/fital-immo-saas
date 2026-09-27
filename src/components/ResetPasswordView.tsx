@@ -57,8 +57,8 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onSuccess 
       return;
     }
 
-    if (!supabase) {
-      setErrorMsg('Supabase n\'est pas configuré.');
+        if (!supabase) {
+      setErrorMsg('Service momentanément indisponible. Réessayez plus tard.');
       return;
     }
 

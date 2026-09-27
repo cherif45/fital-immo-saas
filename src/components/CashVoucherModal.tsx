@@ -99,15 +99,42 @@ export function CashVoucherModal({
           </div>
         </div>
 
-        {/* Signatures */}
+                {/* Signatures & Traçabilité */}
         <div className="grid grid-cols-2 gap-8 pt-4 text-xs">
-          <div className="border-t border-gray-300 pt-2 text-center">
-            <div className="font-bold text-gray-700">Le Caissier / Service Comptable</div>
-            <div className="text-gray-400 mt-8">[ Cachet & Signature FITAL-IMMO ]</div>
+          <div className="border-t-2 border-gray-300 pt-3 text-left">
+            <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
+              Émis par
+            </div>
+            <div className="text-sm font-bold text-gray-900">
+              Service Caisse FITAL-IMMO
+            </div>
+            <div className="text-[11px] uppercase font-semibold text-gray-500 mt-0.5">
+              Rôle : CAISSIER
+            </div>
+            <div className="text-[10px] text-gray-500 mt-1">
+              Le {new Date().toLocaleDateString('fr-FR')} à{' '}
+              {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="font-bold text-gray-700 text-[11px] mt-3 mb-1">
+              Signature & Cachet :
+            </div>
+            <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
           </div>
-          <div className="border-t border-gray-300 pt-2 text-center">
-            <div className="font-bold text-gray-700">Le Bénéficiaire (Pour Acquit)</div>
-            <div className="text-gray-400 mt-8">[ Signature du Propriétaire ]</div>
+
+          <div className="border-t-2 border-gray-300 pt-3 text-right">
+            <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
+              Le Bénéficiaire (Pour Acquit)
+            </div>
+            <div className="text-sm font-bold text-gray-900">
+              {owner.prenom} {owner.nom}
+            </div>
+            <div className="text-[11px] text-gray-500 mt-0.5">
+              Propriétaire Bailleur
+            </div>
+            <div className="font-bold text-gray-700 text-[11px] mt-3 mb-1">
+              Signature :
+            </div>
+            <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
           </div>
         </div>
 

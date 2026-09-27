@@ -58,8 +58,23 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(initialTenantForPayment?.id || '');
   const [selectedPaymentForMobileMoney, setSelectedPaymentForMobileMoney] = useState<Payment | null>(null);
-  const [periode, setPeriode] = useState<string>('Mai 2026');
   const [montantPaye, setMontantPaye] = useState<number>(0);
+    // Stocke le mois au format YYYY-MM (ex: "2026-09")
+  const [periodeMonth, setPeriodeMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Convertit "2026-09" → "septembre 2026" (format DB standard)
+  const formatPeriodeFromMonth = (m: string): string => {
+    if (!m) return '';
+    const [year, month] = m.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  };
+
+  // La période utilisée partout (dérivée du mois sélectionné)
+  const periode = formatPeriodeFromMonth(periodeMonth);
   const [modePaiement, setModePaiement] = useState<PaymentMethod>('Virement');
   const [penalites, setPenalites] = useState<number>(0);
   const [charges, setCharges] = useState<number>(0);
@@ -71,8 +86,9 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [referencePaiementInitial, setReferencePaiementInitial] = useState<string>('');
 
   // 🔒 MATRICE DE PERMISSIONS
-  const role = currentUser?.role || 'ADMIN';
+    const role = currentUser?.role || 'ADMIN';
   const isLocataire = role === 'LOCATAIRE';
+  const isProprietaire = role === 'PROPRIETAIRE';
   const canEncaisser = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'GESTIONNAIRE';
   const canUseMobileMoney = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'CAISSIER' || role === 'GESTIONNAIRE' || role === 'LOCATAIRE';
   const canSeeOthers = !isLocataire;
@@ -138,7 +154,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   // ============================================================
   // HANDLER : ENREGISTRER UN PAIEMENT
   // ============================================================
-  const handleSubmitPayment = (e: React.FormEvent) => {
+    const handleSubmitPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!canEncaisser) {
@@ -148,6 +164,27 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
     const t = tenants.find((item) => item.id === selectedTenantId);
     if (!t) return;
+
+    // 🚨 CONTRÔLE ANTI-DOUBLE-PAIEMENT
+    const dejaPaye = payments.find(
+      (p) =>
+        p.locataireId === selectedTenantId &&
+        p.periode.trim().toLowerCase() === periode.trim().toLowerCase() &&
+        (p.statut === 'Payé' || p.verificationStatut === 'en_attente')
+    );
+
+    if (dejaPaye) {
+      alert(
+        `⚠️ DOUBLE PAIEMENT DÉTECTÉ\n\n` +
+        `Le loyer de "${periode}" a DÉJÀ été réglé par ${t.prenom} ${t.nom}.\n\n` +
+        `📄 Quittance : ${dejaPaye.quittanceNumero}\n` +
+        `💰 Montant : ${formatNumber(dejaPaye.montantPaye)} FCFA\n` +
+        `📅 Date : ${dejaPaye.datePaiement}\n` +
+        `🔖 Statut : ${dejaPaye.statut}\n\n` +
+        `Si vous devez corriger, supprimez d'abord l'ancien paiement.`
+      );
+      return;
+    }
 
     const p = properties.find((prop) => prop.id === t.bienId);
     const o = owners.find((owner) => owner.id === (p?.proprietaireId || t.proprietaireId));
@@ -211,11 +248,14 @@ const newPayment: Payment = {
   montantInitialDu: initialPayment?.montantTotal || totalCalculated,
 };
 
-    onAddPayment(newPayment);
+       onAddPayment(newPayment);
     setIsNewPaymentModalOpen(false);
 
     // Reset
     setReferencePaiementInitial('');
+    // Remettre le mois courant
+    const now = new Date();
+    setPeriodeMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
 
     try {
       confetti({
@@ -308,17 +348,19 @@ const newPayment: Payment = {
                   <Plus className="w-4 h-4" /> Enregistrer
                 </button>
               )}
-              <button
-                onClick={() => {
-                  const target = getPayablePayment();
-                  if (target) setSelectedPaymentForMobileMoney(target);
-                  else alert('Aucune quittance disponible pour le paiement.');
-                }}
-                className={`py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 ${canEncaisser ? 'flex-1' : 'w-full'}`}
-                title={isLocataire ? 'Payer mon loyer via Wave / OM' : 'Générer un lien ou encaisser par Wave / OM'}
-              >
-                <Smartphone className="w-4 h-4 text-blue-400" /> Wave / OM
-              </button>
+             {isLocataire && (
+  <button
+    onClick={() => {
+      const target = getPayablePayment();
+      if (target) setSelectedPaymentForMobileMoney(target);
+      else alert('Aucune quittance disponible pour le paiement.');
+    }}
+    className="py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-xs shadow-md hover:scale-105 transition-all text-center flex items-center justify-center gap-1.5 w-full"
+    title="Payer mon loyer via Wave / OM"
+  >
+    <Smartphone className="w-4 h-4 text-blue-400" /> Wave / OM
+  </button>
+)}
             </div>
           </div>
         )}
@@ -464,17 +506,19 @@ const newPayment: Payment = {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          <button
-                            onClick={() => onOpenReceipt(p)}
-                            className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1"
-                            title="Voir le document officiel"
-                          >
-                            <Printer className="w-3 h-3" />
-                            {isSolde ? 'Solde' : isAcompte ? 'Reçu' : 'Quittance'}
-                          </button>
+                                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          {!isProprietaire && (
+                              <button
+                                onClick={() => onOpenReceipt(p)}
+                                className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] font-medium text-[11px] border border-[#C9A96E]/20 transition-all flex items-center gap-1"
+                                title="Voir le document officiel"
+                              >
+                                <Printer className="w-3 h-3" />
+                                {isSolde ? 'Solde' : isAcompte ? 'Reçu' : 'Quittance'}
+                                                           </button>
+                          )}
 
-                          {canSeeOthers && (() => {
+                          {canSeeOthers && !isProprietaire && (() => {
                             const t = tenants.find((item) => item.id === p.locataireId);
                             if (!t?.telephone) return null;
                             return (
@@ -569,18 +613,20 @@ const newPayment: Payment = {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                                <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
-                    Période Concernée
+                    Mois Concerné
                   </label>
                   <input
-                    type="text"
-                    value={periode}
-                    onChange={(e) => setPeriode(e.target.value)}
+                    type="month"
+                    value={periodeMonth}
+                    onChange={(e) => setPeriodeMonth(e.target.value)}
                     required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
-                    placeholder="Mai 2026"
                   />
+                  <p className="text-[10px] text-[#6B7C94] mt-1">
+                    Format enregistré : <strong className="text-[#C9A96E]">{periode}</strong>
+                  </p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">

@@ -83,7 +83,7 @@ export function ReportsView({
   const collectionRate = calculateCollectionRate(totalPaidAmount, totalExpectedAmount);
 
   const vacantProperties = properties.filter((p) => p.statut === 'Vacant');
-  const totalVacantRentPotential = vacantProperties.reduce((acc, p) => acc + (p.loyerBase + p.charges), 0);
+  const totalVacantRentPotential = vacantProperties.reduce((acc, p) => acc + (p.loyerBase), 0);
 
   const totalCommissions = filteredPayments.reduce((acc, p) => {
     const prop = properties.find((pr) => pr.id === p.bienId);
@@ -127,7 +127,7 @@ export function ReportsView({
         p.quartier,
         p.loyerBase,
         p.charges,
-        p.loyerBase + p.charges,
+        p.loyerBase,
         p.proprietaireNom
       ]);
       exportToCsv(`Rapport_Biens_Vacants`, headers, data);
@@ -486,7 +486,7 @@ export function ReportsView({
                     <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.quartier}, {p.ville}</td>
                     <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.proprietaireNom}</td>
                     <td className="py-3.5 px-4 text-right font-bold text-[#F59E0B]">
-                      {formatCurrencyFCFA(p.loyerBase + p.charges)}
+                      {formatCurrencyFCFA(p.loyerBase)}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">

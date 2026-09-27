@@ -80,7 +80,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   // ============================================================
   const loyerBase = contract.loyerBase || 0;
   const charges = contract.charges || 0;
-  const loyerTotal = loyerBase + charges;
+  const loyerTotal = loyerBase;
   const cautionMois = contract.cautionMois || 2;
   const cautionMontant = contract.cautionMontant || (loyerBase * cautionMois);
   const fraisAdhesion = contract.fraisAdhesion || 0;
@@ -97,6 +97,11 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   const proprietaireNom = contract.proprietaireNom || (owner ? `${owner.prenom} ${owner.nom}` : '—');
   const proprietaireAdresse = owner?.adresse || 'Dakar, Sénégal';
   const proprietaireTel = owner?.telephone || '—';
+  const proprietairePieceLabel = owner?.typePiece === 'PASSEPORT' ? 'Passeport'
+    : owner?.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
+    : owner?.typePiece === 'AUTRE' ? 'Pièce d\'identité'
+    : 'CNI';
+  const proprietaireCNI = owner?.cni || '';   // 🆕
 
   // Infos bien
   const bienNom = contract.bienNom || unit?.nom || property?.nom || '—';
@@ -180,9 +185,14 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
               <strong>ENTRE LES SOUSSIGNÉS :</strong>
             </p>
 
-            <div className="mb-4 pl-4 border-l-4 border-neutral-400">
+                        <div className="mb-4 pl-4 border-l-4 border-neutral-400">
               <p className="mb-2">
                 <strong>Le Bailleur :</strong> Monsieur/Madame <strong>{proprietaireNom}</strong>,
+                {proprietaireCNI && (
+                  <>
+                    {' '}titulaire de la {proprietairePieceLabel} n° <strong>{proprietaireCNI}</strong>,
+                  </>
+                )}{' '}
                 demeurant à {proprietaireAdresse}, téléphone : {proprietaireTel},
                 ci-après désigné <strong>« le Bailleur »</strong>,
               </p>
@@ -196,7 +206,16 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
             <div className="mb-4 pl-4 border-l-4 border-neutral-400">
               <p className="mb-2">
                 <strong>Le Locataire :</strong> Monsieur/Madame <strong>{locataireNom}</strong>,
-                titulaire de la CNI n° <strong>{locataireCNI}</strong>,
+                {locataireCNI && locataireCNI !== '—' && (
+                  <>
+                    {' '}titulaire de la{' '}
+                    {tenant?.typePiece === 'PASSEPORT' ? 'Passeport'
+                      : tenant?.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
+                      : tenant?.typePiece === 'AUTRE' ? "Pièce d'identité"
+                      : 'CNI'}{' '}
+                    n° <strong>{locataireCNI}</strong>,
+                  </>
+                )}
                 exerçant la profession de <strong>{locataireProfession}</strong>
                 {locataireEmployeur !== '—' && ` au sein de la société ${locataireEmployeur}`},
                 demeurant à {locataireAdresse}, téléphone : {locataireTel},
@@ -494,8 +513,8 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
             </p>
           </div>
 
-          {/* Signatures */}
-          <div className="grid grid-cols-3 gap-6 mt-12 pt-6 border-t border-neutral-300">
+                    {/* Signatures */}
+          <div className="grid grid-cols-3 gap-6 mt-12 pt-6 border-t-2 border-neutral-300">
             <div>
               <div className="font-bold text-neutral-700 text-xs mb-2 uppercase">
                 Le Bailleur
@@ -520,15 +539,21 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
             </div>
 
             <div>
-              <div className="font-bold text-neutral-700 text-xs mb-2 uppercase">
-                L'Agence (Mandataire)
+              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                Rédigé par
               </div>
-              <div className="h-24 border border-dashed border-neutral-400 rounded-lg"></div>
+              <div className="text-xs font-bold text-neutral-900">
+                {contract.createdByNom || 'Service Gérance'}
+              </div>
+              <div className="text-[10px] uppercase font-semibold text-neutral-500 mb-2">
+                Rôle : {contract.createdByRole || '—'}
+              </div>
+              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
               <div className="text-[10px] text-neutral-600 mt-2 text-center">
                 {nomAgence}
               </div>
               <div className="text-[9px] text-neutral-500 mt-1 text-center italic">
-                Cachet & Signature
+                Cachet & Signature Agence
               </div>
             </div>
           </div>

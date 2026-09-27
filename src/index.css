@@ -36,25 +36,105 @@
 }
 
 /* Print Styles for Invoices, Receipts and Payment Bulletins */
-@media print {
-  body {
+  @media print {
+  /* Saut de page entre les 2 pages du bulletin */
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+  
+  .print-page {
+    page-break-inside: avoid;
+  }
+  /* Fond blanc sur toute la page */
+  html, body {
     background: #FFFFFF !important;
     color: #000000 !important;
-  }
-  .no-print, nav, header, aside, .sidebar {
-    display: none !important;
-  }
-  .print-only {
-    display: block !important;
-  }
-  .print-container {
-    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Cacher TOUT par défaut */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Rendre visible uniquement le contenu du print-container */
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+
+  /* Positionner le print-container en haut de la page */
+    /* Neutraliser les parents fixed/modal */
+  body > div,
+  body > div > div,
+  .fixed {
+    position: static !important;
+    overflow: visible !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+
+  .print-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
     background: #FFFFFF !important;
     color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
+    overflow: visible !important;
+    max-height: none !important;
   }
+
+  /* Forcer les couleurs du texte */
+  .print-container * {
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+
+  /* Fond des badges/gris */
+    .print-container .bg-\[\#1E2E45\],
+  .print-container .bg-\[\#162133\],
+  .print-container .bg-\[\#0F1B2D\] {
+    background: #f0f0f0 !important;
+  }
+
+  /* Cacher les éléments explicitement */
+  .no-print, nav, header, aside, .sidebar, button {
+    display: none !important;
+  }
+
+  /* Rendre visible ce qui doit l'être */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Cacher les overlay/modal backdrop */
+  .fixed.inset-0 {
+    background: transparent !important;
+    position: static !important;
+  }
+
+  /* Ajuster les images */
+  img {
+    max-width: 100% !important;
+  }
+
+  /* Éviter les coupures de lignes dans les tableaux */
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
 }
 
