@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatNumber } from '../lib/utils';
 import {
   Smartphone, ExternalLink, QrCode, Copy, Check, Share2, PhoneCall,
   ShieldCheck, Receipt, AlertTriangle, Wifi, Info, X,
@@ -64,7 +65,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 🛡️ DÉTECTION ANTI-DOUBLON
+    // 🛡️ DÉTECTION ANTI-DOUBLON (Payé OU en attente)
   const duplicatePayment = useMemo(() => {
     if (!tenantId || !payments || payments.length === 0) return null;
     return payments.find(
@@ -74,6 +75,9 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
         (p.statut === 'Payé' || p.verificationStatut === 'en_attente')
     );
   }, [tenantId, period, payments]);
+
+  const hasDuplicate = !!duplicatePayment;
+  const isDuplicatePaid = duplicatePayment?.statut === 'Payé';
 
   // 🎯 DÉTECTION DES PROVIDERS ACTIFS
   const activeProviders: PaymentProvider[] = useMemo(() => {
@@ -454,30 +458,62 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
             </>
           )}
 
-          {/* Formulaire de confirmation manuelle (mode manuel uniquement) */}
+                    {/* Formulaire de confirmation manuelle (mode manuel uniquement) */}
           {paymentMode === 'manual' && (
-            <form onSubmit={handleSubmitValidation} className="p-4 bg-white/[0.03] border border-white/10 rounded-2xl space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#E8D5B0]">
-                <Receipt className="w-4 h-4 text-[#C9A96E]" />
-                <span>2. Confirmation manuelle & Quittance</span>
+            <form
+              onSubmit={handleSubmitValidation}
+              className={`p-4 rounded-2xl space-y-3 border ${
+                hasDuplicate
+                  ? 'bg-rose-500/10 border-rose-500/40'
+                  : 'bg-white/[0.03] border-white/10'
+              }`}
+            >
+              <div className={`flex items-center gap-2 text-xs font-bold ${hasDuplicate ? 'text-rose-300' : 'text-[#E8D5B0]'}`}>
+                <Receipt className={`w-4 h-4 ${hasDuplicate ? 'text-rose-400' : 'text-[#C9A96E]'}`} />
+                <span>
+                  {hasDuplicate
+                    ? '⛔ Confirmation bloquée — Doublon détecté'
+                    : '2. Confirmation manuelle & Quittance'}
+                </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Saisissez l'ID de transaction reçu par {selectedMethod === 'WAVE' ? 'Wave' : 'Orange Money'} :
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: TX-WAVE-892134"
-                  value={transactionIdInput}
-                  onChange={(e) => setTransactionIdInput(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-[#0A111D] border border-white/15 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-[#C9A96E]"
-                />
-                <button type="submit" className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md flex-shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Valider</span>
-                </button>
-              </div>
+
+              {hasDuplicate ? (
+                <div className="text-xs text-rose-200 space-y-1">
+                  <p>
+                    Un paiement de <strong>{formatNumber(duplicatePayment!.montantPaye)} FCFA</strong> existe déjà pour cette période.
+                  </p>
+                  <p className="text-rose-300/80">
+                    Quittance : <strong>{duplicatePayment!.quittanceNumero}</strong> • Statut : {duplicatePayment!.statut}
+                  </p>
+                  <p className="text-rose-300/70 text-[11px] italic">
+                    Pour éviter un double encaissement, la confirmation manuelle est désactivée.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-400">
+                    Saisissez l'ID de transaction reçu par {selectedMethod === 'WAVE' ? 'Wave' : 'Orange Money'} :
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: TX-WAVE-892134"
+                      value={transactionIdInput}
+                      onChange={(e) => setTransactionIdInput(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-[#0A111D] border border-white/15 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-[#C9A96E]"
+                    />
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md flex-shrink-0"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Valider</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
               {isSuccess && (
                 <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 font-bold flex items-center gap-2">
                   <Check className="w-4 h-4" />

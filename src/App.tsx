@@ -508,7 +508,49 @@ useEffect(() => {
   // ============================================================
   // HANDLERS : PAIEMENTS
   // ============================================================
-    const handleAddPayment = (newPayment: Payment) => {
+       const handleAddPayment = (newPayment: Payment) => {
+    // 🛡️ ANTI-DOUBLON NIVEAU 2 : blocage central AVANT toute création
+    const existingPaid = payments.find(
+      (p) =>
+        p.locataireId === newPayment.locataireId &&
+        p.periode === newPayment.periode &&
+        p.statut === 'Payé'
+    );
+
+    if (existingPaid) {
+      alert(
+        `⛔ DOUBLON DÉTECTÉ — Paiement refusé\n\n` +
+        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjà pour ce locataire (${existingPaid.periode}).\n\n` +
+        `Quittance : ${existingPaid.quittanceNumero}\n` +
+        `Date : ${existingPaid.datePaiement}\n\n` +
+        `Pour éviter un double encaissement, ce paiement est bloqué.`
+      );
+      handleTriggerAuditLog(
+        'PAYMENT_BLOCKED_DUPLICATE',
+        'Paiements',
+        `Tentative bloquée : ${newPayment.locataireNom} - ${newPayment.periode} - ${formatNumber(newPayment.montantPaye)} FCFA`,
+        newPayment.quittanceNumero
+      );
+      return;
+    }
+
+    const existingPending = payments.find(
+      (p) =>
+        p.locataireId === newPayment.locataireId &&
+        p.periode === newPayment.periode &&
+        p.verificationStatut === 'en_attente'
+    );
+
+    if (existingPending) {
+      alert(
+        `⏳ Paiement déjà en attente\n\n` +
+        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
+        `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
+      );
+      return;
+    }
+
+    // ✅ Pas de doublon → procéder normalement
     const enrichedPayment: Payment = {
       ...newPayment,
       createdById: newPayment.createdById || currentUser?.id,
@@ -611,13 +653,50 @@ useEffect(() => {
     }
   };
 
-  const handleConfirmMobileMoneyPayment = (amount: number, method: string, transactionId: string) => {
+    const handleConfirmMobileMoneyPayment = (amount: number, method: string, transactionId: string) => {
     const tId = mobileMoneyModalConfig?.tenantId;
     const tenant = tenants.find((t) => t.id === tId) || tenants[0];
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
-    if (!tenant || !property) { alert('Impossible de valider le paiement.'); return; }
+    if (!tenant || !property) { alert('❌ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
 
+    // 🛡️ ANTI-DOUBLON AVANT CRÉATION
+    const existingPayment = payments.find(
+      (p) =>
+        p.locataireId === tenant.id &&
+        p.periode === selectedPeriod &&
+        p.statut === 'Payé'
+    );
+
+    if (existingPayment) {
+      alert(
+        `⛔ PAIEMENT DÉJÀ ENREGISTRÉ\n\n` +
+        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
+        `Quittance : ${existingPayment.quittanceNumero}\n\n` +
+        `Impossible de créer un doublon.`
+      );
+      setMobileMoneyModalConfig(null);
+      return;
+    }
+
+    const pendingPayment = payments.find(
+      (p) =>
+        p.locataireId === tenant.id &&
+        p.periode === selectedPeriod &&
+        p.verificationStatut === 'en_attente'
+    );
+
+    if (pendingPayment) {
+      alert(
+        `⏳ PAIEMENT EN ATTENTE\n\n` +
+        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjà en attente de validation.\n\n` +
+        `Veuillez d'abord valider ou rejeter ce paiement.`
+      );
+      setMobileMoneyModalConfig(null);
+      return;
+    }
+
+    // ✅ Aucun doublon → créer le paiement
     const newPayment: Payment = {
       id: crypto.randomUUID(),
       ref: transactionId || `PAY-MM-${Date.now().toString().slice(-6)}`,
