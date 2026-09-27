@@ -1683,21 +1683,25 @@ useEffect(() => {
       />
 
       {mobileMoneyModalConfig && (
-        <MobileMoneyPaymentModal
-          isOpen={mobileMoneyModalConfig.isOpen}
-          onClose={() => setMobileMoneyModalConfig(null)}
-          amount={mobileMoneyModalConfig.amount || 250000}
-          tenantName={mobileMoneyModalConfig.tenantName || 'Client FITAL-IMMO'}
-          tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
-          propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
-          period={mobileMoneyModalConfig.period || selectedPeriod}
-          reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
-          onConfirmPayment={handleConfirmMobileMoneyPayment}
-          waveNumero={settings.waveNumero}
-          orangeMoneyCode={settings.orangeMoneyCode}
-          whatsappBusiness={settings.whatsappBusiness}
-        />
-      )}
+  <MobileMoneyPaymentModal
+    isOpen={mobileMoneyModalConfig.isOpen}
+    onClose={() => setMobileMoneyModalConfig(null)}
+    amount={mobileMoneyModalConfig.amount || 250000}
+    tenantName={mobileMoneyModalConfig.tenantName || 'Client FITAL-IMMO'}
+    tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
+    propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
+    period={mobileMoneyModalConfig.period || selectedPeriod}
+    reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
+    onConfirmPayment={handleConfirmMobileMoneyPayment}
+    waveNumero={settings.waveNumero}
+    orangeMoneyCode={settings.orangeMoneyCode}
+    whatsappBusiness={settings.whatsappBusiness}
+    settings={settings}
+    currentUser={currentUser}
+    tenantId={mobileMoneyModalConfig.tenantId}
+    payments={payments}
+  />
+)}
 
       {quickCommsModalConfig && (
         <QuickCommsModal
