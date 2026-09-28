@@ -1,237 +1,270 @@
 import React from 'react';
-import {
-  FileText,
-  Printer,
-  X,
-} from 'lucide-react';
+import { FileText, Printer, X } from 'lucide-react';
 import { Owner, Property, AgencySettings } from '../types';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatDate } from '../lib/utils';
 
 interface OwnerMandateModalProps {
   owner: Owner | null;
   properties: Property[];
   agencySettings?: AgencySettings;
+  currentUser?: { nom: string; prenom: string; role?: string } | null;
   onClose: () => void;
 }
+
+// ============================================================
+// CONSTANTES TISER
+// ============================================================
+const TISER_NAME = 'TRANS IMMOBILIER & SERVICES SARL';
+const TISER_SLOGAN = '(T.I.SER) - GÉRANCE - LOCATION - VENTE - ACHAT';
+const TISER_SLOGAN_2 = 'RECOUVREMENT DE CRÉANCES';
+const TISER_ADRESSE = 'Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté';
+const TISER_TEL = '33 825 17 38';
+const TISER_RC = 'SN-DKR-2014B10248';
+const TISER_NINEA = '0050875072C2';
+const TISER_EMAIL = 'tiser.immo@gmail.com';
+const GERANT_NOM = 'M. Papa Ousmane SY';
 
 export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
   owner,
   properties,
   agencySettings,
+  currentUser,
   onClose,
 }) => {
   if (!owner) return null;
 
   const ownerProperties = properties.filter((p) => p.proprietaireId === owner.id);
-
-  const agencyName = agencySettings?.nomAgence || 'FITAL-IMMO SERVICES SARL';
-  const agencyPhone = agencySettings?.telephone || '+221 33 820 00 00';
-  const agencyEmail = agencySettings?.email || 'contact@fital-immo.sn';
-  const agencyAddress = agencySettings?.adresse || 'Avenue Cheikh Anta Diop, Dakar';
-  const agencyNinea = agencySettings?.ninea || '008920194 2V8';
-
-  const mandateRef = owner.mandatGerance || `MANDAT-${new Date().getFullYear()}-${owner.nom.slice(0, 4).toUpperCase()}`;
-  const dateMandat = owner.dateMandat || new Date().toISOString().split('T')[0];
   const tauxCommission = owner.tauxCommission || 10;
 
+  // ============================================================
+  // IDENTITÉ PROPRIÉTAIRE
+  // ============================================================
+  const typePieceLabel = owner.typePiece === 'PASSEPORT' ? 'Passeport'
+    : owner.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
+    : owner.typePiece === 'AUTRE' ? "Pièce d'identité"
+    : 'Carte Nationale d\'Identité';
+  const numeroPiece = owner.cni || '—';
+  const dateEmissionPiece = (owner as any).dateEmissionPiece
+    ? formatDate((owner as any).dateEmissionPiece)
+    : '—';
+
+  // ============================================================
+  // DATE DU MANDAT
+  // ============================================================
+  const dateMandat = owner.dateMandat || new Date().toISOString().split('T')[0];
+  const dateFormatee = new Date(dateMandat).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  // ============================================================
+  // ADRESSE DU BIEN (Q2 = B → saisie libre ou liste)
+  // ============================================================
+  const adresseBien = ownerProperties.length > 0
+    ? ownerProperties.map((p) => `${p.nom} — ${p.adresse || p.quartier || ''}`).join(' / ')
+    : '________________________________';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#162133] border border-[#C9A96E]/40 rounded-3xl w-full max-w-4xl max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Modal Top Bar (Hidden on Print) */}
-        <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/90 no-print rounded-t-3xl sticky top-0 z-10">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
+
+        {/* Header (non imprimable) */}
+        <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-2.5 text-white font-bold text-sm">
             <FileText className="w-5 h-5 text-[#C9A96E]" />
-            <span>Mandat de Gérance — {mandateRef}</span>
+            <span>Mandat de Gérance — {owner.prenom} {owner.nom}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Imprimer / PDF</span>
+              <Printer className="w-4 h-4" />
+              <span>Imprimer</span>
             </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-xl text-[#A8B4C4] hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
+            <button onClick={onClose} className="p-2 rounded-lg text-[#A8B4C4] hover:text-white cursor-pointer">
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Printable Document */}
-        <div className="p-8 sm:p-12 bg-white text-neutral-900 font-sans text-xs print-container leading-relaxed space-y-5 rounded-b-3xl">
-          {/* Header */}
-          <div className="border-b-2 border-neutral-900 pb-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-neutral-950 uppercase">
-                  {agencyName}
-                </h1>
-                <p className="text-[10px] text-neutral-600 font-medium mt-0.5">
-                  Gérance · Location · Vente · Achat · Recouvrement de Créances
-                </p>
-                <p className="text-[10px] text-neutral-500">
-                  {agencyAddress} · Tél : {agencyPhone} · Email : {agencyEmail}
-                </p>
-                <p className="text-[9px] text-neutral-400 font-mono">
-                  NINEA : {agencyNinea}
-                </p>
-              </div>
+        {/* ============================================================ */}
+        {/* CONTENU IMPRIMABLE                                          */}
+        {/* ============================================================ */}
+        <div className="print-container p-6 sm:p-10 bg-white text-neutral-900 relative">
 
-              <div className="text-right">
-                <div className="inline-block px-3 py-1 bg-neutral-900 text-white font-mono font-bold text-xs uppercase tracking-wider rounded">
-                  {mandateRef}
+          {/* Bandeau vertical gauche */}
+          <div
+            className="absolute left-2 top-1/2 hidden sm:block"
+            style={{
+              transform: 'translateY(-50%) rotate(-90deg)',
+              transformOrigin: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="text-[8px] text-neutral-400 italic font-semibold tracking-wider">
+              La transparence, notre crédo
+            </span>
+          </div>
+
+          {/* Bandeau vertical droit */}
+          <div
+            className="absolute right-2 top-1/2 hidden sm:block"
+            style={{
+              transform: 'translateY(-50%) rotate(90deg)',
+              transformOrigin: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="text-[8px] text-neutral-400 italic font-semibold tracking-wider">
+              La transparence, notre crédo
+            </span>
+          </div>
+
+          {/* ============================================================ */}
+          {/* EN-TÊTE                                                     */}
+          {/* ============================================================ */}
+          <div className="text-center mb-4">
+            <div className="flex items-start justify-center gap-4 mb-2">
+              {/* Logo placeholder */}
+              <div className="w-14 h-14 border border-neutral-900 flex items-center justify-center flex-shrink-0">
+                <div className="text-center">
+                  <div className="text-lg font-black text-neutral-900 leading-none">T</div>
+                  <div className="text-[6px] text-neutral-700 leading-tight mt-0.5">T.I.SER</div>
                 </div>
-                <p className="text-[10px] text-neutral-600 mt-1">
-                  Date : <strong>{formatDate(dateMandat)}</strong>
-                </p>
+              </div>
+              <div className="text-center">
+                <div className="text-[13px] font-black uppercase text-neutral-900 tracking-wide">
+                  {TISER_NAME}
+                </div>
+                <div className="text-[9px] text-neutral-700 mt-0.5 font-semibold">
+                  {TISER_SLOGAN}
+                </div>
+                <div className="text-[9px] text-neutral-700 font-semibold">
+                  {TISER_SLOGAN_2}
+                </div>
               </div>
             </div>
 
-            <div className="text-center mt-4 pt-3 border-t border-neutral-300">
-              <h2 className="text-lg font-black uppercase tracking-wider text-neutral-900 mt-0.5 underline">
+            {/* Titre encadré */}
+            <div className="mt-3 inline-block border-2 border-neutral-900 px-8 py-1">
+              <span className="text-base font-black uppercase tracking-widest text-neutral-900">
                 MANDAT DE GÉRANCE
-              </h2>
+              </span>
             </div>
           </div>
 
-          {/* Préambule */}
-          <div className="space-y-3 text-[11px] text-justify">
-                        <p>
-              Je soussigné <strong>Monsieur/Madame {owner.prenom} {owner.nom}</strong>,
-              {owner.cni && (
-                <>
-                  {' '}
-                  {owner.typePiece === 'PASSEPORT' ? 'Passeport'
-                    : owner.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
-                    : owner.typePiece === 'AUTRE' ? "Pièce d'identité"
-                    : 'CNI'}{' '}
-                  N° <strong>{owner.cni}</strong>,
-                </>
-              )}
-              {!owner.cni && owner.ninea && <> NINEA N° <strong>{owner.ninea}</strong>,</>}
-              Propriétaire,
-            </p>
-            <p>
-              Certifie avoir mandaté l'agence <strong>{agencyName}</strong> sise à {agencyAddress},
-              représentée par son Gérant, <strong>dûment habilité aux fins des présentes</strong>,
-            </p>
-            <p>
-              Pour la gestion du patrimoine immobilier ci-après désigné :
+          {/* ============================================================ */}
+          {/* CORPS DU MANDAT                                             */}
+          {/* ============================================================ */}
+          <div className="text-[11px] text-neutral-900 leading-relaxed space-y-3 mt-6">
+
+            {/* Préambule */}
+            <p className="text-justify">
+              Je soussigné Monsieur <strong>{owner.prenom} {owner.nom}</strong>, {typePieceLabel} N°{' '}
+              <strong>{numeroPiece}</strong> du <strong>{dateEmissionPiece}</strong>
             </p>
 
-            {/* Tableau des biens */}
-            <div className="mt-2 border border-neutral-300 rounded overflow-hidden">
-              <table className="w-full text-left text-[10px]">
-                <thead className="bg-neutral-100 text-neutral-700 uppercase font-semibold border-b border-neutral-300">
-                  <tr>
-                    <th className="p-2">Réf & Nom du Lot</th>
-                    <th className="p-2">Type</th>
-                    <th className="p-2">Adresse / Quartier</th>
-                    <th className="p-2 text-right">Loyer Mensuel</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  {ownerProperties.length > 0 ? (
-                    ownerProperties.map((p) => (
-                      <tr key={p.id}>
-                        <td className="p-2 font-medium">{p.ref} — {p.nom}</td>
-                        <td className="p-2">{p.type}</td>
-                        <td className="p-2">{p.quartier}, {p.ville}</td>
-                        <td className="p-2 text-right font-mono font-bold">{formatCurrency(p.loyerBase)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="p-2 text-center text-neutral-500 italic">
-                        Ensemble du patrimoine immobilier rattaché au mandat {mandateRef}.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <p className="text-justify">
+              Propriétaire, certifie avoir mandaté l'agence <strong>{TISER_NAME}</strong> (T.I.SER) sise à{' '}
+              <strong>Grand Dakar Pile N° 224</strong>, représenté par son Gérant <strong>{GERANT_NOM}</strong>, de gérer notre maison sis à{' '}
+              <strong>{adresseBien}</strong>
+            </p>
+
+            {/* L'agence aura pour mission */}
+            <p className="mt-4">L'agence aura pour mission :</p>
+
+            <ul className="ml-6 space-y-1.5 mt-2">
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>De veiller sur la maison</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>D'encaisser les loyers mensuels</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>De recouvrir les arriérés éventuels</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>De poursuivre les locataires qui ne sont pas en règle jusqu'à leur expulsion et d'en trouver d'autres</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>De faire les réfections avec l'accord du propriétaire</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-neutral-900 flex-shrink-0">❖</span>
+                <span>Et tous ces frais seront à déduire du montant à verser</span>
+              </li>
+            </ul>
+
+            {/* Mentions financières */}
+            <p className="text-justify mt-4">
+              Les déclarations foncières, de revenus et fiscales sont faites par le propriétaire.
+            </p>
+
+            <p className="text-justify">
+              La commission de gérance est de <strong>{tauxCommission}</strong> % sur le montant total encaissé.
+            </p>
+
+            {/* Durée */}
+            <p className="text-justify">
+              Ce présent mandat de gérance est conclu pour une durée indéterminée si aucune des parties n'exprime le désir d'y mettre fin. Avant la résiliation, la partie résiliente doit donner un préavis au moins de deux mois par écrit.
+            </p>
+
+            {/* En foi de quoi */}
+            <p className="text-justify mt-2">
+              En foi de quoi, il est établi pour servir et valoir ce que de droit.
+            </p>
+          </div>
+
+          {/* ============================================================ */}
+          {/* DATE + SIGNATURES                                           */}
+          {/* ============================================================ */}
+          <div className="mt-10 text-[11px] text-neutral-900">
+            <div className="text-right mb-8">
+              Fait en double à Dakar, le <strong>{dateFormatee}</strong>
+            </div>
+
+            <div className="grid grid-cols-2 gap-12">
+              <div>
+                <div className="font-bold mb-2">Le Gérant :</div>
+                <div className="font-bold italic mb-1">{GERANT_NOM}</div>
+                <div className="h-14 border-b border-dotted border-neutral-400"></div>
+              </div>
+
+              <div>
+                <div className="font-bold mb-2">Le Propriétaire :</div>
+                <div className="font-bold italic mb-1">{owner.prenom} {owner.nom}</div>
+                <div className="h-14 border-b border-dotted border-neutral-400"></div>
+              </div>
             </div>
           </div>
 
-          {/* MISSIONS — Reproduites du document client */}
-          <div className="space-y-3 text-[11px]">
+                    {/* ============================================================ */}
+          {/* PIED DE PAGE (écran)                                        */}
+          {/* ============================================================ */}
+          <div className="mt-10 pt-3 border-t border-neutral-400 text-center text-[8px] text-neutral-700 leading-relaxed print:hidden">
+            <div className="font-bold">
+              TRANS IMMOBILIER & SERVICES SARL (T.I.SER) Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté
+            </div>
             <div>
-              <div className="font-bold uppercase text-neutral-900 border-b border-neutral-300 pb-0.5">
-                MISSIONS CONFIÉES AU MANDATAIRE
-              </div>
-              <ul className="list-disc list-inside mt-2 space-y-1.5 text-neutral-800">
-                <li>De <strong>veiller sur la maison</strong> et son patrimoine ;</li>
-                <li>D'<strong>encaisser les loyers mensuels</strong> auprès des locataires ;</li>
-                <li>De <strong>recouvrir les arriérés éventuels</strong> et faire les relances nécessaires ;</li>
-                <li>De <strong>poursuivre les locataires qui ne sont pas en règle jusqu'à leur expulsion et d'en trouver d'autres</strong> ;</li>
-                <li>De <strong>faire les réfections avec l'accord du propriétaire</strong>.</li>
-              </ul>
+              Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
             </div>
+          </div>
 
+          {/* Pied de page fixe répété sur chaque page imprimée */}
+          <div className="print-footer">
+            <div className="font-bold">
+              TRANS IMMOBILIER & SERVICES SARL (T.I.SER) Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté
+            </div>
             <div>
-              <div className="font-bold uppercase text-neutral-900 border-b border-neutral-300 pb-0.5 mt-4">
-                CLAUSES FINANCIÈRES
-              </div>
-              <ul className="list-disc list-inside mt-2 space-y-1.5 text-neutral-800">
-                <li>
-                  Et tous ces frais seront à déduire du montant à verser. Les <strong>déclarations foncières, de revenus et fiscales</strong> sont faites par le propriétaire.
-                </li>
-                <li>
-                  La <strong>commission de gérance</strong> est de <strong className="text-neutral-950 font-mono">{tauxCommission}%</strong> sur le montant total encaissé.
-                </li>
-                <li>
-                  Ce présent mandat de gérance est conclu pour une <strong>durée indéterminée</strong> si aucune des parties n'exprime le désir d'y mettre fin. Avant la résiliation, la partie résiliante doit donner un <strong>préavis au moins de deux (2) mois par écrit</strong>.
-                </li>
-              </ul>
+              Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
             </div>
-          </div>
-
-          {/* Mention finale */}
-          <div className="text-[11px] italic text-neutral-700 pt-2">
-            Fait en double à Dakar, le <strong>{formatDate(dateMandat)}</strong>
-          </div>
-          <div className="text-[10px] text-neutral-500 italic">
-            Fait foi de quoi, il est établi pour servir et valoir ce que de droit.
-          </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 pt-6 mt-4 border-t-2 border-neutral-900 text-[11px]">
-            <div>
-              <div className="font-bold text-neutral-900">Le Propriétaire :</div>
-              <div className="text-[10px] text-neutral-500 italic mt-0.5">
-                Précédé de la mention « Lu et approuvé »
-              </div>
-              <div className="h-24 border border-dashed border-neutral-400 rounded-lg mt-2 p-2 flex flex-col justify-between">
-                <span className="text-[11px] font-semibold text-neutral-800">
-                  {owner.prenom} {owner.nom}
-                </span>
-                <span className="text-[9px] text-neutral-400">Date et Signature :</span>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className="font-bold text-neutral-900">Le Gérant :</div>
-              <div className="text-[10px] text-neutral-500 italic mt-0.5">
-                La Direction Générale
-              </div>
-              <div className="h-24 border border-dashed border-neutral-400 rounded-lg mt-2 p-2 flex flex-col justify-center items-center bg-neutral-50">
-                <span className="text-[10px] font-black text-amber-900 uppercase">
-                  ★ CACHET & VISA OFFICIEL ★
-                </span>
-                <span className="text-[9px] text-neutral-500 mt-1 font-mono">
-                  {agencyName}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-6 pt-3 border-t border-neutral-300 text-center text-[9px] text-neutral-500">
-            {agencyName} · NINEA : {agencyNinea} · {agencyAddress} · Tél : {agencyPhone}
-            <br />
-            « La transparence, notre crédo »
           </div>
         </div>
       </div>

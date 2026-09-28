@@ -1510,16 +1510,16 @@ useEffect(() => {
 
           {activeTab === 'tenants' && (
             <div className="space-y-4">
-              {currentUser.role === 'ADMIN' && (
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setIsNewTenantWizardOpen(true)}
-                    className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
-                  >
-                    <span>✨ Assistant Nouveau Locataire (7 Étapes)</span>
-                  </button>
-                </div>
-              )}
+             {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser.role) && (
+  <div className="flex justify-end gap-3">
+    <button
+      onClick={() => setIsNewTenantWizardOpen(true)}
+      className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
+    >
+      <span>✨ Assistant Nouveau Locataire (7 Étapes)</span>
+    </button>
+  </div>
+)}
                             <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
@@ -1649,6 +1649,9 @@ useEffect(() => {
         <PaymentReceiptModal
           payment={receiptModalPayment}
           settings={settings}
+          units={units}
+          buildings={buildings}
+          currentUser={currentUser}
           onClose={() => setReceiptModalPayment(null)}
         />
       )}

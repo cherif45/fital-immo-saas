@@ -218,6 +218,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       const payment = findPayment(unitId, tenant.id);
       const estNonPayeur = !payment;
 
+      // ⚠️ TISER : non payeur → Loyer et Net affichés comme "0" ou vides
       const loyerFinal = estNonPayeur ? 0 : loyerBase;
       const netFinal = estNonPayeur ? 0 : Math.round(loyerBase * (1 - tauxCommission / 100));
 
@@ -235,7 +236,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         adresse,
         etage,
         locataire: `${tenant.prenom} ${tenant.nom}`,
-        locataireRef: tenant.ref || '—',
+        locataireRef: (tenant as any).ref?.slice(-4) || '—',
         loyer: loyerFinal,
         net: netFinal,
         observation: estNonPayeur ? 'NON PAYER' : estNouveau ? 'NOUVEAU LOCATAIRE' : '',
@@ -287,7 +288,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const totalNet = loyersData.reduce((sum, l) => sum + l.net, 0);
 
   // ============================================================
-  // ARRIÉRÉS (paiements d'autres périodes)
+  // ARRIÉRÉS
   // ============================================================
   const arrieresData: ArriereLigne[] = useMemo(() => {
     const ownerPaymentsOtherPeriod = payments.filter((p) => {
@@ -304,7 +305,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       const net = Math.round(montantPaye * (1 - tauxCommission / 100));
       return {
         locataire: p.locataireNom,
-        ref: tenants.find((t) => t.id === p.locataireId)?.ref || '—',
+        ref: tenants.find((t) => t.id === p.locataireId)?.ref?.slice(-4) || '—',
         reglement: montantPaye,
         arrieres: 0,
         net,
@@ -353,7 +354,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const totalDecaissement = decaissementsLignes.reduce((sum, d) => sum + d.montant, 0);
 
   // ============================================================
-  // ENCAISSEMENTS (cautions)
+  // ENCAISSEMENTS
   // ============================================================
   const encaissementsLignes: EncaissementLigne[] = useMemo(() => {
     const cautions = payments.filter((p) => {
@@ -387,7 +388,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     (Math.abs(owner.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 999) + 1
   ).padStart(3, '0');
   const numeroBulletin = `BV-${year}-${month}-PROP-${ownerSeq}`;
-  const gerantNom = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Service Gérance';
+  const gerantNom = 'M. Papa Ousmane SY';
 
   // ============================================================
   // HANDLERS
@@ -443,9 +444,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     alert('✅ Bulletin enregistré avec succès.');
   };
 
-  // Pagination
-  const lignesParPage = 25;
-  const totalPages = Math.max(1, Math.ceil(loyersData.length / lignesParPage));
+  const moisEnMajuscules = selectedPeriod.toUpperCase();
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -479,18 +478,37 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         </div>
 
         {/* Document */}
-        <div className="p-8 bg-white text-neutral-900 overflow-y-auto print:p-4">
+        <div className="print-container p-8 bg-white text-neutral-900 overflow-y-auto">
           {/* PAGE 1 */}
           <div className="print-page">
-            {/* En-tête */}
-            <div className="text-center border-b-2 border-neutral-900 pb-3 mb-4">
-              <h2 className="text-sm font-bold uppercase text-neutral-900">TRANS IMMOBILIER SERVICES SARL</h2>
-              <p className="text-[10px] text-neutral-600">GÉRANCE - LOCATION - VENTE - ACHAT</p>
-              <h1 className="text-2xl font-black uppercase tracking-widest text-neutral-900 mt-2">
+            {/* En-tête TISER avec logo */}
+            <div className="flex items-start gap-4 mb-3">
+              <div className="w-16 h-16 flex-shrink-0 border border-neutral-900 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-neutral-900 leading-none">T</div>
+                  <div className="text-[7px] text-neutral-700 leading-tight mt-0.5">T.I.SER</div>
+                </div>
+              </div>
+
+              <div className="flex-1 text-center pt-1">
+                <div className="text-[13px] font-black uppercase text-neutral-900 tracking-wide">
+                  TRANS IMMOBILIER ET SERVICES SARL
+                </div>
+                <div className="text-[9px] text-neutral-700 font-semibold mt-0.5">
+                  GÉRANCE- LOCATION- VENTE- ACHAT
+                </div>
+              </div>
+
+              <div className="w-16 h-16 flex-shrink-0"></div>
+            </div>
+
+            {/* Titre */}
+            <div className="text-center mb-4 mt-3">
+              <h1 className="text-2xl font-black uppercase tracking-widest text-neutral-900">
                 BULLETIN DE VERSEMENT
               </h1>
               <div className="text-xs text-neutral-700 mt-1 font-semibold">
-                Mois de : <span className="uppercase">{selectedPeriod}</span>
+                Mois de : <span className="uppercase">{moisEnMajuscules}</span>
               </div>
             </div>
 
@@ -498,24 +516,24 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             {ownerBuildings.length > 0 && (
               <table className="w-full text-[9px] border-collapse mb-3">
                 <thead>
-                  <tr className="bg-neutral-800 text-white">
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Ref_Imm</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Nom_Immeuble</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Type</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Adresse</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Propriétaire</th>
-                    <th className="p-1 border border-neutral-600 text-center font-bold">Taux Com</th>
+                  <tr className="bg-neutral-200">
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Ref_Imm.</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Nom_Immeuble</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold w-[30px]">Type</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Adresse</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Propriétaire</th>
+                    <th className="p-1 border border-neutral-400 text-center font-bold w-[40px]">Taux Com.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ownerBuildings.map((b) => (
                     <tr key={b.id}>
-                      <td className="p-1 border border-neutral-300 font-mono font-bold">{b.ref || '—'}</td>
-                      <td className="p-1 border border-neutral-300 font-bold">{b.nom}</td>
-                      <td className="p-1 border border-neutral-300">{b.type}</td>
-                      <td className="p-1 border border-neutral-300">{b.adresse || b.quartier || '—'}</td>
-                      <td className="p-1 border border-neutral-300 uppercase font-semibold">{owner.prenom} {owner.nom}</td>
-                      <td className="p-1 border border-neutral-300 text-center font-mono">{tauxCommission}</td>
+                      <td className="p-1 border border-neutral-400 font-mono font-bold">{b.ref || '—'}</td>
+                      <td className="p-1 border border-neutral-400 font-bold">{b.nom}</td>
+                      <td className="p-1 border border-neutral-400">{b.type}</td>
+                      <td className="p-1 border border-neutral-400">{b.adresse || b.quartier || '—'}</td>
+                      <td className="p-1 border border-neutral-400 uppercase font-semibold">{owner.prenom} {owner.nom}</td>
+                      <td className="p-1 border border-neutral-400 text-center font-mono">{tauxCommission}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -525,14 +543,14 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             {/* Tableau principal */}
             <table className="w-full text-[9px] border-collapse mb-4">
               <thead>
-                <tr className="bg-neutral-800 text-white">
-                  <th className="p-1 border border-neutral-600 text-left font-bold w-[25px]">N°</th>
-                  <th className="p-1 border border-neutral-600 text-left font-bold">Locataire</th>
-                  <th className="p-1 border border-neutral-600 text-left font-bold w-[55px]">Ref</th>
-                  <th className="p-1 border border-neutral-600 text-left font-bold">Bien Loué</th>
-                  <th className="p-1 border border-neutral-600 text-right font-bold w-[65px]">Loyer</th>
-                  <th className="p-1 border border-neutral-600 text-right font-bold w-[65px]">Net</th>
-                  <th className="p-1 border border-neutral-600 text-left font-bold w-[90px]">Observations</th>
+                <tr className="bg-neutral-200">
+                  <th className="p-1 border border-neutral-400 text-left font-bold w-[25px]">N°</th>
+                  <th className="p-1 border border-neutral-400 text-left font-bold">Locataire</th>
+                  <th className="p-1 border border-neutral-400 text-left font-bold w-[55px]">Ref</th>
+                  <th className="p-1 border border-neutral-400 text-left font-bold">Bien Loué</th>
+                  <th className="p-1 border border-neutral-400 text-right font-bold w-[65px]">Loyer</th>
+                  <th className="p-1 border border-neutral-400 text-right font-bold w-[65px]">Net</th>
+                  <th className="p-1 border border-neutral-400 text-left font-bold w-[90px]">Observations</th>
                 </tr>
               </thead>
               <tbody>
@@ -543,23 +561,23 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 ) : (
                   loyersData.map((l, idx) => (
                     <tr key={l.unitId} className={idx % 2 === 0 ? 'bg-white' : 'bg-neutral-50'}>
-                      <td className="p-1 border border-neutral-300 text-neutral-700">{idx + 1}</td>
-                      <td className="p-1 border border-neutral-300 font-bold text-neutral-900">{l.locataire}</td>
-                      <td className="p-1 border border-neutral-300 font-mono text-[8px] text-neutral-900">{l.locataireRef}</td>
-                      <td className="p-1 border border-neutral-300 text-neutral-800">{l.unitNom}</td>
-                      <td className="p-1 border border-neutral-300 text-right font-mono text-neutral-900">
+                      <td className="p-1 border border-neutral-400 text-neutral-700">{idx + 1}</td>
+                      <td className="p-1 border border-neutral-400 font-bold text-neutral-900">{l.locataire}</td>
+                      <td className="p-1 border border-neutral-400 font-mono text-[8px] text-neutral-900">{l.locataireRef}</td>
+                      <td className="p-1 border border-neutral-400 text-neutral-800">{l.unitNom}</td>
+                      <td className="p-1 border border-neutral-400 text-right font-mono text-neutral-900">
                         {l.estNonPayeur ? '' : formatNumber(l.loyer)}
                       </td>
-                      <td className="p-1 border border-neutral-300 text-right font-mono font-bold text-neutral-900">
+                      <td className="p-1 border border-neutral-400 text-right font-mono font-bold text-neutral-900">
                         {l.estNonPayeur ? '' : formatNumber(l.net)}
                       </td>
-                      <td className="p-1 border border-neutral-300 text-neutral-600 text-[8px] italic">{l.observation}</td>
+                      <td className="p-1 border border-neutral-400 text-neutral-600 text-[8px] italic">{l.observation}</td>
                     </tr>
                   ))
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-neutral-200 font-bold">
+                <tr className="bg-neutral-100 font-bold">
                   <td colSpan={4} className="p-1 border border-neutral-400"></td>
                   <td className="p-1 border border-neutral-400 text-right font-mono text-neutral-900">{formatNumber(totalLoyer)}</td>
                   <td className="p-1 border border-neutral-400 text-right font-mono text-neutral-900">{formatNumber(totalNet)}</td>
@@ -572,27 +590,27 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             {arrieresData.length > 0 && (
               <table className="w-full text-[9px] border-collapse mb-4">
                 <thead>
-                  <tr className="bg-neutral-800 text-white">
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Locataire</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold w-[55px]">Ref</th>
-                    <th className="p-1 border border-neutral-600 text-right font-bold w-[70px]">Règlement</th>
-                    <th className="p-1 border border-neutral-600 text-right font-bold w-[70px]">Arriérés</th>
-                    <th className="p-1 border border-neutral-600 text-right font-bold w-[70px]">Net</th>
-                    <th className="p-1 border border-neutral-600 text-left font-bold">Observations</th>
+                  <tr className="bg-neutral-200">
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Locataire</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold w-[55px]">Ref</th>
+                    <th className="p-1 border border-neutral-400 text-right font-bold w-[70px]">Règlement</th>
+                    <th className="p-1 border border-neutral-400 text-right font-bold w-[70px]">Arriérés</th>
+                    <th className="p-1 border border-neutral-400 text-right font-bold w-[70px]">Net</th>
+                    <th className="p-1 border border-neutral-400 text-left font-bold">Observations</th>
                   </tr>
                 </thead>
                 <tbody>
                   {arrieresData.map((a, idx) => (
                     <tr key={idx}>
-                      <td className="p-1 border border-neutral-300 font-bold">{a.locataire}</td>
-                      <td className="p-1 border border-neutral-300 font-mono text-[8px]">{a.ref}</td>
-                      <td className="p-1 border border-neutral-300 text-right font-mono">{formatNumber(a.reglement)}</td>
-                      <td className="p-1 border border-neutral-300 text-right font-mono">{formatNumber(a.arrieres)}</td>
-                      <td className="p-1 border border-neutral-300 text-right font-mono font-bold">{formatNumber(a.net)}</td>
-                      <td className="p-1 border border-neutral-300 text-[8px] italic">{a.observations}</td>
+                      <td className="p-1 border border-neutral-400 font-bold">{a.locataire}</td>
+                      <td className="p-1 border border-neutral-400 font-mono text-[8px]">{a.ref}</td>
+                      <td className="p-1 border border-neutral-400 text-right font-mono">{formatNumber(a.reglement)}</td>
+                      <td className="p-1 border border-neutral-400 text-right font-mono">{formatNumber(a.arrieres)}</td>
+                      <td className="p-1 border border-neutral-400 text-right font-mono font-bold">{formatNumber(a.net)}</td>
+                      <td className="p-1 border border-neutral-400 text-[8px] italic">{a.observations}</td>
                     </tr>
                   ))}
-                  <tr className="bg-neutral-200 font-bold">
+                  <tr className="bg-neutral-100 font-bold">
                     <td colSpan={2} className="p-1 border border-neutral-400"></td>
                     <td className="p-1 border border-neutral-400 text-right font-mono">{formatNumber(totalArrieres)}</td>
                     <td className="p-1 border border-neutral-400"></td>
@@ -604,7 +622,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             )}
 
             {/* Décaissement / Encaissement */}
-            <div className="grid grid-cols-2 gap-4 mb-4 text-[9px]">
+            <div className="grid grid-cols-2 gap-6 mb-4 text-[9px]">
               <div>
                 <table className="w-full border-collapse">
                   <thead>
@@ -622,9 +640,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                     ) : (
                       decaissementsLignes.map((d) => (
                         <tr key={d.id}>
-                          <td className="p-1 border border-neutral-300 text-[8px]">{d.libelle}</td>
-                          <td className="p-1 border border-neutral-300 text-right font-mono text-[8px]">{formatNumber(d.montant)}</td>
-                          <td className="p-1 border border-neutral-300 text-center print:hidden">
+                          <td className="p-1 border border-neutral-400 text-[8px]">{d.libelle}</td>
+                          <td className="p-1 border border-neutral-400 text-right font-mono text-[8px]">{formatNumber(d.montant)}</td>
+                          <td className="p-1 border border-neutral-400 text-center print:hidden">
                             <button onClick={() => handleDeleteDeduction(d.id)} className="text-rose-600 hover:text-rose-800">
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -662,15 +680,15 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                     ) : (
                       encaissementsLignes.map((e) => (
                         <tr key={e.id}>
-                          <td className="p-1 border border-neutral-300 text-[8px]">{e.libelle}</td>
-                          <td className="p-1 border border-neutral-300 text-right font-mono text-[8px]">{formatNumber(e.montant)}</td>
+                          <td className="p-1 border border-neutral-400 text-[8px]">{e.libelle}</td>
+                          <td className="p-1 border border-neutral-400 text-right font-mono text-[8px]">{formatNumber(e.montant)}</td>
                         </tr>
                       ))
                     )}
                   </tbody>
                   <tfoot>
                     <tr className="font-bold">
-                      <td className="p-1 border border-neutral-400 text-right">Total:</td>
+                      <td className="p-1 border border-neutral-400 text-right">Total</td>
                       <td className="p-1 border border-neutral-400 text-right font-mono">{formatNumber(totalEncaissement)}</td>
                     </tr>
                   </tfoot>
@@ -687,7 +705,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           {/* PAGE 2 */}
           <div className="print-page-break mt-8 pt-8 border-t-2 border-dashed border-neutral-300 print:border-none print:mt-0 print:pt-0">
             <div className="mb-8 text-center">
-              <div className="inline-block bg-neutral-300 px-4 py-1 text-xs font-bold text-neutral-900 uppercase mb-2">
+              <div className="inline-block bg-neutral-200 px-4 py-1 text-xs font-bold text-neutral-900 uppercase mb-2 border border-neutral-400">
                 Net à Reverser
               </div>
               <div className="text-3xl font-black font-mono text-neutral-900">
@@ -706,7 +724,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               <div>
                 <div className="font-bold text-neutral-800 text-sm mb-2">Le Gérant</div>
                 <div className="text-xs text-neutral-700 mb-1">{gerantNom}</div>
-                <div className="h-24 border-b border-dotted border-neutral-400"></div>
+                <div className="h-24 border-b border-dotted border-neutral-400 flex items-end justify-center pb-1">
+                  {/* Zone de cachet vide (gérant appose son cachet papier) */}
+                </div>
               </div>
               <div>
                 <div className="text-right text-xs text-neutral-700 mb-2">
@@ -718,15 +738,32 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               </div>
             </div>
 
-            <div className="text-center text-[9px] text-neutral-600 leading-relaxed mt-8">
-              <div className="font-bold">FITAL-IMMO SAS RC : SN-DKR-2023. B.12158 N.I.N.E.A: 0101576352V5</div>
-              <div>Sicap Baobabs N° 689/F</div>
-              <div>Tél : 33 825 59 67 / 77 551 16 70 / 77 602 76 97</div>
-              <div>Email contact@fital-immo.com / contactafital@gmail.com</div>
-            </div>
-
             <div className="text-center text-[9px] text-neutral-500 mt-6 pt-3 border-t border-neutral-300">
               Page 2 sur 2
+            </div>
+          </div>
+
+          {/* Pied de page écran */}
+          <div className="mt-10 pt-3 border-t border-neutral-400 text-center text-[8px] text-neutral-700 leading-relaxed print:hidden">
+            <div className="font-bold">
+              FITAL-IMMO SAS RC: SN-DKR-2023. B.12158 N.I.N.E.A: 0101576352V5
+            </div>
+            <div>Sicap Baobabs N° 689/F</div>
+            <div>
+              Tél: 33 825 59 67 / 77 551 16 70 / 77 602 76 97 Email contact@fital-immo.com / contactafital@gmail.com
+            </div>
+          </div>
+
+          {/* Pied de page fixe répété */}
+          <div className="print-footer">
+            <div className="font-bold">
+              FITAL-IMMO SAS RC: SN-DKR-2023. B.12158 N.I.N.E.A: 0101576352V5
+            </div>
+            <div>
+              Sicap Baobabs N° 689/F · Tél: 33 825 59 67 / 77 551 16 70 / 77 602 76 97
+            </div>
+            <div>
+              Email contact@fital-immo.com / contactafital@gmail.com
             </div>
           </div>
         </div>

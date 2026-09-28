@@ -19,6 +19,7 @@ interface LeaseContractModalProps {
 // ============================================================
 function nombreEnLettres(n: number): string {
   if (n === 0) return 'zéro';
+  if (n < 0) return 'moins ' + nombreEnLettres(Math.abs(n));
   const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
   const dizaines = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
   const centaines = ['', 'cent', 'deux cent', 'trois cent', 'quatre cent', 'cinq cent', 'six cent', 'sept cent', 'huit cent', 'neuf cent'];
@@ -58,6 +59,18 @@ function nombreEnLettres(n: number): string {
   return result.trim();
 }
 
+// ============================================================
+// Constantes FITAL (fallback si settings vide)
+// ============================================================
+const TISER_NAME = 'TRANS IMMOBILIER & SERVICES SARL';
+const TISER_SUBTITLE = '(T.I.SER) - GÉRANCE - LOCATION - VENTE - ACHAT';
+const TISER_ADRESSE = 'Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté';
+const TISER_TEL = '33 825 17 38';
+const TISER_RC = 'SN-DKR-2014B10248';
+const TISER_NINEA = '0050875072C2';
+const TISER_EMAIL = 'tiser.immo@gmail.com';
+const GERANT_NOM = 'M. Papa Ousmane SY';
+
 export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   contract,
   property,
@@ -68,52 +81,34 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   settings,
   onClose,
 }) => {
-  const nomAgence = settings?.nomAgence || 'FITAL-IMMO';
-  const slogan = settings?.slogan || 'Gérance · Location · Vente · Achat';
-  const ninea = settings?.ninea || '008920194 2V8';
-  const adresse = settings?.adresse || 'Avenue Cheikh Anta Diop, Dakar';
-  const telephone = settings?.standardTelephone || settings?.telephone || '+221 33 820 40 50';
-  const email = settings?.email || 'contact@fital-immo.sn';
-
   // ============================================================
   // CALCULS
   // ============================================================
   const loyerBase = contract.loyerBase || 0;
   const charges = contract.charges || 0;
-  const loyerTotal = loyerBase;
+  const loyerTotal = loyerBase + charges;
   const cautionMois = contract.cautionMois || 2;
   const cautionMontant = contract.cautionMontant || (loyerBase * cautionMois);
-  const fraisAdhesion = contract.fraisAdhesion || 0;
 
   // Infos locataire
-  const locataireNom = contract.locataireNom || (tenant ? `${tenant.prenom} ${tenant.nom}` : '—');
+  const locataireNom = (contract.locataireNom || (tenant ? `${tenant.prenom} ${tenant.nom}` : '—')).toUpperCase();
   const locataireCNI = tenant?.cni || '—';
   const locataireTel = tenant?.telephone || '—';
-  const locataireProfession = tenant?.profession || '—';
-  const locataireEmployeur = tenant?.employeur || '—';
-  const locataireAdresse = tenant?.observations || 'Dakar, Sénégal';
-
-  // Infos bailleur
-  const proprietaireNom = contract.proprietaireNom || (owner ? `${owner.prenom} ${owner.nom}` : '—');
-  const proprietaireAdresse = owner?.adresse || 'Dakar, Sénégal';
-  const proprietaireTel = owner?.telephone || '—';
-  const proprietairePieceLabel = owner?.typePiece === 'PASSEPORT' ? 'Passeport'
-    : owner?.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
-    : owner?.typePiece === 'AUTRE' ? 'Pièce d\'identité'
-    : 'CNI';
-  const proprietaireCNI = owner?.cni || '';   // 🆕
 
   // Infos bien
+  const bienType = unit?.type || property?.type || building?.type || 'Appartement';
   const bienNom = contract.bienNom || unit?.nom || property?.nom || '—';
   const bienAdresse = building?.adresse || property?.adresse || '—';
-  const bienQuartier = building?.quartier || property?.quartier || '—';
-  const bienType = unit?.type || property?.type || building?.type || 'Appartement';
+  const bienQuartier = building?.quartier || property?.quartier || '';
+  const bienVille = building?.ville || property?.ville || 'Dakar';
+  const adresseComplete = `${bienAdresse}${bienQuartier ? ', ' + bienQuartier : ''}, ${bienVille}`;
 
+  // Dates
   const dateDebut = contract.dateDebut ? formatDate(contract.dateDebut) : '—';
   const dateFin = contract.dateFin ? formatDate(contract.dateFin) : '—';
   const dateDuJour = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
-    month: 'long',
+    month: '2-digit',
     year: 'numeric',
   });
 
@@ -151,419 +146,294 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
           </div>
         </div>
 
-        {/* Contenu imprimable */}
-        <div className="p-6 sm:p-10 bg-white text-neutral-900 print:p-6">
-          {/* En-tête */}
-          <div className="text-center border-b-2 border-neutral-900 pb-4 mb-6">
-            <h1 className="text-2xl font-black uppercase tracking-wide text-neutral-900">
-              {nomAgence}
-            </h1>
-            <div className="text-xs text-neutral-600 mt-1 font-semibold uppercase tracking-wider">
-              {slogan}
-            </div>
-            <div className="text-[11px] text-neutral-600 mt-2">
-              {adresse} · Tél : {telephone} · Email : {email}
-            </div>
-            <div className="text-[11px] text-neutral-600">
-              NINEA : {ninea}
-            </div>
-          </div>
+        {/* CONTENU IMPRIMABLE */}
+        <div className="print-container p-8 sm:p-12 bg-white text-neutral-900">
 
-          {/* Titre */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-black uppercase text-neutral-900 underline">
-              CONTRAT DE BAIL D'HABITATION
-            </h2>
-            <div className="text-xs text-neutral-600 mt-1 font-mono">
-              N° {contract.ref}
-            </div>
-          </div>
-
-          {/* Préambule */}
-          <div className="mb-6 text-sm text-neutral-800 leading-relaxed text-justify">
-            <p className="mb-3">
-              <strong>ENTRE LES SOUSSIGNÉS :</strong>
-            </p>
-
-                        <div className="mb-4 pl-4 border-l-4 border-neutral-400">
-              <p className="mb-2">
-                <strong>Le Bailleur :</strong> Monsieur/Madame <strong>{proprietaireNom}</strong>,
-                {proprietaireCNI && (
-                  <>
-                    {' '}titulaire de la {proprietairePieceLabel} n° <strong>{proprietaireCNI}</strong>,
-                  </>
-                )}{' '}
-                demeurant à {proprietaireAdresse}, téléphone : {proprietaireTel},
-                ci-après désigné <strong>« le Bailleur »</strong>,
-              </p>
-              <p className="text-xs italic text-neutral-600">
-                Agissant par l'intermédiaire de l'agence {nomAgence}, en qualité de mandataire de gérance.
-              </p>
-            </div>
-
-            <p className="my-3 text-center font-bold">ET</p>
-
-            <div className="mb-4 pl-4 border-l-4 border-neutral-400">
-              <p className="mb-2">
-                <strong>Le Locataire :</strong> Monsieur/Madame <strong>{locataireNom}</strong>,
-                {locataireCNI && locataireCNI !== '—' && (
-                  <>
-                    {' '}titulaire de la{' '}
-                    {tenant?.typePiece === 'PASSEPORT' ? 'Passeport'
-                      : tenant?.typePiece === 'CARTE_CONSULAIRE' ? 'Carte Consulaire'
-                      : tenant?.typePiece === 'AUTRE' ? "Pièce d'identité"
-                      : 'CNI'}{' '}
-                    n° <strong>{locataireCNI}</strong>,
-                  </>
-                )}
-                exerçant la profession de <strong>{locataireProfession}</strong>
-                {locataireEmployeur !== '—' && ` au sein de la société ${locataireEmployeur}`},
-                demeurant à {locataireAdresse}, téléphone : {locataireTel},
-                ci-après désigné <strong>« le Locataire »</strong>,
-              </p>
-            </div>
-
-            <p className="mb-3">
-              <strong>IL A ÉTÉ CONVENU CE QUI SUIT :</strong>
-            </p>
-
-            <p className="mb-4 text-sm">
-              Le Bailleur donne en location au Locataire, qui accepte, le bien immobilier désigné ci-après,
-              aux conditions suivantes :
-            </p>
-          </div>
-
-          {/* Désignation du bien */}
-          <div className="mb-6 p-4 border border-neutral-300 bg-neutral-50 rounded">
-            <div className="text-[11px] uppercase font-bold text-neutral-500 mb-2">
-              DÉSIGNATION DU BIEN LOUÉ
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span className="text-neutral-500">Désignation : </span>
-                <strong className="text-neutral-900">{bienNom}</strong>
+          {/* ============================================================ */}
+          {/* EN-TÊTE TISER */}
+          {/* ============================================================ */}
+          <div className="flex items-start gap-4 mb-6">
+            {/* Logo placeholder */}
+            <div className="w-20 h-20 flex-shrink-0 border-2 border-neutral-900 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-2xl font-black text-neutral-900">T</div>
+                <div className="text-[8px] text-neutral-700 leading-tight">T.I.SER</div>
               </div>
-              <div>
-                <span className="text-neutral-500">Type : </span>
-                <strong className="text-neutral-900">{bienType}</strong>
+            </div>
+
+            <div className="flex-1 text-center">
+              <div className="text-base font-black text-neutral-900 uppercase">
+                {TISER_NAME}
               </div>
-              <div>
-                <span className="text-neutral-500">Adresse : </span>
-                <strong className="text-neutral-900">{bienAdresse}</strong>
+              <div className="text-[10px] text-neutral-700 mt-0.5 italic">
+                {TISER_SUBTITLE}
               </div>
-              <div>
-                <span className="text-neutral-500">Quartier : </span>
-                <strong className="text-neutral-900">{bienQuartier}</strong>
+              <div className="mt-3 inline-block border-2 border-neutral-900 px-6 py-1">
+                <span className="text-base font-black uppercase tracking-widest text-neutral-900">
+                  CONTRAT DE BAIL
+                </span>
               </div>
             </div>
           </div>
 
-          {/* LES 16 ARTICLES */}
-          <div className="space-y-4 text-sm text-neutral-800 leading-relaxed text-justify">
+          {/* ============================================================ */}
+          {/* PRÉAMBULE */}
+          {/* ============================================================ */}
+          <div className="text-[11px] text-neutral-900 leading-relaxed mb-4 space-y-1">
+            <div>
+              <strong>Entre</strong> Monsieur <strong>Papa Ousmane SY</strong> Gérant de <strong>{TISER_NAME}</strong>
+            </div>
+            <div><strong>D'une part, Et</strong></div>
+            <div>
+              M. <strong>{locataireNom}</strong> CNI N° <strong>{locataireCNI}</strong>
+            </div>
+            <div><strong>D'autre part, il a été convenu ce qui suit :</strong></div>
+            <div>
+              M. <strong>{locataireNom}</strong> accepte un local à usage d'habitation : <strong>{bienType}</strong>
+            </div>
+            <div>
+              Sis <strong>{adresseComplete}</strong>
+            </div>
+            <div>
+              Tel : <strong>{locataireTel}</strong>
+            </div>
+          </div>
+
+          {/* ============================================================ */}
+          {/* ARTICLES 1 à 6 */}
+          {/* ============================================================ */}
+          <div className="text-[11px] text-neutral-900 leading-relaxed space-y-3">
+
             {/* ARTICLE 1 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 1 — OBJET DU CONTRAT</h3>
+              <div className="font-bold underline mb-1">Article 1 :</div>
               <p>
-                Le présent contrat a pour objet la location du bien immobilier désigné ci-dessus, à usage
-                exclusif d'habitation, pour une durée de <strong>douze (12) mois</strong> à compter du{' '}
-                <strong>{dateDebut}</strong> et se terminant le <strong>{dateFin}</strong>.
-                Il pourra être renouvelé par tacite reconduction sauf dénonciation par l'une des parties,
-                dans les conditions prévues à l'Article 10.
+                Le locataire entrera en jouissance des lieux dans l'état où ils se trouvent. Il en assurera l'entente pour les
+                tenir en bon état de réparation les locatives et s'interdira toutes modifications ou transformations sauf accord
+                du Bailleur
+              </p>
+              <p className="mt-2 pl-4">
+                ❖ Avance : <strong>.................... FCFA (.................... mille francs)</strong>
               </p>
             </div>
 
-            {/* ARTICLE 2 */}
+                       {/* ARTICLE 2 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 2 — AVANCE (CAUTION)</h3>
+              <div className="font-bold underline mb-1">Article 2</div>
               <p>
-                Le Locataire verse ce jour, entre les mains du Bailleur ou de son mandataire,
-                une avance sur caution d'un montant de <strong>{formatNumber(cautionMontant)} FCFA</strong>{' '}
-                ({nombreEnLettres(cautionMontant)} Francs CFA), correspondant à{' '}
-                <strong>{cautionMois} mois de loyer</strong>.
-              </p>
-              <p className="mt-2">
-                Cette avance ne constitue pas un loyer et reste la propriété du Locataire. Elle sera
-                restituée à la fin du bail, après état des lieux de sortie et déduction faite, le cas échéant,
-                des réparations locatives et des sommes restant dues.
+                Le locataire (M. {locataireNom}) accepte de payer les 12/12ème de la caution...................... FCFA. Cette caution
+                n'est pas consommable et est remboursable après avoir rendu le local à l'état primitif. Après désistement,
+                l'avance et la caution ne seront restituées qu'après avoir redonné le local. La commission ne peut en aucun
+                manière être remboursée.
               </p>
             </div>
 
             {/* ARTICLE 3 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 3 — LOYER</h3>
+              <div className="font-bold underline mb-1">Article 3 :</div>
               <p>
-                Le loyer mensuel est fixé à <strong>{formatNumber(loyerTotal)} FCFA</strong>{' '}
-                ({nombreEnLettres(loyerTotal)} Francs CFA), se décomposant comme suit :
-              </p>
-              <ul className="ml-6 mt-2 list-disc">
-                <li>Loyer de base : <strong>{formatNumber(loyerBase)} FCFA</strong></li>
-                <li>Charges locatives : <strong>{formatNumber(charges)} FCFA</strong></li>
-              </ul>
-              <p className="mt-2">
-                Le loyer sera payable d'avance le <strong>05 de chaque mois</strong> auprès de
-                l'agence {nomAgence} ou par tout autre moyen convenu avec elle.
+                Le locataire assistera à toutes les charges et balayages d'hygiène et de police sanitaire auxquelles les
+                locataires sont habituellement tenus. L'évacuation des ordures ménagères, la vidange des fosses septiques,
+                le débouchage des égouts de même que l'eau et l'électricité sont à la charge du locataire. Si les factures
+                d'eau ou d'électricité ne sont pas au nom du locataire ou c'est un compteur collectif, une somme
+                équivalente à la moyenne des 3 dernières factures sera déduite sur la caution pour les factures en cours.
+                Et les surplus éventuels des factures seront payés par le locataire sortant. Au cas échéant, le reste de la
+                somme gardée sera restitué.
               </p>
             </div>
 
             {/* ARTICLE 4 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 4 — USAGE DES LIEUX</h3>
+              <div className="font-bold underline mb-1">Article 4 :</div>
               <p>
-                Le bien loué est destiné exclusivement à l'habitation personnelle du Locataire et de sa
-                famille. Toute utilisation à usage commercial, professionnel ou artisanal est formellement
-                interdite sans l'accord écrit préalable du Bailleur.
-              </p>
-              <p className="mt-2">
-                Le Locataire ne pourra sous-louer le bien, en totalité ou en partie, ni céder son droit au
-                présent bail, sans l'autorisation écrite et préalable du Bailleur.
+                Toute sous-location, même temporaire ou partielle, ou simple occupation des lieux par un tiers à quelque titre que ce
+                soit (location gratuite, domiciliation, etc.) est interdite sans le consentement du bailleur, sous peine de résiliation
+                immédiate du présent contrat de bail, à la simple constatation de l'infraction et sans qu'il soit besoin de mise en
+                demeure du preneur. Les anciens locataires de la maison perdent tout droit d'ancienneté et doivent se conformer aux
+                clauses du présent contrat. Les droits de timbres et d'enregistrement sont à la charge du locataire.
               </p>
             </div>
 
             {/* ARTICLE 5 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 5 — MODIFICATIONS</h3>
+              <div className="font-bold underline mb-1">Article 5 :</div>
               <p>
-                Le Locataire ne pourra effectuer aucune modification, transformation ou adjonction dans le
-                bien loué sans l'autorisation écrite préalable du Bailleur. Toute modification non autorisée
-                pourra entraîner la remise en état aux frais du Locataire ou la résiliation du bail.
+                Le preneur ne pourra faire aucun aménagement, aucune modification de l'état ou de la disposition des locaux
+                sans autorisation écrite de l'agence. Ainsi il est formellement interdit de percer les murs d'y afficher ou d'y
+                coller des photos, d'y dessiner et de les salir.
+              </p>
+              <p className="mt-2">
+                Tout aménagement, embellissement, amélioration appartiendront de plein droit au propriétaire en fin de bail
+                sans aucun remboursement ni indemnité.
               </p>
             </div>
 
             {/* ARTICLE 6 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 6 — CHARGES D'EXPLOITATION</h3>
+              <div className="font-bold underline mb-1">Article 6 :</div>
               <p>
-                Le Locataire s'engage à régler directement les charges suivantes :
-              </p>
-              <ul className="ml-6 mt-2 list-disc">
-                <li>Consommation d'eau (SEN'EAU)</li>
-                <li>Consommation d'électricité (SENELEC / Woyofal)</li>
-                <li>Frais d'enlèvement des ordures ménagères</li>
-                <li>Frais de gardiennage (le cas échéant)</li>
-                <li>Abonnement internet et téléphone (le cas échéant)</li>
-              </ul>
-              <p className="mt-2">
-                Le défaut de paiement de ces charges pourra entraîner la résiliation du bail après mise en demeure.
+                Le locataire est tenu de cultiver le sens du bon voisinage en évitant tous les actes pouvant
+                perturber la cohabitation (musique forte, bavardage nocturne, .......) L'élevage des animaux domestiques
+                (mouton, chèvre, porc, bœuf, chien, volaille, singe, etc.) est formellement interdit dans le local
               </p>
             </div>
+          </div>
+
+          {/* ============================================================ */}
+          {/* SAUT DE PAGE */}
+          {/* ============================================================ */}
+          <div className="print-page-break"></div>
+
+          {/* ============================================================ */}
+          {/* ARTICLES 7 à 16 */}
+          {/* ============================================================ */}
+          <div className="text-[11px] text-neutral-900 leading-relaxed space-y-3 mt-8 print:mt-0">
 
             {/* ARTICLE 7 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 7 — CHARGES DE PROPRIÉTÉ</h3>
+              <div className="font-bold underline mb-1">Article 7 :</div>
               <p>
-                Le Bailleur conserve à sa charge les travaux de grosse réparation et de reconstruction
-                (toiture, murs porteurs, fondations, etc.), ainsi que les impôts et taxes afférents à la
-                propriété (impôt foncier, taxe sur les propriétés bâties, etc.).
-              </p>
-              <p className="mt-2">
-                Les réparations locatives, d'entretien courant et les menues réparations sont à la charge
-                exclusive du Locataire.
+                Le trafic de drogue et de stupéfiant de même sa consommation à l'intérieur des locaux entraîne la résiliation
+                d'office du contrat et des poursuites judiciaires. Tout acte immoral est prohibé (prostitution, ivresse
+                manifeste, débauche, outrage aux mœurs acte contre nature etc.)
               </p>
             </div>
 
             {/* ARTICLE 8 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 8 — ASSURANCES</h3>
+              <div className="font-bold underline mb-1">Article 8 :</div>
               <p>
-                Le Locataire s'engage à souscrire auprès d'une compagnie d'assurance agréée une police
-                d'assurance habitation couvrant les risques d'incendie, dégâts d'eau et responsabilité civile
-                locative. Il devra fournir une copie de l'attestation au Bailleur dans le mois suivant la
-                signature du présent contrat.
+                Le preneur est tenu de sécuriser ses propres biens. Le bailleur ne saura engager sa responsabilité sur les vols,
+                les fuites d'eau, les avaries et dommages que pourraient causer une tornade, une pluie, un incendie et
+                certains vices techniques dont il n'a pas été l'auteur.
               </p>
             </div>
 
             {/* ARTICLE 9 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 9 — TRAVAUX</h3>
+              <div className="font-bold underline mb-1">Article 9 :</div>
               <p>
-                Le Locataire doit maintenir le bien loué en bon état de propreté et effectuer les menues
-                réparations nécessaires à son bon usage. Il doit signaler sans délai au Bailleur ou à
-                l'agence tout désordre ou dégât constaté.
-              </p>
-              <p className="mt-2">
-                Le Bailleur pourra, après avis préalable, faire exécuter dans le bien loué tous travaux
-                urgents nécessités par la sécurité ou la salubrité.
+                Le locataire devra prendre en charge à compter du jour de son occupation des locaux et régler directement à l'agence
+                ou aux responsables, ses quote - parts relatives aux consommations d'eau et d'électricité et au téléphone. Il est
+                cas contraire directement à la société intéressée. Les frais y compris les pertes d'eau et d'électricité seront payés
+                équitablement entre les locataires. Le locataire est tenu aussi de remettre à l'agence ses copies d'abonnement d'eau et
+                d'électricité pour permettre à l'agence d'avoir ses références en cas de déménagement.
               </p>
             </div>
 
             {/* ARTICLE 10 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 10 — RÉSILIATION</h3>
+              <div className="font-bold underline mb-1">Article 10 :</div>
               <p>
-                Le présent bail pourra être résilié par l'une ou l'autre des parties, moyennant un préavis
-                écrit de <strong>deux (2) mois</strong> avant la date d'échéance, conformément aux usages
-                locatifs en vigueur au Sénégal.
-              </p>
-              <p className="mt-2">
-                En cas de manquement grave du Locataire à ses obligations (non-paiement du loyer, trouble
-                de voisinage, dégradations, etc.), le Bailleur pourra résilier le bail de plein droit après
-                mise en demeure restée sans effet.
+                Le locataire laissera au bailleur l'accès du local chaque fois que ce dernier jugera nécessaire.
+                Avant de déménager, il doit aviser par écrit à 2 mois à l'avance. Au cas échéant, la caution ne sera
+                restituée qu'après avoir redonné le local. En déménageant, le locataire doit quitter les lieux occupés au plus
+                tard le 30 (trente) du mois courant. A défaut, tout autre jour consommé sera défalqué sur la caution. A la fin
+                du bail, le locataire doit remettre les locaux dans leur état primitif.
               </p>
             </div>
 
             {/* ARTICLE 11 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 11 — CAUTION</h3>
+              <div className="font-bold underline mb-1">Article 11 :</div>
               <p>
-                La caution versée conformément à l'Article 2 sera restituée au Locataire dans un délai
-                maximum d'<strong>un (1) mois</strong> suivant la remise des clés, après établissement
-                contradictoire de l'état des lieux de sortie.
-              </p>
-              <p className="mt-2">
-                Le Bailleur pourra déduire de cette caution : les loyers et charges impayés, le coût des
-                réparations locatives, et les sommes dues au titre des dégradations constatées.
+                Les grosses réparations sont à la charge du propriétaire
               </p>
             </div>
 
             {/* ARTICLE 12 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 12 — PAIEMENT</h3>
+              <div className="font-bold underline mb-1">Article 12 :</div>
               <p>
-                Le loyer est payable <strong>d'avance, mensuellement, le 05 de chaque mois</strong>.
-                Tout retard de paiement entraînera l'application de pénalités dans les conditions prévues
-                à l'Article 13.
+                Le présent contrat est conclu pour une durée de (01) ans renouvelable par tacite reconduction.
               </p>
-              <p className="mt-2">
-                Les paiements pourront être effectués :
-              </p>
-              <ul className="ml-6 mt-2 list-disc">
-                <li>En espèces au guichet de l'agence ;</li>
-                <li>Par virement bancaire sur le compte de l'agence ;</li>
-                <li>Par Wave ou Orange Money aux numéros officiels de l'agence ;</li>
-                <li>Par tout autre moyen convenu entre les parties.</li>
-              </ul>
             </div>
 
             {/* ARTICLE 13 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 13 — PÉNALITÉS DE RETARD</h3>
+              <div className="font-bold underline mb-1">Article 13 :</div>
               <p>
-                Tout retard de paiement du loyer supérieur à <strong>dix (10) jours</strong> après
-                l'échéance entraînera automatiquement l'application de pénalités de retard d'un montant
-                équivalent à <strong>10% du loyer mensuel</strong>, sans préjudice des poursuites ultérieures.
+                ❖ montant du loyer concerné est de : <strong>{formatNumber(loyerTotal)} FCFA</strong>{' '}
+                (<em>{nombreEnLettres(loyerTotal)} mille francs</em>) Hors Taxes.
               </p>
-              <p className="mt-2">
-                À défaut de règlement dans les trente (30) jours suivant la mise en demeure, le Bailleur
-                pourra engager la procédure de recouvrement conformément à la réglementation en vigueur.
+              <p className="pl-4">
+                ❖ N.B : Le paiement se fera au plus tard le 05 de chaque mois en espèces et à l'agence. Dépassé le
+                08, le locataire sera assigné en expulsion.
               </p>
             </div>
 
             {/* ARTICLE 14 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 14 — IMPÔTS ET TAXES</h3>
+              <div className="font-bold underline mb-1">Article 14 :</div>
               <p>
-                Les impôts et taxes relatifs à la propriété (impôt foncier, taxe sur les propriétés bâties,
-                TOM, etc.) sont à la charge du Bailleur.
-              </p>
-              <p className="mt-2">
-                Les charges locatives et les taxes liées à l'occupation des lieux sont à la charge du
-                Locataire.
+                Le non-respect d'un de ces articles entraîne la résiliation d'office de ce présent contrat de bail.
               </p>
             </div>
 
             {/* ARTICLE 15 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 15 — CLAUSE RÉSOLUTOIRE</h3>
+              <div className="font-bold underline mb-1">Article 15 :</div>
               <p>
-                Le présent contrat sera résilié de plein droit, sans qu'il soit besoin d'une mise en demeure
-                préalable, en cas de :
-              </p>
-              <ul className="ml-6 mt-2 list-disc">
-                <li>Non-paiement du loyer ou des charges deux (2) mois consécutifs ;</li>
-                <li>Non-versement de la caution ou de l'avance prévue à l'Article 2 ;</li>
-                <li>Dégradations graves du bien loué ;</li>
-                <li>Usage illicite ou non conforme du bien ;</li>
-                <li>Sous-location non autorisée.</li>
-              </ul>
-              <p className="mt-2">
-                Dans tous ces cas, le Bailleur pourra faire procéder à l'expulsion du Locataire dans les
-                conditions prévues par la réglementation en vigueur.
+                A défaut de paiement à son échéance d'un seul terme ou fraction de terme à son échéance ou en cas d'inexécution
+                d'une des clauses et conditions du bail, et un mois après une mise en demeure par exploit d'huissier restée
+                infructueuse, le bail sera résilié de plein droit et le locataire pourra être expulsé et/ou d'exécution postérieur à l'expiration
+                des délais ci-dessus. Les conditions d'acquisition de cette clause résolutoire seront constatées judiciairement et
+                l'expulsion du preneur devenu occupant sans droit ni titre, ordonnée par le juge. Les frais de procédure et les
+                honoraires de l'avocat sont à la charge du locataire.
               </p>
             </div>
 
             {/* ARTICLE 16 */}
             <div>
-              <h3 className="font-bold text-neutral-900 underline mb-2">ARTICLE 16 — ÉLECTION DE DOMICILE</h3>
+              <div className="font-bold underline mb-1">Article 16 :</div>
               <p>
-                Pour l'exécution du présent contrat, les parties élisent domicile :
-              </p>
-              <ul className="ml-6 mt-2 list-disc">
-                <li>
-                  <strong>Le Bailleur :</strong> en l'étude de l'agence {nomAgence}, sise{' '}
-                  {adresse}, qui représente le Bailleur pour toute signification ;
-                </li>
-                <li>
-                  <strong>Le Locataire :</strong> dans les lieux loués eux-mêmes.
-                </li>
-              </ul>
-              <p className="mt-2">
-                Tout changement d'adresse devra être notifié par écrit à l'autre partie dans un délai
-                de quinze (15) jours.
+                Les parties élisent domicile : Le bailleur à son domicile et le locataire au lieu loué.
               </p>
             </div>
           </div>
 
-          {/* Fait à, date */}
-          <div className="mt-10 text-center text-sm">
-            <p>
-              Fait à <strong>Dakar</strong>, le <strong>{dateDuJour}</strong>
-            </p>
-            <p className="text-xs text-neutral-600 mt-1 italic">
-              En trois (3) exemplaires originaux, dont un remis à chaque partie.
-            </p>
-          </div>
-
-                    {/* Signatures */}
-          <div className="grid grid-cols-3 gap-6 mt-12 pt-6 border-t-2 border-neutral-300">
-            <div>
-              <div className="font-bold text-neutral-700 text-xs mb-2 uppercase">
-                Le Bailleur
-              </div>
-              <div className="h-24 border border-dashed border-neutral-400 rounded-lg"></div>
-              <div className="text-[10px] text-neutral-600 mt-2 text-center">
-                {proprietaireNom}
-              </div>
+          {/* ============================================================ */}
+          {/* SIGNATURES */}
+          {/* ============================================================ */}
+          <div className="mt-10 text-[11px] text-neutral-900">
+            <div className="text-right mb-6">
+              Fait en double à Dakar, le <strong>{dateDuJour}</strong>
             </div>
 
-            <div>
-              <div className="font-bold text-neutral-700 text-xs mb-2 uppercase">
-                Le Locataire
+            <div className="grid grid-cols-2 gap-12">
+              <div>
+                <div className="font-bold mb-3">Le Gérant :</div>
+                <div className="font-bold">M. Papa Ousmane SY</div>
               </div>
-              <div className="h-24 border border-dashed border-neutral-400 rounded-lg"></div>
-              <div className="text-[10px] text-neutral-600 mt-2 text-center">
-                {locataireNom}
-              </div>
-              <div className="text-[9px] text-neutral-500 mt-1 text-center italic">
-                (Lu et approuvé)
-              </div>
-            </div>
 
-            <div>
-              <div className="text-[10px] uppercase font-bold text-neutral-500 mb-1">
-                Rédigé par
-              </div>
-              <div className="text-xs font-bold text-neutral-900">
-                {contract.createdByNom || 'Service Gérance'}
-              </div>
-              <div className="text-[10px] uppercase font-semibold text-neutral-500 mb-2">
-                Rôle : {contract.createdByRole || '—'}
-              </div>
-              <div className="h-16 border border-dashed border-neutral-400 rounded-lg"></div>
-              <div className="text-[10px] text-neutral-600 mt-2 text-center">
-                {nomAgence}
-              </div>
-              <div className="text-[9px] text-neutral-500 mt-1 text-center italic">
-                Cachet & Signature Agence
+              <div>
+                <div className="font-bold mb-3">Le Locataire :</div>
+                <div className="font-bold">M. <span className="underline">{locataireNom}</span></div>
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-neutral-300 text-center text-[10px] text-neutral-500">
-            {nomAgence} · NINEA : {ninea} · {adresse} · Tél : {telephone}
-            <br />
-            Contrat généré automatiquement le {new Date().toLocaleDateString('fr-FR')} à{' '}
-            {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          {/* ============================================================ */}
+          {/* PIED DE PAGE */}
+          {/* ============================================================ */}
+          {/* Pied de page fixe répété */}
+                    <div className="print-footer">
+            <div className="font-bold">
+              {TISER_NAME} (T.I.SER) {TISER_ADRESSE}
+            </div>
+            <div>
+              Tél : {TISER_TEL} RC : {TISER_RC} NINEA : {TISER_NINEA} E-mail : {TISER_EMAIL}
+            </div>
+          </div>
+
+          {/* Pied de page dans le flux normal (visible à l'écran, caché à l'impression si doublon) */}
+          <div className="mt-12 pt-4 border-t border-neutral-400 text-center text-[9px] text-neutral-700 leading-relaxed print:hidden">
+            <div className="font-bold">
+              {TISER_NAME} (T.I.SER) {TISER_ADRESSE}
+            </div>
+            <div>
+              Tél : {TISER_TEL} RC : {TISER_RC} NINEA : {TISER_NINEA} Email : {TISER_EMAIL}
+            </div>
           </div>
         </div>
       </div>

@@ -112,50 +112,70 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
 
   // Generate Message using backend Gemini API route
   const handleGenerateMessage = async (
-    tenant?: Tenant,
-    level?: ReminderLevel,
-    channel?: ReminderChannel
-  ) => {
-    const t = tenant || activeTenant;
-    if (!t) return;
+  tenant?: Tenant,
+  level?: ReminderLevel,
+  channel?: ReminderChannel
+) => {
+  const t = tenant || activeTenant;
+  if (!t) return;
 
-    const p = properties.find((prop) => prop.id === t.bienId);
-    const targetLevel = level || selectedLevel;
-    const targetChannel = channel || selectedChannel;
+  const p = properties.find((prop) => prop.id === t.bienId);
+  const targetLevel = level || selectedLevel;
+  const targetChannel = channel || selectedChannel;
 
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/gemini/relance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locataireNom: `${t.prenom} ${t.nom}`,
-          bienNom: p?.nom || t.bienNom,
-          montantDu: t.arrieresCumules || t.loyerMensuel,
-          joursRetard: t.joursRetard || 7,
-          niveau: targetLevel,
-          canal: targetChannel,
-          dateEcheance: '5 du mois courant',
-          penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
-        }),
-      });
-      const data = await res.json();
-      if (data && data.message) {
-        setCustomMessage(data.message);
-      } else {
-        setCustomMessage(
-          `Bonjour *${t.prenom} ${t.nom}*,\n\nSauf erreur de notre part, nous n'avons pas encore enregistré le règlement de votre loyer de *${(t.arrieresCumules || t.loyerMensuel).toLocaleString('fr-FR')} FCFA* pour le logement *${p?.nom || t.bienNom || 'FITAL-IMMO'}*.\n\nMerci de bien vouloir procéder à la régularisation dès que possible via Wave, Orange Money ou virement bancaire.\n\n*Service Gestion Locative FITAL-IMMO*`
-        );
-      }
-    } catch (err) {
-      console.warn('Notice generating AI reminder, using local template:', err);
-      setCustomMessage(
-        `Bonjour *${t.prenom} ${t.nom}*,\n\nSauf erreur de notre part, nous constatons un retard sur le loyer de *${(t.arrieresCumules || t.loyerMensuel).toLocaleString('fr-FR')} FCFA* pour le logement *${p?.nom || t.bienNom || 'FITAL-IMMO'}*.\n\nMerci de régulariser votre situation dès que possible via Wave, Orange Money ou virement bancaire.\n\n*Service Gestion Locative FITAL-IMMO*`
-      );
-    } finally {
-      setIsGenerating(false);
+  setIsGenerating(true);
+  try {
+    const res = await fetch('/api/gemini/relance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locataireNom: `${t.prenom} ${t.nom}`,
+        bienNom: p?.nom || t.bienNom,
+        montantDu: t.arrieresCumules || t.loyerMensuel,
+        joursRetard: t.joursRetard || 7,
+        niveau: targetLevel,
+        canal: targetChannel,
+        dateEcheance: '5 du mois courant',
+        penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
+      }),
+    });
+    const data = await res.json();
+    if (data && data.message) {
+      setCustomMessage(data.message);
+    } else {
+      // Fallback : utiliser le message selon le NIVEAU
+      setCustomMessage(buildFallbackMessage(t, p, targetLevel));
     }
-  };
+  } catch (err) {
+    console.warn('Fallback local (Gemini indisponible):', err);
+    setCustomMessage(buildFallbackMessage(t, p, targetLevel));
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
+// 🆕 FONCTION DE FALLBACK PAR NIVEAU
+const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: ReminderLevel): string => {
+  const nom = `${t.prenom} ${t.nom}`;
+  const bien = p?.nom || t.bienNom || 'FITAL-IMMO';
+  const montant = (t.arrieresCumules || t.loyerMensuel).toLocaleString('fr-FR');
+  const jours = t.joursRetard || 7;
+  const penalites = jours > 10 ? Math.round((t.arrieresCumules || t.loyerMensuel) * 0.1).toLocaleString('fr-FR') : '0';
+
+  switch (level) {
+    case 'Niveau 1: Courtois (J+3)':
+      return `Bonjour *${nom}* 👋\n\nNous espérons que vous allez bien.\n\nUn petit rappel amical : le loyer de *${bien}* d'un montant de *${montant} FCFA* n'a pas encore été enregistré ce mois-ci.\n\nPeut-être un simple oubli ? Vous pouvez régler par Wave, Orange Money ou au guichet.\n\nMerci pour votre confiance.\n*Service Gestion Locative FITAL-IMMO*`;
+
+    case 'Niveau 2: Modéré (J+10)':
+      return `Bonjour *${nom}*,\n\nNous revenons vers vous concernant le loyer de *${bien}*.\n\n⚠️ À ce jour, un montant de *${montant} FCFA* reste dû (${jours} jours de retard).\n\nMerci de bien vouloir régulariser votre situation dans les plus brefs délais pour éviter l'application de pénalités.\n\nVous pouvez payer par Wave, Orange Money ou directement au guichet.\n\n*Service Recouvrement FITAL-IMMO*`;
+
+    case 'Niveau 3: Ferme & Pénalités (J+15)':
+      return `Bonjour *${nom}*,\n\n🚨 RAPPEL IMPORTANT\n\nLe loyer de *${bien}* n'a toujours pas été réglé. Montant dû : *${montant} FCFA* + pénalités de retard : *${penalites} FCFA* (${jours} jours).\n\nConformément aux conditions du bail, des pénalités de retard de 10% sont applicables.\n\nMerci de régler sous 48h pour éviter toute procédure supplémentaire.\n\nContacts : 33 825 59 67 / 77 551 16 70\n*Service Recouvrement FITAL-IMMO*`;
+
+    case 'Niveau 4: Mise en demeure juridique (J+25)':
+      return `Bonjour *${nom}*,\n\n⚠️ MISE EN DEMEURE\n\nMalgré nos précédents rappels, le loyer de *${bien}* reste impayé. Montant total dû : *${montant} FCFA* + pénalités : *${penalites} FCFA* (${jours} jours de retard).\n\nCette situation nous oblige à engager une procédure de recouvrement juridique conformément à l'article 5 du contrat de bail.\n\nNous vous demandons de régulariser votre situation dans un délai de *8 jours* à compter de la réception de ce message, faute de quoi nous serons contraints de saisir les autorités compétentes.\n\nUne lettre de mise en demeure officielle vous sera également adressée par courrier.\n\n*Service Juridique FITAL-IMMO*`;
+  }
+};
 
   // Initial message load when active tenant changes
   React.useEffect(() => {
