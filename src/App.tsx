@@ -147,6 +147,22 @@ import {
   deletePenaltyFromDb,
 } from './lib/supabase/service';
 
+// 🆕 Force le nettoyage du cache si la version change
+const APP_VERSION = '3.0.4'; // était 2.0.0 // ← Changez à chaque mise à jour majeure
+const storedVersion = localStorage.getItem('fital_immo_version');
+
+if (storedVersion !== APP_VERSION) {
+  console.log('🔄 Nouvelle version détectée, nettoyage du cache...');
+  // Nettoyer les clés de cache (mais garder la session auth)
+  const keysToKeep = ['fital_immo_user'];
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('fital_immo_') && !keysToKeep.includes(key)) {
+      localStorage.removeItem(key);
+    }
+  });
+  localStorage.setItem('fital_immo_version', APP_VERSION);
+}
+
 const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
 
 export default function App() {
@@ -247,94 +263,143 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // useEffect 3 : Session auth
-  useEffect(() => {
-    getAuthSession().then(async (session) => {
-      try {
-        if (session?.user && supabase) {
-          const { data: profile } = await supabase
+  // useEffect 3 : Session auth (CORRIGÉ)
+useEffect(() => {
+  getAuthSession().then(async (session) => {
+    try {
+      if (session?.user && supabase) {
+        // 🆕 Attendre un peu que la session soit établie
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // 1. Charger le profil SANS la jointure
+        let { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        // 🆕 Si non trouvé, réessayer
+        if (!profile) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          const retry = await supabase
             .from('profiles')
-            .select('*, agencies(name, slug, status)')
+            .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
+          profile = retry.data;
+        }
+
+        if (profile) {
+          // 2. Charger l'agence séparément
+          let agencyData = null;
+          if (profile.agency_id) {
+            const { data: agency } = await supabase
+              .from('agencies')
+              .select('name, slug, status')
+              .eq('id', profile.agency_id)
+              .maybeSingle();
+            agencyData = agency;
+          }
 
           const userAccount: UserAccount = {
             id: session.user.id,
-            agencyId: profile?.agency_id || FALLBACK_AGENCY_ID,
+            agencyId: profile.agency_id || FALLBACK_AGENCY_ID,
             email: session.user.email || '',
-            nom: profile?.nom || 'Administrateur',
-            prenom: profile?.prenom || '',
-            telephone: profile?.telephone || '',
-            role: (profile?.role as any) || 'ADMIN',
-            statut: 'actif',
-            permissions: profile?.permissions || ['ALL'],
-            organisation: profile?.agencies?.name || 'FITAL-IMMO Agence',
+            nom: profile.nom || 'Administrateur',
+            prenom: profile.prenom || '',
+            telephone: profile.telephone || '',
+            role: (profile.role as any) || 'ADMIN',
+            statut: profile.statut || 'actif',
+            permissions: profile.permissions || ['ALL'],
+            organisation: agencyData?.name || 'FITAL-IMMO Agence',
             createdAt: session.user.created_at || new Date().toISOString(),
           };
           setCurrentUser(userAccount);
           persistCollection('current_user', userAccount);
           setUsers((prev) => (prev.some((u) => u.id === userAccount.id) ? prev : [userAccount, ...prev]));
-        } else {
-          const localUserJson = localStorage.getItem('fital_immo_user');
-          if (localUserJson) {
-            try {
-              const parsed = JSON.parse(localUserJson);
-              if (parsed && parsed.id) {
-                setCurrentUser(parsed);
-                persistCollection('current_user', parsed);
-              }
-            } catch (e) {}
-          }
         }
-      } catch (err) {
-        console.warn('Erreur verification session auth:', err);
-      } finally {
-        setIsAuthLoading(false);
+      } else {
+        const localUserJson = localStorage.getItem('fital_immo_user');
+        if (localUserJson) {
+          try {
+            const parsed = JSON.parse(localUserJson);
+            if (parsed && parsed.id) {
+              setCurrentUser(parsed);
+              persistCollection('current_user', parsed);
+            }
+          } catch (e) {}
+        }
       }
-    });
-  }, []);
+    } catch (err) {
+      console.warn('Erreur verification session auth:', err);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  });
+}, []);
 
-  // useEffect 4 : Chargement données
- // useEffect 4 : Chargement données
+  // useEffect 4 : Chargement données (CORRIGÉ - fiable sur mobile)
 useEffect(() => {
-  // 🛡️ Attendre que l'agencyId soit RÉELLEMENT défini
   if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
-    console.log('⏳ En attente de l\'agencyId pour charger les données...');
+    console.log('⏳ En attente de l\'agencyId...');
     return;
   }
 
-  console.log('📥 Chargement données pour agency:', currentUser.agencyId);
+  console.log('📥 Chargement des données pour:', currentUser.agencyId);
 
-  loadFullApplicationData(currentUser.agencyId).then((data) => {
-    // ... reste inchangé
-      if (data.properties && data.properties.length > 0) setProperties(data.properties);
-      if (data.buildings && data.buildings.length > 0) setBuildings(data.buildings);
-      if (data.units && data.units.length > 0) setUnits(data.units);
-      if (data.owners && data.owners.length > 0) setOwners(data.owners);
-      if (data.tenants && data.tenants.length > 0) setTenants(data.tenants);
-      if (data.contracts && data.contracts.length > 0) setContracts(data.contracts);
-      if (data.payments && data.payments.length > 0) setPayments(data.payments);
-      if (data.reminders && data.reminders.length > 0) setReminders(data.reminders);
-      if (data.inspections && data.inspections.length > 0) setInspections(data.inspections);
-      if (data.maintenance && data.maintenance.length > 0) setMaintenance(data.maintenance);
-      if (data.disbursements && data.disbursements.length > 0) setDisbursements(data.disbursements);
-      if (data.invoices && data.invoices.length > 0) setInvoices(data.invoices);
-      if (data.cashVouchers && data.cashVouchers.length > 0) setCashVouchers(data.cashVouchers);
-      if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
-      if (data.auditLogs && data.auditLogs.length > 0) setAuditLogs(data.auditLogs);
-      if (data.users && data.users.length > 0) setUsers(data.users);
-      if (data.cashMovements && data.cashMovements.length > 0) setCashMovements(data.cashMovements);
-      if (data.cashClosings && data.cashClosings.length > 0) setCashClosings(data.cashClosings);
-      if (data.paymentMethods && data.paymentMethods.length > 0) setPaymentMethods(data.paymentMethods);
+  let cancelled = false;
+
+  const timer = setTimeout(async () => {
+    if (cancelled) return;
+    try {
+      const data = await loadFullApplicationData(currentUser.agencyId);
+      if (cancelled) return;
+
+      console.log('✅ Données chargées:', {
+        properties: data.properties?.length,
+        buildings: data.buildings?.length,
+        units: data.units?.length,
+        owners: data.owners?.length,
+        tenants: data.tenants?.length,
+      });
+
+      // Assignation systématique (vide ou non)
+      setProperties(data.properties || []);
+      setBuildings(data.buildings || []);
+      setUnits(data.units || []);
+      setOwners(data.owners || []);
+      setTenants(data.tenants || []);
+      setContracts(data.contracts || []);
+      setPayments(data.payments || []);
+      setReminders(data.reminders || []);
+      setInspections(data.inspections || []);
+      setMaintenance(data.maintenance || []);
+      setDisbursements(data.disbursements || []);
+      setInvoices(data.invoices || []);
+      setCashVouchers(data.cashVouchers || []);
+      setNotifications(data.notifications || []);
+      setAuditLogs(data.auditLogs || []);
+      setUsers(data.users || []);
+      setCashMovements(data.cashMovements || []);
+      setCashClosings(data.cashClosings || []);
+      setPaymentMethods(data.paymentMethods || []);
       if (data.settings) setSettings(data.settings);
-      if (data.ownerDeductions && data.ownerDeductions.length > 0) setOwnerDeductions(data.ownerDeductions);
-      if (data.bulletinVersements && data.bulletinVersements.length > 0) setBulletinsVersements(data.bulletinVersements);
-      if (data.archives && data.archives.length > 0) setArchives(data.archives);
-      if (data.activityLogs && data.activityLogs.length > 0) setActivityLogs(data.activityLogs);
-      if (data.penalties && data.penalties.length > 0) setPenalties(data.penalties);
-      if (data.ownerCharges && data.ownerCharges.length > 0) setOwnerCharges(data.ownerCharges);
-    });
-  }, [currentUser?.agencyId]);
+      setOwnerDeductions(data.ownerDeductions || []);
+      setBulletinsVersements(data.bulletinVersements || []);
+      setArchives(data.archives || []);
+      setActivityLogs(data.activityLogs || []);
+      setPenalties(data.penalties || []);
+      setOwnerCharges(data.ownerCharges || []);
+    } catch (err) {
+      console.error('❌ Erreur chargement:', err);
+    }
+  }, 400);
+
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}, [currentUser?.agencyId, currentUser?.id]);
 
   const handleSignOut = async () => {
     await signOutSession();
@@ -821,7 +886,39 @@ useEffect(() => {
     if (currentUser?.agencyId) saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
   };
 
-    const handleAddTenant = (newTenant: Tenant) => {
+        const handleAddTenant = (newTenant: Tenant) => {
+    // 🛡️ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
+    const existingUnit = units.find((u) => u.id === newTenant.bienId);
+    const existingProp = properties.find((p) => p.id === newTenant.bienId);
+
+    if (existingUnit && existingUnit.statut === 'Occupé' && existingUnit.locataireActuelId !== newTenant.id) {
+      alert(`⛔ Le bien ${existingUnit.nom} est déjà occupé.`);
+      return;
+    }
+    if (existingProp && existingProp.statut === 'Occupé' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
+      alert(`⛔ Le bien ${existingProp.nom} est déjà occupé.`);
+      return;
+    }
+
+    // 🛡️ ANTI-DOUBLON : vérifier que le locataire n'occupe pas déjà un autre bien
+    const existingActiveLease = tenants.find(
+      (t) => 
+        t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
+        t.prenom?.toLowerCase() === newTenant.prenom?.toLowerCase() &&
+        t.cni === newTenant.cni &&
+        t.bienId !== newTenant.bienId &&
+        !t.dateSortie
+    );
+
+    if (existingActiveLease) {
+      alert(
+        `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
+        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjà : ${existingActiveLease.bienNom}`
+      );
+      return;
+    }
+
+    // ✅ Pas de doublon → procéder normalement
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
     
@@ -832,7 +929,7 @@ useEffect(() => {
         setProperties((prev) => {
           const next = prev.map((p) => {
             if (p.id === newTenant.bienId) {
-              const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` };
+              const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`, locataireActuelId: newTenant.id };
               if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
               return updatedP;
             }
@@ -868,35 +965,90 @@ useEffect(() => {
     }
   };
 
-    const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
-    if (!currentUser?.agencyId || !supabase) return;
-    const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
-    if (!tenantResult.success) { alert('Erreur création locataire : ' + tenantResult.error); return; }
-    const realTenantId = tenantResult.data?.id || data.tenant.id;
-    const tenantToSave = { ...data.tenant, id: realTenantId };
-    const contractToSave = { ...data.contract, locataireId: realTenantId };
-    const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
-    await saveContractToDb(contractToSave, currentUser.agencyId);
-    await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
-    
-    // Mettre à jour UNIT ou PROPERTY
-    const existingUnit = units.find((u) => u.id === data.tenant.bienId);
-    const existingProp = properties.find((p) => p.id === data.tenant.bienId);
-    
-    if (existingUnit) {
-      const updatedU = { ...existingUnit, statut: 'Occupé' as const, locataireActuelId: realTenantId, locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}` };
-      await saveUnitToDb(updatedU, currentUser.agencyId);
-      setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
+   const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
+  if (!currentUser?.agencyId || !supabase) return;
+
+  // 🛡️ ANTI-DOUBLON 1 : Le bien est-il déjà occupé ?
+  const existingUnit = units.find((u) => u.id === data.tenant.bienId);
+  const existingProp = properties.find((p) => p.id === data.tenant.bienId);
+
+  if (existingUnit && existingUnit.statut === 'Occupé') {
+    alert(
+      `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+      `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
+      `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+    );
+    return;
+  }
+  if (existingProp && existingProp.statut === 'Occupé') {
+    alert(
+      `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+      `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
+      `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+    );
+    return;
+  }
+
+  // 🛡️ ANTI-DOUBLON 2 : Ce locataire occupe-t-il déjà un autre bien ?
+  const existingActiveLease = tenants.find(
+    (t) => 
+      t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
+      t.prenom?.toLowerCase() === data.tenant.prenom?.toLowerCase() &&
+      t.cni === data.tenant.cni &&
+      t.bienId !== data.tenant.bienId &&
+      !t.dateSortie
+  );
+
+  if (existingActiveLease) {
+    alert(
+      `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
+      `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
+      `${existingActiveLease.bienNom}\n\n` +
+      `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
+      `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
+    );
+    return;
+  }
+
+  // ✅ Pas de doublon → procéder normalement
+  const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
+  if (!tenantResult.success) { 
+    alert('Erreur création locataire : ' + tenantResult.error); 
+    return; 
+  }
+  const realTenantId = tenantResult.data?.id || data.tenant.id;
+  const tenantToSave = { ...data.tenant, id: realTenantId };
+  const contractToSave = { ...data.contract, locataireId: realTenantId };
+  const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
+
+  await saveContractToDb(contractToSave, currentUser.agencyId);
+  await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
+
+  // Mettre à jour UNIT ou PROPERTY
+  if (existingUnit) {
+    const updatedU = {
+      ...existingUnit,
+      statut: 'Occupé' as const,
+      locataireActuelId: realTenantId,
+      locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
+    };
+    await saveUnitToDb(updatedU, currentUser.agencyId);
+    setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
     } else if (existingProp) {
-      const updatedP = { ...existingProp, statut: 'Occupé' as const, locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}` };
-      await savePropertyToDb(updatedP, currentUser.agencyId);
-      setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
-    }
-    
-    setTenants((prev) => [tenantToSave, ...prev]);
-    setContracts((prev) => [contractToSave, ...prev]);
-    setInspections((prev) => [inspectionToSave, ...prev]);
-  };
+    const updatedP = {
+      ...existingProp,
+      statut: 'Occupé' as const,
+      locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
+      locataireActuelId: realTenantId,
+    };
+    await savePropertyToDb(updatedP, currentUser.agencyId);
+    setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
+  }
+
+  setTenants((prev) => [tenantToSave, ...prev]);
+  setContracts((prev) => [contractToSave, ...prev]);
+  setInspections((prev) => [inspectionToSave, ...prev]);
+};
 
     const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     if (!currentUser?.agencyId) return;
@@ -919,8 +1071,8 @@ useEffect(() => {
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
-    if (property) {
-      const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined };
+        if (property) {
+      const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined, locataireActuelId: undefined };
       const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
       if (res.success) {
         setProperties((prev) => prev.map((p) => (p.id === data.bienId ? updatedProp : p)));

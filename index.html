@@ -7,33 +7,74 @@
     <meta name="description" content="FITAL-IMMO est une solution professionnelle de gestion locative, loyers, biens, locataires, propriétaires, paiements et recouvrement." />
     <meta name="theme-color" content="#C9A96E" />
     
-    <!-- 🎨 Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
-    
-    <!-- 🍎 Apple PWA (iPhone / iPad) -->
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FITAL-IMMO" />
-    
-    <!-- 📱 PWA -->
     <link rel="manifest" href="/manifest.json" />
     
-    <!-- 🌐 Open Graph -->
     <meta property="og:title" content="FITAL-IMMO — Gestion Locative & Loyers" />
-    <meta property="og:description" content="FITAL-IMMO est une solution professionnelle de gestion locative, loyers, biens, locataires, propriétaires, paiements et recouvrement." />
+    <meta property="og:description" content="FITAL-IMMO est une solution professionnelle de gestion locative." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     
-    <!-- 🔤 Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- 🆕 SCRIPT ANTI-CACHE MOBILE -->
+    <script>
+      (function() {
+        try {
+          var CACHE_DATE_KEY = 'fital_cache_clear_date';
+          var today = new Date().toISOString().split('T')[0];
+          var lastClear = localStorage.getItem(CACHE_DATE_KEY);
+          
+          if (lastClear !== today) {
+            console.log('🧹 Nettoyage cache mobile...');
+            
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                  registrations[i].unregister();
+                }
+              });
+            }
+            
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                for (var i = 0; i < names.length; i++) {
+                  caches.delete(names[i]);
+                }
+              });
+            }
+            
+            var keep = ['fital_immo_user', 'fital_immo_current_user', CACHE_DATE_KEY];
+            var toRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k && k.indexOf('fital_immo_') === 0 && keep.indexOf(k) === -1) {
+                toRemove.push(k);
+              }
+            }
+            toRemove.forEach(function(k) { localStorage.removeItem(k); });
+            localStorage.setItem(CACHE_DATE_KEY, today);
+            
+            if (sessionStorage.getItem('fital_reloaded') !== '1') {
+              sessionStorage.setItem('fital_reloaded', '1');
+              setTimeout(function() { window.location.reload(); }, 300);
+            }
+          } else {
+            sessionStorage.removeItem('fital_reloaded');
+          }
+        } catch (e) { console.log('Cache error:', e); }
+      })();
+    </script>
   </head>
-  <body class="bg-[#0F1B2D] text-[#F0EDE8] antialiased selection:bg-[#C9A96E]/30 selection:text-[#E8D5B0]">
+  <body class="bg-[#0F1B2D] text-[#F0EDE8] antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

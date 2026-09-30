@@ -124,7 +124,7 @@ export function persistCollection<T>(key: string, data: T): void {
 }
 
 // ============================================================
-// MAPPERS (inchangés)
+// MAPPERS
 // ============================================================
 export function mapBuildingFromDb(r: any): Building {
   return {
@@ -185,6 +185,7 @@ export function mapPropertyFromDb(r: any): Property {
     description: r.description || '',
     dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
     locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
+    locataireActuelId: r.locataire_actuel_id || r.locataireActuelId, // 🆕 AJOUTÉ
   };
 }
 
@@ -202,6 +203,8 @@ export function mapOwnerFromDb(r: any): Owner {
     observations: r.observations || '',
     totalBiens: Number(r.total_biens ?? r.totalBiens ?? 0),
     totalLoyersMensuels: Number(r.total_loyers_mensuels ?? r.totalLoyersMensuels ?? 0),
+    typePiece: r.type_piece || r.typePiece || 'CNI',
+    cni: r.cni || '',
   };
 }
 
@@ -584,7 +587,6 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   const localCashVouchers = loadLocalCollection<CashVoucher[]>('cash_vouchers', []);
   const localNotifications = loadLocalCollection<NotificationItem[]>('notifications', []);
   const localAuditLogs = loadLocalCollection<AuditLog[]>('audit_logs', []);
-  // 🎯 Settings vides par défaut (pas de FITAL)
   const localSettings = loadLocalCollection<AgencySettings>('settings', emptySettings);
   const localUsers = loadLocalCollection<UserAccount[]>('users', []);
   const localPaymentMethods = loadLocalCollection<PaymentMethodConfig[]>('payment_methods', []);
@@ -613,7 +615,6 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
 
   if (!isSupabaseConfigured || !supabase) return state;
 
-  // 🛡️ SÉCURITÉ : Refuser de charger si pas d'agencyId
   if (!agencyId) {
     console.warn('⚠️ loadFullApplicationData : agencyId manquant → aucune donnée distante chargée.');
     return state;
@@ -761,7 +762,6 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       persistCollection('owner_charges', state.ownerCharges);
     }
 
-    // 🎯 MAPPING SETTINGS SANS FALLBACK FITAL
     if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
@@ -788,7 +788,6 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
         standardTelephone: dbSettings.standard_telephone || '',
         logoUrl: dbSettings.logo_url || '',
         siteWeb: dbSettings.site_web || '',
-                // 🆕 Paiements
         waveApiKey: dbSettings.wave_api_key || '',
         waveWebhookSecret: dbSettings.wave_webhook_secret || '',
         waveEnabled: dbSettings.wave_enabled || false,
@@ -827,25 +826,57 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
 }
 
 // ============================================================
-// FETCH USER PROFILE
+// FETCH USER PROFILE (CORRIGÉ - sans jointure)
 // ============================================================
 export async function fetchUserProfile(userId: string): Promise<UserAccount | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
+    // 1. Charger le profil SANS jointure
     const { data: profile, error } = await supabase
-      .from('profiles').select('*, agencies(name, slug, logo_url)')
-      .eq('id', userId).maybeSingle();
-    if (error || !profile) { console.warn('Profil non trouvé:', error); return null; }
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !profile) { 
+      console.warn('Profil non trouvé:', error); 
+      return null; 
+    }
+
+    // 2. Charger l'agence séparément
+    let agencyData = null;
+    if (profile.agency_id) {
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('name, slug, logo_url')
+        .eq('id', profile.agency_id)
+        .maybeSingle();
+      agencyData = agency;
+    }
+
+    // 3. Retourner l'utilisateur
     return {
-      id: profile.id, agencyId: profile.agency_id, email: profile.email,
-      nom: profile.nom, prenom: profile.prenom, telephone: profile.telephone,
-      role: profile.role, statut: profile.statut, permissions: profile.permissions || [],
-      avatar: profile.avatar_url, proprietaireId: profile.proprietaire_id,
-      locataireId: profile.locataire_id, derniereConnexion: profile.derniere_connexion,
-      organisation: profile.agencies?.name || '',
-      createdAt: profile.created_at, updatedAt: profile.updated_at,
+      id: profile.id, 
+      agencyId: profile.agency_id, 
+      email: profile.email,
+      nom: profile.nom, 
+      prenom: profile.prenom, 
+      telephone: profile.telephone,
+      role: profile.role, 
+      statut: profile.statut, 
+      permissions: profile.permissions || [],
+      avatar: profile.avatar_url, 
+      proprietaireId: profile.proprietaire_id,
+      locataireId: profile.locataire_id, 
+      derniereConnexion: profile.derniere_connexion,
+      organisation: agencyData?.name || '',
+      createdAt: profile.created_at, 
+      updatedAt: profile.updated_at,
     };
-  } catch (e) { console.error('Erreur fetchUserProfile:', e); return null; }
+  } catch (e) { 
+    console.error('Erreur fetchUserProfile:', e); 
+    return null; 
+  }
 }
 
 // ============================================================
@@ -915,29 +946,42 @@ export async function deleteBuildingFromDb(buildingId: string): Promise<{ succes
 export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promise<{ success: boolean; data?: Unit; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: unit as Unit };
   try {
-    const record = {
-      agency_id: agencyId, building_id: unit.buildingId,
-      proprietaire_id: unit.proprietaireId, nom: unit.nom,
-      type: unit.type || 'Appartement', etage: unit.etage || '',
-      superficie: unit.superficie || 0, nombre_pieces: unit.nombrePieces || 1,
-      loyer_base: unit.loyerBase || 0, charges: unit.charges || 0,
+    const record: any = {
+      agency_id: agencyId, 
+      building_id: unit.buildingId || null,
+      proprietaire_id: unit.proprietaireId || null, 
+      nom: unit.nom || 'Espace',
+      type: unit.type || 'Appartement', 
+      etage: unit.etage || '',
+      superficie: unit.superficie || 0, 
+      nombre_pieces: unit.nombrePieces || 1,
+      loyer_base: unit.loyerBase || 0, 
+      charges: unit.charges || 0,
       statut: unit.statut || 'Vacant',
       locataire_actuel_id: unit.locataireActuelId || null,
       description: unit.description || '',
       equipements: unit.equipements || [],
       updated_at: new Date().toISOString(),
     };
-    const exists = unit.id ? await recordExists('units', unit.id, agencyId) : false;
-    if (exists) {
-      const { data, error } = await supabase.from('units').update(record).eq('id', unit.id).eq('agency_id', agencyId).select().single();
-      if (error) throw error;
-      return { success: true, data: mapUnitFromDb(data) };
-    } else {
-      const { data, error } = await supabase.from('units').insert([record]).select().single();
-      if (error) throw error;
-      return { success: true, data: mapUnitFromDb(data) };
+    
+    // 🆕 Si l'unité a un ID, on l'ajoute pour que upsert fasse un UPDATE
+    if (unit.id) {
+      record.id = unit.id;
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+    
+    // 🆕 Utiliser upsert au lieu de insert/update
+    const { data, error } = await supabase
+      .from('units')
+      .upsert(record, { onConflict: 'id' })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, data: mapUnitFromDb(data) };
+  } catch (err: any) { 
+    console.error('Erreur saveUnitToDb:', err);
+    return { success: false, error: err.message || 'Impossible.' }; 
+  }
 }
 
 export async function deleteUnitFromDb(unitId: string): Promise<{ success: boolean; error?: string }> {
@@ -1181,43 +1225,68 @@ export async function fetchActivitiesByEntity(agencyId: string, entityId: string
 export async function savePropertyToDb(property: Partial<Property>, agencyId: string): Promise<{ success: boolean; data?: Property; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: property as Property };
   try {
-    const record = {
-      agency_id: agencyId, ref: property.ref || `BIEN-${Date.now()}`,
-      nom: property.nom, type: property.type, adresse: property.adresse,
-      quartier: property.quartier || 'Dakar', ville: property.ville || 'Dakar',
-      proprietaire_id: property.proprietaireId, loyer_base: property.loyerBase,
-      charges: property.charges || 0, tva_applicable: property.tvaApplicable || false,
-      statut: property.statut || 'Vacant', superficie: property.superficie || 0,
-      nombre_pieces: property.nombrePieces || 3, description: property.description || '',
+    const record: any = {
+      agency_id: agencyId, 
+      ref: property.ref || `BIEN-${Date.now()}`,
+      nom: property.nom, 
+      type: property.type, 
+      adresse: property.adresse,
+      quartier: property.quartier || 'Dakar', 
+      ville: property.ville || 'Dakar',
+      proprietaire_id: property.proprietaireId, 
+      loyer_base: property.loyerBase,
+      charges: property.charges || 0, 
+      tva_applicable: property.tvaApplicable || false,
+      statut: property.statut || 'Vacant', 
+      superficie: property.superficie || 0,
+      nombre_pieces: property.nombrePieces || 3, 
+      description: property.description || '',
+      locataire_actuel_id: property.locataireActuelId || null, // 🆕 AJOUTÉ
+      updated_at: new Date().toISOString(),
     };
-    const exists = property.id ? await recordExists('properties', property.id, agencyId) : false;
-    if (exists) {
-      const { data, error } = await supabase.from('properties').update(record).eq('id', property.id).eq('agency_id', agencyId).select().single();
-      if (error) throw error;
-      return { success: true, data: data as unknown as Property };
-    } else {
-      const { data, error } = await supabase.from('properties').insert([record]).select().single();
-      if (error) throw error;
-      return { success: true, data: data as unknown as Property };
+    
+    // 🆕 Si la propriété a un ID, on l'ajoute pour que upsert fasse un UPDATE
+    if (property.id) {
+      record.id = property.id;
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+    
+    // 🆕 Utiliser upsert au lieu de insert/update
+    const { data, error } = await supabase
+      .from('properties')
+      .upsert(record, { onConflict: 'id' })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, data: mapPropertyFromDb(data) };
+  } catch (err: any) { 
+    console.error('Erreur savePropertyToDb:', err);
+    return { success: false, error: err.message || 'Impossible.' }; 
+  }
 }
 
 // ============================================================
-// CRUD : OWNERS
+// CRUD : OWNERS (CORRIGÉ avec type_piece et cni)
 // ============================================================
 export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Promise<{ success: boolean; data?: Owner; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: owner as Owner };
   try {
     const record = {
-      agency_id: agencyId, ref: owner.ref || `PRO-${Date.now()}`,
-      nom: owner.nom, prenom: owner.prenom, telephone: owner.telephone,
-      email: owner.email, adresse: owner.adresse || '',
+      agency_id: agencyId, 
+      ref: owner.ref || `PRO-${Date.now()}`,
+      nom: owner.nom, 
+      prenom: owner.prenom, 
+      telephone: owner.telephone,
+      email: owner.email || `owner-${Date.now()}@fital-immo.com`,
+      adresse: owner.adresse || 'Dakar, Sénégal',
       banque: owner.banque || 'CBAO Attijariwafa',
       compte_bancaire: owner.compteBancaire || '',
       mandat_gerance: owner.mandatGerance || `MANDAT-${Date.now()}`,
       taux_commission: owner.tauxCommission ?? 10,
-      statut: owner.statut || 'Actif', observations: owner.observations || '',
+      statut: owner.statut || 'Actif', 
+      observations: owner.observations || '',
+      type_piece: owner.typePiece || 'CNI',
+      cni: owner.cni || '',
     };
     const exists = owner.id ? await recordExists('owners', owner.id, agencyId) : false;
     if (exists) {
@@ -1602,7 +1671,7 @@ export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: s
 export async function saveSettingsToDb(settings: AgencySettings, agencyId?: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return { success: true };
   try {
-        const record = {
+    const record = {
       agency_id: agencyId, nom_agence: settings.nomAgence,
       slogan: settings.slogan, telephone: settings.telephone,
       email: settings.email, adresse: settings.adresse,
@@ -1623,7 +1692,6 @@ export async function saveSettingsToDb(settings: AgencySettings, agencyId?: stri
       logo_url: settings.logoUrl || null,
       primary_color: settings.primaryColor || null,
       website: settings.website || null,
-      // 🆕 Paiements
       wave_api_key: settings.waveApiKey || null,
       wave_webhook_secret: settings.waveWebhookSecret || null,
       wave_enabled: settings.waveEnabled || false,
@@ -1925,9 +1993,27 @@ export async function fetchAllAgencies(): Promise<any[]> {
 
 export async function fetchAllUsers(): Promise<any[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from('profiles').select('*, agencies(name, slug, status)').order('created_at', { ascending: false });
-  if (error) { console.warn('fetchAllUsers:', error.message); return []; }
-  return data || [];
+  // 🆕 Charger les profils SANS jointure
+  const { data: profiles, error: pErr } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (pErr || !profiles) { 
+    console.warn('fetchAllUsers profiles:', pErr?.message); 
+    return []; 
+  }
+
+  // 🆕 Charger les agences séparément
+  const { data: agencies } = await supabase
+    .from('agencies')
+    .select('id, name, slug, status');
+
+  // 🆕 Fusionner les données
+  const agencyMap = new Map((agencies || []).map((a: any) => [a.id, a]));
+  return profiles.map((p: any) => ({
+    ...p,
+    agencies: agencyMap.get(p.agency_id) || null,
+  }));
 }
 
 export async function createAgencyWithAdmin(params: {
@@ -1955,7 +2041,7 @@ export async function createAgencyWithAdmin(params: {
   try {
     const { data: agency, error: agencyError } = await supabase
       .from('agencies')
-                 .insert({
+      .insert({
         name: params.agencyName,
         slug: params.agencySlug,
         email: params.agencyEmail,
@@ -2019,8 +2105,6 @@ export async function createAgencyWithAdmin(params: {
       return { success: false, error: 'Erreur création profil : ' + profileError.message };
     }
 
-    // 🎯 Créer les configs par défaut pour la nouvelle agence
-    // Payment methods
     try {
       await supabase.from('payment_methods_config').insert([
         { agency_id: agency.id, code: 'ESPECES', libelle: 'Espèces', description: 'Règlement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
@@ -2031,9 +2115,7 @@ export async function createAgencyWithAdmin(params: {
       ]);
     } catch (e) { console.warn('Erreur création payment_methods:', e); }
 
-    // Settings par défaut
-    
-               try {
+    try {
       await supabase.from('agency_settings').insert({
         agency_id: agency.id,
         nom_agence: params.agencyName,

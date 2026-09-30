@@ -20,11 +20,7 @@ import {
 } from '../lib/supabase/client';
 import { UserAccount, UserRole } from '../types';
 import { initialUsers } from '../data/mockData';
-import {
-  loadLocalCollection,
-  bootstrapAdminProfile,
-  getOrCreateDefaultAgency,
-} from '../lib/supabase/service';
+import { loadLocalCollection } from '../lib/supabase/service';
 
 interface LoginViewProps {
   onLoginSuccess: (user: UserAccount) => void;
@@ -38,7 +34,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Diagnostic système (interne uniquement, non affiché à l'utilisateur)
   const [healthResult, setHealthResult] = useState<SupabaseHealthCheckResult | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
 
@@ -88,7 +83,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     setLoading(true);
 
     try {
-      // 1. Authentification cloud (comptes partagés)
+      // 1. Authentification cloud
       if (isSupabaseConfigured && supabase && healthResult?.connected) {
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
@@ -98,7 +93,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         if (authError) {
           setErrorMsg(
             authError.message === 'Invalid login credentials'
-              ? 'Email ou mot de passe incorrect. Si vous venez de créer le compte, confirmez votre email ou contactez l\'administrateur.'
+              ? 'Email ou mot de passe incorrect.'
               : authError.message
           );
           setLoading(false);
@@ -106,49 +101,64 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         }
 
         if (authData.user) {
-          let profileData: any = null;
-          const { data: existingProfile } = await supabase
+          // 🆕 Attendre que la session soit bien établie
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // 1. Charger le profil SANS la jointure
+          let { data: profile } = await supabase
             .from('profiles')
-            .select('*, agencies(name, slug, status)')
+            .select('*')
             .eq('id', authData.user.id)
             .maybeSingle();
 
-          profileData = existingProfile;
+          // 🆕 Si le profil n'est pas trouvé, réessayer une fois
+          if (!profile) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const retry = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .maybeSingle();
+            profile = retry.data;
+          }
 
-          if (!profileData) {
-            await getOrCreateDefaultAgency();
-            const bootstrapped = await bootstrapAdminProfile(authData.user.id, cleanEmail, {
-              nom: authData.user.user_metadata?.nom || 'ADMINISTRATEUR',
-              prenom: authData.user.user_metadata?.prenom || 'FITAL',
-            });
-            if (bootstrapped) {
-              onLoginSuccess({ ...bootstrapped, derniereConnexion: 'À l\'instant' });
-              return;
-            }
+          if (!profile) {
             setErrorMsg('Compte valide mais profil absent. Contactez l\'administrateur.');
             setLoading(false);
             return;
           }
 
-          if (profileData.statut === 'suspendu' || profileData.statut === 'desactive') {
+          if (profile.statut === 'suspendu' || profile.statut === 'desactive') {
             setErrorMsg('Ce compte est suspendu ou désactivé. Contactez votre administrateur.');
             setLoading(false);
             return;
           }
 
+          // 2. Charger l'agence séparément
+          let agencyData = null;
+          if (profile.agency_id) {
+            const { data: agency } = await supabase
+              .from('agencies')
+              .select('name, slug, status')
+              .eq('id', profile.agency_id)
+              .maybeSingle();
+            agencyData = agency;
+          }
+
+          // 3. Construire l'utilisateur
           const userAccount: UserAccount = {
             id: authData.user.id,
-            agencyId: profileData.agency_id,
+            agencyId: profile.agency_id,
             email: authData.user.email || cleanEmail,
-            nom: profileData.nom || 'Utilisateur',
-            prenom: profileData.prenom || '',
-            telephone: profileData.telephone || '+221 77 000 00 00',
-            role: (profileData.role as UserRole) || 'ADMIN',
-            statut: profileData.statut || 'actif',
-            proprietaireId: profileData.proprietaire_id,
-            locataireId: profileData.locataire_id,
-            permissions: profileData.permissions || ['*'],
-            organisation: profileData.agencies?.name || 'FITAL-IMMO Agence',
+            nom: profile.nom || 'Utilisateur',
+            prenom: profile.prenom || '',
+            telephone: profile.telephone || '+221 77 000 00 00',
+            role: (profile.role as UserRole) || 'ADMIN',
+            statut: profile.statut || 'actif',
+            proprietaireId: profile.proprietaire_id,
+            locataireId: profile.locataire_id,
+            permissions: profile.permissions || ['*'],
+            organisation: agencyData?.name || 'FITAL-IMMO Agence',
             createdAt: authData.user.created_at || new Date().toISOString(),
             derniereConnexion: 'À l\'instant',
           };
@@ -158,7 +168,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         }
       }
 
-      // 2. Mode local
+      // 2. Mode local (fallback)
       const pool = getUsersPool();
       const matchedUser = pool.find((u) => u.email.trim().toLowerCase() === cleanEmail);
 
@@ -213,14 +223,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
 
   return (
     <div className="min-h-screen bg-[#0A111D] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 font-sans antialiased text-[#F0EDE8]">
-      {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#C9A96E]/10 rounded-full blur-[120px]" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#162133]/60 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative w-full max-w-md bg-[#162133]/90 border border-[#C9A96E]/30 rounded-3xl shadow-2xl p-6 sm:p-8 backdrop-blur-xl">
-        {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1E2E45] to-[#0A111D] border border-[#C9A96E]/40 shadow-xl mb-4 p-2.5">
             <img src="/favicon.svg" alt="FITAL-IMMO" className="w-full h-full object-contain" />
@@ -233,14 +241,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           </p>
         </div>
 
-        {/* Statut Système (discret, sans mention technique) */}
         <div className="mb-5 rounded-2xl bg-[#0A111D]/90 border border-white/10 p-3 text-[11px] space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-slate-300 font-medium flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-[#C9A96E]" />
               Statut du service :
             </span>
-
             {healthResult?.connected ? (
               <span className="text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 <CheckCircle2 className="w-3 h-3" />
@@ -253,7 +259,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               </span>
             )}
           </div>
-
           <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
             <span className="text-slate-400 truncate max-w-[240px]">
               {isSupabaseConfigured ? 'Accès sécurisé multi-utilisateurs' : 'Accès local sécurisé'}
@@ -270,7 +275,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           </div>
         </div>
 
-        {/* Notifications */}
         {errorMsg && (
           <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-400" />
@@ -285,7 +289,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           </div>
         )}
 
-        {/* Header Title */}
         <div className="mb-5 pb-3 border-b border-white/10 text-center">
           <h2 className="text-base font-bold text-white flex items-center justify-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#C9A96E]" />
@@ -296,7 +299,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           </p>
         </div>
 
-        {/* Forgot password mode */}
         {isForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div>
@@ -338,7 +340,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
             </div>
           </form>
         ) : (
-          /* STANDARD LOGIN FORM */
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">

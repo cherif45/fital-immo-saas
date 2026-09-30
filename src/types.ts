@@ -244,6 +244,7 @@ export interface Property {
   description?: string;
   dateCreation?: string;
   locataireActuelNom?: string;
+  locataireActuelId?: string; // 🆕 AJOUTÉ
   loyerTotal?: number;
 }
 
