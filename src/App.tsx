@@ -148,12 +148,11 @@ import {
 } from './lib/supabase/service';
 
 // 🆕 Force le nettoyage du cache si la version change
-const APP_VERSION = '3.0.4'; // était 2.0.0 // ← Changez à chaque mise à jour majeure
+const APP_VERSION = '3.0.5'; // ← était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
 const storedVersion = localStorage.getItem('fital_immo_version');
 
 if (storedVersion !== APP_VERSION) {
   console.log('🔄 Nouvelle version détectée, nettoyage du cache...');
-  // Nettoyer les clés de cache (mais garder la session auth)
   const keysToKeep = ['fital_immo_user'];
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('fital_immo_') && !keysToKeep.includes(key)) {
@@ -208,7 +207,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
-    const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
     const now = new Date();
     return now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   });
@@ -263,143 +262,138 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // useEffect 3 : Session auth (CORRIGÉ)
-useEffect(() => {
-  getAuthSession().then(async (session) => {
-    try {
-      if (session?.user && supabase) {
-        // 🆕 Attendre un peu que la session soit établie
-        await new Promise((resolve) => setTimeout(resolve, 300));
+  // useEffect 3 : Session auth
+  useEffect(() => {
+    getAuthSession().then(async (session) => {
+      try {
+        if (session?.user && supabase) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
 
-        // 1. Charger le profil SANS la jointure
-        let { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        // 🆕 Si non trouvé, réessayer
-        if (!profile) {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const retry = await supabase
+          let { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
-          profile = retry.data;
-        }
 
-        if (profile) {
-          // 2. Charger l'agence séparément
-          let agencyData = null;
-          if (profile.agency_id) {
-            const { data: agency } = await supabase
-              .from('agencies')
-              .select('name, slug, status')
-              .eq('id', profile.agency_id)
+          if (!profile) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+            const retry = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
               .maybeSingle();
-            agencyData = agency;
+            profile = retry.data;
           }
 
-          const userAccount: UserAccount = {
-            id: session.user.id,
-            agencyId: profile.agency_id || FALLBACK_AGENCY_ID,
-            email: session.user.email || '',
-            nom: profile.nom || 'Administrateur',
-            prenom: profile.prenom || '',
-            telephone: profile.telephone || '',
-            role: (profile.role as any) || 'ADMIN',
-            statut: profile.statut || 'actif',
-            permissions: profile.permissions || ['ALL'],
-            organisation: agencyData?.name || 'FITAL-IMMO Agence',
-            createdAt: session.user.created_at || new Date().toISOString(),
-          };
-          setCurrentUser(userAccount);
-          persistCollection('current_user', userAccount);
-          setUsers((prev) => (prev.some((u) => u.id === userAccount.id) ? prev : [userAccount, ...prev]));
-        }
-      } else {
-        const localUserJson = localStorage.getItem('fital_immo_user');
-        if (localUserJson) {
-          try {
-            const parsed = JSON.parse(localUserJson);
-            if (parsed && parsed.id) {
-              setCurrentUser(parsed);
-              persistCollection('current_user', parsed);
+          if (profile) {
+            let agencyData = null;
+            if (profile.agency_id) {
+              const { data: agency } = await supabase
+                .from('agencies')
+                .select('name, slug, status')
+                .eq('id', profile.agency_id)
+                .maybeSingle();
+              agencyData = agency;
             }
-          } catch (e) {}
+
+            const userAccount: UserAccount = {
+              id: session.user.id,
+              agencyId: profile.agency_id || FALLBACK_AGENCY_ID,
+              email: session.user.email || '',
+              nom: profile.nom || 'Administrateur',
+              prenom: profile.prenom || '',
+              telephone: profile.telephone || '',
+              role: (profile.role as any) || 'ADMIN',
+              statut: profile.statut || 'actif',
+              permissions: profile.permissions || ['ALL'],
+              organisation: agencyData?.name || 'FITAL-IMMO Agence',
+              createdAt: session.user.created_at || new Date().toISOString(),
+            };
+            setCurrentUser(userAccount);
+            persistCollection('current_user', userAccount);
+            setUsers((prev) => (prev.some((u) => u.id === userAccount.id) ? prev : [userAccount, ...prev]));
+          }
+        } else {
+          const localUserJson = localStorage.getItem('fital_immo_user');
+          if (localUserJson) {
+            try {
+              const parsed = JSON.parse(localUserJson);
+              if (parsed && parsed.id) {
+                setCurrentUser(parsed);
+                persistCollection('current_user', parsed);
+              }
+            } catch (e) {}
+          }
         }
+      } catch (err) {
+        console.warn('Erreur verification session auth:', err);
+      } finally {
+        setIsAuthLoading(false);
       }
-    } catch (err) {
-      console.warn('Erreur verification session auth:', err);
-    } finally {
-      setIsAuthLoading(false);
+    });
+  }, []);
+
+  // useEffect 4 : Chargement données
+  useEffect(() => {
+    if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
+      console.log('⏳ En attente de l\'agencyId...');
+      return;
     }
-  });
-}, []);
 
-  // useEffect 4 : Chargement données (CORRIGÉ - fiable sur mobile)
-useEffect(() => {
-  if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
-    console.log('⏳ En attente de l\'agencyId...');
-    return;
-  }
+    console.log('📥 Chargement des données pour:', currentUser.agencyId);
 
-  console.log('📥 Chargement des données pour:', currentUser.agencyId);
+    let cancelled = false;
 
-  let cancelled = false;
-
-  const timer = setTimeout(async () => {
-    if (cancelled) return;
-    try {
-      const data = await loadFullApplicationData(currentUser.agencyId);
+    const timer = setTimeout(async () => {
       if (cancelled) return;
+      try {
+        const data = await loadFullApplicationData(currentUser.agencyId);
+        if (cancelled) return;
 
-      console.log('✅ Données chargées:', {
-        properties: data.properties?.length,
-        buildings: data.buildings?.length,
-        units: data.units?.length,
-        owners: data.owners?.length,
-        tenants: data.tenants?.length,
-      });
+        console.log('✅ Données chargées:', {
+          properties: data.properties?.length,
+          buildings: data.buildings?.length,
+          units: data.units?.length,
+          owners: data.owners?.length,
+          tenants: data.tenants?.length,
+        });
 
-      // Assignation systématique (vide ou non)
-      setProperties(data.properties || []);
-      setBuildings(data.buildings || []);
-      setUnits(data.units || []);
-      setOwners(data.owners || []);
-      setTenants(data.tenants || []);
-      setContracts(data.contracts || []);
-      setPayments(data.payments || []);
-      setReminders(data.reminders || []);
-      setInspections(data.inspections || []);
-      setMaintenance(data.maintenance || []);
-      setDisbursements(data.disbursements || []);
-      setInvoices(data.invoices || []);
-      setCashVouchers(data.cashVouchers || []);
-      setNotifications(data.notifications || []);
-      setAuditLogs(data.auditLogs || []);
-      setUsers(data.users || []);
-      setCashMovements(data.cashMovements || []);
-      setCashClosings(data.cashClosings || []);
-      setPaymentMethods(data.paymentMethods || []);
-      if (data.settings) setSettings(data.settings);
-      setOwnerDeductions(data.ownerDeductions || []);
-      setBulletinsVersements(data.bulletinVersements || []);
-      setArchives(data.archives || []);
-      setActivityLogs(data.activityLogs || []);
-      setPenalties(data.penalties || []);
-      setOwnerCharges(data.ownerCharges || []);
-    } catch (err) {
-      console.error('❌ Erreur chargement:', err);
-    }
-  }, 400);
+        setProperties(data.properties || []);
+        setBuildings(data.buildings || []);
+        setUnits(data.units || []);
+        setOwners(data.owners || []);
+        setTenants(data.tenants || []);
+        setContracts(data.contracts || []);
+        setPayments(data.payments || []);
+        setReminders(data.reminders || []);
+        setInspections(data.inspections || []);
+        setMaintenance(data.maintenance || []);
+        setDisbursements(data.disbursements || []);
+        setInvoices(data.invoices || []);
+        setCashVouchers(data.cashVouchers || []);
+        setNotifications(data.notifications || []);
+        setAuditLogs(data.auditLogs || []);
+        setUsers(data.users || []);
+        setCashMovements(data.cashMovements || []);
+        setCashClosings(data.cashClosings || []);
+        setPaymentMethods(data.paymentMethods || []);
+        if (data.settings) setSettings(data.settings);
+        setOwnerDeductions(data.ownerDeductions || []);
+        setBulletinsVersements(data.bulletinVersements || []);
+        setArchives(data.archives || []);
+        setActivityLogs(data.activityLogs || []);
+        setPenalties(data.penalties || []);
+        setOwnerCharges(data.ownerCharges || []);
+      } catch (err) {
+        console.error('❌ Erreur chargement:', err);
+      }
+    }, 400);
 
-  return () => {
-    cancelled = true;
-    clearTimeout(timer);
-  };
-}, [currentUser?.agencyId, currentUser?.id]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [currentUser?.agencyId, currentUser?.id]);
 
   const handleSignOut = async () => {
     await signOutSession();
@@ -424,14 +418,13 @@ useEffect(() => {
     };
     setAuditLogs((prev) => [newLog, ...prev]);
     logSystemAudit(newLog, currentUser?.agencyId);
-};
+  };
 
-    const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
-    // 👑 SUPER_ADMIN_SAAS : accès uniquement à sa page
+  const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
     if (user.role === 'SUPER_ADMIN_SAAS') {
       return tab === 'saas-admin' || tab === 'dashboard';
     }
-    
+
     if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
     if (tab === 'archives' || tab === 'activity-logs') {
       return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(user.role);
@@ -442,8 +435,7 @@ useEffect(() => {
     if (user.role === 'CAISSIER') {
       return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
     }
-              if (user.role === 'PROPRIETAIRE') {
-      // 🔒 RESTRICTION STRICTE : le propriétaire voit uniquement ses biens, locataires (noms), reversements
+    if (user.role === 'PROPRIETAIRE') {
       return ['dashboard', 'buildings', 'units', 'tenants', 'finance'].includes(tab);
     }
     if (user.role === 'LOCATAIRE') {
@@ -529,16 +521,16 @@ useEffect(() => {
     if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-  console.log('📝 handleLogActivity REÇU:', activity.title);
-  setActivityLogs((prev) => {
-    const next = [activity, ...prev];
-    persistCollection('activity_logs', next);
-    return next;
-  });
-  if (currentUser?.agencyId) {
-    saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
-  }
-};
+    console.log('📝 handleLogActivity REÇU:', activity.title);
+    setActivityLogs((prev) => {
+      const next = [activity, ...prev];
+      persistCollection('activity_logs', next);
+      return next;
+    });
+    if (currentUser?.agencyId) {
+      saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
+    }
+  };
 
   // ============================================================
   // HANDLERS : OWNER DEDUCTIONS
@@ -555,7 +547,7 @@ useEffect(() => {
   // ============================================================
   // HANDLERS : BULLETINS
   // ============================================================
-    const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
+  const handleSaveBulletinVersement = (bulletin: BulletinVersement) => {
     const enrichedBulletin: BulletinVersement = {
       ...bulletin,
       createdById: bulletin.createdById || currentUser?.id,
@@ -570,16 +562,18 @@ useEffect(() => {
     });
     if (currentUser?.agencyId) saveBulletinVersementToDb(enrichedBulletin, currentUser.agencyId).catch(console.warn);
   };
+
   // ============================================================
-  // HANDLERS : PAIEMENTS
+  // HANDLERS : PAIEMENTS (avec anti-doublon affiné v3.0.5)
   // ============================================================
-       const handleAddPayment = (newPayment: Payment) => {
-    // 🛡️ ANTI-DOUBLON NIVEAU 2 : blocage central AVANT toute création
+  const handleAddPayment = (newPayment: Payment) => {
+    // 🛡️ ANTI-DOUBLON : bloque uniquement Payé + Payé
     const existingPaid = payments.find(
       (p) =>
         p.locataireId === newPayment.locataireId &&
         p.periode === newPayment.periode &&
-        p.statut === 'Payé'
+        p.statut === 'Payé' &&
+        newPayment.statut === 'Payé'
     );
 
     if (existingPaid) {
@@ -615,7 +609,6 @@ useEffect(() => {
       return;
     }
 
-    // ✅ Pas de doublon → procéder normalement
     const enrichedPayment: Payment = {
       ...newPayment,
       createdById: newPayment.createdById || currentUser?.id,
@@ -624,6 +617,7 @@ useEffect(() => {
     };
     setPayments((prev) => { const next = [enrichedPayment, ...prev]; persistCollection('payments', next); return next; });
     if (currentUser?.agencyId) savePaymentToDb(enrichedPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
+
     if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
       const newCashEntry: CashMovement = {
         id: crypto.randomUUID(),
@@ -640,7 +634,7 @@ useEffect(() => {
       if (currentUser?.agencyId) saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(console.warn);
     }
 
-        setTenants((prev) => {
+    setTenants((prev) => {
       const next = prev.map((t) => {
         if (t.id !== newPayment.locataireId) return t;
 
@@ -648,12 +642,11 @@ useEffect(() => {
         const paye = newPayment.montantPaye || 0;
         const percent = total > 0 ? (paye / total) * 100 : 0;
 
-        // Option B : >= 50% = À jour
         let newStatut: 'À jour' | 'Retard' | 'Impayé';
         if (percent >= 100) {
           newStatut = 'À jour';
         } else if (percent >= 50) {
-          newStatut = 'À jour'; // ACOMPTE accepté
+          newStatut = 'À jour';
         } else if (percent > 0) {
           newStatut = 'Retard';
         } else {
@@ -671,7 +664,6 @@ useEffect(() => {
       return next;
     });
 
-        // LOG ACTIVITÉ — toujours, même sans agencyId
     const activityEntry: ActivityLog = {
       id: crypto.randomUUID(),
       agencyId: currentUser?.agencyId || 'local',
@@ -691,7 +683,6 @@ useEffect(() => {
     handleLogActivity(activityEntry);
     console.log('🔥 LOG ACTIVITÉ ENVOYÉ:', activityEntry.title);
 
-    // MESSAGE DE SUCCÈS
     alert(`✅ Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
   };
 
@@ -718,14 +709,13 @@ useEffect(() => {
     }
   };
 
-    const handleConfirmMobileMoneyPayment = (amount: number, method: string, transactionId: string) => {
+  const handleConfirmMobileMoneyPayment = (amount: number, method: string, transactionId: string) => {
     const tId = mobileMoneyModalConfig?.tenantId;
     const tenant = tenants.find((t) => t.id === tId) || tenants[0];
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
     if (!tenant || !property) { alert('❌ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
 
-    // 🛡️ ANTI-DOUBLON AVANT CRÉATION
     const existingPayment = payments.find(
       (p) =>
         p.locataireId === tenant.id &&
@@ -761,7 +751,6 @@ useEffect(() => {
       return;
     }
 
-    // ✅ Aucun doublon → créer le paiement
     const newPayment: Payment = {
       id: crypto.randomUUID(),
       ref: transactionId || `PAY-MM-${Date.now().toString().slice(-6)}`,
@@ -772,7 +761,7 @@ useEffect(() => {
       bienNom: property.nom,
       proprietaireId: owner?.id || '',
       proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
-      periode: selectedPeriod, // Toujours le mois actuel standardisé
+      periode: selectedPeriod,
       loyerBase: amount, charges: 0, tva: 0, tom: 0, penalites: 0,
       montantTotal: amount, montantPaye: amount, montantRestant: 0,
       modePaiement: 'Mobile Money',
@@ -808,7 +797,7 @@ useEffect(() => {
     if (currentUser?.agencyId) rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(console.warn);
   };
 
-   const handleAddCashMovement = (mov: CashMovement) => {
+  const handleAddCashMovement = (mov: CashMovement) => {
     const enrichedMov: CashMovement = {
       ...mov,
       createdById: mov.createdById || currentUser?.id,
@@ -871,7 +860,7 @@ useEffect(() => {
     softDeleteRecord('properties', propertyId).catch(console.warn);
   };
 
-   const handleAddContract = (newContract: LeaseContract) => {
+  const handleAddContract = (newContract: LeaseContract) => {
     const enrichedContract: LeaseContract = {
       ...newContract,
       createdById: newContract.createdById || currentUser?.id,
@@ -886,7 +875,10 @@ useEffect(() => {
     if (currentUser?.agencyId) saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
   };
 
-        const handleAddTenant = (newTenant: Tenant) => {
+  // ============================================================
+  // HANDLER : AJOUT LOCATAIRE (corrigé v3.0.5 - properties ET units)
+  // ============================================================
+  const handleAddTenant = (newTenant: Tenant) => {
     // 🛡️ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
     const existingUnit = units.find((u) => u.id === newTenant.bienId);
     const existingProp = properties.find((p) => p.id === newTenant.bienId);
@@ -900,9 +892,9 @@ useEffect(() => {
       return;
     }
 
-    // 🛡️ ANTI-DOUBLON : vérifier que le locataire n'occupe pas déjà un autre bien
+    // 🛡️ ANTI-DOUBLON : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
-      (t) => 
+      (t) =>
         t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
         t.prenom?.toLowerCase() === newTenant.prenom?.toLowerCase() &&
         t.cni === newTenant.cni &&
@@ -921,15 +913,20 @@ useEffect(() => {
     // ✅ Pas de doublon → procéder normalement
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
-    
+
+    // 🔧 FIX v3.0.5 : mise à jour des DEUX si les deux existent (plus de return prématuré)
     if (newTenant.bienId) {
-      // Vérifier si c'est une PROPERTY
-      const existingProp = properties.find((p) => p.id === newTenant.bienId);
+      // Mise à jour PROPERTY si existe
       if (existingProp) {
         setProperties((prev) => {
           const next = prev.map((p) => {
             if (p.id === newTenant.bienId) {
-              const updatedP = { ...p, statut: 'Occupé' as const, locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`, locataireActuelId: newTenant.id };
+              const updatedP = {
+                ...p,
+                statut: 'Occupé' as const,
+                locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
+                locataireActuelId: newTenant.id,
+              };
               if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
               return updatedP;
             }
@@ -938,20 +935,18 @@ useEffect(() => {
           persistCollection('properties', next);
           return next;
         });
-        return;
       }
-      
-      // Sinon, vérifier si c'est une UNIT
-      const existingUnit = units.find((u) => u.id === newTenant.bienId);
+
+      // Mise à jour UNIT si existe
       if (existingUnit) {
         setUnits((prev) => {
           const next = prev.map((u) => {
             if (u.id === newTenant.bienId) {
-              const updatedU = { 
-                ...u, 
-                statut: 'Occupé' as const, 
+              const updatedU = {
+                ...u,
+                statut: 'Occupé' as const,
                 locataireActuelId: newTenant.id,
-                locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}` 
+                locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
               };
               if (currentUser?.agencyId) saveUnitToDb(updatedU, currentUser.agencyId).catch(console.warn);
               return updatedU;
@@ -965,92 +960,95 @@ useEffect(() => {
     }
   };
 
-   const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
-  if (!currentUser?.agencyId || !supabase) return;
+  const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
+    if (!currentUser?.agencyId || !supabase) return;
 
-  // 🛡️ ANTI-DOUBLON 1 : Le bien est-il déjà occupé ?
-  const existingUnit = units.find((u) => u.id === data.tenant.bienId);
-  const existingProp = properties.find((p) => p.id === data.tenant.bienId);
+    // 🛡️ ANTI-DOUBLON 1 : le bien est-il déjà occupé ?
+    const existingUnit = units.find((u) => u.id === data.tenant.bienId);
+    const existingProp = properties.find((p) => p.id === data.tenant.bienId);
 
-  if (existingUnit && existingUnit.statut === 'Occupé') {
-    alert(
-      `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
-      `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
-      `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+    if (existingUnit && existingUnit.statut === 'Occupé') {
+      alert(
+        `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+        `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+      );
+      return;
+    }
+    if (existingProp && existingProp.statut === 'Occupé') {
+      alert(
+        `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+        `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+      );
+      return;
+    }
+
+    // 🛡️ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjà un autre bien ?
+    const existingActiveLease = tenants.find(
+      (t) =>
+        t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
+        t.prenom?.toLowerCase() === data.tenant.prenom?.toLowerCase() &&
+        t.cni === data.tenant.cni &&
+        t.bienId !== data.tenant.bienId &&
+        !t.dateSortie
     );
-    return;
-  }
-  if (existingProp && existingProp.statut === 'Occupé') {
-    alert(
-      `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
-      `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
-      `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
-    );
-    return;
-  }
 
-  // 🛡️ ANTI-DOUBLON 2 : Ce locataire occupe-t-il déjà un autre bien ?
-  const existingActiveLease = tenants.find(
-    (t) => 
-      t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
-      t.prenom?.toLowerCase() === data.tenant.prenom?.toLowerCase() &&
-      t.cni === data.tenant.cni &&
-      t.bienId !== data.tenant.bienId &&
-      !t.dateSortie
-  );
+    if (existingActiveLease) {
+      alert(
+        `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
+        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
+        `${existingActiveLease.bienNom}\n\n` +
+        `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
+        `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
+      );
+      return;
+    }
 
-  if (existingActiveLease) {
-    alert(
-      `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
-      `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
-      `${existingActiveLease.bienNom}\n\n` +
-      `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
-      `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
-    );
-    return;
-  }
+    // ✅ Pas de doublon → procéder normalement
+    const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
+    if (!tenantResult.success) {
+      alert('Erreur création locataire : ' + tenantResult.error);
+      return;
+    }
+    const realTenantId = tenantResult.data?.id || data.tenant.id;
+    const tenantToSave = { ...data.tenant, id: realTenantId };
+    const contractToSave = { ...data.contract, locataireId: realTenantId };
+    const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
 
-  // ✅ Pas de doublon → procéder normalement
-  const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
-  if (!tenantResult.success) { 
-    alert('Erreur création locataire : ' + tenantResult.error); 
-    return; 
-  }
-  const realTenantId = tenantResult.data?.id || data.tenant.id;
-  const tenantToSave = { ...data.tenant, id: realTenantId };
-  const contractToSave = { ...data.contract, locataireId: realTenantId };
-  const inspectionToSave = { ...data.inspection, locataireId: realTenantId };
+    await saveContractToDb(contractToSave, currentUser.agencyId);
+    await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
 
-  await saveContractToDb(contractToSave, currentUser.agencyId);
-  await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
-
-  // Mettre à jour UNIT ou PROPERTY
-  if (existingUnit) {
-    const updatedU = {
-      ...existingUnit,
-      statut: 'Occupé' as const,
-      locataireActuelId: realTenantId,
-      locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
-    };
-    await saveUnitToDb(updatedU, currentUser.agencyId);
-    setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
+    // Mettre à jour UNIT ou PROPERTY
+    if (existingUnit) {
+      const updatedU = {
+        ...existingUnit,
+        statut: 'Occupé' as const,
+        locataireActuelId: realTenantId,
+        locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
+      };
+      await saveUnitToDb(updatedU, currentUser.agencyId);
+      setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
     } else if (existingProp) {
-    const updatedP = {
-      ...existingProp,
-      statut: 'Occupé' as const,
-      locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
-      locataireActuelId: realTenantId,
-    };
-    await savePropertyToDb(updatedP, currentUser.agencyId);
-    setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
-  }
+      const updatedP = {
+        ...existingProp,
+        statut: 'Occupé' as const,
+        locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
+        locataireActuelId: realTenantId,
+      };
+      await savePropertyToDb(updatedP, currentUser.agencyId);
+      setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
+    }
 
-  setTenants((prev) => [tenantToSave, ...prev]);
-  setContracts((prev) => [contractToSave, ...prev]);
-  setInspections((prev) => [inspectionToSave, ...prev]);
-};
+    setTenants((prev) => [tenantToSave, ...prev]);
+    setContracts((prev) => [contractToSave, ...prev]);
+    setInspections((prev) => [inspectionToSave, ...prev]);
+  };
 
-    const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
+  // ============================================================
+  // HANDLER : SORTIE LOCATAIRE (corrigé v3.0.5 - else if → if)
+  // ============================================================
+  const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     if (!currentUser?.agencyId) return;
 
     // 1. Locataire — sauvegarder en DB
@@ -1071,13 +1069,16 @@ useEffect(() => {
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
-        if (property) {
+    // 🔧 FIX v3.0.5 : si → (au lieu de else if), pour libérer les deux si les deux existent
+    if (property) {
       const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined, locataireActuelId: undefined };
       const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
       if (res.success) {
         setProperties((prev) => prev.map((p) => (p.id === data.bienId ? updatedProp : p)));
       }
-    } else if (unit) {
+    }
+
+    if (unit) {
       const updatedUnit = { ...unit, statut: 'Vacant' as const, locataireActuelId: undefined, locataireActuelNom: undefined };
       const res = await saveUnitToDb(updatedUnit, currentUser.agencyId);
       if (res.success) {
@@ -1102,8 +1103,8 @@ useEffect(() => {
     setReminders((prev) => { const next = [newReminder, ...prev]; persistCollection('reminders', next); return next; });
     if (currentUser?.agencyId) saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
   };
-  
-   const handleAddInspection = (newInspection: Inspection) => {
+
+  const handleAddInspection = (newInspection: Inspection) => {
     const enrichedInspection: Inspection = {
       ...newInspection,
       createdById: newInspection.createdById || currentUser?.id,
@@ -1137,7 +1138,7 @@ useEffect(() => {
     setDisbursements((prev) => { const next = [enrichedDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
     if (currentUser?.agencyId) saveDisbursementToDb(enrichedDisbursement, currentUser.agencyId).catch(console.warn);
   };
-   const handleAddInvoice = (newInvoice: Invoice) => {
+  const handleAddInvoice = (newInvoice: Invoice) => {
     const enrichedInvoice: Invoice = {
       ...newInvoice,
       createdById: newInvoice.createdById || currentUser?.id,
@@ -1154,30 +1155,29 @@ useEffect(() => {
   };
   const handleOpenQuickReminder = (tenant: Tenant) => { setActiveTab('reminders'); };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
-  if (tenant) {
-    setInitialTenantForPayment(tenant);
-  } else {
-    setInitialTenantForPayment(null);
-  }
-  setIsNewPaymentModalOpen(true);
-  setActiveTab('payments');
-};
+    if (tenant) {
+      setInitialTenantForPayment(tenant);
+    } else {
+      setInitialTenantForPayment(null);
+    }
+    setIsNewPaymentModalOpen(true);
+    setActiveTab('payments');
+  };
   const handleOpenBulletinVersement = (owner: Owner) => { setOwnerBulletinModalOwner(owner); };
 
   const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
 
   // SCOPED DATA
-    const scopedProperties = (() => {
+  const scopedProperties = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'LOCATAIRE') { 
-      const myTenant = tenants.find((t) => t.id === currentUser.locataireId); 
-      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : []; 
+    if (currentUser?.role === 'LOCATAIRE') {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
     }
     return properties;
   })();
 
-  // Pour le propriétaire, les "biens" incluent properties + units
   const scopedPropertiesOrUnits = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') {
       return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
@@ -1193,15 +1193,13 @@ useEffect(() => {
     if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); if (myTenant) return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id); }
     return units;
   })();
-        const scopedTenants = (() => {
+  const scopedTenants = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') {
-      // Inclure les biens (properties) ET les espaces (units) du propriétaire
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
       const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
       const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
       const filtered = tenants.filter((t) => myBienIds.includes(t.bienId) || t.proprietaireId === currentUser.proprietaireId);
-      
-      // 🔒 ANONYMISATION : on ne transmet que le nom, pas les infos perso/statut
+
       return filtered.map((t) => ({
         ...t,
         telephone: '',
@@ -1211,7 +1209,7 @@ useEffect(() => {
         profession: '',
         employeur: '',
         revenuMensuel: 0,
-        statut: 'À jour' as const,   // Neutralise le statut
+        statut: 'À jour' as const,
         joursRetard: 0,
         arrieresCumules: 0,
         observations: '',
@@ -1222,8 +1220,8 @@ useEffect(() => {
     if (currentUser?.role === 'LOCATAIRE') return tenants.filter((t) => t.id === currentUser.locataireId);
     return tenants;
   })();
-   const scopedPayments = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return []; // 🔒 Le propriétaire ne voit AUCUN paiement
+  const scopedPayments = (() => {
+    if (currentUser?.role === 'PROPRIETAIRE') return [];
     if (currentUser?.role === 'LOCATAIRE') return payments.filter((p) => p.locataireId === currentUser.locataireId);
     if (currentUser?.role === 'AGENT') return [];
     return payments;
@@ -1233,7 +1231,7 @@ useEffect(() => {
     if (currentUser?.role === 'LOCATAIRE') return contracts.filter((c) => c.locataireId === currentUser.locataireId);
     return contracts;
   })();
-    const scopedInspections = (() => {
+  const scopedInspections = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') {
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
       const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
@@ -1243,7 +1241,7 @@ useEffect(() => {
     if (currentUser?.role === 'LOCATAIRE') return inspections.filter((i) => i.locataireId === currentUser.locataireId);
     return inspections;
   })();
-   const scopedMaintenance = (() => {
+  const scopedMaintenance = (() => {
     if (currentUser?.role === 'PROPRIETAIRE') {
       const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
       const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
@@ -1258,7 +1256,7 @@ useEffect(() => {
     if (currentUser?.role === 'AGENT' || currentUser?.role === 'LOCATAIRE') return [];
     return disbursements;
   })();
-  
+
   if (isResetPasswordMode) {
     return (
       <ResetPasswordView
@@ -1314,7 +1312,7 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-[#0A111D] text-[#F0EDE8] flex font-sans antialiased selection:bg-[#C9A96E]/30 selection:text-[#E8D5B0]">
-          <Sidebar
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={handleSafeTabChange}
         unpaidCount={unpaidCount}
@@ -1446,11 +1444,12 @@ useEffect(() => {
               setActiveTab={handleSafeTabChange}
             />
           )}
+
           {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
             <SuperAdminDashboard currentUser={currentUser} />
           )}
 
-                    {activeTab === 'admin-control' && (
+          {activeTab === 'admin-control' && (
             <AdminControlCenterView
               users={users}
               properties={properties}
@@ -1507,23 +1506,23 @@ useEffect(() => {
             />
           )}
 
-         {activeTab === 'archives' && (
-  <ArchiveView
-    currentUser={currentUser}
-    tenants={tenants}
-    owners={owners}
-    properties={properties}
-    buildings={buildings}
-    units={units}
-    contracts={contracts}
-    payments={payments}
-    disbursements={disbursements}
-    inspections={inspections}
-    maintenance={maintenance}
-    invoices={invoices}
-    bulletins={bulletinsVersements}
-  />
-)}
+          {activeTab === 'archives' && (
+            <ArchiveView
+              currentUser={currentUser}
+              tenants={tenants}
+              owners={owners}
+              properties={properties}
+              buildings={buildings}
+              units={units}
+              contracts={contracts}
+              payments={payments}
+              disbursements={disbursements}
+              inspections={inspections}
+              maintenance={maintenance}
+              invoices={invoices}
+              bulletins={bulletinsVersements}
+            />
+          )}
 
           {activeTab === 'activity-logs' && (
             <ActivityLogView activities={activityLogs} currentUser={currentUser} />
@@ -1587,7 +1586,7 @@ useEffect(() => {
               tenants={scopedTenants}
               payments={scopedPayments}
               selectedPeriod={selectedPeriod}
-              onOpenQuickReminder={handleOpenQuickReminder}
+              onOpenQuickReminder={handleOpenQuickComms}
               onOpenNewPayment={handleOpenNewPaymentForTenant}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
               onAddPayment={handleAddPayment}
@@ -1595,7 +1594,7 @@ useEffect(() => {
           )}
 
           {activeTab === 'reminders' && (
-                        <AutomatedRemindersView
+            <AutomatedRemindersView
               tenants={scopedTenants}
               properties={scopedProperties}
               payments={scopedPayments}
@@ -1662,23 +1661,23 @@ useEffect(() => {
 
           {activeTab === 'tenants' && (
             <div className="space-y-4">
-             {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser.role) && (
-  <div className="flex justify-end gap-3">
-    <button
-      onClick={() => setIsNewTenantWizardOpen(true)}
-      className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
-    >
-      <span>✨ Assistant Nouveau Locataire (7 Étapes)</span>
-    </button>
-  </div>
-)}
-                            <TenantsView
+              {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser.role) && (
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsNewTenantWizardOpen(true)}
+                    className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
+                  >
+                    <span>✨ Assistant Nouveau Locataire (7 Étapes)</span>
+                  </button>
+                </div>
+              )}
+              <TenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 units={scopedUnits}
                 payments={scopedPayments}
                 currentUser={currentUser}
-                onOpenQuickReminder={handleOpenQuickReminder}
+                onOpenQuickReminder={handleOpenQuickComms}
                 onOpenNewPayment={handleOpenNewPaymentForTenant}
                 onAddTenant={handleAddTenant}
                 onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
@@ -1701,7 +1700,7 @@ useEffect(() => {
             />
           )}
 
-                    {activeTab === 'contracts' && (
+          {activeTab === 'contracts' && (
             <ContractsView
               contracts={scopedContracts}
               tenants={tenants}
@@ -1736,7 +1735,7 @@ useEffect(() => {
             />
           )}
 
-                    {activeTab === 'invoices' && (
+          {activeTab === 'invoices' && (
             <InvoicesView
               invoices={invoices}
               properties={scopedProperties}
@@ -1748,7 +1747,7 @@ useEffect(() => {
             />
           )}
 
-                    {activeTab === 'finance' && (
+          {activeTab === 'finance' && (
             <FinanceView
               disbursements={scopedDisbursements}
               payments={scopedPayments}
@@ -1778,7 +1777,7 @@ useEffect(() => {
             />
           )}
 
-                    {activeTab === 'documents' && (
+          {activeTab === 'documents' && (
             <DocumentsView
               payments={scopedPayments}
               owners={owners}
@@ -1796,7 +1795,7 @@ useEffect(() => {
           )}
         </main>
       </div>
-      
+
       {receiptModalPayment && (
         <PaymentReceiptModal
           payment={receiptModalPayment}
@@ -1821,7 +1820,7 @@ useEffect(() => {
       )}
 
       {ownerBulletinModalOwner && (
-          <OwnerBulletinModal
+        <OwnerBulletinModal
           currentUser={currentUser}
           owner={ownerBulletinModalOwner}
           properties={properties}
@@ -1864,7 +1863,7 @@ useEffect(() => {
         );
       })()}
 
-           {isNewTenantWizardOpen && (
+      {isNewTenantWizardOpen && (
         <NewTenantWizardModal
           properties={properties}
           units={units}
@@ -1917,25 +1916,25 @@ useEffect(() => {
       />
 
       {mobileMoneyModalConfig && (
-  <MobileMoneyPaymentModal
-    isOpen={mobileMoneyModalConfig.isOpen}
-    onClose={() => setMobileMoneyModalConfig(null)}
-    amount={mobileMoneyModalConfig.amount || 250000}
-    tenantName={mobileMoneyModalConfig.tenantName || 'Client FITAL-IMMO'}
-    tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
-    propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
-    period={mobileMoneyModalConfig.period || selectedPeriod}
-    reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
-    onConfirmPayment={handleConfirmMobileMoneyPayment}
-    waveNumero={settings.waveNumero}
-    orangeMoneyCode={settings.orangeMoneyCode}
-    whatsappBusiness={settings.whatsappBusiness}
-    settings={settings}
-    currentUser={currentUser}
-    tenantId={mobileMoneyModalConfig.tenantId}
-    payments={payments}
-  />
-)}
+        <MobileMoneyPaymentModal
+          isOpen={mobileMoneyModalConfig.isOpen}
+          onClose={() => setMobileMoneyModalConfig(null)}
+          amount={mobileMoneyModalConfig.amount || 250000}
+          tenantName={mobileMoneyModalConfig.tenantName || 'Client FITAL-IMMO'}
+          tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
+          propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
+          period={mobileMoneyModalConfig.period || selectedPeriod}
+          reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
+          onConfirmPayment={handleConfirmMobileMoneyPayment}
+          waveNumero={settings.waveNumero}
+          orangeMoneyCode={settings.orangeMoneyCode}
+          whatsappBusiness={settings.whatsappBusiness}
+          settings={settings}
+          currentUser={currentUser}
+          tenantId={mobileMoneyModalConfig.tenantId}
+          payments={payments}
+        />
+      )}
 
       {quickCommsModalConfig && (
         <QuickCommsModal
