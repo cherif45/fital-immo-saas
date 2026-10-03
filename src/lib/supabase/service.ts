@@ -2294,3 +2294,39 @@ export async function getOwnerBulletinData(
     return empty;
   }
 }
+
+// ============================================================
+// RPC : Activité quotidienne (calendrier Dashboard)
+// ============================================================
+export interface DailyActivity {
+  jour: string;                 // '2021-01-01 00:00:00+00'
+  encaissements: number;
+  nb_paiements: number;
+  decaissements: number;
+  nb_decaissements: number;
+  solde: number;
+  nb_alertes: number;
+}
+
+export async function getDailyActivity(
+  agencyId: string,
+  year: number,
+  month: number
+): Promise<DailyActivity[]> {
+  if (!supabase || !agencyId) return [];
+  try {
+    const { data, error } = await supabase.rpc('get_daily_activity', {
+      p_agency_id: agencyId,
+      p_year: year,
+      p_month: month,
+    });
+    if (error) {
+      console.warn('getDailyActivity:', error);
+      return [];
+    }
+    return (data as DailyActivity[]) || [];
+  } catch (e) {
+    console.warn('getDailyActivity exception:', e);
+    return [];
+  }
+}

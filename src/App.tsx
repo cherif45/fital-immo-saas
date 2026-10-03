@@ -1402,6 +1402,7 @@ export default function App() {
               onOpenNewProperty={() => setIsNewPropertyModalOpen(true)}
               selectedPeriod={selectedPeriod}
               setSelectedPeriod={setSelectedPeriod}
+              currentUser={currentUser}
             />
           )}
 

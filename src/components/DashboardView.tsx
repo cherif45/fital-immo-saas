@@ -31,6 +31,7 @@ import {
   ActiveTab,
 } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+import { DashboardCalendar } from './DashboardCalendar';
 
 interface DashboardViewProps {
   properties: Property[];
@@ -45,6 +46,7 @@ interface DashboardViewProps {
   onOpenNewProperty: () => void;
   selectedPeriod: string;
   setSelectedPeriod: (p: string) => void;
+  currentUser?: { id?: string; agencyId?: string; role?: string } | null;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -60,6 +62,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewProperty,
   selectedPeriod,
   setSelectedPeriod,
+  currentUser,
 }) => {
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
   const [aiInsight, setAiInsight] = useState<{ analysis: string; actionPlan: string[] } | null>(null);
@@ -195,6 +198,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Period Selector */}
+      {/* 🆕 Calendrier d'activité */}
+      <DashboardCalendar agencyId={currentUser?.agencyId} />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-[#C9A96E]/10">
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1">
           {periods.map((p) => (
