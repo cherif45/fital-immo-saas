@@ -36,3 +36,9 @@ playwright-report/
 *.tsx.backup
 *.ts.backup
 *.css.backup
+
+# Backups locaux
+*.backup
+*.tsx.backup
+*.ts.backup
+*.css.backup
