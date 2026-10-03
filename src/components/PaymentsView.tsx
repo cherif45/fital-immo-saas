@@ -23,6 +23,7 @@ import { Payment, Tenant, Property, Owner, PaymentMethod, PaymentStatus, UserAcc
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp, getPaymentReceiptTemplate } from '../lib/comms/commsHelper';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
+import { paginateTable } from '../lib/supabase/service';
 import confetti from 'canvas-confetti';
 
 interface PaymentsViewProps {
@@ -58,6 +59,61 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(initialTenantForPayment?.id || '');
   const [selectedPaymentForMobileMoney, setSelectedPaymentForMobileMoney] = useState<Payment | null>(null);
+
+  // 🆕 Pagination côté serveur
+  const [serverPage, setServerPage] = useState(0);
+  const [serverData, setServerData] = useState<Payment[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
+
+  // Charger la première page au montage
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadPage(0);
+  }, [currentUser?.agencyId]);
+
+  const loadPage = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    const result = await paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE);
+    // Mapper les champs de la RPC vers le type Payment
+    const mapped: Payment[] = result.data.map((r: any) => ({
+      ...r,
+      // Noms camelCase attendus par le composant
+      id: r.id,
+      ref: r.ref,
+      locataireNom: r.locataire_nom_calc 
+        ? `${r.locataire_prenom_calc || ''} ${r.locataire_nom_calc}`.trim()
+        : (r.locataire_nom || '—'),
+      bienNom: r.bien_nom_calc || r.bien_nom || '—',
+      montantPaye: Number(r.montant_paye) || 0,
+      montantTotal: Number(r.montant_total) || 0,
+      montantRestant: Number(r.montant_restant) || 0,
+      modePaiement: r.mode_paiement || 'Espèces',
+      datePaiement: r.date_paiement || r.created_at,
+      statut: r.statut || 'Payé',
+      periode: r.periode || '',
+      loyerBase: Number(r.loyer_base) || 0,
+      // Champs supplémentaires pour cohérence
+      locataireId: r.locataire_id,
+      bienId: r.bien_id,
+      quittanceNumero: r.quittance_numero || r.numero_quittance,
+      moyenPaiementCode: r.moyen_paiement_code,
+      montant: Number(r.montant_paye) || 0,
+    }));
+    if (page === 0) {
+      setServerData(mapped);
+    } else {
+      setServerData(prev => [...prev, ...mapped]);
+    }
+    setServerTotal(result.total);
+    setServerPage(page);
+    setIsLoadingMore(false);
+  };
+
+  // Utiliser les données serveur si disponibles, sinon les props
+  const displayPayments = serverData.length > 0 ? serverData : payments;
   const [montantPaye, setMontantPaye] = useState<number>(0);
     // Stocke le mois au format YYYY-MM (ex: "2026-09")
   const [periodeMonth, setPeriodeMonth] = useState<string>(() => {
@@ -112,7 +168,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
   }, [isLocataire, isNewPaymentModalOpen, setIsNewPaymentModalOpen]);
 
-  const filteredPayments = payments.filter((p) => {
+  const filteredPayments = displayPayments.filter((p) => {
     if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
     if (methodFilter !== 'all' && p.modePaiement !== methodFilter) return false;
     if (search) {
@@ -166,7 +222,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     if (!t) return;
 
     // 🚨 CONTRÔLE ANTI-DOUBLE-PAIEMENT
-    const dejaPaye = payments.find(
+    const dejaPaye = displayPayments.find(
       (p) =>
         p.locataireId === selectedTenantId &&
         p.periode.trim().toLowerCase() === periode.trim().toLowerCase() &&
@@ -286,13 +342,13 @@ const newPayment: Payment = {
 
   const getPayablePayment = (): Payment | null => {
     if (isLocataire) {
-      return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
+      return displayPayments.find((p) => p.statut !== 'Payé') || displayPayments[0] || null;
     }
-    return payments.find((p) => p.statut !== 'Payé') || payments[0] || null;
+    return displayPayments.find((p) => p.statut !== 'Payé') || displayPayments[0] || null;
   };
 
   // Paiements partiels du locataire sélectionné (pour lier acompte → solde)
-  const partialPaymentsForTenant = payments.filter(
+  const partialPaymentsForTenant = displayPayments.filter(
     (p) => p.locataireId === selectedTenantId && p.statut === 'Partiel'
   );
   
@@ -376,7 +432,7 @@ const newPayment: Payment = {
                 statusFilter === 'all' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
               }`}
             >
-              Tous ({payments.length})
+              Tous ({serverTotal || payments.length})
             </button>
             <button
               onClick={() => setStatusFilter('Payé')}
@@ -570,6 +626,19 @@ const newPayment: Payment = {
             </tbody>
           </table>
         </div>
+        
+        {/* 🆕 Bouton Charger plus */}
+        {serverData.length > 0 && serverData.length < serverTotal && (
+          <div className="flex justify-center mt-4 mb-6">
+            <button
+              onClick={() => loadPage(serverPage + 1)}
+              disabled={isLoadingMore}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoadingMore ? '⏳ Chargement...' : `📥 Charger plus (${serverData.length} / ${serverTotal})`}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal: Enregistrer un Nouveau Paiement */}

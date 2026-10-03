@@ -86,6 +86,21 @@ interface AdminControlCenterViewProps {
   notifications?: NotificationItem[];
   onTriggerAuditLog: (action: string, module: string, details: string) => void;
   onRefreshData?: () => void;
+  agencyStats?: {
+    total_owners: number;
+    total_tenants: number;
+    total_properties: number;
+    total_units: number;
+    total_contracts: number;
+    total_payments: number;
+    total_invoices: number;
+    total_cash_movements: number;
+    payments_total: number;
+    payments_last_30_days: number;
+    cash_in: number;
+    cash_out: number;
+    cash_balance: number;
+  } | null;
 }
 
 export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
@@ -116,6 +131,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   notifications = [],
   onTriggerAuditLog,
   onRefreshData,
+  agencyStats,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'db_status' | 'maintenance'>('overview');
   const [isExporting, setIsExporting] = useState(false);
@@ -135,12 +151,12 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   const maintenanceProps = properties.filter((p) => p.statut === 'Maintenance').length;
   const occupancyRate = totalProps > 0 ? Math.round((occupiedProps / totalProps) * 100) : 0;
 
-  const totalTenants = tenants.length;
+  const totalTenants = agencyStats?.total_tenants ?? tenants.length;
   const upToDateTenants = tenants.filter((t) => t.statut === 'À jour').length;
   const unpaidTenants = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
 
-  const totalCashIn = cashMovements.filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
-  const totalCashOut = cashMovements.filter((m) => m.type === 'SORTIE' || m.type === 'DECAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
+  const totalCashIn = agencyStats?.cash_in ?? cashMovements.filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
+  const totalCashOut = agencyStats?.cash_out ?? cashMovements.filter((m) => m.type === 'SORTIE' || m.type === 'DECAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
   const currentCashBalance = totalCashIn - totalCashOut;
 
   // ============================================================

@@ -9,3 +9,9 @@ coverage/
 
 .vercel
 .env*
+
+# Backups locaux
+._backups/
+*.backup-*
+*.PRE-PATCH
+*.BACKUP-*

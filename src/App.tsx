@@ -134,6 +134,7 @@ import {
   createUserAccountInSupabase,
   getOrCreateDefaultAgency,
   fetchAgencyUsers,
+  getAgencyStats,
   saveBuildingToDb,
   deleteBuildingFromDb,
   saveUnitToDb,
@@ -148,7 +149,7 @@ import {
 } from './lib/supabase/service';
 
 // 🆕 Force le nettoyage du cache si la version change
-const APP_VERSION = '3.0.5'; // ← était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
+const APP_VERSION = '3.0.7'; // ← était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
 const storedVersion = localStorage.getItem('fital_immo_version');
 
 if (storedVersion !== APP_VERSION) {
@@ -176,6 +177,7 @@ export default function App() {
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
@@ -348,6 +350,13 @@ export default function App() {
       if (cancelled) return;
       try {
         const data = await loadFullApplicationData(currentUser.agencyId);
+        // 🆕 Charger les stats agrégées côté serveur (super rapide)
+        try {
+          const stats = await getAgencyStats(currentUser.agencyId);
+          if (stats) setAgencyStats(stats);
+        } catch (e) {
+          console.warn('Stats loading failed:', e);
+        }
         if (cancelled) return;
 
         console.log('✅ Données chargées:', {
@@ -1477,6 +1486,7 @@ export default function App() {
               archives={archives}
               notifications={notifications}
               onTriggerAuditLog={handleTriggerAuditLog}
+              agencyStats={agencyStats}
             />
           )}
 
@@ -1547,6 +1557,7 @@ export default function App() {
               currentUser={currentUser}
               onAddCashMovement={handleAddCashMovement}
               onAddCashClosing={handleAddCashClosing}
+              agencyStats={agencyStats}
             />
           )}
 
@@ -1689,15 +1700,34 @@ export default function App() {
 
           {activeTab === 'owners' && (
             <OwnersView
-              owners={owners}
-              properties={properties}
-              buildings={buildings}
-              units={units}
-              payments={payments}
-              onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-              onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
-              onAddOwner={handleAddOwner}
-            />
+  owners={owners}
+  properties={properties}
+  buildings={buildings}
+  units={units}
+  payments={payments}
+  onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+  onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
+  onAddOwner={handleAddOwner}
+  onUpdateOwner={(owner) => {
+    setOwners((prev) => prev.map((o) => (o.id === owner.id ? owner : o)));
+    if (currentUser?.agencyId) {
+      saveOwnerToDb(owner, currentUser.agencyId).catch(console.warn);
+    }
+  }}
+  onDeleteOwner={async (ownerId) => {
+    if (!currentUser?.agencyId || !supabase) return;
+    const { error } = await supabase
+      .from('owners')
+      .delete()
+      .eq('id', ownerId)
+      .eq('agency_id', currentUser.agencyId);
+    if (error) {
+      alert(`Impossible de supprimer : ${error.message}`);
+      return;
+    }
+    setOwners((prev) => prev.filter((o) => o.id !== ownerId));
+  }}
+/>
           )}
 
           {activeTab === 'contracts' && (
@@ -1732,6 +1762,7 @@ export default function App() {
               onUpdateTicket={handleUpdateTicket}
               onAddCashMovement={handleAddCashMovement}
               onTriggerAuditLog={handleTriggerAuditLog}
+              agencyStats={agencyStats}
             />
           )}
 
@@ -1744,6 +1775,7 @@ export default function App() {
               owners={owners}
               tenants={scopedTenants}
               onAddInvoice={handleAddInvoice}
+              currentUser={currentUser}
             />
           )}
 

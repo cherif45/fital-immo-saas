@@ -3,7 +3,7 @@ import {
   UserCheck,
   Plus,
   Search,
-  Building,
+  Building as BuildingIcon,
   Phone,
   Mail,
   Printer,
@@ -11,13 +11,15 @@ import {
   FileCheck,
   FileText,
   CreditCard,
+  Edit,
+  Trash2,
   CheckCircle2,
   Download,
   PhoneCall,
   MessageSquare,
   Send,
 } from 'lucide-react';
-import { Owner, Property, Payment, Unit } from '../types';
+import { Owner, Property, Payment, Unit, Building } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { OwnerMandateModal } from './OwnerMandateModal';
@@ -31,6 +33,8 @@ interface OwnersViewProps {
   onOpenOwnerSlip: (owner: Owner) => void;
   onOpenBulletin?: (owner: Owner) => void;
   onAddOwner: (owner: Owner) => void;
+  onUpdateOwner?: (owner: Owner) => void;
+  onDeleteOwner?: (ownerId: string) => void;
 }
 
 // Helper : libellé du type de pièce
@@ -56,9 +60,12 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
   onOpenOwnerSlip,
   onOpenBulletin,
   onAddOwner,
+  onUpdateOwner,
+  onDeleteOwner,
 }) => {
   const [search, setSearch] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [selectedOwnerForMandate, setSelectedOwnerForMandate] = useState<Owner | null>(null);
 
   // Form State
@@ -86,6 +93,35 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
     }
     return true;
   });
+    const handleEditOwner = (owner: Owner) => {
+    setNom(owner.nom || '');
+    setPrenom(owner.prenom || '');
+    setTypePiece((owner as any).typePiece || (owner as any).type_piece || 'CNI');
+    setCni((owner as any).cni || (owner as any).numero_piece || '');
+    setTelephone(owner.telephone || '');
+    setEmail((owner as any).email || '');
+    setBanque(owner.banque || '');
+    setCompteBancaire((owner as any).compteBancaire || (owner as any).compte_bancaire || '');
+    setTauxCommission((owner as any).tauxCommission || (owner as any).taux_commission || 10);
+    setAdresse((owner as any).adresse || '');
+    setEditingOwner(owner);
+    setIsFormModalOpen(true);
+  };
+
+  const handleDeleteOwner = (owner: Owner) => {
+    const biensCount = properties.filter(p => p.proprietaireId === owner.id).length;
+    
+    let message = `Supprimer ${owner.prenom} ${owner.nom} ?\n\n`;
+    if (biensCount > 0) {
+      message += `⚠️ Ce propriétaire a ${biensCount} bien(s) rattaché(s).\n`;
+      message += `Les biens deviendront orphelins (owner_id = NULL).\n\n`;
+    }
+    message += 'Cette action est irréversible.';
+    
+    if (window.confirm(message)) {
+      if (onDeleteOwner) onDeleteOwner(owner.id);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +143,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
       totalLoyersMensuels: 350000,
     };
     onAddOwner(newOwner);
-    setIsAddModalOpen(false);
+    setIsFormModalOpen(false);
     // Reset
     setNom('');
     setPrenom('');
@@ -162,7 +198,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
             <span>Excel</span>
           </button>
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => setIsFormModalOpen(true)}
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -197,7 +233,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
             Enregistrez votre premier propriétaire mandant pour commencer à lui rattacher des immeubles et des lots locatifs.
           </p>
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => setIsFormModalOpen(true)}
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs"
           >
             + Nouveau Propriétaire
@@ -286,7 +322,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#C9A96E]/15 flex items-center justify-between gap-2">
+              <div className="mt-4 pt-3 border-t border-[#C9A96E]/15 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-[10px] text-[#6B7C94] uppercase">Potentiel Mensuel</div>
                   <div className="text-sm font-bold text-[#C9A96E] font-mono">
@@ -294,7 +330,23 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    onClick={() => handleEditOwner(o)}
+                    className="px-2 py-1.5 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] border border-[#C9A96E]/30 font-semibold text-xs transition-all flex items-center gap-1 cursor-pointer"
+                    title="Modifier ce propriétaire"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteOwner(o)}
+                    className="px-2 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold text-xs transition-all flex items-center gap-1 cursor-pointer"
+                    title="Supprimer ce propriétaire"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
                   <button
                     onClick={() => setSelectedOwnerForMandate(o)}
                     className="px-2.5 py-1.5 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#E8D5B0] border border-[#C9A96E]/30 font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
@@ -316,7 +368,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
                     title="Éditer le Bulletin de Versement Propriétaire complet"
                   >
                     <Printer className="w-3.5 h-3.5" />
-                    <span>Bulletin de Versement</span>
+                    <span>Bulletin</span>
                   </button>
                 </div>
               </div>
@@ -336,17 +388,23 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
       )}
 
       {/* Modal: Ajouter un Nouveau Propriétaire */}
-      {isAddModalOpen && (
+      {isFormModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <UserCheck className="w-5 h-5 text-[#C9A96E]" />
-                <span>Nouveau Propriétaire Mandant</span>
+                <span>{editingOwner ? 'Modifier le Propriétaire' : 'Nouveau Propriétaire Mandant'}</span>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-[#A8B4C4] hover:text-white">
-                ✕
-              </button>
+                              <button
+                  onClick={() => {
+                    setIsFormModalOpen(false);
+                    setEditingOwner(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C] cursor-pointer"
+                >
+                  Annuler
+                </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
@@ -468,7 +526,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
               <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => setIsFormModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4]"
                 >
                   Annuler

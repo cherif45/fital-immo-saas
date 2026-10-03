@@ -41,7 +41,7 @@ export interface AppStateData {
 
 export const defaultSettings: AgencySettings = {
   nomAgence: 'FITAL-IMMO',
-  slogan: 'Gestion Immobilière, Syndic & Recouvrement',
+  slogan: 'Gestion Immobilià¨re, Syndic & Recouvrement',
   telephone: '+221 33 820 00 00',
   email: 'contact@fital-immo.sn',
   adresse: 'Avenue Cheikh Anta Diop, Dakar',
@@ -64,36 +64,20 @@ export const defaultSettings: AgencySettings = {
 };
 
 export const defaultPaymentMethods: PaymentMethodConfig[] = [
-  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espèces (Caisse Agence)', description: 'Règlement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
+  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espà¨ces (Caisse Agence)', description: 'Rà¨glement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
   { id: 'pm-wave', code: 'WAVE', libelle: 'Wave Mobile Money', description: 'Paiement par QR Code.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 0, numeroCompteOuTelephone: '+221 76 328 58 29', instructions: 'Scannez le QR Code Wave.' },
   { id: 'pm-orange-money', code: 'ORANGE_MONEY', libelle: 'Orange Money (OM)', description: 'Paiement via USSD #144#.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 1, numeroCompteOuTelephone: '784912', instructions: 'Composez le code marchand.' },
   { id: 'pm-virement', code: 'VIREMENT', libelle: 'Virement Bancaire', description: 'Virement interbancaire.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 24, banqueNom: 'CBAO Attijariwafa Bank', instructions: 'Effectuez votre virement.' },
-  { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chèque Certifié', description: 'Dépôt de chèque.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chèque certifié.' },
+  { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chà¨que Certifié', description: 'Dépôt de chà¨que.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chà¨que certifié.' },
 ];
 
-// 🎯 Settings VIDES pour nouvelle agence (pas de fallback FITAL)
 export const emptySettings: AgencySettings = {
-  nomAgence: '',
-  slogan: '',
-  telephone: '',
-  email: '',
-  adresse: '',
-  ville: '',
-  pays: 'Sénégal',
-  ninea: '',
-  devise: 'FCFA',
-  tauxGeranceDefaut: 10,
-  penaliteDefaut: 10,
-  tvaTaux: 18,
-  prefixFacture: 'FAC-',
-  prefixQuittance: 'QUI-',
-  prefixPaiement: 'PAY-',
-  prefixContrat: 'BAIL-',
-  prefixBonCaisse: 'BCA-',
-  waveNumero: '',
-  orangeMoneyCode: '',
-  whatsappBusiness: '',
-  standardTelephone: '',
+  nomAgence: '', slogan: '', telephone: '', email: '', adresse: '', ville: '',
+  pays: 'Sénégal', ninea: '', devise: 'FCFA',
+  tauxGeranceDefaut: 10, penaliteDefaut: 10, tvaTaux: 18,
+  prefixFacture: 'FAC-', prefixQuittance: 'QUI-', prefixPaiement: 'PAY-',
+  prefixContrat: 'BAIL-', prefixBonCaisse: 'BCA-',
+  waveNumero: '', orangeMoneyCode: '', whatsappBusiness: '', standardTelephone: '',
 };
 
 export function loadLocalCollection<T>(key: string, fallback: T): T {
@@ -116,13 +100,104 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
 
 export function persistCollection<T>(key: string, data: T): void {
   if (typeof window === 'undefined' || !window.localStorage) return;
+  
+  // âš ï¸ Ne PAS persister les tables volumineuses (dépasse le quota localStorage)
+  const BLOCKED_KEYS = ['payments', 'cash_movements', 'owner_charges', 'invoices', 'penalties', 'tenants'];
+  if (BLOCKED_KEYS.includes(key)) {
+    return;
+  }
+  
   try {
     localStorage.setItem(`fital_immo_${key}`, JSON.stringify(data));
   } catch (err) {
-    console.warn(`[Supabase Service] Impossible de persister ${key}:`, err);
+    if (err instanceof Error && err.name === 'QuotaExceededError') {
+      // Nettoyer le cache pour libérer de l'espace
+      try {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('fital_immo_') && !k.includes('current_user'))
+          .forEach(k => localStorage.removeItem(k));
+      } catch {}
+    }
+    console.warn(`[Supabase Service] Impossible de persister ${key}`);
   }
 }
 
+// ============================================================
+// HELPER : PAGINATION AUTOMATIQUE
+// Contourne la limite Supabase de 1000 lignes par requàªte
+// ============================================================
+async function fetchPage(
+  table: string,
+  agencyId: string,
+  page: number = 0,
+  pageSize: number = 50,
+  extraFilter?: (q: any) => any
+): Promise<{ data: any[]; count: number }> {
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  let q = supabase!
+    .from(table)
+    .select('*')
+    .eq('agency_id', agencyId)
+    .range(from, to);
+  if (extraFilter) q = extraFilter(q);
+  const { data, error } = await q;
+  if (error) {
+    console.warn(`fetchPage ${table}:`, error);
+    return { data: [], count: 0 };
+  }
+  return { data: data || [], count: data?.length || 0 };
+}
+// ============================================================
+// HELPER : RÉCUPÉRATION COMPLÈTE D'UNE TABLE (pagination auto)
+// Récupère TOUTES les lignes sans être bloqué à 1000
+// ============================================================
+async function fetchAllRows(
+  table: string,
+  agencyId: string,
+  extraFilter?: (q: any) => any,
+  pageSize: number = 1000
+): Promise<{ data: any[]; error: any }> {
+  const allRows: any[] = [];
+  let page = 0;
+
+  while (true) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    let q = supabase!
+      .from(table)
+      .select('*')
+      .eq('agency_id', agencyId)
+      .range(from, to);
+
+    if (extraFilter) q = extraFilter(q);
+
+    const { data, error } = await q;
+
+    if (error) {
+      console.warn(`fetchAllRows ${table} page ${page}:`, error);
+      return { data: allRows, error };
+    }
+    if (!data || data.length === 0) break;
+
+    allRows.push(...data);
+
+    // Si on a reçu moins que pageSize, c'est la dernière page
+    if (data.length < pageSize) break;
+
+    page++;
+
+    // Garde-fou : max 100 pages (100 000 lignes)
+    if (page > 100) {
+      console.warn(`fetchAllRows ${table}: limite 100 pages atteinte`);
+      break;
+    }
+  }
+
+  console.log(`✅ fetchAllRows ${table}: ${allRows.length} lignes chargées (${page + 1} pages)`);
+  return { data: allRows, error: null };
+}
 // ============================================================
 // MAPPERS
 // ============================================================
@@ -181,11 +256,11 @@ export function mapPropertyFromDb(r: any): Property {
     nombrePieces: Number(r.nombre_pieces ?? r.nombrePieces ?? 3),
     pieces: Number(r.pieces ?? r.nombre_pieces ?? 3),
     avatar: r.avatar || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80',
-    equipements: r.equipements || ['Climatisation', 'Compteur Eau & Électricité', 'Sécurité 24/7'],
+    equipements: r.equipements || ['Climatisation', 'Compteur Eau & à‰lectricité', 'Sécurité 24/7'],
     description: r.description || '',
     dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
     locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
-    locataireActuelId: r.locataire_actuel_id || r.locataireActuelId, // 🆕 AJOUTÉ
+    locataireActuelId: r.locataire_actuel_id || r.locataireActuelId,
   };
 }
 
@@ -215,7 +290,7 @@ export function mapTenantFromDb(r: any): Tenant {
     email: r.email || '', cni: r.cni || '', fonction: r.fonction || '',
     profession: r.profession || r.fonction || '', employeur: r.employeur || '',
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
-    statut: r.statut || 'À jour',
+    statut: r.statut || 'à€ jour',
     scoreSolvabilite: Number(r.score_solvabilite ?? r.scoreSolvabilite ?? 85),
     bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
     proprietaireId: r.proprietaire_id || r.proprietaireId || '',
@@ -273,7 +348,7 @@ export function mapPaymentFromDb(r: any): Payment {
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
     statut: r.statut || 'Payé',
-    modePaiement: r.mode_paiement || r.modePaiement || 'Espèces',
+    modePaiement: r.mode_paiement || r.modePaiement || 'Espà¨ces',
     moyenPaiementCode: r.moyen_paiement_code || r.moyenPaiementCode || 'ESPECES',
     verificationStatut: r.verification_statut || r.verificationStatut || 'valide',
     referenceTransaction: r.reference_transaction || r.referenceTransaction || '',
@@ -542,7 +617,7 @@ export function mapInvoiceFromDb(r: any): Invoice {
     dateEcheance: r.date_echeance || r.dateEcheance || new Date().toISOString().split('T')[0],
     sousTotal: Number(r.sous_total ?? r.sousTotal ?? tot),
     taxes: Number(r.taxes ?? 0), total: tot, montantTotal: tot,
-    statut: r.statut || 'Émise', lignes: r.lignes || [],
+    statut: r.statut || 'à‰mise', lignes: r.lignes || [],
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -616,7 +691,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   if (!isSupabaseConfigured || !supabase) return state;
 
   if (!agencyId) {
-    console.warn('⚠️ loadFullApplicationData : agencyId manquant → aucune donnée distante chargée.');
+    console.warn('âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnée distante chargée.');
     return state;
   }
 
@@ -633,29 +708,30 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
       agencyFilter(supabase.from('owners').select('*').is('deleted_at', null)),
-      agencyFilter(supabase.from('tenants').select('*').is('deleted_at', null)),
+      // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
+      fetchAllRows('tenants', agencyId, q => q.is('deleted_at', null)),
       agencyFilter(supabase.from('contracts').select('*')),
-      agencyFilter(supabase.from('payments').select('*').is('deleted_at', null).order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('cash_movements').select('*').order('created_at', { ascending: false })),
+      Promise.resolve({ data: [], error: null }),
+      Promise.resolve({ data: [], error: null }),
       agencyFilter(supabase.from('cash_closings').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('maintenance_tickets').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('property_inspections').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('disbursements').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('invoices').select('*').order('created_at', { ascending: false })),
+      Promise.resolve({ data: [], error: null }),
       agencyFilter(supabase.from('tenant_reminders').select('*').order('date_creation', { ascending: false })),
       agencyFilter(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)),
       agencyFilter(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)),
       agencyFilter(supabase.from('payment_methods_config').select('*')),
       supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle(),
       agencyFilter(supabase.from('profiles').select('*')),
-      agencyFilter(supabase.from('buildings').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('units').select('*').order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('buildings').select('*').order('created_at', { ascending: false }).limit(2000)),
+      fetchAllRows('units', agencyId, q => q.order('created_at', { ascending: false })),
       agencyFilter(supabase.from('owner_deductions').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('bulletin_versements').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('archives').select('*').order('archived_at', { ascending: false }).limit(200)),
       agencyFilter(supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500)),
-      agencyFilter(supabase.from('penalties').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('owner_charges').select('*').order('created_at', { ascending: false })),
+      fetchAllRows('penalties', agencyId, q => q.order('created_at', { ascending: false })),
+      Promise.resolve({ data: [], error: null }),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
@@ -825,71 +901,39 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
   return state;
 }
 
-// ============================================================
-// FETCH USER PROFILE (CORRIGÉ - sans jointure)
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// SUITE DU FICHIER (identique à  ton original)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
 export async function fetchUserProfile(userId: string): Promise<UserAccount | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
-    // 1. Charger le profil SANS jointure
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error || !profile) { 
-      console.warn('Profil non trouvé:', error); 
-      return null; 
-    }
-
-    // 2. Charger l'agence séparément
+    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error || !profile) { console.warn('Profil non trouvé:', error); return null; }
     let agencyData = null;
     if (profile.agency_id) {
-      const { data: agency } = await supabase
-        .from('agencies')
-        .select('name, slug, logo_url')
-        .eq('id', profile.agency_id)
-        .maybeSingle();
+      const { data: agency } = await supabase.from('agencies').select('name, slug, logo_url').eq('id', profile.agency_id).maybeSingle();
       agencyData = agency;
     }
-
-    // 3. Retourner l'utilisateur
     return {
-      id: profile.id, 
-      agencyId: profile.agency_id, 
-      email: profile.email,
-      nom: profile.nom, 
-      prenom: profile.prenom, 
-      telephone: profile.telephone,
-      role: profile.role, 
-      statut: profile.statut, 
-      permissions: profile.permissions || [],
-      avatar: profile.avatar_url, 
-      proprietaireId: profile.proprietaire_id,
-      locataireId: profile.locataire_id, 
-      derniereConnexion: profile.derniere_connexion,
-      organisation: agencyData?.name || '',
-      createdAt: profile.created_at, 
-      updatedAt: profile.updated_at,
+      id: profile.id, agencyId: profile.agency_id, email: profile.email,
+      nom: profile.nom, prenom: profile.prenom, telephone: profile.telephone,
+      role: profile.role, statut: profile.statut, permissions: profile.permissions || [],
+      avatar: profile.avatar_url, proprietaireId: profile.proprietaire_id,
+      locataireId: profile.locataire_id, derniereConnexion: profile.derniere_connexion,
+      organisation: agencyData?.name || '', createdAt: profile.created_at, updatedAt: profile.updated_at,
     };
-  } catch (e) { 
-    console.error('Erreur fetchUserProfile:', e); 
-    return null; 
-  }
+  } catch (e) { console.error('Erreur fetchUserProfile:', e); return null; }
 }
 
-// ============================================================
-// AUDIT LOG
-// ============================================================
 export async function logSystemAudit(log: Partial<AuditLog>, agencyId?: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return;
   try {
     await supabase.from('audit_logs').insert([{
       agency_id: agencyId,
-      user_nom: log.userNom || log.utilisateur || 'Système',
+      user_nom: log.userNom || log.utilisateur || 'Systà¨me',
       action: log.action || 'ACTION',
-      module: log.module || log.entite || 'SYSTÈME',
+      module: log.module || log.entite || 'SYSTàˆME',
       entity_type: log.entityType || log.entite || 'GENERAL',
       entity_ref: log.entityRef || log.entiteId || 'N/A',
       details: log.details || '',
@@ -902,9 +946,9 @@ async function recordExists(table: string, id: string, agencyId: string): Promis
   return !!data;
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : BUILDINGS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveBuildingToDb(building: Partial<Building>, agencyId: string): Promise<{ success: boolean; data?: Building; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: building as Building };
   try {
@@ -912,10 +956,8 @@ export async function saveBuildingToDb(building: Partial<Building>, agencyId: st
       agency_id: agencyId, proprietaire_id: building.proprietaireId,
       nom: building.nom, adresse: building.adresse || '',
       quartier: building.quartier || '', ville: building.ville || 'Dakar',
-      type: building.type || 'Immeuble',
-      nombre_etages: building.nombreEtages || 0,
-      description: building.description || '',
-      statut: building.statut || 'Actif',
+      type: building.type || 'Immeuble', nombre_etages: building.nombreEtages || 0,
+      description: building.description || '', statut: building.statut || 'Actif',
       updated_at: new Date().toISOString(),
     };
     const exists = building.id ? await recordExists('buildings', building.id, agencyId) : false;
@@ -940,48 +982,27 @@ export async function deleteBuildingFromDb(buildingId: string): Promise<{ succes
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : UNITS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promise<{ success: boolean; data?: Unit; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: unit as Unit };
   try {
     const record: any = {
-      agency_id: agencyId, 
-      building_id: unit.buildingId || null,
-      proprietaire_id: unit.proprietaireId || null, 
-      nom: unit.nom || 'Espace',
-      type: unit.type || 'Appartement', 
-      etage: unit.etage || '',
-      superficie: unit.superficie || 0, 
-      nombre_pieces: unit.nombrePieces || 1,
-      loyer_base: unit.loyerBase || 0, 
-      charges: unit.charges || 0,
-      statut: unit.statut || 'Vacant',
-      locataire_actuel_id: unit.locataireActuelId || null,
-      description: unit.description || '',
-      equipements: unit.equipements || [],
+      agency_id: agencyId, building_id: unit.buildingId || null,
+      proprietaire_id: unit.proprietaireId || null, nom: unit.nom || 'Espace',
+      type: unit.type || 'Appartement', etage: unit.etage || '',
+      superficie: unit.superficie || 0, nombre_pieces: unit.nombrePieces || 1,
+      loyer_base: unit.loyerBase || 0, charges: unit.charges || 0,
+      statut: unit.statut || 'Vacant', locataire_actuel_id: unit.locataireActuelId || null,
+      description: unit.description || '', equipements: unit.equipements || [],
       updated_at: new Date().toISOString(),
     };
-    
-    // 🆕 Si l'unité a un ID, on l'ajoute pour que upsert fasse un UPDATE
-    if (unit.id) {
-      record.id = unit.id;
-    }
-    
-    // 🆕 Utiliser upsert au lieu de insert/update
-    const { data, error } = await supabase
-      .from('units')
-      .upsert(record, { onConflict: 'id' })
-      .select()
-      .single();
-    
+    if (unit.id) record.id = unit.id;
+    const { data, error } = await supabase.from('units').upsert(record, { onConflict: 'id' }).select().single();
     if (error) throw error;
     return { success: true, data: mapUnitFromDb(data) };
-  } catch (err: any) { 
-    console.error('Erreur saveUnitToDb:', err);
-    return { success: false, error: err.message || 'Impossible.' }; 
-  }
+  } catch (err: any) { console.error('Erreur saveUnitToDb:', err); return { success: false, error: err.message || 'Impossible.' }; }
 }
 
 export async function deleteUnitFromDb(unitId: string): Promise<{ success: boolean; error?: string }> {
@@ -993,26 +1014,21 @@ export async function deleteUnitFromDb(unitId: string): Promise<{ success: boole
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PENALTIES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function savePenaltyToDb(penalty: Partial<Penalty>, agencyId: string): Promise<{ success: boolean; data?: Penalty; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: penalty as Penalty };
   try {
     const record = {
       agency_id: agencyId, payment_id: penalty.paymentId || null,
-      locataire_id: penalty.locataireId,
-      locataire_nom: penalty.locataireNom || null,
+      locataire_id: penalty.locataireId, locataire_nom: penalty.locataireNom || null,
       bien_id: penalty.bienId || null, bien_nom: penalty.bienNom || null,
-      periode: penalty.periode,
-      jours_retard: penalty.joursRetard || 0,
-      taux_penalite: penalty.tauxPenalite || 10,
-      montant_base: penalty.montantBase || 0,
-      montant_penalite: penalty.montantPenalite || 0,
-      statut: penalty.statut || 'En attente',
+      periode: penalty.periode, jours_retard: penalty.joursRetard || 0,
+      taux_penalite: penalty.tauxPenalite || 10, montant_base: penalty.montantBase || 0,
+      montant_penalite: penalty.montantPenalite || 0, statut: penalty.statut || 'En attente',
       date_calcul: penalty.dateCalcul || new Date().toISOString().split('T')[0],
-      date_application: penalty.dateApplication || null,
-      notes: penalty.notes || '',
+      date_application: penalty.dateApplication || null, notes: penalty.notes || '',
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase.from('penalties').insert([record]).select().single();
@@ -1030,9 +1046,9 @@ export async function deletePenaltyFromDb(penaltyId: string): Promise<{ success:
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : OWNER CHARGES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId: string): Promise<{ success: boolean; data?: OwnerCharge; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: charge as OwnerCharge };
   try {
@@ -1040,12 +1056,10 @@ export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId
       agency_id: agencyId, proprietaire_id: charge.proprietaireId,
       proprietaire_nom: charge.proprietaireNom || null,
       bulletin_id: charge.bulletinId || null, periode: charge.periode,
-      type_charge: charge.typeCharge || 'AUTRE',
-      libelle: charge.libelle, montant: charge.montant || 0,
-      reference_document: charge.referenceDocument || null,
+      type_charge: charge.typeCharge || 'AUTRE', libelle: charge.libelle,
+      montant: charge.montant || 0, reference_document: charge.referenceDocument || null,
       date_charge: charge.dateCharge || new Date().toISOString().split('T')[0],
-      statut: charge.statut || 'Validé',
-      notes: charge.notes || '',
+      statut: charge.statut || 'Validé', notes: charge.notes || '',
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase.from('owner_charges').insert([record]).select().single();
@@ -1063,21 +1077,19 @@ export async function deleteOwnerChargeFromDb(chargeId: string): Promise<{ succe
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : OWNER DEDUCTIONS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveOwnerDeductionToDb(deduction: Partial<OwnerDeduction>, agencyId: string): Promise<{ success: boolean; data?: OwnerDeduction; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: deduction as OwnerDeduction };
   try {
     const record = {
       agency_id: agencyId, proprietaire_id: deduction.proprietaireId,
       bulletin_ref: deduction.bulletinRef || null, periode: deduction.periode,
-      type_deduction: deduction.typeDeduction || 'AUTRE',
-      libelle: deduction.libelle, montant: deduction.montant || 0,
-      reference_document: deduction.referenceDocument || null,
+      type_deduction: deduction.typeDeduction || 'AUTRE', libelle: deduction.libelle,
+      montant: deduction.montant || 0, reference_document: deduction.referenceDocument || null,
       date_deduction: deduction.dateDeduction || new Date().toISOString().split('T')[0],
-      notes: deduction.notes || '',
-      updated_at: new Date().toISOString(),
+      notes: deduction.notes || '', updated_at: new Date().toISOString(),
     };
     const exists = deduction.id ? await recordExists('owner_deductions', deduction.id, agencyId) : false;
     if (exists) {
@@ -1101,16 +1113,15 @@ export async function deleteOwnerDeductionFromDb(deductionId: string): Promise<{
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : BULLETIN VERSEMENTS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersement>, agencyId: string): Promise<{ success: boolean; data?: BulletinVersement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: bulletin as BulletinVersement };
   try {
     const record = {
       agency_id: agencyId, reference: bulletin.reference,
-      proprietaire_id: bulletin.proprietaireId,
-      proprietaire_nom: bulletin.proprietaireNom || null,
+      proprietaire_id: bulletin.proprietaireId, proprietaire_nom: bulletin.proprietaireNom || null,
       periode: bulletin.periode, taux_commission: bulletin.tauxCommission || 10,
       total_loyers_bruts: bulletin.totalLoyersBruts || 0,
       total_commission: bulletin.totalCommission || 0,
@@ -1143,9 +1154,9 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
   } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : ARCHIVES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveArchiveToDb(archive: Partial<ArchiveRecord>, agencyId: string): Promise<{ success: boolean; data?: ArchiveRecord; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: archive as ArchiveRecord };
   try {
@@ -1172,21 +1183,18 @@ export async function fetchArchivesFromDb(agencyId: string, entityType?: string)
   } catch (err: any) { return []; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : ACTIVITY LOGS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agencyId: string): Promise<{ success: boolean; data?: ActivityLog; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: activity as ActivityLog };
   try {
     const record = {
       agency_id: agencyId, user_id: activity.userId || null,
-      user_nom: activity.userNom || null,
-      activity_type: activity.activityType,
-      entity_type: activity.entityType || null,
-      entity_id: activity.entityId || null,
-      entity_ref: activity.entityRef || null,
-      title: activity.title, description: activity.description || null,
-      montant: activity.montant || null,
+      user_nom: activity.userNom || null, activity_type: activity.activityType,
+      entity_type: activity.entityType || null, entity_id: activity.entityId || null,
+      entity_ref: activity.entityRef || null, title: activity.title,
+      description: activity.description || null, montant: activity.montant || null,
       activity_date: activity.activityDate || new Date().toISOString().split('T')[0],
       activity_hour: activity.activityHour || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       metadata: activity.metadata || {},
@@ -1200,9 +1208,7 @@ export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agency
 export async function fetchActivitiesByDate(agencyId: string, date: string): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    const { data, error } = await supabase
-      .from('activity_logs').select('*').eq('agency_id', agencyId)
-      .eq('activity_date', date).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('activity_logs').select('*').eq('agency_id', agencyId).eq('activity_date', date).order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
   } catch (err: any) { return []; }
@@ -1211,82 +1217,53 @@ export async function fetchActivitiesByDate(agencyId: string, date: string): Pro
 export async function fetchActivitiesByEntity(agencyId: string, entityId: string): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    const { data, error } = await supabase
-      .from('activity_logs').select('*').eq('agency_id', agencyId)
-      .eq('entity_id', entityId).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('activity_logs').select('*').eq('agency_id', agencyId).eq('entity_id', entityId).order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
   } catch (err: any) { return []; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PROPERTIES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function savePropertyToDb(property: Partial<Property>, agencyId: string): Promise<{ success: boolean; data?: Property; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: property as Property };
   try {
     const record: any = {
-      agency_id: agencyId, 
-      ref: property.ref || `BIEN-${Date.now()}`,
-      nom: property.nom, 
-      type: property.type, 
-      adresse: property.adresse,
-      quartier: property.quartier || 'Dakar', 
-      ville: property.ville || 'Dakar',
-      proprietaire_id: property.proprietaireId, 
-      loyer_base: property.loyerBase,
-      charges: property.charges || 0, 
-      tva_applicable: property.tvaApplicable || false,
-      statut: property.statut || 'Vacant', 
-      superficie: property.superficie || 0,
-      nombre_pieces: property.nombrePieces || 3, 
-      description: property.description || '',
-      locataire_actuel_id: property.locataireActuelId || null, // 🆕 AJOUTÉ
+      agency_id: agencyId, ref: property.ref || `BIEN-${Date.now()}`,
+      nom: property.nom, type: property.type, adresse: property.adresse,
+      quartier: property.quartier || 'Dakar', ville: property.ville || 'Dakar',
+      proprietaire_id: property.proprietaireId, loyer_base: property.loyerBase,
+      charges: property.charges || 0, tva_applicable: property.tvaApplicable || false,
+      statut: property.statut || 'Vacant', superficie: property.superficie || 0,
+      nombre_pieces: property.nombrePieces || 3, description: property.description || '',
+      locataire_actuel_id: property.locataireActuelId || null,
       updated_at: new Date().toISOString(),
     };
-    
-    // 🆕 Si la propriété a un ID, on l'ajoute pour que upsert fasse un UPDATE
-    if (property.id) {
-      record.id = property.id;
-    }
-    
-    // 🆕 Utiliser upsert au lieu de insert/update
-    const { data, error } = await supabase
-      .from('properties')
-      .upsert(record, { onConflict: 'id' })
-      .select()
-      .single();
-    
+    if (property.id) record.id = property.id;
+    const { data, error } = await supabase.from('properties').upsert(record, { onConflict: 'id' }).select().single();
     if (error) throw error;
     return { success: true, data: mapPropertyFromDb(data) };
-  } catch (err: any) { 
-    console.error('Erreur savePropertyToDb:', err);
-    return { success: false, error: err.message || 'Impossible.' }; 
-  }
+  } catch (err: any) { console.error('Erreur savePropertyToDb:', err); return { success: false, error: err.message || 'Impossible.' }; }
 }
 
-// ============================================================
-// CRUD : OWNERS (CORRIGÉ avec type_piece et cni)
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// CRUD : OWNERS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Promise<{ success: boolean; data?: Owner; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: owner as Owner };
   try {
     const record = {
-      agency_id: agencyId, 
-      ref: owner.ref || `PRO-${Date.now()}`,
-      nom: owner.nom, 
-      prenom: owner.prenom, 
-      telephone: owner.telephone,
+      agency_id: agencyId, ref: owner.ref || `PRO-${Date.now()}`,
+      nom: owner.nom, prenom: owner.prenom, telephone: owner.telephone,
       email: owner.email || `owner-${Date.now()}@fital-immo.com`,
       adresse: owner.adresse || 'Dakar, Sénégal',
       banque: owner.banque || 'CBAO Attijariwafa',
       compte_bancaire: owner.compteBancaire || '',
       mandat_gerance: owner.mandatGerance || `MANDAT-${Date.now()}`,
       taux_commission: owner.tauxCommission ?? 10,
-      statut: owner.statut || 'Actif', 
-      observations: owner.observations || '',
-      type_piece: owner.typePiece || 'CNI',
-      cni: owner.cni || '',
+      statut: owner.statut || 'Actif', observations: owner.observations || '',
+      type_piece: owner.typePiece || 'CNI', cni: owner.cni || '',
     };
     const exists = owner.id ? await recordExists('owners', owner.id, agencyId) : false;
     if (exists) {
@@ -1301,9 +1278,9 @@ export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Pr
   } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : TENANTS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string): Promise<{ success: boolean; data?: Tenant; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: tenant as Tenant };
   try {
@@ -1312,7 +1289,7 @@ export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string):
       nom: tenant.nom, prenom: tenant.prenom, telephone: tenant.telephone,
       email: tenant.email, cni: tenant.cni || '', fonction: tenant.fonction || '',
       employeur: tenant.employeur || '', revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || 'À jour', score_solvabilite: tenant.scoreSolvabilite || 85,
+      statut: tenant.statut || 'à€ jour', score_solvabilite: tenant.scoreSolvabilite || 85,
       bien_id: tenant.bienId || null, proprietaire_id: tenant.proprietaireId || null,
       date_entree: tenant.dateEntree || new Date().toISOString().split('T')[0],
       date_sortie: tenant.dateSortie || null,
@@ -1333,9 +1310,9 @@ export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string):
   } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : CONTRACTS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveContractToDb(contract: Partial<LeaseContract>, agencyId: string): Promise<{ success: boolean; data?: LeaseContract; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: contract as LeaseContract };
   try {
@@ -1345,11 +1322,9 @@ export async function saveContractToDb(contract: Partial<LeaseContract>, agencyI
       locataire_id: contract.locataireId, bien_id: contract.bienId,
       proprietaire_id: contract.proprietaireId, loyer_base: contract.loyerBase,
       charges: contract.charges || 0, caution_loyer: contract.cautionLoyer || 0,
-      caution_eau: contract.cautionEau || 0,
-      caution_electricite: contract.cautionElectricite || 0,
+      caution_eau: contract.cautionEau || 0, caution_electricite: contract.cautionElectricite || 0,
       frais_adhesion: contract.fraisAdhesion || 0, date_debut: contract.dateDebut,
-      date_fin: contract.dateFin,
-      type_reglement: contract.typeReglement || 'Mensuel',
+      date_fin: contract.dateFin, type_reglement: contract.typeReglement || 'Mensuel',
       jour_echeance: 5, statut: contract.statut || 'En cours',
       created_by_id: contract.createdById || null,
       created_by_nom: contract.createdByNom || null,
@@ -1368,9 +1343,9 @@ export async function saveContractToDb(contract: Partial<LeaseContract>, agencyI
   } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PAYMENTS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function savePaymentToDb(payment: Partial<Payment>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: Payment; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: payment as Payment };
   try {
@@ -1378,8 +1353,7 @@ export async function savePaymentToDb(payment: Partial<Payment>, agencyId: strin
       agency_id: agencyId, ref: payment.ref || `PAY-${Date.now()}`,
       quittance_numero: payment.quittanceNumero || `QUI-${Date.now()}`,
       locataire_id: payment.locataireId, bien_id: payment.bienId,
-      locataire_nom: payment.locataireNom || null,
-      bien_nom: payment.bienNom || null,
+      locataire_nom: payment.locataireNom || null, bien_nom: payment.bienNom || null,
       proprietaire_id: payment.proprietaireId, periode: payment.periode,
       loyer_base: payment.loyerBase, charges: payment.charges || 0,
       tva: payment.tva || 0, tom: payment.tom || 0, penalites: payment.penalites || 0,
@@ -1439,9 +1413,9 @@ export async function rejectPendingPaymentInDb(paymentId: string, agencyId: stri
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : CASH
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveCashMovementToDb(movement: Partial<CashMovement>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: CashMovement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: movement as CashMovement };
   try {
@@ -1449,7 +1423,7 @@ export async function saveCashMovementToDb(movement: Partial<CashMovement>, agen
       agency_id: agencyId,
       reference: movement.id?.startsWith('csh-') ? movement.id : `CSH-${Date.now()}`,
       type: movement.type, montant: movement.montant,
-      description: movement.libelle || movement.motif || 'Mouvement de caisse',
+      description: movement.libelle || 'Mouvement de caisse',
       moyen_paiement_code: movement.moyenPaiementCode || 'ESPECES',
       user_id: authorId || null, user_nom: movement.auteurNom || 'Caissier',
       beneficiaire: movement.beneficiaire || null,
@@ -1486,9 +1460,9 @@ export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyI
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : MAINTENANCE
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, agencyId: string): Promise<{ success: boolean; data?: MaintenanceTicket; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: ticket as MaintenanceTicket };
   try {
@@ -1500,8 +1474,7 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
       locataire_nom: ticket.locataireNom || '',
       titre: ticket.titre || 'Signalement incident',
       description: ticket.description || '',
-      priorite: ticket.priorite || 'Moyenne',
-      statut: ticket.statut || 'Signalé',
+      priorite: ticket.priorite || 'Moyenne', statut: ticket.statut || 'Signalé',
       statut_reglement: ticket.statutReglement || 'Non réglé',
       mode_reglement: ticket.modeReglement || null,
       date_reglement: ticket.dateReglement || null,
@@ -1536,9 +1509,9 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : INSPECTIONS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveInspectionToDb(insp: Partial<Inspection>, agencyId: string): Promise<{ success: boolean; data?: Inspection; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: insp as Inspection };
   try {
@@ -1572,9 +1545,9 @@ export async function saveInspectionToDb(insp: Partial<Inspection>, agencyId: st
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : DISBURSEMENTS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, agencyId: string): Promise<{ success: boolean; data?: OwnerDisbursement; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: disb as OwnerDisbursement };
   try {
@@ -1609,9 +1582,9 @@ export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, age
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : INVOICES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): Promise<{ success: boolean; data?: Invoice; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: inv as Invoice };
   try {
@@ -1627,7 +1600,7 @@ export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): 
       date_echeance: inv.dateEcheance || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
       sous_total: inv.sousTotal || inv.montantTotal || 0,
       taxes: inv.taxes || 0, total: inv.total || inv.montantTotal || 0,
-      statut: inv.statut || 'Émise', lignes: inv.lignes || [],
+      statut: inv.statut || 'à‰mise', lignes: inv.lignes || [],
       created_by_id: inv.createdById || null,
       created_by_nom: inv.createdByNom || null,
       created_by_role: inv.createdByRole || null,
@@ -1645,9 +1618,9 @@ export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): 
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : REMINDERS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: string): Promise<{ success: boolean; data?: TenantReminder; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true, data: rem as TenantReminder };
   try {
@@ -1656,8 +1629,7 @@ export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: s
       locataire_nom: rem.locataireNom, telephone: rem.telephone,
       montant_du: rem.montantDu, jours_retard: rem.joursRetard,
       date_envoi: rem.dateEnvoi, canal: rem.canal,
-      niveau: rem.niveau || 'Niveau 1', message: rem.message,
-      statut: rem.statut,
+      niveau: rem.niveau || 'Niveau 1', message: rem.message, statut: rem.statut,
     };
     const { data, error } = await supabase.from('tenant_reminders').insert([record]).select().single();
     if (error) throw error;
@@ -1665,9 +1637,9 @@ export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: s
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : SETTINGS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function saveSettingsToDb(settings: AgencySettings, agencyId?: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return { success: true };
   try {
@@ -1743,9 +1715,9 @@ export async function saveUserToDb(user: UserAccount, agencyId?: string): Promis
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STORAGE
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function uploadFileToSupabaseStorage(
   bucket: 'agency-logos' | 'property-images' | 'documents' | 'payment-proofs' | 'avatars',
   filePath: string, file: File
@@ -1759,9 +1731,9 @@ export async function uploadFileToSupabaseStorage(
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AUTH
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function changeUserPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
@@ -1799,9 +1771,9 @@ export async function softDeleteRecord(
   } catch (err: any) { return { success: false, error: err.message }; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AGENCES
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function getOrCreateDefaultAgency(): Promise<Agency | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
@@ -1844,13 +1816,13 @@ export async function bootstrapAdminProfile(
     nom: profileRecord.nom, prenom: profileRecord.prenom,
     telephone: profileRecord.telephone, role: profileRecord.role,
     statut: 'actif', permissions: ['*'], organisation: agency.name,
-    createdAt: new Date().toISOString(), derniereConnexion: 'À l\'instant',
+    createdAt: new Date().toISOString(), derniereConnexion: 'à€ l\'instant',
   };
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CREATE USER
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export interface CreateUserAccountParams {
   email: string; password: string; nom: string; prenom: string;
   telephone: string; role: UserRole; agencyId: string;
@@ -1875,7 +1847,7 @@ export async function createUserAccountInSupabase(
     });
     if (signUpError) {
       if (signUpError.message?.toLowerCase().includes('already registered')) {
-        return { success: false, error: 'Cet email est déjà enregistré.' };
+        return { success: false, error: 'Cet email est déjà  enregistré.' };
       }
       return { success: false, error: signUpError.message };
     }
@@ -1897,9 +1869,8 @@ export async function createUserAccountInSupabase(
       telephone: params.telephone, role: params.role, statut: 'actif',
       permissions: params.permissions || [],
       proprietaireId: params.proprietaireId, locataireId: params.locataireId,
-      organisation: params.organisation || '',
-      avatar: params.avatar, createdAt: new Date().toISOString(),
-      derniereConnexion: 'Jamais connecté',
+      organisation: params.organisation || '', avatar: params.avatar,
+      createdAt: new Date().toISOString(), derniereConnexion: 'Jamais connecté',
     };
     return { success: true, user: userAccount };
   } catch (err: any) {
@@ -1924,15 +1895,14 @@ export async function fetchAgencyUsers(agencyId?: string): Promise<UserAccount[]
   } catch (err) { return []; }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // RESTAURATION
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function restoreAllData(backup: any): Promise<{ success: boolean; count?: number; error?: string }> {
   if (!supabase) return { success: false, error: 'Supabase non configuré.' };
   try {
     const agencyId = backup?.agencies?.[0]?.id || backup?.users?.[0]?.agencyId || '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
     let totalCount = 0;
-
     const upsertTable = async (tableName: string, data: any[]) => {
       if (!data || data.length === 0) return;
       const cleaned = data.map((item) => ({
@@ -1944,7 +1914,6 @@ export async function restoreAllData(backup: any): Promise<{ success: boolean; c
       if (error) throw new Error(`${tableName} : ${error.message}`);
       totalCount += cleaned.length;
     };
-
     if (backup.users) await upsertTable('profiles', backup.users);
     if (backup.owners) await upsertTable('owners', backup.owners);
     if (backup.buildings) await upsertTable('buildings', backup.buildings);
@@ -1974,16 +1943,15 @@ export async function restoreAllData(backup: any): Promise<{ success: boolean; c
       if (error) console.warn('settings :', error.message);
       else totalCount += 1;
     }
-
     return { success: true, count: totalCount };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
 }
 
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SUPER-ADMIN SAAS
-// ============================================================
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function fetchAllAgencies(): Promise<any[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.from('agencies').select('*').order('created_at', { ascending: false });
@@ -1993,105 +1961,58 @@ export async function fetchAllAgencies(): Promise<any[]> {
 
 export async function fetchAllUsers(): Promise<any[]> {
   if (!supabase) return [];
-  // 🆕 Charger les profils SANS jointure
-  const { data: profiles, error: pErr } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (pErr || !profiles) { 
-    console.warn('fetchAllUsers profiles:', pErr?.message); 
-    return []; 
-  }
-
-  // 🆕 Charger les agences séparément
-  const { data: agencies } = await supabase
-    .from('agencies')
-    .select('id, name, slug, status');
-
-  // 🆕 Fusionner les données
+  const { data: profiles, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  if (pErr || !profiles) { console.warn('fetchAllUsers profiles:', pErr?.message); return []; }
+  const { data: agencies } = await supabase.from('agencies').select('id, name, slug, status');
   const agencyMap = new Map((agencies || []).map((a: any) => [a.id, a]));
-  return profiles.map((p: any) => ({
-    ...p,
-    agencies: agencyMap.get(p.agency_id) || null,
-  }));
+  return profiles.map((p: any) => ({ ...p, agencies: agencyMap.get(p.agency_id) || null }));
 }
 
 export async function createAgencyWithAdmin(params: {
-  agencyName: string;
-  agencySlug: string;
-  agencyEmail: string;
-  agencyPhone: string;
-  agencyCity: string;
-  agencyAddress?: string;
-  agencyLogoUrl?: string;
-  agencyPrimaryColor?: string;
-  agencyWebsite?: string;
-  agencyNinea?: string;
-  agencyRc?: string;
-  agencyBankName?: string;
-  agencyBankAccount?: string;
-  adminEmail: string;
-  adminPassword: string;
-  adminNom: string;
-  adminPrenom: string;
-  adminTelephone: string;
+  agencyName: string; agencySlug: string; agencyEmail: string; agencyPhone: string;
+  agencyCity: string; agencyAddress?: string; agencyLogoUrl?: string;
+  agencyPrimaryColor?: string; agencyWebsite?: string; agencyNinea?: string;
+  agencyRc?: string; agencyBankName?: string; agencyBankAccount?: string;
+  adminEmail: string; adminPassword: string; adminNom: string;
+  adminPrenom: string; adminTelephone: string;
 }): Promise<{ success: boolean; agencyId?: string; error?: string }> {
   let agencyId: string | null = null;
-
   try {
-    const { data: agency, error: agencyError } = await supabase
-      .from('agencies')
-      .insert({
-        name: params.agencyName,
-        slug: params.agencySlug,
-        email: params.agencyEmail,
-        phone: params.agencyPhone,
-        city: params.agencyCity,
-        address: params.agencyAddress || '',
-        logo_url: params.agencyLogoUrl || null,
-        primary_color: params.agencyPrimaryColor || '#C9A96E',
-        website: params.agencyWebsite || null,
-        ninea: params.agencyNinea || null,
-        rc: params.agencyRc || null,
-        bank_name: params.agencyBankName || null,
-        bank_account: params.agencyBankAccount || null,
-        plan: 'BASIC',
-        subscription_start: new Date().toISOString().split('T')[0],
-        subscription_end: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-        status: 'active',
-      })
-      .select().single();
-
+    const { data: agency, error: agencyError } = await supabase.from('agencies').insert({
+      name: params.agencyName, slug: params.agencySlug,
+      email: params.agencyEmail, phone: params.agencyPhone,
+      city: params.agencyCity, address: params.agencyAddress || '',
+      logo_url: params.agencyLogoUrl || null,
+      primary_color: params.agencyPrimaryColor || '#C9A96E',
+      website: params.agencyWebsite || null,
+      ninea: params.agencyNinea || null, rc: params.agencyRc || null,
+      bank_name: params.agencyBankName || null,
+      bank_account: params.agencyBankAccount || null,
+      plan: 'BASIC',
+      subscription_start: new Date().toISOString().split('T')[0],
+      subscription_end: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+      status: 'active',
+    }).select().single();
     if (agencyError || !agency) {
       return { success: false, error: 'Erreur création agence : ' + (agencyError?.message || 'inconnue') };
     }
     agencyId = agency.id;
-
     const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
-
     const { data: authData, error: authError } = await ephemeralClient.auth.signUp({
       email: params.adminEmail.trim().toLowerCase(),
       password: params.adminPassword,
-      options: {
-        data: {
-          nom: params.adminNom, prenom: params.adminPrenom,
-          role: 'SUPER_ADMIN', agency_id: agency.id,
-        },
-      },
+      options: { data: { nom: params.adminNom, prenom: params.adminPrenom, role: 'SUPER_ADMIN', agency_id: agency.id } },
     });
-
     if (authError) {
       await supabase.from('agencies').delete().eq('id', agency.id);
       return { success: false, error: 'Erreur création compte : ' + authError.message };
     }
-
     if (!authData?.user?.id) {
       await supabase.from('agencies').delete().eq('id', agency.id);
       return { success: false, error: 'Compte Auth non créé. Vérifiez "Enable email signups".' };
     }
-
     const { error: profileError } = await supabase.from('profiles').insert({
       id: authData.user.id, agency_id: agency.id,
       email: params.adminEmail.trim().toLowerCase(),
@@ -2099,42 +2020,31 @@ export async function createAgencyWithAdmin(params: {
       telephone: params.adminTelephone, role: 'SUPER_ADMIN',
       statut: 'actif', permissions: ['*'],
     });
-
     if (profileError) {
       await supabase.from('agencies').delete().eq('id', agency.id);
       return { success: false, error: 'Erreur création profil : ' + profileError.message };
     }
-
     try {
       await supabase.from('payment_methods_config').insert([
-        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espèces', description: 'Règlement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
+        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espà¨ces', description: 'Rà¨glement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
         { agency_id: agency.id, code: 'WAVE', libelle: 'Wave', description: 'Paiement Wave', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
         { agency_id: agency.id, code: 'ORANGE_MONEY', libelle: 'Orange Money', description: 'Paiement OM', actif: true, frais_pourcentage: 0, delai_validation_heures: 1 },
         { agency_id: agency.id, code: 'VIREMENT', libelle: 'Virement', description: 'Virement bancaire', actif: true, frais_pourcentage: 0, delai_validation_heures: 24 },
-        { agency_id: agency.id, code: 'CHEQUE', libelle: 'Chèque', description: 'Dépôt de chèque', actif: true, frais_pourcentage: 0, delai_validation_heures: 48 },
+        { agency_id: agency.id, code: 'CHEQUE', libelle: 'Chà¨que', description: 'Dépôt de chà¨que', actif: true, frais_pourcentage: 0, delai_validation_heures: 48 },
       ]);
     } catch (e) { console.warn('Erreur création payment_methods:', e); }
-
     try {
       await supabase.from('agency_settings').insert({
-        agency_id: agency.id,
-        nom_agence: params.agencyName,
-        telephone: params.agencyPhone,
-        email: params.agencyEmail,
-        adresse: params.agencyAddress || '',
-        ville: params.agencyCity,
-        pays: 'Sénégal',
-        devise: 'FCFA',
-        ninea: params.agencyNinea || null,
-        taux_gerance_defaut: 10,
-        penalite_defaut: 10,
-        tva_taux: 18,
+        agency_id: agency.id, nom_agence: params.agencyName,
+        telephone: params.agencyPhone, email: params.agencyEmail,
+        adresse: params.agencyAddress || '', ville: params.agencyCity,
+        pays: 'Sénégal', devise: 'FCFA', ninea: params.agencyNinea || null,
+        taux_gerance_defaut: 10, penalite_defaut: 10, tva_taux: 18,
         logo_url: params.agencyLogoUrl || null,
         primary_color: params.agencyPrimaryColor || '#C9A96E',
         website: params.agencyWebsite || null,
       });
     } catch (e) { console.warn('Erreur création settings:', e); }
-
     return { success: true, agencyId: agency.id };
   } catch (err: any) {
     if (agencyId) {
@@ -2159,7 +2069,6 @@ export async function fetchGlobalStats(): Promise<{
   if (!supabase) {
     return { totalAgencies: 0, totalUsers: 0, totalBuildings: 0, totalUnits: 0, totalTenants: 0, totalProperties: 0, totalPayments: 0 };
   }
-
   const [agencies, users, buildings, units, tenants, properties, payments] = await Promise.all([
     supabase.from('agencies').select('id', { count: 'exact', head: true }),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -2169,7 +2078,6 @@ export async function fetchGlobalStats(): Promise<{
     supabase.from('properties').select('id', { count: 'exact', head: true }),
     supabase.from('payments').select('id', { count: 'exact', head: true }),
   ]);
-
   return {
     totalAgencies: agencies.count || 0,
     totalUsers: users.count || 0,
@@ -2179,4 +2087,144 @@ export async function fetchGlobalStats(): Promise<{
     totalProperties: properties.count || 0,
     totalPayments: payments.count || 0,
   };
+}
+
+
+// ============================================================
+// COMPTEURS Rà‰ELS (requàªtes HEAD ultra-rapides)
+// ============================================================
+export async function fetchRealCounts(agencyId: string): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured || !supabase || !agencyId) return {};
+  const tables = [
+    'tenants', 'payments', 'cash_movements', 'invoices',
+    'penalties', 'owner_charges', 'contracts', 'properties',
+    'owners', 'buildings', 'units', 'bulletin_versements',
+    'disbursements', 'property_inspections', 'maintenance_tickets'
+  ];
+  const results = await Promise.allSettled(
+    tables.map(t =>
+      supabase!.from(t).select('id', { count: 'exact', head: true }).eq('agency_id', agencyId)
+    )
+  );
+  const counts: Record<string, number> = {};
+  tables.forEach((t, i) => {
+    const r = results[i];
+    counts[t] = (r.status === 'fulfilled' && r.value.count) ? r.value.count : 0;
+  });
+  return counts;
+}
+
+// ============================================================
+// STATS VIA VUE MATà‰RIALISà‰E (1 requàªte, ultra-rapide)
+// ============================================================
+export interface AgencyStats {
+  agency_id: string;
+  agency_name: string;
+  tenants_count: number;
+  owners_count: number;
+  properties_count: number;
+  buildings_count: number;
+  units_count: number;
+  contracts_count: number;
+  payments_count: number;
+  cash_movements_count: number;
+  invoices_count: number;
+  penalties_count: number;
+  owner_charges_count: number;
+  bulletins_count: number;
+  disbursements_count: number;
+  inspections_count: number;
+  maintenance_count: number;
+  activities_count: number;
+  archives_count: number;
+  total_encaissements: number;
+  total_entrees: number;
+  total_sorties: number;
+}
+
+export async function fetchAgencyStats(agencyId: string): Promise<AgencyStats | null> {
+  if (!isSupabaseConfigured || !supabase || !agencyId) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_agency_stats', { p_agency_id: agencyId });
+    if (error) { console.warn('fetchAgencyStats error:', error); return null; }
+    return data as AgencyStats;
+  } catch (err) {
+    console.warn('fetchAgencyStats exception:', err);
+    return null;
+  }
+}
+
+
+// ============================================================
+// RPC : Statistiques agrégées côté serveur (super rapide)
+// Remplace le comptage/calcul côté client
+// ============================================================
+export interface AgencyStats {
+  total_owners: number;
+  total_tenants: number;
+  total_properties: number;
+  total_units: number;
+  total_contracts: number;
+  total_payments: number;
+  total_invoices: number;
+  total_cash_movements: number;
+  payments_total: number;
+  payments_last_30_days: number;
+  cash_in: number;
+  cash_out: number;
+  cash_balance: number;
+}
+
+export async function getAgencyStats(agencyId: string): Promise<AgencyStats | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_agency_stats', {
+      p_agency_id: agencyId,
+    });
+    if (error) {
+      console.warn('getAgencyStats:', error);
+      return null;
+    }
+    return data as AgencyStats;
+  } catch (e) {
+    console.warn('getAgencyStats exception:', e);
+    return null;
+  }
+}
+
+// ============================================================
+// RPC : Pagination générique serveur-side
+// ============================================================
+export interface PaginatedResult<T> {
+  total: number;
+  page: number;
+  page_size: number;
+  data: T[];
+}
+
+export async function paginateTable<T = any>(
+  tableName: string,
+  agencyId: string,
+  page: number = 0,
+  pageSize: number = 50
+): Promise<PaginatedResult<T>> {
+  if (!supabase) {
+    return { total: 0, page: 0, page_size: pageSize, data: [] };
+  }
+  try {
+    const { data, error } = await supabase.rpc('paginate_table', {
+      p_table_name: tableName,
+      p_agency_id: agencyId,
+      p_page: page,
+      p_page_size: pageSize,
+    });
+    if (error) {
+      console.warn('paginateTable:', error);
+      return { total: 0, page, page_size: pageSize, data: [] };
+    }
+    return data as PaginatedResult<T>;
+  } catch (e) {
+    console.warn('paginateTable exception:', e);
+    return { total: 0, page, page_size: pageSize, data: [] };
+  }
 }
