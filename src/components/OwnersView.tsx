@@ -243,7 +243,11 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredOwners.map((o) => {
           const ownerLots = properties.filter((p) => p.proprietaireId === o.id);
-          const totalLotsRent = ownerLots.reduce((sum, p) => sum + p.loyerTotal, 0);
+// Calcul via les units (p.loyerTotal n'existe pas)
+const ownerUnits = (units || []).filter((u: any) =>
+  ownerLots.some((prop: any) => prop.id === u.buildingId || prop.id === u.bienId)
+);
+const totalLotsRent = ownerUnits.reduce((sum: number, u: any) => sum + (u.loyerBase || 0), 0);
 
           return (
             <div

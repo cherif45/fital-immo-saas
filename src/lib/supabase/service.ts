@@ -2230,3 +2230,67 @@ export async function paginateTable<T = any>(
     return { total: 0, page, page_size: pageSize, data: [] };
   }
 }
+
+// ============================================================
+// RPC : Données complètes du bulletin propriétaire
+// ============================================================
+export interface OwnerBulletinData {
+  payments: any[];
+  properties: any[];
+  buildings: any[];
+  units: any[];
+  tenants: any[];
+}
+
+export async function getOwnerBulletinData(
+  agencyId: string,
+  ownerId: string
+): Promise<OwnerBulletinData> {
+  const empty: OwnerBulletinData = { payments: [], properties: [], buildings: [], units: [], tenants: [] };
+  if (!supabase || !agencyId || !ownerId) return empty;
+  try {
+    const { data, error } = await supabase.rpc('get_owner_bulletin_data', {
+      p_agency_id: agencyId,
+      p_owner_id: ownerId,
+    });
+    if (error) {
+      console.warn('getOwnerBulletinData:', error);
+      return empty;
+    }
+    console.log('🔍 getOwnerBulletinData raw:', data);
+    
+    // Supabase peut retourner le JSON de plusieurs façons :
+    // 1. Direct : { payments: [...], properties: [...] }
+    // 2. Array [ { get_owner_bulletin_data: {...} } ]
+    // 3. String JSON à parser
+    let payload: any = data;
+    
+    // Cas 1 : tableau
+    if (Array.isArray(payload) && payload.length > 0) {
+      payload = payload[0];
+    }
+    // Cas 2 : clé get_owner_bulletin_data
+    if (payload && typeof payload === 'object' && payload.get_owner_bulletin_data) {
+      payload = payload.get_owner_bulletin_data;
+    }
+    // Cas 3 : string JSON
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch {}
+    }
+    
+    console.log('🔍 payload parsed:', payload);
+    
+    return {
+      payments: Array.isArray(payload?.payments) ? payload.payments : [],
+      properties: Array.isArray(payload?.properties) ? payload.properties : [],
+      buildings: Array.isArray(payload?.buildings) ? payload.buildings : [],
+      units: Array.isArray(payload?.units) ? payload.units : [],
+      tenants: Array.isArray(payload?.tenants) ? payload.tenants : [],
+    };
+  } catch (e) {
+    console.warn('getOwnerBulletinData exception:', e);
+    return empty;
+  }
+}

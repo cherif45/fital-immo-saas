@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { formatNumber } from '../lib/utils';
 import { UserSignatureBlock } from './UserSignatureBlock';
+import { getOwnerBulletinData } from '../lib/supabase/service';
 import { useAgencySettings } from '../hooks/useAgencySettings';
 import { PrintHeader, PrintFooter } from './PrintHeader';
 
@@ -147,13 +148,88 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   onSaveBulletin,
 }) => {
   const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
+
+  // 🆕 Charger les données complètes du propriétaire via RPC
+  const [serverPayments, setServerPayments] = useState<Payment[]>([]);
+  const [serverOwnerProps, setServerOwnerProps] = useState<Property[]>([]);
+  const [serverOwnerBuildings, setServerOwnerBuildings] = useState<Building[]>([]);
+  const [serverOwnerUnits, setServerOwnerUnits] = useState<Unit[]>([]);
+  const [serverOwnerTenants, setServerOwnerTenants] = useState<Tenant[]>([]);
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId || !owner?.id) return;
+    (async () => {
+      try {
+        const data = await getOwnerBulletinData(currentUser.agencyId, owner.id);
+        console.log('🔍 RAW data:', data);
+console.log('🔍 data type:', typeof data);
+console.log('🔍 data.payments:', data?.payments);
+        const mappedPayments: Payment[] = (data.payments || []).map((r: any) => ({
+          ...r,
+          id: r.id,
+          montantPaye: Number(r.montant_paye) || 0,
+          montantTotal: Number(r.montant_total) || 0,
+          montantRestant: Number(r.montant_restant) || 0,
+          loyerBase: Number(r.loyer_base) || 0,
+          charges: Number(r.charges) || 0,
+          tva: Number(r.tva) || 0,
+          penalites: Number(r.penalites) || 0,
+          datePaiement: r.date_paiement,
+          periode: r.periode,
+          statut: r.statut,
+          modePaiement: r.mode_paiement,
+          locataireId: r.locataire_id,
+          bienId: r.bien_id,
+          proprietaireId: r.proprietaire_id,
+          contratId: r.contrat_id,
+          locataireNom: r.locataire_nom_calc
+            ? `${r.locataire_prenom_calc || ''} ${r.locataire_nom_calc}`.trim()
+            : r.locataire_nom,
+          bienNom: r.bien_nom_calc || r.bien_nom,
+        }));
+                setServerOwnerProps((data.properties || []).map((p: any) => ({
+          ...p,
+          proprietaireId: p.proprietaire_id || p.proprietaireId,
+          buildingId: p.building_id || p.buildingId,
+          loyerBase: Number(p.loyer_base) || Number(p.loyerBase) || 0,
+        })));
+        setServerOwnerBuildings((data.buildings || []).map((b: any) => ({
+          ...b,
+          proprietaireId: b.proprietaire_id || b.proprietaireId,
+        })));
+        setServerOwnerUnits((data.units || []).map((u: any) => ({
+          ...u,
+          proprietaireId: u.proprietaire_id || u.proprietaireId,
+          buildingId: u.building_id || u.buildingId,
+          loyerBase: Number(u.loyer_base) || Number(u.loyerBase) || 0,
+          bienId: u.bien_id || u.bienId,
+        })));
+        setServerOwnerTenants((data.tenants || []).map((t: any) => ({
+          ...t,
+          bienId: t.bien_id || t.bienId,
+          proprietaireId: t.proprietaire_id || t.proprietaireId,
+          dateSortie: t.date_sortie || t.dateSortie,
+          dateEntree: t.date_entree || t.dateEntree,
+        })));
+        console.log(`✅ Bulletin ${owner.prenom} ${owner.nom} : ${mappedPayments.length} paiements, ${(data.units || []).length} units, ${(data.tenants || []).length} tenants`);
+      } catch (e) {
+        console.warn('loadBulletinData:', e);
+      }
+    })();
+  }, [currentUser?.agencyId, owner?.id, selectedPeriod]);
+
+  const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
+  const displayProperties = serverOwnerProps.length > 0 ? serverOwnerProps : properties;
+  const displayBuildings = serverOwnerBuildings.length > 0 ? serverOwnerBuildings : buildings;
+  const displayUnits = serverOwnerUnits.length > 0 ? serverOwnerUnits : units;
+  const displayTenants = serverOwnerTenants.length > 0 ? serverOwnerTenants : tenants;
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [deductionLibelle, setDeductionLibelle] = useState('');
   const [deductionMontant, setDeductionMontant] = useState(0);
 
-  const ownerProperties = properties.filter((p) => p.proprietaireId === owner.id);
-  const ownerBuildings = buildings.filter((b) => b.proprietaireId === owner.id);
-  const ownerUnits = units.filter((u) => u.proprietaireId === owner.id);
+  const ownerProperties = displayProperties.filter((p) => p.proprietaireId === owner.id);
+  const ownerBuildings = displayBuildings.filter((b) => b.proprietaireId === owner.id);
+  const ownerUnits = displayUnits.filter((u) => u.proprietaireId === owner.id);
   const tauxCommission = owner.tauxCommission || 10;
 
   // Helpers période
@@ -194,10 +270,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     const anneeCourante = now.getFullYear();
 
     const findActiveTenant = (bienId: string) =>
-      tenants.find((t) => t.bienId === bienId && !t.dateSortie);
+      displayTenants.find((t) => t.bienId === bienId && !t.dateSortie);
 
     const findPayment = (bienId: string, locataireId: string) =>
-      payments.find(
+      displayPayments.find(
         (p) =>
           p.bienId === bienId &&
           p.locataireId === locataireId &&
@@ -251,7 +327,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     };
 
     ownerUnits.forEach((unit) => {
-      const batiment = buildings.find((b) => b.id === unit.buildingId);
+      const batiment = displayBuildings.find((b) => b.id === unit.buildingId);
       const line = buildLine(
         unit.id,
         unit.nom,
@@ -296,7 +372,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   // ARRIÉRÉS
   // ============================================================
   const arrieresData: ArriereLigne[] = useMemo(() => {
-    const ownerPaymentsOtherPeriod = payments.filter((p) => {
+    const ownerPaymentsOtherPeriod = displayPayments.filter((p) => {
       if (p.proprietaireId !== owner.id) return false;
       if (p.statut !== 'Payé') return false;
       if (isSamePeriod(p.periode, selectedPeriod)) return false;
@@ -310,7 +386,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       const net = Math.round(montantPaye * (1 - tauxCommission / 100));
       return {
         locataire: p.locataireNom,
-        ref: tenants.find((t) => t.id === p.locataireId)?.ref?.slice(-4) || '—',
+        ref: displayTenants.find((t) => t.id === p.locataireId)?.ref?.slice(-4) || '—',
         reglement: montantPaye,
         arrieres: 0,
         net,
@@ -362,7 +438,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   // ENCAISSEMENTS
   // ============================================================
   const encaissementsLignes: EncaissementLigne[] = useMemo(() => {
-    const cautions = payments.filter((p) => {
+    const cautions = displayPayments.filter((p) => {
       if (p.proprietaireId !== owner.id) return false;
       if (p.statut !== 'Payé') return false;
       const obs = (p.observation || '').toLowerCase();
