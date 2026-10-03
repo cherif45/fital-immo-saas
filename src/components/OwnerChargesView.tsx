@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { OwnerCharge, Owner, UserAccount, OwnerChargeType } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+import { paginateTable } from '../lib/supabase/service';
 
 interface OwnerChargesViewProps {
   ownerCharges: OwnerCharge[];
@@ -41,7 +42,50 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [ownerFilter, setOwnerFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+
+  // 🆕 Pagination serveur
+  const [serverCharges, setServerCharges] = useState<OwnerCharge[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverPage, setServerPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadChargesPage(0);
+  }, [currentUser?.agencyId]);
+
+  const loadChargesPage = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    const result = await paginateTable<any>('owner_charges', currentUser.agencyId, page, PAGE_SIZE);
+    const mapped: OwnerCharge[] = result.data.map((r: any) => ({
+      ...r,
+      id: r.id,
+      ownerId: r.owner_id || r.proprietaire_id,
+      typeCharge: r.type_charge || 'AUTRE',
+      proprietaireNom: r.proprietaire_nom || '—',
+      libelle: r.libelle || r.description || '',
+      montant: Number(r.montant) || 0,
+      dateCharge: r.date_charge || r.created_at,
+      referenceDocument: r.reference_document || null,
+      periode: r.periode || '',
+      statut: r.statut,
+      notes: r.notes,
+    }));
+    if (page === 0) {
+      setServerCharges(mapped);
+    } else {
+      setServerCharges(prev => [...prev, ...mapped]);
+    }
+    setServerTotal(result.total);
+    setServerPage(page);
+    setIsLoadingMore(false);
+  };
+
+  const displayCharges = serverCharges.length > 0 ? serverCharges : ownerCharges;
 
   // Form state
   const [selectedOwnerId, setSelectedOwnerId] = useState('');
@@ -58,7 +102,12 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
   const canManage = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'].includes(role);
 
   // Filtres
-  const filteredCharges = ownerCharges.filter((c) => {
+  const filteredCharges = displayCharges.filter((c) => {
+    // Filtre par année
+    if (yearFilter !== 'all') {
+      const chargeYear = c.dateCharge ? new Date(c.dateCharge).getFullYear().toString() : '';
+      if (chargeYear !== yearFilter) return false;
+    }
     if (typeFilter !== 'all' && c.typeCharge !== typeFilter) return false;
     if (ownerFilter !== 'all' && c.proprietaireId !== ownerFilter) return false;
     if (search) {
@@ -74,9 +123,9 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
   });
 
   // Stats
-  const totalCharges = ownerCharges.reduce((sum, c) => sum + c.montant, 0);
-  const totalFactures = ownerCharges.filter((c) => c.typeCharge === 'FACTURE').reduce((sum, c) => sum + c.montant, 0);
-  const totalPretsCredits = ownerCharges.filter((c) => c.typeCharge === 'PRET' || c.typeCharge === 'CREDIT').reduce((sum, c) => sum + c.montant, 0);
+  const totalCharges = displayCharges.reduce((sum, c) => sum + c.montant, 0);
+  const totalFactures = displayCharges.filter((c) => c.typeCharge === 'FACTURE').reduce((sum, c) => sum + c.montant, 0);
+  const totalPretsCredits = displayCharges.filter((c) => c.typeCharge === 'PRET' || c.typeCharge === 'CREDIT').reduce((sum, c) => sum + c.montant, 0);
 
   // Handlers
   const handleSubmit = (e: React.FormEvent) => {
@@ -137,7 +186,7 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
               Décaissements & Charges Propriétaires
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {ownerCharges.length} charge(s) · {formatNumber(totalCharges)} FCFA au total
+              {serverTotal || ownerCharges.length} charge(s) · {formatNumber(totalCharges)} FCFA au total
             </div>
           </div>
         </div>
@@ -213,6 +262,24 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
             <option value="TRAVAUX">Travaux</option>
             <option value="AUTRE">Autres</option>
           </select>
+                    <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white"
+          >
+            <option value="all">Toutes les années</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+            <option value="2019">2019</option>
+            <option value="2018">2018</option>
+            <option value="2017">2017</option>
+            <option value="2016">2016</option>
+          </select>
         </div>
 
         <div className="relative w-full md:w-64">
@@ -237,7 +304,7 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
                 <th className="py-3 px-3">Type</th>
                 <th className="py-3 px-3">Libellé</th>
                 <th className="py-3 px-3">Réf. Document</th>
-                <th className="py-3 px-3">Période</th>
+                
                 <th className="py-3 px-3 text-right">Montant</th>
                 <th className="py-3 px-4 text-center">Actions</th>
               </tr>
@@ -245,7 +312,7 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
             <tbody className="divide-y divide-[#C9A96E]/10">
               {filteredCharges.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[#6B7C94]">
+                  <td colSpan={6} className="py-12 text-center text-[#6B7C94]">
                     <WalletCards className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
                     <p className="text-xs font-semibold text-white">Aucune charge enregistrée</p>
                     <p className="text-[11px] text-[#6B7C94] mt-1">
@@ -268,7 +335,7 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
                       <td className="py-3 px-3 text-[#6B7C94] font-mono text-[11px]">
                         {c.referenceDocument || '—'}
                       </td>
-                      <td className="py-3 px-3 text-[#A8B4C4]">{c.periode}</td>
+                      
                       <td className="py-3 px-3 text-right font-mono font-bold text-rose-400">
                         -{formatNumber(c.montant)} F
                       </td>
@@ -289,6 +356,19 @@ export const OwnerChargesView: React.FC<OwnerChargesViewProps> = ({
               )}
             </tbody>
           </table>
+
+            {/* 🆕 Bouton Charger plus */}
+            {serverCharges.length > 0 && serverCharges.length < serverTotal && (
+              <div className="flex justify-center mt-4 mb-6">
+                <button
+                  onClick={() => loadChargesPage(serverPage + 1)}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {isLoadingMore ? '⏳ Chargement...' : `📥 Charger plus (${serverCharges.length} / ${serverTotal})`}
+                </button>
+              </div>
+            )}
         </div>
       </div>
 

@@ -57,6 +57,7 @@ import { PaymentReceiptModal } from './components/PaymentReceiptModal';
 import { ArchiveView } from './components/ArchiveView';
 import { ActivityLogView } from './components/ActivityLogView';
 import { PenaltiesView } from './components/PenaltiesView';
+import { OwnerChargesView } from './components/OwnerChargesView';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { formatNumber } from './lib/utils';
 import {
@@ -147,7 +148,9 @@ import {
   saveArchiveToDb,
   saveActivityLogToDb,
   savePenaltyToDb,
+  saveOwnerChargeToDb,
   deletePenaltyFromDb,
+  deleteOwnerChargeFromDb,
 } from './lib/supabase/service';
 
 // ð Force le nettoyage du cache si la version change
@@ -515,6 +518,18 @@ export default function App() {
   // ============================================================
   // HANDLERS : PENALTIES
   // ============================================================
+  // 🆕 Handlers OwnerCharges
+  const handleAddOwnerCharge = (charge: any) => {
+    setOwnerCharges((prev) => [charge, ...prev]);
+    if (currentUser?.agencyId) {
+      saveOwnerChargeToDb(charge, currentUser.agencyId).catch(console.warn);
+    }
+  };
+
+  const handleDeleteOwnerCharge = (chargeId: string) => {
+    setOwnerCharges((prev) => prev.filter((c) => c.id !== chargeId));
+    deleteOwnerChargeFromDb(chargeId).catch(console.warn);
+  };
   const handleAddPenalty = (penalty: Penalty) => {
     setPenalties((prev) => { const next = [penalty, ...prev]; persistCollection('penalties', next); return next; });
     if (currentUser?.agencyId) savePenaltyToDb(penalty, currentUser.agencyId).catch(console.warn);
@@ -1556,6 +1571,16 @@ export default function App() {
               onAddPenalty={handleAddPenalty}
               onDeletePenalty={handleDeletePenalty}
               onUpdatePenalty={handleUpdatePenalty}
+            />
+          )}
+
+          {activeTab === 'owner-charges' && (
+            <OwnerChargesView
+              ownerCharges={ownerCharges}
+              owners={owners}
+              currentUser={currentUser}
+              onAddOwnerCharge={handleAddOwnerCharge}
+              onDeleteOwnerCharge={handleDeleteOwnerCharge}
             />
           )}
 

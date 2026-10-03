@@ -41,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'ESPACE CAISSIER', items: [
           { id: 'dashboard' as ActiveTab, label: 'Tableau de bord Caisse', icon: LayoutDashboard },
           { id: 'caisse' as ActiveTab, label: 'Journal de Caisse & Clôture', icon: Coins },
+      { id: 'owner-charges' as ActiveTab, label: 'Charges Propriétaires', icon: WalletCards },
           { id: 'pending-payments' as ActiveTab, label: 'Paiements en Attente', icon: Clock,
             badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} à valider` : undefined,
             badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30' },
@@ -137,6 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount}` : undefined,
           badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30' },
         { id: 'caisse' as ActiveTab, label: 'Journal de Caisse & Clôture', icon: Coins },
+      { id: 'owner-charges' as ActiveTab, label: 'Charges Propriétaires', icon: WalletCards },
         { id: 'payment-methods' as ActiveTab, label: 'Moyens de Paiement Config', icon: Sliders },
         { id: 'payment-reports' as ActiveTab, label: 'Rapports Moyens Paiement', icon: BarChart3 },
         { id: 'recovery' as ActiveTab, label: 'Suivi Recouvrement', icon: TrendingUp,
