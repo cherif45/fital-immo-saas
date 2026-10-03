@@ -49,7 +49,7 @@ export function AgentDashboardView({
 
   const vacantProperties = properties.filter((p) => p.statut === 'Vacant');
   const pendingMaintenance = maintenance.filter((m) => m.statut !== 'Terminé');
-  const urgentReminders = reminders.filter((r) => r.joursRetard > 10 || r.niveau.includes('Niveau 2') || r.niveau.includes('Niveau 3') || r.niveau.includes('Niveau 4'));
+  const urgentReminders = reminders.filter((r) => r.joursRetard > 10 || r.niveau >= 2);
 
   return (
     <div className="space-y-6">

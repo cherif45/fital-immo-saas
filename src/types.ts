@@ -31,7 +31,8 @@ export interface UserAccount {
   organisation?: string;
   createdAt?: string;
   updatedAt?: string;
-  derniereConnexion?: string;
+  derniereConnexion?: string;
+
   signatureUrl?: string;
   fonction?: string;
   initiales?: string;
@@ -325,6 +326,7 @@ export interface LeaseContract extends AuditSignature {
   chargesDiverses?: number;
   typeReglement?: string;
   nombreMois?: number;
+  loyerMensuel?: number;
 }
 
 // ============================================================
@@ -337,6 +339,8 @@ export type PaymentMethodCode = 'ESPECES' | 'WAVE' | 'ORANGE_MONEY' | 'VIREMENT'
 export type VerificationStatus = 'valide' | 'en_attente' | 'rejete';
 
 export interface Payment extends AuditSignature {
+  numeroTelephoneEmetteur?: string;
+  banqueEmettrice?: string;
   id: string;
   ref: string;
   quittanceNumero: string;
@@ -485,6 +489,7 @@ export interface BulletinVersement extends AuditSignature {
 // REVERSEMENTS
 // ============================================================
 export interface OwnerDisbursement extends AuditSignature {
+  montant?: number;
   id: string;
   ref: string;
   proprietaireId: string;
@@ -515,9 +520,12 @@ export type InspectionType = 'Entrée' | 'Sortie' | 'Périodique';
 export type InspectionStatus = 'Brouillon' | 'Validé' | 'Signé' | 'Archivé';
 
 export interface InspectionElement {
-  id: string;
-  piece: string;
-  element: string;
+  coutReparationEstime?: number;
+  commentaire?: string;
+  nom?: string;
+  id?: string;
+  piece?: string;
+  element?: string;
   etat: 'Bon' | 'Moyen' | 'Mauvais' | 'Neuf';
   observation?: string;
   coutDegradation?: number;
@@ -555,6 +563,7 @@ export type MaintenanceImputation = 'Propriétaire' | 'Locataire' | 'Agence';
 export type MaintenancePaymentStatus = 'Non réglé' | 'Réglé' | 'Partiellement réglé';
 
 export interface MaintenanceTicket extends AuditSignature {
+  technicienNom?: string;
   id: string;
   ref?: string;
   bienId: string;
@@ -709,6 +718,10 @@ export interface CashClosing {
 // BONS DE CAISSE
 // ============================================================
 export interface CashVoucher {
+  numero?: string;
+  loyersEncaisses?: number;
+  commissions?: number;
+  travaux?: number;
   id: string;
   ref: string;
   proprietaireId: string;
@@ -931,5 +944,53 @@ export interface DocumentSignature {
   userFonction?: string;
   signatureUrl?: string;
   signedAt: string;
+  createdAt?: string;
+}
+
+// ============================================================
+// TYPES COMPLÉMENTAIRES (importés par plusieurs composants)
+// ============================================================
+export interface PropertyInspection {
+  type?: string;
+  locataireNom?: string;
+  locataireId?: string;
+  date?: string;
+  clefsRemises?: boolean;
+  clefsRemisesDate?: string;
+  id: string;
+  bienId: string;
+  bienNom?: string;
+  dateInspection?: string;
+  inspecteurNom?: string;
+  etatGeneral?: string;
+  observations?: string;
+  statut?: string;
+  createdAt?: string;
+}
+
+export interface RecoveryReminder {
+  joursRetard?: number;
+  id: string;
+  tenantId?: string;
+  tenantNom?: string;
+  montantDu?: number;
+  dateEcheance?: string;
+  dateRelance?: string;
+  statut?: string;
+  niveau?: number;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface OwnerPaymentSlip {
+  id: string;
+  ownerId: string;
+  ownerNom?: string;
+  periode?: string;
+  montantBrut?: number;
+  commission?: number;
+  montantNet?: number;
+  statut?: string;
+  dateEmission?: string;
   createdAt?: string;
 }

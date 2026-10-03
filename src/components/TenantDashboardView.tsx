@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import { ContractStatus, 
   Tenant, 
   Property, 
   LeaseContract, 
@@ -105,7 +105,7 @@ export function TenantDashboardView({
     tva: 0,
     tom: Math.round(tenant.loyerMensuel * 0.036),
     tlv: 0,
-    statut: 'Actif',
+    statut: 'Actif' as ContractStatus,
   };
 
   const sampleInspection = myInspections.length > 0 ? myInspections[0] : {

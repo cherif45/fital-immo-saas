@@ -2048,7 +2048,9 @@ export async function createAgencyWithAdmin(params: {
     return { success: true, agencyId: agency.id };
   } catch (err: any) {
     if (agencyId) {
-      await supabase.from('agencies').delete().eq('id', agencyId).catch(() => {});
+      try {
+      await supabase.from('agencies').delete().eq('id', agencyId);
+    } catch {}
     }
     return { success: false, error: err.message };
   }

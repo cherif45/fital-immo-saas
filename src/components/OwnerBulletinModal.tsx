@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { formatNumber } from '../lib/utils';
 import { UserSignatureBlock } from './UserSignatureBlock';
+import { useAgencySettings } from '../hooks/useAgencySettings';
 import { PrintHeader, PrintFooter } from './PrintHeader';
 
 interface OwnerBulletinModalProps {
@@ -145,6 +146,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   onDeleteDeduction,
   onSaveBulletin,
 }) => {
+  const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [deductionLibelle, setDeductionLibelle] = useState('');
   const [deductionMontant, setDeductionMontant] = useState(0);
@@ -391,7 +393,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     (Math.abs(owner.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 999) + 1
   ).padStart(3, '0');
   const numeroBulletin = `BV-${year}-${month}-PROP-${ownerSeq}`;
-  const gerantNom = 'M. Papa Ousmane SY';
+  const gerantNom = agencySettings?.gerantNom || 'Le Gérant';
 
   // ============================================================
   // HANDLERS

@@ -45,7 +45,16 @@ interface AdminUsersViewProps {
   isSupabaseOnline?: boolean;
 }
 
-const ROLE_CONFIG: Record<UserRole, { label: string; bg: string; text: string; border: string; desc: string }> = {
+const ROLE_CONFIG: Record<UserRole, {
+  label: string; bg: string; text: string; border: string; desc: string
+}> = {
+  SUPER_ADMIN_SAAS: {
+    label: 'SaaS Owner',
+    bg: 'bg-amber-500/20',
+    text: 'text-amber-300',
+    border: 'border-amber-500/30',
+    desc: 'Propriétaire du SaaS - Accès total multi-agences.',
+  },
   SUPER_ADMIN: {
     label: 'Super Administrateur',
     bg: 'bg-purple-500/20',

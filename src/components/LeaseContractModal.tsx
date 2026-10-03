@@ -84,7 +84,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   const TISER_RC = settings?.rcNumero || '';
   const TISER_NINEA = settings?.nineaNumero || '';
   const TISER_EMAIL = settings?.email || '';
-  const GERANT_NOM = 'M. Papa Ousmane SY';
+  const GERANT_NOM = settings?.gerantNom || 'Le Gérant';
 
   // ============================================================
   // CALCULS
@@ -165,7 +165,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
           {/* ============================================================ */}
           <div className="text-[11px] text-neutral-900 leading-relaxed mb-4 space-y-1">
             <div>
-              <strong>Entre</strong> Monsieur <strong>Papa Ousmane SY</strong> Gérant de <strong>{TISER_NAME}</strong>
+              <strong>Entre</strong> Monsieur <strong>{GERANT_NOM}</strong> Gérant de <strong>{TISER_NAME}</strong>
             </div>
             <div><strong>D'une part, Et</strong></div>
             <div>
