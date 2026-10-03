@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { Invoice, Property, Owner, Tenant } from '../types';
 import { formatCurrencyFCFA, numberToWordsFrench } from '../lib/calculations/financial';
+import { UserSignatureBlock } from './UserSignatureBlock';
 import { paginateTable } from '../lib/supabase/service';
+import { PrintHeader, PrintFooter } from './PrintHeader';
 
 interface InvoicesViewProps {
   invoices: Invoice[];
@@ -565,27 +567,11 @@ export function InvoicesView({
             {/* Signatures & Traçabilité */}
             <div className="grid grid-cols-2 gap-8 pt-6 mt-6 border-t-2 border-gray-300">
               <div>
-                <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
-                  Émis par
-                </div>
-                <div className="text-sm font-bold text-gray-900">
-                  {selectedInvoice.createdByNom || 'Service Facturation'}
-                </div>
-                <div className="text-[11px] uppercase font-semibold text-gray-500 mt-0.5">
-                  Rôle : {selectedInvoice.createdByRole || '"”'}
-                </div>
-                {selectedInvoice.createdById && (
-                  <div className="text-[9px] font-mono text-gray-400 mt-0.5">
-                    ID : {selectedInvoice.createdById.slice(0, 8)}"¦
-                  </div>
-                )}
-                <div className="text-[10px] text-gray-500 mt-1">
-                  Le {new Date(selectedInvoice.dateFacture || Date.now()).toLocaleDateString('fr-FR')}
-                </div>
-                <div className="font-bold text-gray-700 text-xs mt-3 mb-1">
-                  Signature de l'Émetteur :
-                </div>
-                <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
+                <UserSignatureBlock 
+                  userId={selectedInvoice.createdById} 
+                  label="Émise par" 
+                  date={selectedInvoice.dateFacture}
+                />
               </div>
 
               <div className="text-right">

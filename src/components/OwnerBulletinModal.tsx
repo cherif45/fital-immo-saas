@@ -5,6 +5,8 @@ import {
   MaintenanceTicket, OwnerDeduction, BulletinVersement, UserAccount,
 } from '../types';
 import { formatNumber } from '../lib/utils';
+import { UserSignatureBlock } from './UserSignatureBlock';
+import { PrintHeader, PrintFooter } from './PrintHeader';
 
 interface OwnerBulletinModalProps {
   owner: Owner;
@@ -228,6 +230,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         : false;
 
       return {
+        ref: unitId,
         unitId,
         unitNom,
         immeubleRef,
@@ -742,30 +745,13 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               Page 2 sur 2
             </div>
           </div>
+          {/* SIGNATURE UTILISATEUR (traçabilité) */}
+          <UserSignatureBlock 
+            userId={currentUser?.id} 
+            label="Émis par" 
+            date={new Date().toISOString()}
+          />
 
-          {/* Pied de page écran */}
-          <div className="mt-10 pt-3 border-t border-neutral-400 text-center text-[8px] text-neutral-700 leading-relaxed print:hidden">
-            <div className="font-bold">
-              FITAL-IMMO SAS RC: SN-DKR-2023. B.12158 N.I.N.E.A: 0101576352V5
-            </div>
-            <div>Sicap Baobabs N° 689/F</div>
-            <div>
-              Tél: 33 825 59 67 / 77 551 16 70 / 77 602 76 97 Email contact@fital-immo.com / contactafital@gmail.com
-            </div>
-          </div>
-
-          {/* Pied de page fixe répété */}
-          <div className="print-footer">
-            <div className="font-bold">
-              FITAL-IMMO SAS RC: SN-DKR-2023. B.12158 N.I.N.E.A: 0101576352V5
-            </div>
-            <div>
-              Sicap Baobabs N° 689/F · Tél: 33 825 59 67 / 77 551 16 70 / 77 602 76 97
-            </div>
-            <div>
-              Email contact@fital-immo.com / contactafital@gmail.com
-            </div>
-          </div>
         </div>
 
         {/* Modal déduction */}

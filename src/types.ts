@@ -31,7 +31,10 @@ export interface UserAccount {
   organisation?: string;
   createdAt?: string;
   updatedAt?: string;
-  derniereConnexion?: string;
+  derniereConnexion?: string;
+  signatureUrl?: string;
+  fonction?: string;
+  initiales?: string;
 }
 
 export interface Agency {
@@ -912,4 +915,21 @@ export interface AppStateData {
   activityLogs?: ActivityLog[];
   penalties?: Penalty[];
   ownerCharges?: OwnerCharge[];
+}
+
+
+// ============================================================
+// SIGNATURES UTILISATEUR (traçabilité)
+// ============================================================
+export interface DocumentSignature {
+  id: string;
+  agencyId: string;
+  documentType: 'payment' | 'invoice' | 'contract' | 'mandate' | 'receipt' | 'bulletin' | 'slip' | 'other';
+  documentId: string;
+  userId: string;
+  userNom?: string;
+  userFonction?: string;
+  signatureUrl?: string;
+  signedAt: string;
+  createdAt?: string;
 }

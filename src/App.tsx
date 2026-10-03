@@ -20,6 +20,7 @@ import { UnitsView } from './components/UnitsView';
 import { TenantsView } from './components/TenantsView';
 import { OwnersView } from './components/OwnersView';
 import { AgencySettingsView } from './components/AgencySettingsView';
+import { useAgencySettings } from './hooks/useAgencySettings';
 import { ContractsView } from './components/ContractsView';
 import { InspectionsView } from './components/InspectionsView';
 import { MaintenanceView } from './components/MaintenanceView';
@@ -178,6 +179,9 @@ export default function App() {
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  
+  // 🆕 Chargement des paramètres d'agence (dynamique, cache 5min)
+  const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);

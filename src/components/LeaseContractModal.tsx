@@ -1,7 +1,10 @@
 import React from 'react';
+import { UserSignatureBlock } from './UserSignatureBlock';
+
 import { Printer, X, FileSignature } from 'lucide-react';
 import { LeaseContract, Property, Tenant, Owner, Building, Unit, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+import { PrintHeader, PrintFooter } from './PrintHeader';
 
 interface LeaseContractModalProps {
   contract: LeaseContract;
@@ -62,14 +65,6 @@ function nombreEnLettres(n: number): string {
 // ============================================================
 // Constantes FITAL (fallback si settings vide)
 // ============================================================
-const TISER_NAME = 'TRANS IMMOBILIER & SERVICES SARL';
-const TISER_SUBTITLE = '(T.I.SER) - GÉRANCE - LOCATION - VENTE - ACHAT';
-const TISER_ADRESSE = 'Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté';
-const TISER_TEL = '33 825 17 38';
-const TISER_RC = 'SN-DKR-2014B10248';
-const TISER_NINEA = '0050875072C2';
-const TISER_EMAIL = 'tiser.immo@gmail.com';
-const GERANT_NOM = 'M. Papa Ousmane SY';
 
 export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   contract,
@@ -81,6 +76,16 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   settings,
   onClose,
 }) => {
+
+  const TISER_NAME = settings?.nomAgence || 'MON AGENCE';
+  const TISER_SUBTITLE = '(T.I.SER) - GÉRANCE - LOCATION - VENTE - ACHAT';
+  const TISER_ADRESSE = settings?.adresse || '';
+  const TISER_TEL = settings?.telephone || '';
+  const TISER_RC = settings?.rcNumero || '';
+  const TISER_NINEA = settings?.nineaNumero || '';
+  const TISER_EMAIL = settings?.email || '';
+  const GERANT_NOM = 'M. Papa Ousmane SY';
+
   // ============================================================
   // CALCULS
   // ============================================================
@@ -149,32 +154,11 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
         {/* CONTENU IMPRIMABLE */}
         <div className="print-container p-8 sm:p-12 bg-white text-neutral-900">
 
-          {/* ============================================================ */}
-          {/* EN-TÊTE TISER */}
-          {/* ============================================================ */}
-          <div className="flex items-start gap-4 mb-6">
-            {/* Logo placeholder */}
-            <div className="w-20 h-20 flex-shrink-0 border-2 border-neutral-900 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-2xl font-black text-neutral-900">T</div>
-                <div className="text-[8px] text-neutral-700 leading-tight">T.I.SER</div>
-              </div>
-            </div>
-
-            <div className="flex-1 text-center">
-              <div className="text-base font-black text-neutral-900 uppercase">
-                {TISER_NAME}
-              </div>
-              <div className="text-[10px] text-neutral-700 mt-0.5 italic">
-                {TISER_SUBTITLE}
-              </div>
-              <div className="mt-3 inline-block border-2 border-neutral-900 px-6 py-1">
-                <span className="text-base font-black uppercase tracking-widest text-neutral-900">
-                  CONTRAT DE BAIL
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* EN-TÊTE DYNAMIQUE */}
+          <PrintHeader 
+            agency={settings || null} 
+            documentType="CONTRAT DE BAIL" 
+          />
 
           {/* ============================================================ */}
           {/* PRÉAMBULE */}
@@ -400,16 +384,21 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
               Fait en double à Dakar, le <strong>{dateDuJour}</strong>
             </div>
 
-            <div className="grid grid-cols-2 gap-12">
-              <div>
-                <div className="font-bold mb-3">Le Gérant :</div>
-                <div className="font-bold">M. Papa Ousmane SY</div>
-              </div>
+            {/* SIGNATURE UTILISATEUR (traçabilité) */}
+            <UserSignatureBlock 
+              userId={(contract as any).created_by_id || (contract as any).createdById} 
+              label="Rédigé par" 
+              date={(contract as any).created_at || (contract as any).dateContrat}
+            />
 
+            {/* Signature du locataire (toujours présente) */}
+            <div className="grid grid-cols-2 gap-12 mt-8">
               <div>
                 <div className="font-bold mb-3">Le Locataire :</div>
                 <div className="font-bold">M. <span className="underline">{locataireNom}</span></div>
+                <div className="h-16 border-b border-dotted border-neutral-400 mt-2"></div>
               </div>
+              <div></div>
             </div>
           </div>
 

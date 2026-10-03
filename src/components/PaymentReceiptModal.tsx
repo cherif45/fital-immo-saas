@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Printer, X } from 'lucide-react';
 import { Payment, AgencySettings, ReceiptType, Unit, Building } from '../types';
 import { formatNumber, formatDate } from '../lib/utils';
+import { UserSignatureBlock } from './UserSignatureBlock';
+import { PrintHeader, PrintFooter } from './PrintHeader';
 
 interface PaymentReceiptModalProps {
   payment: Payment;
@@ -330,19 +332,18 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             </div>
           </div>
 
-          {/* Signature */}
-          <div className="mt-8 grid grid-cols-2 gap-6 px-4 text-[10px]">
-            <div>
-              <div className="font-bold text-neutral-900 mb-1">Signature Caissier</div>
-              <div className="h-14 border-b border-dotted border-neutral-400 flex items-end pb-1">
-                <span className="text-[9px] text-neutral-700 italic">{nomSignataire} ({roleSignataire})</span>
-              </div>
-            </div>
-            <div>
+                    {/* Signature DYNAMIQUE du caissier */}
+          <UserSignatureBlock 
+            userId={(payment as any).created_by_id || (payment as any).createdById || (currentUser as any)?.id} 
+            label="Encaissé par" 
+            date={payment.datePaiement || payment.date}
+          />
+
+          {/* Réf Caissier */}
+          <div className="mt-4 px-4 text-[10px] flex justify-end">
+            <div className="text-right">
               <div className="font-bold text-neutral-900 mb-1">Réf Caissier</div>
-              <div className="h-14 border-b border-dotted border-neutral-400 flex items-end justify-center">
-                <span className="font-mono text-sm font-bold">{referenceCaissier}</span>
-              </div>
+              <span className="font-mono text-sm font-bold">{referenceCaissier}</span>
             </div>
           </div>
 

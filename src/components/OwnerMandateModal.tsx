@@ -1,6 +1,8 @@
 import React from 'react';
 import { FileText, Printer, X } from 'lucide-react';
 import { Owner, Property, AgencySettings } from '../types';
+import { PrintHeader, PrintFooter } from './PrintHeader';
+import { UserSignatureBlock } from './UserSignatureBlock';
 import { formatDate } from '../lib/utils';
 
 interface OwnerMandateModalProps {
@@ -11,18 +13,21 @@ interface OwnerMandateModalProps {
   onClose: () => void;
 }
 
+/// ============================================================
+// FALLBACK (si l'agence n'a pas rempli ses paramètres)
 // ============================================================
-// CONSTANTES TISER
-// ============================================================
-const TISER_NAME = 'TRANS IMMOBILIER & SERVICES SARL';
-const TISER_SLOGAN = '(T.I.SER) - GÉRANCE - LOCATION - VENTE - ACHAT';
-const TISER_SLOGAN_2 = 'RECOUVREMENT DE CRÉANCES';
-const TISER_ADRESSE = 'Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté';
-const TISER_TEL = '33 825 17 38';
-const TISER_RC = 'SN-DKR-2014B10248';
-const TISER_NINEA = '0050875072C2';
-const TISER_EMAIL = 'tiser.immo@gmail.com';
-const GERANT_NOM = 'M. Papa Ousmane SY';
+const FALLBACK = {
+  nomAgence: 'MON AGENCE',
+  slogan1: '',
+  slogan2: '',
+  adresse: '',
+  telephone: '',
+  email: '',
+  rc: '',
+  ninea: '',
+  gerantNom: 'Le Gérant',
+  gerantTitre: 'Gérant',
+};
 
 export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
   owner,
@@ -122,38 +127,18 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
             </span>
           </div>
 
-          {/* ============================================================ */}
-          {/* EN-TÊTE                                                     */}
-          {/* ============================================================ */}
-          <div className="text-center mb-4">
-            <div className="flex items-start justify-center gap-4 mb-2">
-              {/* Logo placeholder */}
-              <div className="w-14 h-14 border border-neutral-900 flex items-center justify-center flex-shrink-0">
-                <div className="text-center">
-                  <div className="text-lg font-black text-neutral-900 leading-none">T</div>
-                  <div className="text-[6px] text-neutral-700 leading-tight mt-0.5">T.I.SER</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[13px] font-black uppercase text-neutral-900 tracking-wide">
-                  {TISER_NAME}
-                </div>
-                <div className="text-[9px] text-neutral-700 mt-0.5 font-semibold">
-                  {TISER_SLOGAN}
-                </div>
-                <div className="text-[9px] text-neutral-700 font-semibold">
-                  {TISER_SLOGAN_2}
-                </div>
-              </div>
-            </div>
+          {/* EN-TÊTE DYNAMIQUE */}
+          <PrintHeader 
+            agency={agencySettings || null} 
+            documentType="MANDAT DE GÉRANCE" 
+          />
 
-            {/* Titre encadré */}
+          {/* Titre encadré */}
             <div className="mt-3 inline-block border-2 border-neutral-900 px-8 py-1">
               <span className="text-base font-black uppercase tracking-widest text-neutral-900">
                 MANDAT DE GÉRANCE
               </span>
             </div>
-          </div>
 
           {/* ============================================================ */}
           {/* CORPS DU MANDAT                                             */}
@@ -167,8 +152,9 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
             </p>
 
             <p className="text-justify">
-              Propriétaire, certifie avoir mandaté l'agence <strong>{TISER_NAME}</strong> (T.I.SER) sise à{' '}
-              <strong>Grand Dakar Pile N° 224</strong>, représenté par son Gérant <strong>{GERANT_NOM}</strong>, de gérer notre maison sis à{' '}
+              Propriétaire, certifie avoir mandaté l'agence 
+                          <strong>{(agencySettings?.nomAgence || FALLBACK.nomAgence)}</strong> sise à {' '}
+              <strong>Grand Dakar Pile N° 224</strong>, représenté par son Gérant <strong>{(agencySettings?.gerantNom || FALLBACK.gerantNom)}</strong>, de gérer notre maison sis à{' '}
               <strong>{adresseBien}</strong>
             </p>
 
@@ -233,7 +219,7 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
             <div className="grid grid-cols-2 gap-12">
               <div>
                 <div className="font-bold mb-2">Le Gérant :</div>
-                <div className="font-bold italic mb-1">{GERANT_NOM}</div>
+                <div className="font-bold italic mb-1">{(agencySettings?.gerantNom || FALLBACK.gerantNom)}</div>
                 <div className="h-14 border-b border-dotted border-neutral-400"></div>
               </div>
 
@@ -244,28 +230,13 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
               </div>
             </div>
           </div>
+          {/* SIGNATURE UTILISATEUR (traçabilité) */}
+          <UserSignatureBlock 
+            userId={(owner as any).created_by_id || (owner as any).createdById} 
+            label="Établi par" 
+            date={(owner as any).dateMandat}
+          />
 
-                    {/* ============================================================ */}
-          {/* PIED DE PAGE (écran)                                        */}
-          {/* ============================================================ */}
-          <div className="mt-10 pt-3 border-t border-neutral-400 text-center text-[8px] text-neutral-700 leading-relaxed print:hidden">
-            <div className="font-bold">
-              TRANS IMMOBILIER & SERVICES SARL (T.I.SER) Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté
-            </div>
-            <div>
-              Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
-            </div>
-          </div>
-
-          {/* Pied de page fixe répété sur chaque page imprimée */}
-          <div className="print-footer">
-            <div className="font-bold">
-              TRANS IMMOBILIER & SERVICES SARL (T.I.SER) Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté
-            </div>
-            <div>
-              Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
-            </div>
-          </div>
         </div>
       </div>
     </div>
