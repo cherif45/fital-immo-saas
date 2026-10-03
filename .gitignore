@@ -15,3 +15,18 @@ coverage/
 *.backup-*
 *.PRE-PATCH
 *.BACKUP-*
+
+# Scripts temporaires
+fix_*.py
+patch_*.py
+phase*.ps1
+*.xlsx
+*.csv
+analyze_*.py
+import_*.py
+fital_immo_fix_*.py
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/
