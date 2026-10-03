@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Penalty, Tenant, Payment, UserAccount } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+import { paginateTable } from '../lib/supabase/service';
 
 interface PenaltiesViewProps {
   penalties: Penalty[];
@@ -38,6 +39,45 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   onUpdatePenalty,
 }) => {
   const [search, setSearch] = useState('');
+
+  // 🆕 Pagination serveur
+  const [serverPenalties, setServerPenalties] = useState<Penalty[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverPage, setServerPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadPenaltiesPage(0);
+  }, [currentUser?.agencyId]);
+
+  const loadPenaltiesPage = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    const result = await paginateTable<any>('penalties', currentUser.agencyId, page, PAGE_SIZE);
+    const mapped: Penalty[] = result.data.map((r: any) => ({
+      ...r,
+      id: r.id,
+      tenantId: r.tenant_id,
+      tenantNom: r.tenant_nom,
+      montant: Number(r.montant) || 0,
+      motif: r.motif || '',
+      statut: r.statut || 'En attente',
+      dateCreation: r.created_at,
+      dateApplication: r.date_application,
+    }));
+    if (page === 0) {
+      setServerPenalties(mapped);
+    } else {
+      setServerPenalties(prev => [...prev, ...mapped]);
+    }
+    setServerTotal(result.total);
+    setServerPage(page);
+    setIsLoadingMore(false);
+  };
+
+  const displayPenalties = serverPenalties.length > 0 ? serverPenalties : penalties;
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isNewPenaltyModalOpen, setIsNewPenaltyModalOpen] = useState(false);
 
@@ -65,7 +105,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   // ============================================================
   // FILTRES
   // ============================================================
-  const filteredPenalties = penalties.filter((p) => {
+  const filteredPenalties = displayPenalties.filter((p) => {
     if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -249,7 +289,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               statusFilter === 'En attente' ? 'bg-amber-500 text-white font-bold' : 'bg-[#1E2E45] text-amber-400 hover:text-white'
             }`}
           >
-            En attente ({penalties.filter((p) => p.statut === 'En attente').length})
+            En attente ({serverTotal ? displayPenalties.filter((p) => p.statut === 'En attente').length : penalties.filter((p) => p.statut === 'En attente').length})
           </button>
           <button
             onClick={() => setStatusFilter('Appliquée')}
@@ -257,7 +297,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               statusFilter === 'Appliquée' ? 'bg-emerald-500 text-white font-bold' : 'bg-[#1E2E45] text-emerald-400 hover:text-white'
             }`}
           >
-            Appliquées ({penalties.filter((p) => p.statut === 'Appliquée').length})
+            Appliquées ({serverTotal ? displayPenalties.filter((p) => p.statut === 'Appliquée').length : penalties.filter((p) => p.statut === 'Appliquée').length})
           </button>
         </div>
 
@@ -351,6 +391,19 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               )}
             </tbody>
           </table>
+
+            {/* 🆕 Bouton Charger plus */}
+            {serverPenalties.length > 0 && serverPenalties.length < serverTotal && (
+              <div className="flex justify-center mt-4 mb-6">
+                <button
+                  onClick={() => loadPenaltiesPage(serverPage + 1)}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {isLoadingMore ? '⏳ Chargement...' : `📥 Charger plus (${serverPenalties.length} / ${serverTotal})`}
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
