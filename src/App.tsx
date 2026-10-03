@@ -19,6 +19,7 @@ import { BuildingsView } from './components/BuildingsView';
 import { UnitsView } from './components/UnitsView';
 import { TenantsView } from './components/TenantsView';
 import { OwnersView } from './components/OwnersView';
+import { AgencySettingsView } from './components/AgencySettingsView';
 import { ContractsView } from './components/ContractsView';
 import { InspectionsView } from './components/InspectionsView';
 import { MaintenanceView } from './components/MaintenanceView';
@@ -148,12 +149,12 @@ import {
   deletePenaltyFromDb,
 } from './lib/supabase/service';
 
-// 🆕 Force le nettoyage du cache si la version change
-const APP_VERSION = '3.0.7'; // ← était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
+// ð Force le nettoyage du cache si la version change
+const APP_VERSION = '3.0.7'; // â était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
 const storedVersion = localStorage.getItem('fital_immo_version');
 
 if (storedVersion !== APP_VERSION) {
-  console.log('🔄 Nouvelle version détectée, nettoyage du cache...');
+  console.log('ð Nouvelle version détectée, nettoyage du cache...');
   const keysToKeep = ['fital_immo_user'];
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('fital_immo_') && !keysToKeep.includes(key)) {
@@ -338,11 +339,11 @@ export default function App() {
   // useEffect 4 : Chargement données
   useEffect(() => {
     if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
-      console.log('⏳ En attente de l\'agencyId...');
+      console.log('â³ En attente de l\'agencyId...');
       return;
     }
 
-    console.log('📥 Chargement des données pour:', currentUser.agencyId);
+    console.log('ð¥ Chargement des données pour:', currentUser.agencyId);
 
     let cancelled = false;
 
@@ -350,7 +351,7 @@ export default function App() {
       if (cancelled) return;
       try {
         const data = await loadFullApplicationData(currentUser.agencyId);
-        // 🆕 Charger les stats agrégées côté serveur (super rapide)
+        // ð Charger les stats agrégées côté serveur (super rapide)
         try {
           const stats = await getAgencyStats(currentUser.agencyId);
           if (stats) setAgencyStats(stats);
@@ -359,7 +360,7 @@ export default function App() {
         }
         if (cancelled) return;
 
-        console.log('✅ Données chargées:', {
+        console.log('â Données chargées:', {
           properties: data.properties?.length,
           buildings: data.buildings?.length,
           units: data.units?.length,
@@ -394,7 +395,7 @@ export default function App() {
         setPenalties(data.penalties || []);
         setOwnerCharges(data.ownerCharges || []);
       } catch (err) {
-        console.error('❌ Erreur chargement:', err);
+        console.error('â Erreur chargement:', err);
       }
     }, 400);
 
@@ -416,10 +417,10 @@ export default function App() {
 
   const handleTriggerAuditLog = (action: string, module: string, details: string, entityRef?: string) => {
     const userLabel = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système';
-    const userRole = currentUser ? currentUser.role : 'SYSTÈME';
+    const userRole = currentUser ? currentUser.role : 'SYSTÃME';
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
-      action, entite: module, entiteId: entityRef || 'SYSTÈME',
+      action, entite: module, entiteId: entityRef || 'SYSTÃME',
       utilisateur: `${userLabel} (${userRole})`,
       userNom: userLabel, module, entityRef, details,
       date: new Date().toISOString().replace('T', ' ').substring(0, 19),
@@ -530,7 +531,7 @@ export default function App() {
     if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-    console.log('📝 handleLogActivity REÇU:', activity.title);
+    console.log('ð handleLogActivity REÃU:', activity.title);
     setActivityLogs((prev) => {
       const next = [activity, ...prev];
       persistCollection('activity_logs', next);
@@ -576,7 +577,7 @@ export default function App() {
   // HANDLERS : PAIEMENTS (avec anti-doublon affiné v3.0.5)
   // ============================================================
   const handleAddPayment = (newPayment: Payment) => {
-    // 🛡️ ANTI-DOUBLON : bloque uniquement Payé + Payé
+    // ð¡ï¸ ANTI-DOUBLON : bloque uniquement Payé + Payé
     const existingPaid = payments.find(
       (p) =>
         p.locataireId === newPayment.locataireId &&
@@ -587,7 +588,7 @@ export default function App() {
 
     if (existingPaid) {
       alert(
-        `⛔ DOUBLON DÉTECTÉ — Paiement refusé\n\n` +
+        `â DOUBLON DÃTECTÃ â Paiement refusé\n\n` +
         `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjà pour ce locataire (${existingPaid.periode}).\n\n` +
         `Quittance : ${existingPaid.quittanceNumero}\n` +
         `Date : ${existingPaid.datePaiement}\n\n` +
@@ -611,7 +612,7 @@ export default function App() {
 
     if (existingPending) {
       alert(
-        `⏳ Paiement déjà en attente\n\n` +
+        `â³ Paiement déjà en attente\n\n` +
         `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
         `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
       );
@@ -651,11 +652,11 @@ export default function App() {
         const paye = newPayment.montantPaye || 0;
         const percent = total > 0 ? (paye / total) * 100 : 0;
 
-        let newStatut: 'À jour' | 'Retard' | 'Impayé';
+        let newStatut: 'Ã jour' | 'Retard' | 'Impayé';
         if (percent >= 100) {
-          newStatut = 'À jour';
+          newStatut = 'Ã jour';
         } else if (percent >= 50) {
-          newStatut = 'À jour';
+          newStatut = 'Ã jour';
         } else if (percent > 0) {
           newStatut = 'Retard';
         } else {
@@ -665,7 +666,7 @@ export default function App() {
         return {
           ...t,
           statut: newStatut,
-          joursRetard: newStatut === 'À jour' ? 0 : t.joursRetard,
+          joursRetard: newStatut === 'Ã jour' ? 0 : t.joursRetard,
           arrieresCumules: Math.max(0, total - paye),
         };
       });
@@ -682,7 +683,7 @@ export default function App() {
       entityType: 'payment',
       entityId: newPayment.id,
       entityRef: newPayment.quittanceNumero,
-      title: `Paiement ${newPayment.statut} — ${newPayment.locataireNom}`,
+      title: `Paiement ${newPayment.statut} â ${newPayment.locataireNom}`,
       description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
       montant: newPayment.montantPaye,
       activityDate: new Date().toISOString().split('T')[0],
@@ -690,9 +691,9 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     handleLogActivity(activityEntry);
-    console.log('🔥 LOG ACTIVITÉ ENVOYÉ:', activityEntry.title);
+    console.log('ð¥ LOG ACTIVITÃ ENVOYÃ:', activityEntry.title);
 
-    alert(`✅ Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
+    alert(`â Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -723,7 +724,7 @@ export default function App() {
     const tenant = tenants.find((t) => t.id === tId) || tenants[0];
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
-    if (!tenant || !property) { alert('❌ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
+    if (!tenant || !property) { alert('â Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
 
     const existingPayment = payments.find(
       (p) =>
@@ -734,7 +735,7 @@ export default function App() {
 
     if (existingPayment) {
       alert(
-        `⛔ PAIEMENT DÉJÀ ENREGISTRÉ\n\n` +
+        `â PAIEMENT DÃJÃ ENREGISTRÃ\n\n` +
         `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
         `Quittance : ${existingPayment.quittanceNumero}\n\n` +
         `Impossible de créer un doublon.`
@@ -752,7 +753,7 @@ export default function App() {
 
     if (pendingPayment) {
       alert(
-        `⏳ PAIEMENT EN ATTENTE\n\n` +
+        `â³ PAIEMENT EN ATTENTE\n\n` +
         `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjà en attente de validation.\n\n` +
         `Veuillez d'abord valider ou rejeter ce paiement.`
       );
@@ -888,20 +889,20 @@ export default function App() {
   // HANDLER : AJOUT LOCATAIRE (corrigé v3.0.5 - properties ET units)
   // ============================================================
   const handleAddTenant = (newTenant: Tenant) => {
-    // 🛡️ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
+    // ð¡ï¸ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
     const existingUnit = units.find((u) => u.id === newTenant.bienId);
     const existingProp = properties.find((p) => p.id === newTenant.bienId);
 
     if (existingUnit && existingUnit.statut === 'Occupé' && existingUnit.locataireActuelId !== newTenant.id) {
-      alert(`⛔ Le bien ${existingUnit.nom} est déjà occupé.`);
+      alert(`â Le bien ${existingUnit.nom} est déjà occupé.`);
       return;
     }
     if (existingProp && existingProp.statut === 'Occupé' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
-      alert(`⛔ Le bien ${existingProp.nom} est déjà occupé.`);
+      alert(`â Le bien ${existingProp.nom} est déjà occupé.`);
       return;
     }
 
-    // 🛡️ ANTI-DOUBLON : ce locataire occupe-t-il déjà un autre bien ?
+    // ð¡ï¸ ANTI-DOUBLON : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
@@ -913,17 +914,17 @@ export default function App() {
 
     if (existingActiveLease) {
       alert(
-        `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
+        `â LOCATAIRE DÃJÃ ACTIF\n\n` +
         `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjà : ${existingActiveLease.bienNom}`
       );
       return;
     }
 
-    // ✅ Pas de doublon → procéder normalement
+    // â Pas de doublon â procéder normalement
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDb(newTenant, currentUser.agencyId).catch(console.warn);
 
-    // 🔧 FIX v3.0.5 : mise à jour des DEUX si les deux existent (plus de return prématuré)
+    // ð§ FIX v3.0.5 : mise à jour des DEUX si les deux existent (plus de return prématuré)
     if (newTenant.bienId) {
       // Mise à jour PROPERTY si existe
       if (existingProp) {
@@ -972,13 +973,13 @@ export default function App() {
   const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
-    // 🛡️ ANTI-DOUBLON 1 : le bien est-il déjà occupé ?
+    // ð¡ï¸ ANTI-DOUBLON 1 : le bien est-il déjà occupé ?
     const existingUnit = units.find((u) => u.id === data.tenant.bienId);
     const existingProp = properties.find((p) => p.id === data.tenant.bienId);
 
     if (existingUnit && existingUnit.statut === 'Occupé') {
       alert(
-        `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+        `â CE BIEN EST DÃJÃ OCCUPÃ\n\n` +
         `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
         `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
@@ -986,14 +987,14 @@ export default function App() {
     }
     if (existingProp && existingProp.statut === 'Occupé') {
       alert(
-        `⛔ CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+        `â CE BIEN EST DÃJÃ OCCUPÃ\n\n` +
         `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
         `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
       return;
     }
 
-    // 🛡️ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjà un autre bien ?
+    // ð¡ï¸ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
@@ -1005,7 +1006,7 @@ export default function App() {
 
     if (existingActiveLease) {
       alert(
-        `⛔ LOCATAIRE DÉJÀ ACTIF\n\n` +
+        `â LOCATAIRE DÃJÃ ACTIF\n\n` +
         `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
         `${existingActiveLease.bienNom}\n\n` +
         `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
@@ -1014,7 +1015,7 @@ export default function App() {
       return;
     }
 
-    // ✅ Pas de doublon → procéder normalement
+    // â Pas de doublon â procéder normalement
     const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) {
       alert('Erreur création locataire : ' + tenantResult.error);
@@ -1055,17 +1056,17 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLER : SORTIE LOCATAIRE (corrigé v3.0.5 - else if → if)
+  // HANDLER : SORTIE LOCATAIRE (corrigé v3.0.5 - else if â if)
   // ============================================================
   const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     if (!currentUser?.agencyId) return;
 
-    // 1. Locataire — sauvegarder en DB
+    // 1. Locataire â sauvegarder en DB
     const tenantToUpdate = tenants.find((t) => t.id === data.tenantId);
     if (tenantToUpdate) {
       const updatedTenant = {
         ...tenantToUpdate,
-        statut: 'À jour' as const,
+        statut: 'Ã jour' as const,
         dateSortie: data.dateSortie,
       };
       const res = await saveTenantToDb(updatedTenant, currentUser.agencyId);
@@ -1074,11 +1075,11 @@ export default function App() {
       }
     }
 
-    // 2. Bien ou Unit — sauvegarder en DB
+    // 2. Bien ou Unit â sauvegarder en DB
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
-    // 🔧 FIX v3.0.5 : si → (au lieu de else if), pour libérer les deux si les deux existent
+    // ð§ FIX v3.0.5 : si â (au lieu de else if), pour libérer les deux si les deux existent
     if (property) {
       const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined, locataireActuelId: undefined };
       const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
@@ -1095,7 +1096,7 @@ export default function App() {
       }
     }
 
-    // 3. Inspection — sauvegarder en DB
+    // 3. Inspection â sauvegarder en DB
     const inspRes = await saveInspectionToDb(data.inspection, currentUser.agencyId);
     if (inspRes.success && inspRes.data) {
       setInspections((prev) => [inspRes.data!, ...prev]);
@@ -1218,7 +1219,7 @@ export default function App() {
         profession: '',
         employeur: '',
         revenuMensuel: 0,
-        statut: 'À jour' as const,
+        statut: 'Ã jour' as const,
         joursRetard: 0,
         arrieresCumules: 0,
         observations: '',
@@ -1494,6 +1495,10 @@ export default function App() {
             <AdminActivityJournalView auditLogs={auditLogs} onTriggerAuditLog={handleTriggerAuditLog} />
           )}
 
+          {activeTab === 'agency-settings' && currentUser?.agencyId && (
+            <AgencySettingsView agencyId={currentUser.agencyId} />
+          )}
+
           {activeTab === 'admin-users' && (
             <AdminUsersView
               users={users}
@@ -1678,7 +1683,7 @@ export default function App() {
                     onClick={() => setIsNewTenantWizardOpen(true)}
                     className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
                   >
-                    <span>✨ Assistant Nouveau Locataire (7 Étapes)</span>
+                    <span>â¨ Assistant Nouveau Locataire (7 Ãtapes)</span>
                   </button>
                 </div>
               )}
@@ -1822,9 +1827,9 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'settings' && (
-            <SettingsView settings={settings} onSaveSettings={handleSaveSettings} />
-          )}
+          {activeTab === 'settings' && currentUser?.agencyId && (
+  <AgencySettingsView agencyId={currentUser.agencyId} />
+)}
         </main>
       </div>
 

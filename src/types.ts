@@ -1,9 +1,9 @@
 // ============================================================
-// TYPES GLOBAUX — FITAL-IMMO
+// TYPES GLOBAUX "” FITAL-IMMO
 // ============================================================
 
 export type UserRole = 
-  | 'SUPER_ADMIN_SAAS'   // 🆕 Propriétaire du SaaS (moi)
+  | 'SUPER_ADMIN_SAAS'   // ðŸ†• Propriétaire du SaaS (moi)
   | 'SUPER_ADMIN'         // Admin d'une agence (FITAL-IMMO)
   | 'ADMIN'
   | 'CAISSIER'
@@ -87,11 +87,11 @@ export type ActiveTab =
   | 'activity-logs'
   | 'penalties'
   | 'audit'
-  | 'saas-admin';   // 🆕 Super-Admin SaaS
+  | 'saas-admin';   // ðŸ†• Super-Admin SaaS
 
 
 // ============================================================
-// SIGNATURE / TRAÇABILITÉ
+// SIGNATURE / TRAÃ‡ABILITÉ
 // ============================================================
 export interface AuditSignature {
   createdById?: string;
@@ -110,7 +110,7 @@ export interface Owner {
   adresse?: string;
   telephone: string;
   email?: string;
-  typePiece?: string;   // 🆕 CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
+  typePiece?: string;   // ðŸ†• CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
   cni?: string;  
   banque?: string;
   compteBancaire?: string;
@@ -132,7 +132,7 @@ export type BuildingStatus = 'Actif' | 'Inactif' | 'En travaux';
 
 export interface Building {
   id: string;
-  ref?: string;   // 🆕 Numéro d'immeuble (ex: 564)
+  ref?: string;   // ðŸ†• Numéro d'immeuble (ex: 564)
   agencyId?: string;
   proprietaireId: string;
   proprietaireNom?: string;
@@ -244,7 +244,7 @@ export interface Property {
   description?: string;
   dateCreation?: string;
   locataireActuelNom?: string;
-  locataireActuelId?: string; // 🆕 AJOUTÉ
+  locataireActuelId?: string; // ðŸ†• AJOUTÉ
   loyerTotal?: number;
 }
 
@@ -261,7 +261,7 @@ export interface Tenant {
   telephone: string;
   email?: string;
   cni?: string;
-  typePiece?: string;   // 🆕 CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
+  typePiece?: string;   // ðŸ†• CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
   fonction?: string;
   profession?: string;
   employeur?: string;
@@ -752,7 +752,7 @@ export interface AuditLog {
 }
 
 // ============================================================
-// PARAMÈTRES AGENCE
+// PARAMÃˆTRES AGENCE
 // ============================================================
 export interface AgencySettings {
   nomAgence: string;
@@ -776,22 +776,42 @@ export interface AgencySettings {
   orangeMoneyCode?: string;
   whatsappBusiness?: string;
   standardTelephone?: string;
+
+  // ðŸ†• Informations gérant (peut changer dans le temps)
+  gerantNom?: string;
+  gerantTitre?: string;
+  gerantSignatureUrl?: string;
+
+  // ðŸ†• Slogans personnalisables
+  slogan1?: string;
+  slogan2?: string;
+
+  // ðŸ†• Documents personnalisés (URLs Supabase Storage)
   logoUrl?: string;
+  cachetUrl?: string;
+  enteteUrl?: string;
+  piedPageUrl?: string;
+
+  // ðŸ†• Informations légales
+  rcNumero?: string;
+  nineaNumero?: string;
+  boitePostale?: string;
+  siteWeb?: string;
   primaryColor?: string;
   website?: string;
   agencyId?: string;
 
-  // 🆕 Paiements - Wave
+  // ðŸ†• Paiements - Wave
   waveApiKey?: string;
   waveWebhookSecret?: string;
   waveEnabled?: boolean;
 
-  // 🆕 Paiements - Orange Money
+  // ðŸ†• Paiements - Orange Money
   orangeMoneyApiKey?: string;
   orangeMoneyMerchantId?: string;
   orangeMoneyEnabled?: boolean;
 
-  // 🆕 Paiements - PayDunya
+  // ðŸ†• Paiements - PayDunya
   paydunyaMasterKey?: string;
   paydunyaPrivateKey?: string;
   paydunyaPublicKey?: string;
@@ -799,7 +819,7 @@ export interface AgencySettings {
   paydunyaMode?: 'test' | 'prod';
   paydunyaEnabled?: boolean;
 
-  // 🆕 Statut global paiements
+  // ðŸ†• Statut global paiements
   paymentsEnabled?: boolean;
   paymentsProvider?: 'WAVE' | 'ORANGE_MONEY' | 'PAYDUNYA' | 'MULTIPLE' | 'NONE';
 }

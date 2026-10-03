@@ -399,7 +399,7 @@ export function CashRegisterView({
                     <td colSpan={6} className="py-12 text-center text-slate-400">
                       <Coins className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
                       <p className="text-xs font-semibold text-white">Aucun mouvement de caisse</p>
-                      <p className="text-[11px] text-slate-500 mt-1">Les opâ”œÂ®rations d'espâ”œÂ¿ces apparaâ”œÂ«tront ici.</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Les opâ”œÂ®rations d'espâ”œÂ¿ces apparaâ”œ«tront ici.</p>
                     </td>
                   </tr>
                 ) : (
@@ -470,7 +470,7 @@ export function CashRegisterView({
               <div className="py-12 text-center text-slate-400">
                 <Lock className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
                 <p className="text-xs font-semibold text-white">Aucune clâ”œâ”¤ture enregistrâ”œÂ®e</p>
-                <p className="text-[11px] text-slate-500 mt-1">Les clâ”œâ”¤tures quotidiennes apparaâ”œÂ«tront ici.</p>
+                <p className="text-[11px] text-slate-500 mt-1">Les clâ”œâ”¤tures quotidiennes apparaâ”œ«tront ici.</p>
               </div>
             ) : (
               cashClosings.map((clot) => (
@@ -731,7 +731,7 @@ export function CashRegisterView({
                   <div className="font-bold text-sm">Total Physique Comptâ”œÂ® : {formatCurrencyFCFA(physicalCountTotal)}</div>
                   <div className="text-[11px] mt-0.5">
                     {cashDiscrepancy === 0
-                      ? 'Ã”Â£Ã´ Caisse parfaitement â”œÂ®quilibrâ”œÂ®e (aucun â”œÂ®cart)'
+                      ? 'Ã”Â£ô Caisse parfaitement â”œÂ®quilibrâ”œÂ®e (aucun â”œÂ®cart)'
                       : cashDiscrepancy > 0
                       ? `Surplus de caisse constatâ”œÂ® : +${formatCurrencyFCFA(cashDiscrepancy)}`
                       : `Dâ”œÂ®ficit de caisse constatâ”œÂ® : ${formatCurrencyFCFA(cashDiscrepancy)}`}

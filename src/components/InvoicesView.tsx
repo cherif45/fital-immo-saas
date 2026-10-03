@@ -64,10 +64,10 @@ export function InvoicesView({
       ref: r.ref || r.numero || 'FAC-?',
       type: r.type || 'Autre',
       proprietaireId: r.proprietaire_id,
-      proprietaireNom: r.proprietaire_nom || 'â€”',
+      proprietaireNom: r.proprietaire_nom || '"”',
       locataireId: r.locataire_id,
-      locataireNom: r.locataire_nom || 'â€”',
-      bienNom: r.bien_nom || 'â€”',
+      locataireNom: r.locataire_nom || '"”',
+      bienNom: r.bien_nom || '"”',
       dateFacture: r.date_facture || r.created_at,
       dateEcheance: r.date_echeance,
       montantHT: Number(r.montant_ht) || 0,
@@ -89,13 +89,13 @@ export function InvoicesView({
   const displayInvoices = serverInvoices.length > 0 ? serverInvoices : invoices;
 
   // New Invoice Form State
-  const [type, setType] = useState<'AdhÃ©sion' | 'Travaux' | 'Frais de dossier' | 'Autre'>('AdhÃ©sion');
+  const [type, setType] = useState<'Adhésion' | 'Travaux' | 'Frais de dossier' | 'Autre'>('Adhésion');
   const [targetOwnerId, setTargetOwnerId] = useState(owners[0]?.id || '');
   const [targetBienNom, setTargetBienNom] = useState(properties[0]?.nom || '');
-  const [description, setDescription] = useState("Frais d'adhÃ©sion & mandat de gestion locative");
+  const [description, setDescription] = useState("Frais d'adhésion & mandat de gestion locative");
   const [montantHT, setMontantHT] = useState(150000);
   const [tvaApplicable, setTvaApplicable] = useState(true);
-  const [notes, setNotes] = useState('Mandat de gÃ©rance exclusif');
+  const [notes, setNotes] = useState('Mandat de gérance exclusif');
 
   const filteredInvoices = displayInvoices.filter((inv) => {
     const matchSearch =
@@ -114,8 +114,8 @@ export function InvoicesView({
     const taxes = tvaApplicable ? Math.round(montantHT * 0.18) : 0;
     const total = montantHT + taxes;
 
-    // ðŸš¨ CONTRÃ”LE ANTI-DOUBLON FACTURE (AdhÃ©sion / Frais de dossier)
-    if (type === 'AdhÃ©sion' || type === 'Frais de dossier') {
+    // ðŸš¨ CONTRÃ”LE ANTI-DOUBLON FACTURE (Adhésion / Frais de dossier)
+    if (type === 'Adhésion' || type === 'Frais de dossier') {
       const factureExistante = invoices.find(
         (inv) =>
           inv.type === type &&
@@ -128,12 +128,12 @@ export function InvoicesView({
 
       if (factureExistante) {
         alert(
-          `âš ï¸ FACTURE EN DOUBLE DÃ‰TECTÃ‰E\n\n` +
-          `Une facture ${type} a DÃ‰JÃ€ Ã©tÃ© Ã©mise pour ce bien.\n\n` +
-          `ðŸ“„ RÃ©fÃ©rence : ${factureExistante.ref}\n` +
+          `âš ï¸ FACTURE EN DOUBLE DÉTECTÉE\n\n` +
+          `Une facture ${type} a DÉJÀ été émise pour ce bien.\n\n` +
+          `ðŸ“„ Référence : ${factureExistante.ref}\n` +
           `ðŸ’° Montant : ${formatCurrencyFCFA(factureExistante.total)}\n` +
           `ðŸ“… Date : ${factureExistante.dateFacture}\n\n` +
-          `Annulez d'abord l'ancienne facture pour en Ã©mettre une nouvelle.`
+          `Annulez d'abord l'ancienne facture pour en émettre une nouvelle.`
         );
         return;
       }
@@ -181,7 +181,7 @@ export function InvoicesView({
             Facturation & Frais de Gestion
           </h1>
           <p className="text-sm text-[#A0AEC0] mt-1">
-            Ã‰dition des factures d'adhÃ©sion de mandats, refacturations de travaux et frais de dossier agrÃ©Ã©s.
+            Édition des factures d'adhésion de mandats, refacturations de travaux et frais de dossier agréés.
           </p>
         </div>
         <button
@@ -199,7 +199,7 @@ export function InvoicesView({
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0AEC0]" />
           <input
             type="text"
-            placeholder="Rechercher par rÃ©fÃ©rence (FAC-...), propriÃ©taire ou bien..."
+            placeholder="Rechercher par référence (FAC-...), propriétaire ou bien..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] placeholder-[#64748B] focus:border-[#C9A96E] focus:outline-none"
@@ -211,7 +211,7 @@ export function InvoicesView({
           className="px-3.5 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none w-full sm:w-auto"
         >
           <option value="all">Tous les types de facture</option>
-          <option value="AdhÃ©sion">Factures d'AdhÃ©sion</option>
+          <option value="Adhésion">Factures d'Adhésion</option>
           <option value="Travaux">Factures de Travaux</option>
           <option value="Frais de dossier">Frais de Dossier</option>
         </select>
@@ -223,11 +223,11 @@ export function InvoicesView({
           <table className="w-full text-left text-sm text-[#F0EDE8]">
             <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[#A0AEC0] border-b border-[#2A3447]">
               <tr>
-                <th className="py-3.5 px-4 font-semibold">RÃ©fÃ©rence</th>
+                <th className="py-3.5 px-4 font-semibold">Référence</th>
                 <th className="py-3.5 px-4 font-semibold">Type</th>
                 <th className="py-3.5 px-4 font-semibold">Destinataire</th>
-                <th className="py-3.5 px-4 font-semibold">Bien AssociÃ©</th>
-                <th className="py-3.5 px-4 font-semibold">Date Ã‰mission</th>
+                <th className="py-3.5 px-4 font-semibold">Bien Associé</th>
+                <th className="py-3.5 px-4 font-semibold">Date Émission</th>
                 <th className="py-3.5 px-4 font-semibold text-right">Montant TTC</th>
                 <th className="py-3.5 px-4 font-semibold text-center">Statut</th>
                 <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
@@ -294,7 +294,7 @@ export function InvoicesView({
             <div className="flex items-center justify-between p-5 border-b border-[#2A3447]">
               <h2 className="text-lg font-bold text-[#F0EDE8] flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C9A96E]" />
-                CrÃ©er une Nouvelle Facture
+                Créer une Nouvelle Facture
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-[#A0AEC0] hover:text-[#F0EDE8] cursor-pointer">
                 <X className="w-5 h-5" />
@@ -311,15 +311,15 @@ export function InvoicesView({
                   onChange={(e) => setType(e.target.value as any)}
                   className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
-                  <option value="AdhÃ©sion">Facture d'AdhÃ©sion / Mandat de Gestion</option>
-                  <option value="Travaux">Facture de Travaux & RÃ©novations</option>
+                  <option value="Adhésion">Facture d'Adhésion / Mandat de Gestion</option>
+                  <option value="Travaux">Facture de Travaux & Rénovations</option>
                   <option value="Frais de dossier">Frais de Dossier / Bail</option>
                 </select>
               </div>
 
                             <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
-                  {type === 'Frais de dossier' ? 'Locataire Destinataire' : 'PropriÃ©taire Destinataire'}
+                  {type === 'Frais de dossier' ? 'Locataire Destinataire' : 'Propriétaire Destinataire'}
                 </label>
                 {type === 'Frais de dossier' ? (
                   <select
@@ -327,7 +327,7 @@ export function InvoicesView({
                     onChange={(e) => setTargetOwnerId(e.target.value)}
                     className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                   >
-                    <option value="">â€” Choisir un locataire â€”</option>
+                    <option value="">"” Choisir un locataire "”</option>
                     {tenants.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.prenom} {t.nom} - {t.telephone}
@@ -351,16 +351,16 @@ export function InvoicesView({
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
-                  Bien / Immeuble / Espace ConcernÃ©
+                  Bien / Immeuble / Espace Concerné
                 </label>
                 <select
                   value={targetBienNom}
                   onChange={(e) => setTargetBienNom(e.target.value)}
                   className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
-                  <option value="">â€” Choisir â€”</option>
+                  <option value="">"” Choisir "”</option>
 
-                  {/* Biens simples du propriÃ©taire sÃ©lectionnÃ© */}
+                  {/* Biens simples du propriétaire sélectionné */}
                   {(() => {
                     const filteredProps = type === 'Frais de dossier'
                       ? properties.filter((p) => {
@@ -383,7 +383,7 @@ export function InvoicesView({
                     const hasAny = filteredProps.length > 0 || filteredBuildings.length > 0 || filteredUnits.length > 0;
 
                     if (!hasAny) {
-                      return <option value="" disabled>Aucun bien liÃ© Ã  ce destinataire</option>;
+                      return <option value="" disabled>Aucun bien lié Ã  ce destinataire</option>;
                     }
 
                     return (
@@ -407,10 +407,10 @@ export function InvoicesView({
                           </optgroup>
                         )}
                         {filteredUnits.length > 0 && (
-                          <optgroup label="ðŸ”‘ Espaces / UnitÃ©s">
+                          <optgroup label="ðŸ”‘ Espaces / Unités">
                             {filteredUnits.map((u: any) => (
                               <option key={u.id} value={u.nom}>
-                                {u.nom} â€” {u.loyerBase} FCFA
+                                {u.nom} "” {u.loyerBase} FCFA
                               </option>
                             ))}
                           </optgroup>
@@ -461,7 +461,7 @@ export function InvoicesView({
               </div>
 
               <div className="p-3 bg-[#0A111D] rounded-xl border border-[#2A3447] flex justify-between items-center text-sm">
-                <span className="text-[#A0AEC0]">Total TTC FacturÃ© :</span>
+                <span className="text-[#A0AEC0]">Total TTC Facturé :</span>
                 <span className="text-lg font-bold text-[#10B981]">
                   {formatCurrencyFCFA(montantHT + (tvaApplicable ? Math.round(montantHT * 0.18) : 0))}
                 </span>
@@ -479,7 +479,7 @@ export function InvoicesView({
                   type="submit"
                   className="px-5 py-2 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm cursor-pointer"
                 >
-                  Ã‰mettre la Facture
+                  Émettre la Facture
                 </button>
               </div>
             </form>
@@ -495,7 +495,7 @@ export function InvoicesView({
               <div>
                 <h2 className="text-2xl font-black text-[#0F172A] tracking-wider">FITAL-IMMO</h2>
                 <p className="text-xs text-gray-500">Route des Almadies, Immeuble Prestige, Dakar</p>
-                <p className="text-xs text-gray-500">NINEA : 008945213 2V3 | TÃ©l : +221 33 824 10 10</p>
+                <p className="text-xs text-gray-500">NINEA : 008945213 2V3 | Tél : +221 33 824 10 10</p>
               </div>
               <div className="text-right">
                 <span className="px-3 py-1 bg-amber-100 text-amber-900 font-mono font-bold text-xs rounded-lg uppercase">
@@ -508,22 +508,22 @@ export function InvoicesView({
 
             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl text-sm">
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase">FacturÃ© Ã  :</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">Facturé Ã  :</p>
                 <p className="font-bold text-gray-900">{selectedInvoice.proprietaireNom}</p>
                 <p className="text-xs text-gray-600">Bien : {selectedInvoice.bienNom}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase">Conditions :</p>
-                <p className="text-xs text-gray-700">Ã‰chÃ©ance : {selectedInvoice.dateEcheance}</p>
-                <p className="text-xs text-gray-700">Mode : Virement / ChÃ¨que</p>
+                <p className="text-xs text-gray-700">Échéance : {selectedInvoice.dateEcheance}</p>
+                <p className="text-xs text-gray-700">Mode : Virement / Chèque</p>
               </div>
             </div>
 
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b-2 border-gray-300 text-xs uppercase font-bold text-gray-600">
-                  <th className="py-2">DÃ©signation</th>
-                  <th className="py-2 text-center">QtÃ©</th>
+                  <th className="py-2">Désignation</th>
+                  <th className="py-2 text-center">Qté</th>
                   <th className="py-2 text-right">Prix Unitaire</th>
                   <th className="py-2 text-right">Total HT</th>
                 </tr>
@@ -558,32 +558,32 @@ export function InvoicesView({
             </div>
 
                        <div className="bg-amber-50 p-3 rounded-lg text-xs text-amber-950 font-medium">
-              ArrÃªtÃ©e la prÃ©sente facture Ã  la somme de : <br />
+              Arrêtée la présente facture Ã  la somme de : <br />
               <strong className="text-sm font-bold">{numberToWordsFrench(selectedInvoice.total)}</strong>
             </div>
 
-            {/* Signatures & TraÃ§abilitÃ© */}
+            {/* Signatures & Traçabilité */}
             <div className="grid grid-cols-2 gap-8 pt-6 mt-6 border-t-2 border-gray-300">
               <div>
                 <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">
-                  Ã‰mis par
+                  Émis par
                 </div>
                 <div className="text-sm font-bold text-gray-900">
                   {selectedInvoice.createdByNom || 'Service Facturation'}
                 </div>
                 <div className="text-[11px] uppercase font-semibold text-gray-500 mt-0.5">
-                  RÃ´le : {selectedInvoice.createdByRole || 'â€”'}
+                  Rôle : {selectedInvoice.createdByRole || '"”'}
                 </div>
                 {selectedInvoice.createdById && (
                   <div className="text-[9px] font-mono text-gray-400 mt-0.5">
-                    ID : {selectedInvoice.createdById.slice(0, 8)}â€¦
+                    ID : {selectedInvoice.createdById.slice(0, 8)}"¦
                   </div>
                 )}
                 <div className="text-[10px] text-gray-500 mt-1">
                   Le {new Date(selectedInvoice.dateFacture || Date.now()).toLocaleDateString('fr-FR')}
                 </div>
                 <div className="font-bold text-gray-700 text-xs mt-3 mb-1">
-                  Signature de l'Ã‰metteur :
+                  Signature de l'Émetteur :
                 </div>
                 <div className="h-16 border border-dashed border-gray-400 rounded-lg"></div>
               </div>

@@ -47,8 +47,8 @@ interface TenantDashboardViewProps {
   inspections: PropertyInspection[];
   maintenance: MaintenanceTicket[];
   onOpenReceipt: (payment: Payment) => void;
-  onInitiateOnlinePayment: (amount: number, methodCode: PaymentMethodCode, ref: string) => void;
-  onSubmitIncident: (title: string, description: string) => void;
+  onInitiateOnlinePayment?: (amount: number, methodCode: PaymentMethodCode, ref: string) => void;
+  onSubmitIncident?: (title: string, description: string) => void;
 }
 
 export function TenantDashboardView({
