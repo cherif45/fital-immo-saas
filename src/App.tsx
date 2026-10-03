@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Building2,
@@ -6,7 +6,7 @@ import {
   CreditCard,
   Coins,
   Menu as MenuIcon,
-} from 'lucide-react';
+  Sparkles,} from 'lucide-react';
 import { ResetPasswordView } from './components/ResetPasswordView';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
@@ -1731,7 +1731,7 @@ export default function App() {
                     onClick={() => setIsNewTenantWizardOpen(true)}
                     className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
                   >
-                    <span>Ã¢ÂœÂ¨ Assistant Nouveau Locataire (7 ÃƒÂ‰tapes)</span>
+                    <span className="inline-flex items-center gap-2"><Sparkles className="w-4 h-4" />Assistant Nouveau Locataire (7 Etapes)</span>
                   </button>
                 </div>
               )}

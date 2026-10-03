@@ -3,13 +3,89 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// Trust proxy (necessaire pour Vercel / Heroku)
+app.set("trust proxy", 1);
+
+// ============================================================
+// SECURITE - Headers HTTP
+// ============================================================
+app.use(helmet({
+  contentSecurityPolicy: false,       // Desactive pour Vite (scripts inline)
+  crossOriginEmbedderPolicy: false,   // Compatibilite avec Vite
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+// ============================================================
+// SECURITE - CORS strict (whitelist)
+// ============================================================
+const ALLOWED_ORIGINS: (string | RegExp)[] = [
+  "http://localhost:3000",
+  "http://localhost:4173",
+  "http://localhost:5173",
+  /\.vercel\.app$/,
+  // Ajouter ici les domaines de production :
+  // /\.fital-immo\.com$/,
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Autoriser les requetes sans origin (Postman, curl, same-origin)
+    if (!origin) return callback(null, true);
+
+    const allowed = ALLOWED_ORIGINS.some(o =>
+      typeof o === "string" ? o === origin : o.test(origin)
+    );
+
+    if (allowed) {
+      callback(null, true);
+    } else {
+      console.warn("[CORS] Origine refusee : " + origin);
+      callback(new Error("CORS refuse : origine non autorisee"), false);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+}));
+
+// ============================================================
+// SECURITE - Body parser limite (anti-DoS)
+// ============================================================
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// ============================================================
+// SECURITE - Rate limiting global
+// ============================================================
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 100,                    // 100 requetes par IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de requetes. Reessayez dans 15 minutes." },
+});
+app.use("/api/", globalLimiter);
+
+// ============================================================
+// SECURITE - Rate limiting Gemini (tres strict, couteux)
+// ============================================================
+const geminiLimiter = rateLimit({
+  windowMs: 60 * 1000,         // 1 minute
+  max: 10,                     // 10 requetes/min par IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de requetes IA. Attendez 1 minute." },
+});
+app.use("/api/gemini/", geminiLimiter);
 
 // Initialize Gemini SDK with User-Agent telemetry
 const getGeminiClient = () => {
@@ -211,6 +287,14 @@ Fournis une analyse synthétique en français (2-3 phrases) et 3 actions priorit
 });
 
 async function startServer() {
+  // SECURITE : En production, NODE_ENV DOIT etre defini
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+    if (!process.env.NODE_ENV) {
+      console.error("[SECURITE] NODE_ENV non defini en production !");
+      process.exit(1);
+    }
+  }
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
