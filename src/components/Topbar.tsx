@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { ActiveTab, UserAccount, NotificationItem } from '../types';
 import { DatabaseStatusModal } from './DatabaseStatusModal';
-import { ThemeToggle } from './ThemeToggle';
+import { ConnectionIndicator } from './ConnectionIndicator';
+import { ThemeStudio } from './ThemeStudio';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 
 interface TopbarProps {
@@ -48,6 +49,7 @@ interface TopbarProps {
   onOpenGlobalSearch?: () => void;
   onOpenQuickComms?: () => void;
   onOpenMobileMoney?: () => void;
+  onOpenThemePreview?: () => void;
 }
 
 // ============================================================
@@ -78,6 +80,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   onOpenGlobalSearch,
   onOpenQuickComms,
   onOpenMobileMoney,
+  onOpenThemePreview,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -311,21 +314,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => setShowDbStatusModal(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer min-h-[40px] ${
-              isSupabaseConfigured
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-            }`}
-            title="Vérifier le statut du service"
-          >
-            <Database className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline font-mono text-[10px]">
-              {isSupabaseConfigured ? 'En ligne' : 'Opérationnel'}
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
+          <ConnectionIndicator onClick={() => setShowDbStatusModal(true)} />
 
           <div className="relative">
             <button
@@ -416,7 +405,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
 
           <div className="relative">
-                        <ThemeToggle />
+                        <ThemeStudio onOpenPreview={onOpenThemePreview} />
 
             <button
               onClick={() => setShowNotifications(!showNotifications)}

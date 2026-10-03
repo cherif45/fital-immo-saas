@@ -30,3 +30,9 @@ fital_immo_fix_*.py
 test-results/
 playwright-report/
 .playwright/
+
+# Backups locaux
+*.backup
+*.tsx.backup
+*.ts.backup
+*.css.backup

@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "FITAL-IMMO — Gestion Locative & Loyers",
   "short_name": "FITAL-IMMO",
   "description": "Plateforme SaaS professionnelle de gestion locative, quittances, caisse, baux et recouvrement.",
@@ -37,7 +37,7 @@
       "short_name": "Encaisser",
       "description": "Enregistrer un paiement",
       "url": "/?tab=payments",
-            "icons": [
+      "icons": [
         {
           "src": "/icons/shortcut-payment.png",
           "sizes": "192x192",
@@ -50,7 +50,7 @@
       "short_name": "Locataire",
       "description": "Assistant nouveau locataire",
       "url": "/?tab=tenants",
-            "icons": [
+      "icons": [
         {
           "src": "/icons/shortcut-tenant.png",
           "sizes": "192x192",

@@ -808,3 +808,166 @@ body {
 .theme-light [class*="from-[#1E2E45]"] {
   /* Si le dégradé va vers sombre, garde le texte blanc */
 }
+/* ============================================================
+   ACCENTS MÉTIER — 6 palettes professionnelles
+   Ajouté le : chantier Thème Premium
+   But : permettre le changement de couleur d'accent via [data-accent]
+   Les 181 règles ci-dessus ne sont PAS touchées.
+   ============================================================ */
+
+/* 🥇 Or Champagne — DÉFAUT (identité FITAL) */
+:root[data-accent="gold"],
+[data-accent="gold"] {
+  --accent: #C9A96E;
+  --accent-dark: #A07840;
+  --accent-hover: #B8904E;
+  --accent-soft: rgba(201, 169, 110, 0.15);
+  --accent-border: rgba(201, 169, 110, 0.35);
+  --accent-text: #0F1B2D;
+  --accent-glow: rgba(201, 169, 110, 0.25);
+}
+
+/* 💼 Bleu Royal — agences classiques, finance */
+:root[data-accent="blue"],
+[data-accent="blue"] {
+  --accent: #2563EB;
+  --accent-dark: #1D4ED8;
+  --accent-hover: #3B82F6;
+  --accent-soft: rgba(37, 99, 235, 0.15);
+  --accent-border: rgba(37, 99, 235, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(37, 99, 235, 0.25);
+}
+
+/* 🌿 Vert Émeraude — patrimoine, investisseurs */
+:root[data-accent="emerald"],
+[data-accent="emerald"] {
+  --accent: #047857;
+  --accent-dark: #065F46;
+  --accent-hover: #059669;
+  --accent-soft: rgba(4, 120, 87, 0.15);
+  --accent-border: rgba(4, 120, 87, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(4, 120, 87, 0.25);
+}
+
+/* 🍷 Bordeaux — premium, haut de gamme */
+:root[data-accent="bordeaux"],
+[data-accent="bordeaux"] {
+  --accent: #7F1D1D;
+  --accent-dark: #991B1B;
+  --accent-hover: #B91C1C;
+  --accent-soft: rgba(127, 29, 29, 0.15);
+  --accent-border: rgba(127, 29, 29, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(127, 29, 29, 0.25);
+}
+
+/* 🏛️ Bleu Notaire — institutionnel, légal */
+:root[data-accent="navy"],
+[data-accent="navy"] {
+  --accent: #1E3A5F;
+  --accent-dark: #2C4A70;
+  --accent-hover: #2C5282;
+  --accent-soft: rgba(30, 58, 95, 0.15);
+  --accent-border: rgba(30, 58, 95, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(30, 58, 95, 0.25);
+}
+
+/* ⚫ Anthracite — sobre, neutre, expertise */
+:root[data-accent="anthracite"],
+[data-accent="anthracite"] {
+  --accent: #374151;
+  --accent-dark: #4B5563;
+  --accent-hover: #4B5563;
+  --accent-soft: rgba(55, 65, 81, 0.15);
+  --accent-border: rgba(55, 65, 81, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(55, 65, 81, 0.25);
+}
+
+/* En mode clair, on assombrit légèrement l'accent pour la lisibilité */
+.theme-light[data-accent="gold"]       { --accent: #A07840; }
+.theme-light[data-accent="blue"]       { --accent: #1D4ED8; }
+.theme-light[data-accent="emerald"]    { --accent: #065F46; }
+.theme-light[data-accent="bordeaux"]   { --accent: #991B1B; }
+.theme-light[data-accent="navy"]       { --accent: #1E3A5F; }
+.theme-light[data-accent="anthracite"] { --accent: #1F2937; }
+
+/* Transition fluide lors du changement d'accent (uniquement les propriétés liées) */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fallback : composants qui utilisent var(--accent) changent automatiquement */
+.theme-accent       { color: var(--accent); }
+.theme-bg-accent    { background-color: var(--accent); }
+.theme-border-accent { border-color: var(--accent); }
+
+/* ============================================================
+   FIN — Accents métier
+   ============================================================ */
+
+/* ============================================================
+   MIGRATION AUTOMATIQUE DES ACCENTS
+   Ajouté le : chantier Thème Premium
+   But : forcer l'utilisation de var(--accent) quand l'accent
+         n'est PAS "gold" (défaut). Préserve l'identité FITAL
+         par défaut, migre dynamiquement vers l'accent choisi.
+   Méthode : override Tailwind hardcodé (bg-[#C9A96E], etc.)
+   Sécurité : scopé à [data-accent]:not([data-accent="gold"])
+   ============================================================ */
+
+/* Ne s'applique QUE si l'accent est différent de "gold" */
+[data-accent]:not([data-accent="gold"]) {
+
+  /* ─── FONDS OR → FOND ACCENT ──────────────────────────── */
+  .bg-\[\#C9A96E\]       { background-color: var(--accent) !important; }
+  .bg-\[\#C9A96E\]\/10   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/15   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/20   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/30   { background-color: var(--accent-border) !important; }
+
+  /* ─── TEXTES OR → TEXTE ACCENT ────────────────────────── */
+  .text-\[\#C9A96E\]     { color: var(--accent) !important; }
+  .text-\[\#A07840\]     { color: var(--accent-dark) !important; }
+  .text-\[\#E8D5B0\]     { color: var(--accent) !important; }
+  .text-\[\#E8A84A\]     { color: var(--accent) !important; }
+
+  /* ─── BORDURES OR → BORDURE ACCENT ────────────────────── */
+  .border-\[\#C9A96E\]      { border-color: var(--accent) !important; }
+  .border-\[\#C9A96E\]\/15  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/20  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/30  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/40  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/50  { border-color: var(--accent) !important; }
+
+  /* ─── GRADIENTS OR → GRADIENT ACCENT ──────────────────── */
+  .from-\[\#C9A96E\]     { --tw-gradient-from: var(--accent) !important; }
+  .to-\[\#A07840\]       { --tw-gradient-to: var(--accent-dark) !important; }
+  .from-\[\#C9A96E\]\/20 { --tw-gradient-from: var(--accent-soft) !important; }
+  .to-\[\#C9A96E\]\/10   { --tw-gradient-to: var(--accent-soft) !important; }
+  .via-\[\#E8A84A\]\/20  { --tw-gradient-via: var(--accent-soft) !important; }
+
+  /* ─── OMBRES OR → OMBRE ACCENT ────────────────────────── */
+  .shadow-\[\#C9A96E\]\/20 { box-shadow: 0 4px 14px 0 var(--accent-glow) !important; }
+  .shadow-\[\#C9A96E\]\/40 { box-shadow: 0 8px 20px 0 var(--accent-glow) !important; }
+
+  /* ─── RING OR → RING ACCENT ───────────────────────────── */
+  .ring-\[\#C9A96E\]     { --tw-ring-color: var(--accent) !important; }
+
+  /* ─── HOVER BORDER OR → HOVER BORDER ACCENT ───────────── */
+  .hover\:border-\[\#C9A96E\]:hover         { border-color: var(--accent) !important; }
+  .hover\:border-\[\#C9A96E\]\/50:hover     { border-color: var(--accent-border) !important; }
+  .hover\:text-\[\#C9A96E\]:hover           { color: var(--accent) !important; }
+  .hover\:bg-\[\#C9A96E\]\/20:hover         { background-color: var(--accent-soft) !important; }
+}
+
+/* ============================================================
+   FIN — Migration automatique des accents
+   Pour DÉSACTIVER la migration : commenter le bloc ci-dessus
+   Pour AJOUTER un composant : ajouter la classe Tailwind exacte
+   ============================================================ */

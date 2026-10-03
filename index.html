@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
@@ -25,7 +25,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- 🆕 SCRIPT ANTI-CACHE MOBILE -->
+    <!-- Nettoyage quotidien : localStorage uniquement, SANS toucher au Service Worker -->
     <script>
       (function() {
         try {
@@ -34,24 +34,12 @@
           var lastClear = localStorage.getItem(CACHE_DATE_KEY);
           
           if (lastClear !== today) {
-            console.log('🧹 Nettoyage cache mobile...');
+            console.log('🧹 Nettoyage localStorage quotidien...');
             
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (var i = 0; i < registrations.length; i++) {
-                  registrations[i].unregister();
-                }
-              });
-            }
+            // ⚠️ On NE désenregistre PLUS le Service Worker (nécessaire pour la PWA)
+            // On NE supprime PLUS les caches du SW (gérés par vite-plugin-pwa)
             
-            if ('caches' in window) {
-              caches.keys().then(function(names) {
-                for (var i = 0; i < names.length; i++) {
-                  caches.delete(names[i]);
-                }
-              });
-            }
-            
+            // On nettoie uniquement le localStorage applicatif
             var keep = ['fital_immo_user', 'fital_immo_current_user', CACHE_DATE_KEY];
             var toRemove = [];
             for (var i = 0; i < localStorage.length; i++) {
@@ -63,14 +51,9 @@
             toRemove.forEach(function(k) { localStorage.removeItem(k); });
             localStorage.setItem(CACHE_DATE_KEY, today);
             
-            if (sessionStorage.getItem('fital_reloaded') !== '1') {
-              sessionStorage.setItem('fital_reloaded', '1');
-              setTimeout(function() { window.location.reload(); }, 300);
-            }
-          } else {
-            sessionStorage.removeItem('fital_reloaded');
+            console.log('✅ localStorage nettoyé (' + toRemove.length + ' clés supprimées)');
           }
-        } catch (e) { console.log('Cache error:', e); }
+        } catch (e) { console.log('Cache cleanup error:', e); }
       })();
     </script>
   </head>
