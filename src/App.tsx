@@ -20,6 +20,8 @@ import { UnitsView } from './components/UnitsView';
 import { TenantsView } from './components/TenantsView';
 import { OwnersView } from './components/OwnersView';
 import { AgencySettingsView } from './components/AgencySettingsView';
+import { ThemeToggle } from './components/ThemeToggle';
+import { useTheme } from './hooks/useTheme';
 import { useAgencySettings } from './hooks/useAgencySettings';
 import { ContractsView } from './components/ContractsView';
 import { InspectionsView } from './components/InspectionsView';
@@ -185,6 +187,7 @@ export default function App() {
   
   // 🆕 Chargement des paramètres d'agence (dynamique, cache 5min)
   const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
+  useTheme(); // Initialise le thème global
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
@@ -1621,6 +1624,7 @@ export default function App() {
               owners={owners}
               properties={properties}
               tenants={tenants}
+              currentUser={currentUser}
             />
           )}
 
@@ -1635,6 +1639,7 @@ export default function App() {
               onOpenNewPayment={handleOpenNewPaymentForTenant}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
               onAddPayment={handleAddPayment}
+              currentUser={currentUser}
             />
           )}
 
@@ -1829,6 +1834,7 @@ export default function App() {
               ownerDeductions={ownerDeductions}
               onAddDisbursement={handleAddDisbursement}
               onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
+              currentUser={currentUser}
             />
           )}
 

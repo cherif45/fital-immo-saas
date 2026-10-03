@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Payment, PaymentMethodConfig, Owner, Property, Tenant } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
+import { paginateTable } from '../lib/supabase/service';
 import { 
   BarChart3, 
   Download, 
@@ -21,6 +22,7 @@ interface PaymentMethodReportsViewProps {
   owners: Owner[];
   properties: Property[];
   tenants: Tenant[];
+  currentUser?: { agencyId?: string } | null;
 }
 
 export function PaymentMethodReportsView({
@@ -29,11 +31,52 @@ export function PaymentMethodReportsView({
   owners,
   properties,
   tenants,
+  currentUser,
 }: PaymentMethodReportsViewProps) {
+  // 🆕 Pagination serveur
+  const [serverPayments, setServerPayments] = useState<Payment[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 500;
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadAllPayments(0);
+  }, [currentUser?.agencyId]);
+
+  const loadAllPayments = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    try {
+      const result = await paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE);
+      const mapped: Payment[] = result.data.map((r: any) => ({
+        ...r,
+        id: r.id,
+        montantPaye: Number(r.montant_paye) || 0,
+        datePaiement: r.date_paiement,
+        statut: r.statut,
+        modePaiement: r.mode_paiement,
+        moyenPaiementCode: r.moyen_paiement_code,
+        proprietaireId: r.proprietaire_id,
+      }));
+      if (page === 0) {
+        setServerPayments(mapped);
+      } else {
+        setServerPayments(prev => [...prev, ...mapped]);
+      }
+      setServerTotal(result.total);
+    } catch (e) {
+      console.warn('loadAllPayments:', e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
   const [selectedMethod, setSelectedMethod] = useState<string>('ALL');
   const [selectedOwner, setSelectedOwner] = useState<string>('ALL');
 
-  const filteredPayments = payments.filter((p) => {
+  const filteredPayments = displayPayments.filter((p) => {
     const matchMethod = selectedMethod === 'ALL' || p.moyenPaiementCode === selectedMethod || p.modePaiement === selectedMethod;
     const matchOwner = selectedOwner === 'ALL' || p.proprietaireId === selectedOwner;
     const matchStatus = p.statut === 'Payé' || p.statut === 'Partiel';

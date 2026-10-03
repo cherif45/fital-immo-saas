@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ActiveTab, UserAccount, NotificationItem } from '../types';
 import { DatabaseStatusModal } from './DatabaseStatusModal';
+import { ThemeToggle } from './ThemeToggle';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 
 interface TopbarProps {
@@ -415,6 +416,8 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
 
           <div className="relative">
+                        <ThemeToggle />
+
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative w-9 sm:w-10 h-9 sm:h-10 rounded-xl bg-[#162133] border border-[#C9A96E]/20 flex items-center justify-center text-[#A8B4C4] hover:text-white hover:border-[#C9A96E]/50 transition-all cursor-pointer min-h-[40px] min-w-[40px]"

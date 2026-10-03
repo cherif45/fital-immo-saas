@@ -26,6 +26,7 @@ import {
   ActiveTab,
 } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
+import { paginateTable } from '../lib/supabase/service';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp, generateLateRentMessage } from '../lib/comms/commsHelper';
 import { QuickCommsModal } from './QuickCommsModal';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';

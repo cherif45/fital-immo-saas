@@ -28,6 +28,7 @@ import {
   OwnerDeduction,
 } from '../types';
 import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+import { paginateTable } from '../lib/supabase/service';
 
 interface FinanceViewProps {
   disbursements: OwnerDisbursement[];
@@ -42,6 +43,7 @@ interface FinanceViewProps {
   ownerDeductions?: OwnerDeduction[];
   onAddDisbursement: (disbursement: OwnerDisbursement) => void;
   onOpenBulletin?: (owner: Owner) => void;
+  currentUser?: { agencyId?: string } | null;
 }
 
 interface ReversementPreview {
@@ -67,7 +69,64 @@ export function FinanceView({
   ownerDeductions = [],
   onAddDisbursement,
   onOpenBulletin,
+  currentUser,
 }: FinanceViewProps) {
+  // 🆕 Pagination serveur pour payments + disbursements
+  const [serverPayments, setServerPayments] = useState<Payment[]>([]);
+  const [serverDisbursements, setServerDisbursements] = useState<OwnerDisbursement[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverPage, setServerPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 100;
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadFinancePage(0);
+  }, [currentUser?.agencyId]);
+
+  const loadFinancePage = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    try {
+      const [paymentsResult, disbursementsResult] = await Promise.all([
+        paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE),
+        paginateTable<any>('disbursements', currentUser.agencyId, page, PAGE_SIZE),
+      ]);
+      const mappedPayments: Payment[] = paymentsResult.data.map((r: any) => ({
+        ...r,
+        id: r.id,
+        montantPaye: Number(r.montant_paye) || 0,
+        datePaiement: r.date_paiement,
+        statut: r.statut,
+        modePaiement: r.mode_paiement,
+        proprietaireId: r.proprietaire_id,
+      }));
+      const mappedDisbursements: OwnerDisbursement[] = disbursementsResult.data.map((r: any) => ({
+        ...r,
+        id: r.id,
+        proprietaireId: r.proprietaire_id || r.owner_id,
+        montant: Number(r.montant) || 0,
+        dateDisbursement: r.date_disbursement || r.created_at,
+        statut: r.statut,
+      }));
+      if (page === 0) {
+        setServerPayments(mappedPayments);
+        setServerDisbursements(mappedDisbursements);
+      } else {
+        setServerPayments(prev => [...prev, ...mappedPayments]);
+        setServerDisbursements(prev => [...prev, ...mappedDisbursements]);
+      }
+      setServerTotal(paymentsResult.total);
+      setServerPage(page);
+    } catch (e) {
+      console.warn('loadFinancePage:', e);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
+  const displayDisbursements = serverDisbursements.length > 0 ? serverDisbursements : disbursements;
   const [search, setSearch] = useState('');
   const [selectedOwner, setSelectedOwner] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('Mai 2026');
@@ -78,7 +137,7 @@ export function FinanceView({
   // CALCUL DES REVERSEMENTS
   // ============================================================
   const calculerReversements = (): ReversementPreview[] => {
-    const paiementsValides = payments.filter(
+    const paiementsValides = displayPayments.filter(
       (p) =>
         p.statut === 'Payé' &&
         p.proprietaireId &&
