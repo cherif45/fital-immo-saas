@@ -711,13 +711,13 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
       fetchAllRows('tenants', agencyId, q => q.is('deleted_at', null)),
       agencyFilter(supabase.from('contracts').select('*')),
-      Promise.resolve({ data: [], error: null }),
-      Promise.resolve({ data: [], error: null }),
+      fetchAllRows('payments', agencyId, q => q.order('created_at', { ascending: false })),
+      fetchAllRows('cash_movements', agencyId, q => q.order('created_at', { ascending: false })),
       agencyFilter(supabase.from('cash_closings').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('maintenance_tickets').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('property_inspections').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('disbursements').select('*').order('created_at', { ascending: false })),
-      Promise.resolve({ data: [], error: null }),
+      fetchAllRows('invoices', agencyId, q => q.order('created_at', { ascending: false })),
       agencyFilter(supabase.from('tenant_reminders').select('*').order('date_creation', { ascending: false })),
       agencyFilter(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)),
       agencyFilter(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)),
@@ -731,7 +731,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('archives').select('*').order('archived_at', { ascending: false }).limit(200)),
       agencyFilter(supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500)),
       fetchAllRows('penalties', agencyId, q => q.order('created_at', { ascending: false })),
-      Promise.resolve({ data: [], error: null }),
+      fetchAllRows('owner_charges', agencyId, q => q.order('created_at', { ascending: false })),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
