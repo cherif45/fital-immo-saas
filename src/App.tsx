@@ -167,12 +167,12 @@ import {
   deleteOwnerChargeFromDb,
 } from './lib/supabase/service';
 
-// Ã°ÂŸÂ†Â• Force le nettoyage du cache si la version change
-const APP_VERSION = '3.0.7'; // Ã¢Â†Â Ã©tait 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
+// Ã°Ÿ†• Force le nettoyage du cache si la version change
+const APP_VERSION = '3.0.7'; // â† était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
 const storedVersion = localStorage.getItem('fital_immo_version');
 
 if (storedVersion !== APP_VERSION) {
-  console.log('Ã°ÂŸÂ”Â„ Nouvelle version dÃ©tectÃ©e, nettoyage du cache...');
+  console.log('Ã°Ÿ”„ Nouvelle version détectée, nettoyage du cache...');
   const keysToKeep = ['fital_immo_user'];
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('fital_immo_') && !keysToKeep.includes(key)) {
@@ -197,9 +197,9 @@ export default function App() {
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   
-  // ðŸ†• Chargement des paramÃ¨tres d'agence (dynamique, cache 5min)
+  // ðŸ†• Chargement des paramètres d'agence (dynamique, cache 5min)
   const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
-  useTheme(); // Initialise le thÃ¨me global
+  useTheme(); // Initialise le thème global
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
@@ -359,14 +359,14 @@ export default function App() {
     });
   }, []);
 
-  // useEffect 4 : Chargement donnÃ©es
+  // useEffect 4 : Chargement données
   useEffect(() => {
     if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
-      console.log('Ã¢ÂÂ³ En attente de l\'agencyId...');
+      console.log('â³ En attente de l\'agencyId...');
       return;
     }
 
-    console.log('Ã°ÂŸÂ“Â¥ Chargement des donnÃ©es pour:', currentUser.agencyId);
+    console.log('Ã°Ÿ“¥ Chargement des données pour:', currentUser.agencyId);
 
     let cancelled = false;
 
@@ -374,7 +374,7 @@ export default function App() {
       if (cancelled) return;
       try {
         const data = await loadFullApplicationData(currentUser.agencyId);
-        // Ã°ÂŸÂ†Â• Charger les stats agrÃ©gÃ©es cÃ´tÃ© serveur (super rapide)
+        // Ã°Ÿ†• Charger les stats agrégées côté serveur (super rapide)
         try {
           const stats = await getAgencyStats(currentUser.agencyId);
           if (stats) setAgencyStats(stats);
@@ -383,7 +383,7 @@ export default function App() {
         }
         if (cancelled) return;
 
-        console.log('Ã¢ÂœÂ… DonnÃ©es chargÃ©es:', {
+        console.log('âœ… Données chargées:', {
           properties: data.properties?.length,
           buildings: data.buildings?.length,
           units: data.units?.length,
@@ -418,7 +418,7 @@ export default function App() {
         setPenalties(data.penalties || []);
         setOwnerCharges(data.ownerCharges || []);
       } catch (err) {
-        console.error('Ã¢ÂÂŒ Erreur chargement:', err);
+        console.error('âŒ Erreur chargement:', err);
       }
     }, 400);
 
@@ -439,11 +439,11 @@ export default function App() {
   };
 
   const handleTriggerAuditLog = (action: string, module: string, details: string, entityRef?: string) => {
-    const userLabel = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me';
-    const userRole = currentUser ? currentUser.role : 'SYSTÃƒÂˆME';
+    const userLabel = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système';
+    const userRole = currentUser ? currentUser.role : 'SYSTÃƒˆME';
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
-      action, entite: module, entiteId: entityRef || 'SYSTÃƒÂˆME',
+      action, entite: module, entiteId: entityRef || 'SYSTÃƒˆME',
       utilisateur: `${userLabel} (${userRole})`,
       userNom: userLabel, module, entityRef, details,
       date: new Date().toISOString().replace('T', ' ').substring(0, 19),
@@ -566,7 +566,7 @@ export default function App() {
     if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-    console.log('Ã°ÂŸÂ“Â handleLogActivity REÃƒÂ‡U:', activity.title);
+    console.log('Ã°Ÿ“ handleLogActivity REÃƒ‡U:', activity.title);
     setActivityLogs((prev) => {
       const next = [activity, ...prev];
       persistCollection('activity_logs', next);
@@ -596,7 +596,7 @@ export default function App() {
     const enrichedBulletin: BulletinVersement = {
       ...bulletin,
       createdById: bulletin.createdById || currentUser?.id,
-      createdByNom: bulletin.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: bulletin.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: bulletin.createdByRole || currentUser?.role,
     };
     setBulletinsVersements((prev) => {
@@ -609,30 +609,30 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLERS : PAIEMENTS (avec anti-doublon affinÃ© v3.0.5)
+  // HANDLERS : PAIEMENTS (avec anti-doublon affiné v3.0.5)
   // ============================================================
   const handleAddPayment = (newPayment: Payment) => {
-    // Ã°ÂŸÂ›Â¡Ã¯Â¸Â ANTI-DOUBLON : bloque uniquement PayÃ© + PayÃ©
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : bloque uniquement Payé + Payé
     const existingPaid = payments.find(
       (p) =>
         p.locataireId === newPayment.locataireId &&
         p.periode === newPayment.periode &&
-        p.statut === 'PayÃ©' &&
-        newPayment.statut === 'PayÃ©'
+        p.statut === 'Payé' &&
+        newPayment.statut === 'Payé'
     );
 
     if (existingPaid) {
       alert(
-        `Ã¢Â›Â” DOUBLON DÃƒÂ‰TECTÃƒÂ‰ Ã¢Â€Â” Paiement refusÃ©\n\n` +
-        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe dÃ©jÃ  pour ce locataire (${existingPaid.periode}).\n\n` +
+        `â›” DOUBLON DÃƒ‰TECTÃƒ‰ â€” Paiement refusé\n\n` +
+        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjÃ  pour ce locataire (${existingPaid.periode}).\n\n` +
         `Quittance : ${existingPaid.quittanceNumero}\n` +
         `Date : ${existingPaid.datePaiement}\n\n` +
-        `Pour Ã©viter un double encaissement, ce paiement est bloquÃ©.`
+        `Pour éviter un double encaissement, ce paiement est bloqué.`
       );
       handleTriggerAuditLog(
         'PAYMENT_BLOCKED_DUPLICATE',
         'Paiements',
-        `Tentative bloquÃ©e : ${newPayment.locataireNom} - ${newPayment.periode} - ${formatNumber(newPayment.montantPaye)} FCFA`,
+        `Tentative bloquée : ${newPayment.locataireNom} - ${newPayment.periode} - ${formatNumber(newPayment.montantPaye)} FCFA`,
         newPayment.quittanceNumero
       );
       return;
@@ -647,9 +647,9 @@ export default function App() {
 
     if (existingPending) {
       alert(
-        `Ã¢ÂÂ³ Paiement dÃ©jÃ  en attente\n\n` +
-        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est dÃ©jÃ  en attente de validation pour ce locataire.\n\n` +
-        `Veuillez d'abord valider ou rejeter ce paiement avant d'en crÃ©er un nouveau.`
+        `â³ Paiement déjÃ  en attente\n\n` +
+        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjÃ  en attente de validation pour ce locataire.\n\n` +
+        `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
       );
       return;
     }
@@ -657,13 +657,13 @@ export default function App() {
     const enrichedPayment: Payment = {
       ...newPayment,
       createdById: newPayment.createdById || currentUser?.id,
-      createdByNom: newPayment.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newPayment.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newPayment.createdByRole || currentUser?.role,
     };
     setPayments((prev) => { const next = [enrichedPayment, ...prev]; persistCollection('payments', next); return next; });
     if (currentUser?.agencyId) savePaymentToDbWithLog(enrichedPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
 
-    if (newPayment.modePaiement === 'EspÃ¨ces' || newPayment.moyenPaiementCode === 'ESPECES') {
+    if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
       const newCashEntry: CashMovement = {
         id: crypto.randomUUID(),
         type: 'ENCAISSEMENT',
@@ -671,7 +671,7 @@ export default function App() {
         libelle: `Encaissement loyer ${newPayment.periode} - ${newPayment.locataireNom}`,
         dateHeure: new Date().toISOString().replace('T', ' ').substring(0, 16),
         auteurId: currentUser?.id,
-        auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me',
+        auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
         justificatifRef: newPayment.quittanceNumero,
         moyenPaiementCode: 'ESPECES',
       };
@@ -687,21 +687,21 @@ export default function App() {
         const paye = newPayment.montantPaye || 0;
         const percent = total > 0 ? (paye / total) * 100 : 0;
 
-        let newStatut: 'ÃƒÂ€ jour' | 'Retard' | 'ImpayÃ©';
+        let newStatut: 'Ãƒ€ jour' | 'Retard' | 'Impayé';
         if (percent >= 100) {
-          newStatut = 'ÃƒÂ€ jour';
+          newStatut = 'Ãƒ€ jour';
         } else if (percent >= 50) {
-          newStatut = 'ÃƒÂ€ jour';
+          newStatut = 'Ãƒ€ jour';
         } else if (percent > 0) {
           newStatut = 'Retard';
         } else {
-          newStatut = 'ImpayÃ©';
+          newStatut = 'Impayé';
         }
 
         return {
           ...t,
           statut: newStatut,
-          joursRetard: newStatut === 'ÃƒÂ€ jour' ? 0 : t.joursRetard,
+          joursRetard: newStatut === 'Ãƒ€ jour' ? 0 : t.joursRetard,
           arrieresCumules: Math.max(0, total - paye),
         };
       });
@@ -713,12 +713,12 @@ export default function App() {
       id: crypto.randomUUID(),
       agencyId: currentUser?.agencyId || 'local',
       userId: currentUser?.id,
-      userNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me',
+      userNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
       activityType: 'PAYMENT',
       entityType: 'payment',
       entityId: newPayment.id,
       entityRef: newPayment.quittanceNumero,
-      title: `Paiement ${newPayment.statut} Ã¢Â€Â” ${newPayment.locataireNom}`,
+      title: `Paiement ${newPayment.statut} â€” ${newPayment.locataireNom}`,
       description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
       montant: newPayment.montantPaye,
       activityDate: new Date().toISOString().split('T')[0],
@@ -726,9 +726,9 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     handleLogActivity(activityEntry);
-    console.log('Ã°ÂŸÂ”Â¥ LOG ACTIVITÃƒÂ‰ ENVOYÃƒÂ‰:', activityEntry.title);
+    console.log('Ã°Ÿ”¥ LOG ACTIVITÃƒ‰ ENVOYÃƒ‰:', activityEntry.title);
 
-    alert(`Ã¢ÂœÂ… Paiement enregistrÃ© !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
+    alert(`âœ… Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -737,7 +737,7 @@ export default function App() {
       isOpen: true,
       tenantName: t ? `${t.prenom} ${t.nom}` : 'Client FITAL-IMMO',
       tenantPhone: t?.telephone || '+221 77 845 20 10',
-      propertyNom: t?.bienNom || 'RÃ©sidence FITAL-IMMO',
+      propertyNom: t?.bienNom || 'Résidence FITAL-IMMO',
       amount: amount || t?.arrieresCumules || t?.loyerMensuel || 250000,
       period: selectedPeriod,
       reference: `LOY-${(t?.nom || 'CLI').slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`,
@@ -759,21 +759,21 @@ export default function App() {
     const tenant = tenants.find((t) => t.id === tId) || tenants[0];
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
-    if (!tenant || !property) { alert('Ã¢ÂÂŒ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
+    if (!tenant || !property) { alert('âŒ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
 
     const existingPayment = payments.find(
       (p) =>
         p.locataireId === tenant.id &&
         p.periode === selectedPeriod &&
-        p.statut === 'PayÃ©'
+        p.statut === 'Payé'
     );
 
     if (existingPayment) {
       alert(
-        `Ã¢Â›Â” PAIEMENT DÃƒÂ‰JÃƒÂ€ ENREGISTRÃƒÂ‰\n\n` +
-        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe dÃ©jÃ  pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
+        `â›” PAIEMENT DÃƒ‰JÃƒ€ ENREGISTRÃƒ‰\n\n` +
+        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjÃ  pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
         `Quittance : ${existingPayment.quittanceNumero}\n\n` +
-        `Impossible de crÃ©er un doublon.`
+        `Impossible de créer un doublon.`
       );
       setMobileMoneyModalConfig(null);
       return;
@@ -788,8 +788,8 @@ export default function App() {
 
     if (pendingPayment) {
       alert(
-        `Ã¢ÂÂ³ PAIEMENT EN ATTENTE\n\n` +
-        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est dÃ©jÃ  en attente de validation.\n\n` +
+        `â³ PAIEMENT EN ATTENTE\n\n` +
+        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjÃ  en attente de validation.\n\n` +
         `Veuillez d'abord valider ou rejeter ce paiement.`
       );
       setMobileMoneyModalConfig(null);
@@ -805,7 +805,7 @@ export default function App() {
       bienId: property.id,
       bienNom: property.nom,
       proprietaireId: owner?.id || '',
-      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'PropriÃ©taire',
+      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
       periode: selectedPeriod,
       loyerBase: amount, charges: 0, tva: 0, tom: 0, penalites: 0,
       montantTotal: amount, montantPaye: amount, montantRestant: 0,
@@ -813,10 +813,10 @@ export default function App() {
       moyenPaiementCode: method === 'WAVE' ? 'WAVE' : 'ORANGE_MONEY',
       numeroTransaction: transactionId,
       datePaiement: new Date().toISOString().split('T')[0],
-      statut: 'PayÃ©',
-      observation: `RÃ¨glement via ${method === 'WAVE' ? 'Wave' : 'Orange Money'} (Tx: ${transactionId})`,
+      statut: 'Payé',
+      observation: `Règlement via ${method === 'WAVE' ? 'Wave' : 'Orange Money'} (Tx: ${transactionId})`,
       auteurId: currentUser?.id,
-      auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me',
+      auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
       dateHeurePaiement: new Date().toISOString().replace('T', ' ').substring(0, 16),
       typeRecu: 'QUITTANCE',
     };
@@ -826,7 +826,7 @@ export default function App() {
 
   const handleValidatePendingPayment = (paymentId: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'valide' as const, statut: 'PayÃ©' as const, dateValidation: new Date().toISOString().split('T')[0], valideParId: currentUser?.id, valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me' } : p);
+      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'valide' as const, statut: 'Payé' as const, dateValidation: new Date().toISOString().split('T')[0], valideParId: currentUser?.id, valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système' } : p);
       persistCollection('payments', next);
       return next;
     });
@@ -835,7 +835,7 @@ export default function App() {
 
   const handleRejectPendingPayment = (paymentId: string, reason: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'rejete' as const, statut: 'ImpayÃ©' as const, motifRejet: reason } : p);
+      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'rejete' as const, statut: 'Impayé' as const, motifRejet: reason } : p);
       persistCollection('payments', next);
       return next;
     });
@@ -846,7 +846,7 @@ export default function App() {
     const enrichedMov: CashMovement = {
       ...mov,
       createdById: mov.createdById || currentUser?.id,
-      createdByNom: mov.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: mov.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: mov.createdByRole || currentUser?.role,
     };
     setCashMovements((prev) => { const next = [enrichedMov, ...prev]; persistCollection('cash_movements', next); return next; });
@@ -909,7 +909,7 @@ export default function App() {
     const enrichedContract: LeaseContract = {
       ...newContract,
       createdById: newContract.createdById || currentUser?.id,
-      createdByNom: newContract.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newContract.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newContract.createdByRole || currentUser?.role,
     };
     setContracts((prev) => { const next = [enrichedContract, ...prev]; persistCollection('contracts', next); return next; });
@@ -921,23 +921,23 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLER : AJOUT LOCATAIRE (corrigÃ© v3.0.5 - properties ET units)
+  // HANDLER : AJOUT LOCATAIRE (corrigé v3.0.5 - properties ET units)
   // ============================================================
   const handleAddTenant = (newTenant: Tenant) => {
-    // Ã°ÂŸÂ›Â¡Ã¯Â¸Â ANTI-DOUBLON : vÃ©rifier que le bien n'est pas dÃ©jÃ  occupÃ©
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : vérifier que le bien n'est pas déjÃ  occupé
     const existingUnit = units.find((u) => u.id === newTenant.bienId);
     const existingProp = properties.find((p) => p.id === newTenant.bienId);
 
-    if (existingUnit && existingUnit.statut === 'OccupÃ©' && existingUnit.locataireActuelId !== newTenant.id) {
-      alert(`Ã¢Â›Â” Le bien ${existingUnit.nom} est dÃ©jÃ  occupÃ©.`);
+    if (existingUnit && existingUnit.statut === 'Occupé' && existingUnit.locataireActuelId !== newTenant.id) {
+      alert(`â›” Le bien ${existingUnit.nom} est déjÃ  occupé.`);
       return;
     }
-    if (existingProp && existingProp.statut === 'OccupÃ©' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
-      alert(`Ã¢Â›Â” Le bien ${existingProp.nom} est dÃ©jÃ  occupÃ©.`);
+    if (existingProp && existingProp.statut === 'Occupé' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
+      alert(`â›” Le bien ${existingProp.nom} est déjÃ  occupé.`);
       return;
     }
 
-    // Ã°ÂŸÂ›Â¡Ã¯Â¸Â ANTI-DOUBLON : ce locataire occupe-t-il dÃ©jÃ  un autre bien ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : ce locataire occupe-t-il déjÃ  un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
@@ -949,17 +949,17 @@ export default function App() {
 
     if (existingActiveLease) {
       alert(
-        `Ã¢Â›Â” LOCATAIRE DÃƒÂ‰JÃƒÂ€ ACTIF\n\n` +
-        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe dÃ©jÃ  : ${existingActiveLease.bienNom}`
+        `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
+        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjÃ  : ${existingActiveLease.bienNom}`
       );
       return;
     }
 
-    // Ã¢ÂœÂ… Pas de doublon Ã¢Â†Â’ procÃ©der normalement
+    // âœ… Pas de doublon â†’ procéder normalement
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDbWithLog(newTenant, currentUser.agencyId).catch(console.warn);
 
-    // Ã°ÂŸÂ”Â§ FIX v3.0.5 : mise Ã  jour des DEUX si les deux existent (plus de return prÃ©maturÃ©)
+    // Ã°Ÿ”§ FIX v3.0.5 : mise Ã  jour des DEUX si les deux existent (plus de return prématuré)
     if (newTenant.bienId) {
       // Mise Ã  jour PROPERTY si existe
       if (existingProp) {
@@ -968,7 +968,7 @@ export default function App() {
             if (p.id === newTenant.bienId) {
               const updatedP = {
                 ...p,
-                statut: 'OccupÃ©' as const,
+                statut: 'Occupé' as const,
                 locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
                 locataireActuelId: newTenant.id,
               };
@@ -989,7 +989,7 @@ export default function App() {
             if (u.id === newTenant.bienId) {
               const updatedU = {
                 ...u,
-                statut: 'OccupÃ©' as const,
+                statut: 'Occupé' as const,
                 locataireActuelId: newTenant.id,
                 locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
               };
@@ -1008,28 +1008,28 @@ export default function App() {
   const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
-    // Ã°ÂŸÂ›Â¡Ã¯Â¸Â ANTI-DOUBLON 1 : le bien est-il dÃ©jÃ  occupÃ© ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 1 : le bien est-il déjÃ  occupé ?
     const existingUnit = units.find((u) => u.id === data.tenant.bienId);
     const existingProp = properties.find((p) => p.id === data.tenant.bienId);
 
-    if (existingUnit && existingUnit.statut === 'OccupÃ©') {
+    if (existingUnit && existingUnit.statut === 'Occupé') {
       alert(
-        `Ã¢Â›Â” CE BIEN EST DÃƒÂ‰JÃƒÂ€ OCCUPÃƒÂ‰\n\n` +
-        `L'unitÃ© ${existingUnit.nom} est dÃ©jÃ  louÃ©e par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
-        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en crÃ©er un nouveau.`
+        `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
+        `L'unité ${existingUnit.nom} est déjÃ  louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
       return;
     }
-    if (existingProp && existingProp.statut === 'OccupÃ©') {
+    if (existingProp && existingProp.statut === 'Occupé') {
       alert(
-        `Ã¢Â›Â” CE BIEN EST DÃƒÂ‰JÃƒÂ€ OCCUPÃƒÂ‰\n\n` +
-        `Le bien ${existingProp.nom} est dÃ©jÃ  louÃ© par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
-        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en crÃ©er un nouveau.`
+        `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
+        `Le bien ${existingProp.nom} est déjÃ  loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
       return;
     }
 
-    // Ã°ÂŸÂ›Â¡Ã¯Â¸Â ANTI-DOUBLON 2 : ce locataire occupe-t-il dÃ©jÃ  un autre bien ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjÃ  un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
@@ -1041,8 +1041,8 @@ export default function App() {
 
     if (existingActiveLease) {
       alert(
-        `Ã¢Â›Â” LOCATAIRE DÃƒÂ‰JÃƒÂ€ ACTIF\n\n` +
-        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe dÃ©jÃ  :\n` +
+        `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
+        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjÃ  :\n` +
         `${existingActiveLease.bienNom}\n\n` +
         `Un locataire ne peut occuper qu'un seul bien Ã  la fois.\n\n` +
         `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
@@ -1050,10 +1050,10 @@ export default function App() {
       return;
     }
 
-    // Ã¢ÂœÂ… Pas de doublon Ã¢Â†Â’ procÃ©der normalement
+    // âœ… Pas de doublon â†’ procéder normalement
     const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
     if (!tenantResult.success) {
-      alert('Erreur crÃ©ation locataire : ' + tenantResult.error);
+      alert('Erreur création locataire : ' + tenantResult.error);
       return;
     }
     const realTenantId = tenantResult.data?.id || data.tenant.id;
@@ -1068,7 +1068,7 @@ export default function App() {
     if (existingUnit) {
       const updatedU = {
         ...existingUnit,
-        statut: 'OccupÃ©' as const,
+        statut: 'Occupé' as const,
         locataireActuelId: realTenantId,
         locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
       };
@@ -1077,7 +1077,7 @@ export default function App() {
     } else if (existingProp) {
       const updatedP = {
         ...existingProp,
-        statut: 'OccupÃ©' as const,
+        statut: 'Occupé' as const,
         locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
         locataireActuelId: realTenantId,
       };
@@ -1091,17 +1091,17 @@ export default function App() {
   };
 
   // ============================================================
-  // HANDLER : SORTIE LOCATAIRE (corrigÃ© v3.0.5 - else if Ã¢Â†Â’ if)
+  // HANDLER : SORTIE LOCATAIRE (corrigé v3.0.5 - else if â†’ if)
   // ============================================================
   const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     if (!currentUser?.agencyId) return;
 
-    // 1. Locataire Ã¢Â€Â” sauvegarder en DB
+    // 1. Locataire â€” sauvegarder en DB
     const tenantToUpdate = tenants.find((t) => t.id === data.tenantId);
     if (tenantToUpdate) {
       const updatedTenant = {
         ...tenantToUpdate,
-        statut: 'ÃƒÂ€ jour' as const,
+        statut: 'Ãƒ€ jour' as const,
         dateSortie: data.dateSortie,
       };
       const res = await saveTenantToDb(updatedTenant, currentUser.agencyId);
@@ -1110,11 +1110,11 @@ export default function App() {
       }
     }
 
-    // 2. Bien ou Unit Ã¢Â€Â” sauvegarder en DB
+    // 2. Bien ou Unit â€” sauvegarder en DB
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
-    // Ã°ÂŸÂ”Â§ FIX v3.0.5 : si Ã¢Â†Â’ (au lieu de else if), pour libÃ©rer les deux si les deux existent
+    // Ã°Ÿ”§ FIX v3.0.5 : si â†’ (au lieu de else if), pour libérer les deux si les deux existent
     if (property) {
       const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined, locataireActuelId: undefined };
       const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
@@ -1131,7 +1131,7 @@ export default function App() {
       }
     }
 
-    // 3. Inspection Ã¢Â€Â” sauvegarder en DB
+    // 3. Inspection â€” sauvegarder en DB
     const inspRes = await saveInspectionToDb(data.inspection, currentUser.agencyId);
     if (inspRes.success && inspRes.data) {
       setInspections((prev) => [inspRes.data!, ...prev]);
@@ -1153,7 +1153,7 @@ export default function App() {
     const enrichedInspection: Inspection = {
       ...newInspection,
       createdById: newInspection.createdById || currentUser?.id,
-      createdByNom: newInspection.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newInspection.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newInspection.createdByRole || currentUser?.role,
     };
     setInspections((prev) => { const next = [enrichedInspection, ...prev]; persistCollection('inspections', next); return next; });
@@ -1163,7 +1163,7 @@ export default function App() {
     const enrichedTicket: MaintenanceTicket = {
       ...newTicket,
       createdById: newTicket.createdById || currentUser?.id,
-      createdByNom: newTicket.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newTicket.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newTicket.createdByRole || currentUser?.role,
     };
     setMaintenance((prev) => { const next = [enrichedTicket, ...prev]; persistCollection('maintenance', next); return next; });
@@ -1177,7 +1177,7 @@ export default function App() {
     const enrichedDisbursement: OwnerDisbursement = {
       ...newDisbursement,
       createdById: newDisbursement.createdById || currentUser?.id,
-      createdByNom: newDisbursement.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newDisbursement.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newDisbursement.createdByRole || currentUser?.role,
     };
     setDisbursements((prev) => { const next = [enrichedDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
@@ -1187,7 +1187,7 @@ export default function App() {
     const enrichedInvoice: Invoice = {
       ...newInvoice,
       createdById: newInvoice.createdById || currentUser?.id,
-      createdByNom: newInvoice.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'SystÃ¨me'),
+      createdByNom: newInvoice.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newInvoice.createdByRole || currentUser?.role,
     };
     setInvoices((prev) => { const next = [enrichedInvoice, ...prev]; persistCollection('invoices', next); return next; });
@@ -1210,7 +1210,7 @@ export default function App() {
   };
   const handleOpenBulletinVersement = (owner: Owner) => { setOwnerBulletinModalOwner(owner); };
 
-  const unpaidCount = tenants.filter((t) => t.statut === 'ImpayÃ©' || t.statut === 'Retard').length;
+  const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
   const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
 
   // SCOPED DATA
@@ -1254,7 +1254,7 @@ export default function App() {
         profession: '',
         employeur: '',
         revenuMensuel: 0,
-        statut: 'ÃƒÂ€ jour' as const,
+        statut: 'Ãƒ€ jour' as const,
         joursRetard: 0,
         arrieresCumules: 0,
         observations: '',
@@ -1318,7 +1318,7 @@ export default function App() {
       <div className="min-h-screen bg-[#0A111D] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-4 border-[#C9A96E]/30 border-t-[#C9A96E] rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-[#A8B4C4] font-medium tracking-wide">Chargement sÃ©curisÃ© de FITAL-IMMO...</p>
+          <p className="text-xs text-[#A8B4C4] font-medium tracking-wide">Chargement sécurisé de FITAL-IMMO...</p>
         </div>
       </div>
     );
@@ -1948,7 +1948,7 @@ export default function App() {
           (d) => d.proprietaireId === cashVoucherModalOwner.id && d.periode === selectedPeriod
         );
         const ownerPayments = payments.filter(
-          (p) => p.proprietaireId === cashVoucherModalOwner.id && p.statut === 'PayÃ©'
+          (p) => p.proprietaireId === cashVoucherModalOwner.id && p.statut === 'Payé'
         );
         const loyersBruts = ownerDisb?.loyersBruts
           ?? ownerPayments.reduce((sum, p) => sum + (p.loyerBase || 0), 0);
@@ -2011,7 +2011,7 @@ export default function App() {
               entite: 'USER',
               entiteId: currentUser.id,
               utilisateur: `${currentUser.prenom} ${currentUser.nom}`,
-              details: `Mise Ã  jour sÃ©curisÃ©e du mot de passe via Supabase Auth`,
+              details: `Mise Ã  jour sécurisée du mot de passe via Supabase Auth`,
               createdAt: new Date().toISOString(),
             },
             ...prev,

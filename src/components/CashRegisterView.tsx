@@ -93,10 +93,10 @@ export function CashRegisterView({
 
   const displayMovements = serverMovements.length > 0 ? serverMovements : cashMovements;
 
-  // Initial cash balance (fond de caisse basâ”œÂ® sur la derniâ”œÂ¿re clâ”œâ”¤ture ou 0)
+  // Initial cash balance (fond de caisse basâ”œ® sur la derniâ”œ¿re clâ”œâ”¤ture ou 0)
   const initialCash = cashClosings.length > 0 ? (cashClosings[0].soldeReel ?? cashClosings[0].soldeReelCompte ?? 0) : 0;
 
-  // Real-time calculations Ã”Ã‡Ã¶ accepte toutes les variantes de type
+  // Real-time calculations Ã”Çö accepte toutes les variantes de type
   const totalEntries = displayMovements
     .filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT')
     .reduce((sum, m) => sum + m.montant, 0);
@@ -169,15 +169,15 @@ export function CashRegisterView({
       description: movementForm.description,
       libelle: movementForm.description,
       moyenPaiementCode: 'ESPECES',
-      beneficiaire: movementForm.beneficiaireOuPayeur || 'Non prâ”œÂ®cisâ”œÂ®',
-      beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || 'Non prâ”œÂ®cisâ”œÂ®',
+      beneficiaire: movementForm.beneficiaireOuPayeur || 'Non prâ”œ®cisâ”œ®',
+      beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || 'Non prâ”œ®cisâ”œ®',
       justificatifRef: movementForm.pieceJustificative || undefined,
       userId: currentUser.id,
       userNom: `${currentUser.prenom} ${currentUser.nom}`,
       auteurId: currentUser.id,
       auteurNom: `${currentUser.prenom} ${currentUser.nom}`,
       caissierNom: `${currentUser.prenom} ${currentUser.nom}`,
-      statut: 'Validâ”œÂ®',
+      statut: 'Validâ”œ®',
       createdAt: new Date().toISOString(),
     };
 
@@ -213,8 +213,8 @@ export function CashRegisterView({
       statut: cashDiscrepancy === 0 ? 'CONFORME' : cashDiscrepancy > 0 ? 'SURPLUS' : 'DEFICIT',
       caissierId: currentUser.id,
       caissierNom: `${currentUser.prenom} ${currentUser.nom}`,
-      observations: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œÂ®e.',
-      observation: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œÂ®e.',
+      observations: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œ®e.',
+      observation: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œ®e.',
       createdAt: new Date().toISOString(),
     };
 
@@ -230,13 +230,13 @@ export function CashRegisterView({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              Module Caisse & Trâ”œÂ®sorerie Guichet
+              Module Caisse & Trâ”œ®sorerie Guichet
             </span>
-            <span className="text-xs text-slate-400">Ã”Ã‡Ã³ Journal des Espâ”œÂ¿ces</span>
+            <span className="text-xs text-slate-400">Ã”ÇÃ³ Journal des Espâ”œ¿ces</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mt-1">Gestion de Caisse & Clâ”œâ”¤ture Journaliâ”œÂ¿re</h1>
+          <h1 className="text-2xl font-bold text-white mt-1">Gestion de Caisse & Clâ”œâ”¤ture Journaliâ”œ¿re</h1>
           <p className="text-xs text-slate-400">
-            Contrâ”œâ”¤le rigoureux des flux d'espâ”œÂ¿ces, dâ”œÂ®caissements, menues dâ”œÂ®penses et arrâ”œÂ¬tâ”œÂ®s de caisse contradictoires.
+            Contrâ”œâ”¤le rigoureux des flux d'espâ”œ¿ces, dâ”œ®caissements, menues dâ”œ®penses et arrâ”œ¬tâ”œ®s de caisse contradictoires.
           </p>
         </div>
 
@@ -288,14 +288,14 @@ export function CashRegisterView({
 
         <div className="bg-[#111C2E] p-5 rounded-2xl border border-emerald-500/20 shadow-lg">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Entrâ”œÂ®es (+)</span>
+            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Entrâ”œ®es (+)</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
               <ArrowDownRight className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-emerald-400">+{formatCurrencyFCFA(totalEntries)}</div>
-            <div className="text-xs text-slate-400 mt-1">Loyers en espâ”œÂ¿ces et apports</div>
+            <div className="text-xs text-slate-400 mt-1">Loyers en espâ”œ¿ces et apports</div>
           </div>
         </div>
 
@@ -308,7 +308,7 @@ export function CashRegisterView({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-rose-400">-{formatCurrencyFCFA(totalExits)}</div>
-            <div className="text-xs text-slate-400 mt-1">Dâ”œÂ®penses et acomptes propriâ”œÂ®taires</div>
+            <div className="text-xs text-slate-400 mt-1">Dâ”œ®penses et acomptes propriâ”œ®taires</div>
           </div>
         </div>
 
@@ -318,7 +318,7 @@ export function CashRegisterView({
             : 'bg-gradient-to-br from-[#2E1A1A] to-[#1C1111] border-rose-500/40'
         }`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#E8D5B0] uppercase tracking-wider">Solde Thâ”œÂ®orique Caisse</span>
+            <span className="text-xs font-semibold text-[#E8D5B0] uppercase tracking-wider">Solde Thâ”œ®orique Caisse</span>
             <div className="w-8 h-8 rounded-lg bg-[#C9A96E]/20 text-[#E8D5B0] flex items-center justify-center font-bold">
               <Coins className="w-4 h-4" />
             </div>
@@ -336,7 +336,7 @@ export function CashRegisterView({
               ) : (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Solde nâ”œÂ®gatif Ã”Ã‡Ã¶ vâ”œÂ®rifier les sorties</span>
+                  <span>Solde nâ”œ®gatif Ã”Çö vâ”œ®rifier les sorties</span>
                 </>
               )}
             </div>
@@ -377,7 +377,7 @@ export function CashRegisterView({
       {activeTab === 'journal' && (
         <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white">Opâ”œÂ®rations d'Espâ”œÂ¿ces Enregistrâ”œÂ®es</h2>
+            <h2 className="text-base font-bold text-white">Opâ”œ®rations d'Espâ”œ¿ces Enregistrâ”œ®es</h2>
             <span className="text-xs text-slate-400">Responsable actuel : {currentUser.prenom} {currentUser.nom}</span>
           </div>
 
@@ -385,10 +385,10 @@ export function CashRegisterView({
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-white/10 text-slate-400">
-                  <th className="py-3 px-3">Râ”œÂ®f / Date</th>
+                  <th className="py-3 px-3">Râ”œ®f / Date</th>
                   <th className="py-3 px-3">Type</th>
                   <th className="py-3 px-3">Description & Motif</th>
-                  <th className="py-3 px-3">Bâ”œÂ®nâ”œÂ®ficiaire / Tiers</th>
+                  <th className="py-3 px-3">Bâ”œ®nâ”œ®ficiaire / Tiers</th>
                   <th className="py-3 px-3">Caissier</th>
                   <th className="py-3 px-3 text-right">Montant</th>
                 </tr>
@@ -399,7 +399,7 @@ export function CashRegisterView({
                     <td colSpan={6} className="py-12 text-center text-slate-400">
                       <Coins className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
                       <p className="text-xs font-semibold text-white">Aucun mouvement de caisse</p>
-                      <p className="text-[11px] text-slate-500 mt-1">Les opâ”œÂ®rations d'espâ”œÂ¿ces apparaâ”œ«tront ici.</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Les opâ”œ®rations d'espâ”œ¿ces apparaâ”œ«tront ici.</p>
                     </td>
                   </tr>
                 ) : (
@@ -424,11 +424,11 @@ export function CashRegisterView({
                           </span>
                         </td>
                         <td className="py-3 px-3">
-                          <div className="font-bold text-white">{m.description || m.libelle || 'Ã”Ã‡Ã¶'}</div>
-                          <div className="text-[10px] text-slate-400">{m.categorie || 'Ã”Ã‡Ã¶'}</div>
+                          <div className="font-bold text-white">{m.description || m.libelle || 'Ã”Çö'}</div>
+                          <div className="text-[10px] text-slate-400">{m.categorie || 'Ã”Çö'}</div>
                         </td>
-                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || 'Ã”Ã‡Ã¶'}</td>
-                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || 'Ã”Ã‡Ã¶'}</td>
+                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || 'Ã”Çö'}</td>
+                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || 'Ã”Çö'}</td>
                         <td className="py-3 px-3 text-right">
                           <span className={`font-bold text-sm ${isEntry ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {isEntry ? '+' : '-'} {formatCurrencyFCFA(m.montant)}
@@ -461,7 +461,7 @@ export function CashRegisterView({
       {activeTab === 'history' && (
         <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white">Procâ”œÂ¿s-Verbaux de Clâ”œâ”¤ture Quotidienne</h2>
+            <h2 className="text-base font-bold text-white">Procâ”œ¿s-Verbaux de Clâ”œâ”¤ture Quotidienne</h2>
             <span className="text-xs text-slate-400">Archivage inviolable pour l'expert-comptable</span>
           </div>
 
@@ -469,7 +469,7 @@ export function CashRegisterView({
             {cashClosings.length === 0 ? (
               <div className="py-12 text-center text-slate-400">
                 <Lock className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
-                <p className="text-xs font-semibold text-white">Aucune clâ”œâ”¤ture enregistrâ”œÂ®e</p>
+                <p className="text-xs font-semibold text-white">Aucune clâ”œâ”¤ture enregistrâ”œ®e</p>
                 <p className="text-[11px] text-slate-500 mt-1">Les clâ”œâ”¤tures quotidiennes apparaâ”œ«tront ici.</p>
               </div>
             ) : (
@@ -480,7 +480,7 @@ export function CashRegisterView({
                       <span className="font-mono font-bold text-white text-sm">{clot.reference || clot.numero}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                          clot.statut === 'CONFORME' || clot.statut === 'Validâ”œÂ® par Responsable'
+                          clot.statut === 'CONFORME' || clot.statut === 'Validâ”œ® par Responsable'
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : clot.statut === 'SURPLUS'
                             ? 'bg-blue-500/20 text-blue-400'
@@ -491,21 +491,21 @@ export function CashRegisterView({
                       </span>
                     </div>
                     <p className="text-slate-400">
-                      Clâ”œâ”¤turâ”œÂ® le <strong className="text-slate-200">{clot.dateCloture || clot.date} â”œÃ¡ {clot.heureCloture || '18:00'}</strong> par {clot.caissierNom}
+                      Clâ”œâ”¤turâ”œ® le <strong className="text-slate-200">{clot.dateCloture || clot.date} â”œÃ¡ {clot.heureCloture || '18:00'}</strong> par {clot.caissierNom}
                     </p>
                     <p className="text-slate-500 text-[11px] italic">"{clot.observations || clot.observation}"</p>
                   </div>
 
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <div className="text-slate-400 text-[11px]">Solde Thâ”œÂ®orique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
-                      <div className="text-sm font-bold text-white">Solde Comptâ”œÂ® : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
+                      <div className="text-slate-400 text-[11px]">Solde Thâ”œ®orique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
+                      <div className="text-sm font-bold text-white">Solde Comptâ”œ® : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
                       <div className={`text-[11px] font-bold ${(clot.ecart ?? clot.ecartCaisse ?? 0) === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         â”œëcart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
                       </div>
                     </div>
 
-                    <button className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10" title="Tâ”œÂ®lâ”œÂ®charger PV de Clâ”œâ”¤ture PDF">
+                    <button className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10" title="Tâ”œ®lâ”œ®charger PV de Clâ”œâ”¤ture PDF">
                       <Download className="w-4 h-4" />
                     </button>
                   </div>
@@ -525,7 +525,7 @@ export function CashRegisterView({
                 <PlusCircle className="w-5 h-5 text-emerald-400" />
                 Nouveau Mouvement de Caisse
               </h3>
-              <button onClick={() => setIsNewMovementModalOpen(false)} className="text-slate-400 hover:text-white">Ã”Â£Ã²</button>
+              <button onClick={() => setIsNewMovementModalOpen(false)} className="text-slate-400 hover:text-white">Ã”£Ã²</button>
             </div>
 
             <form onSubmit={handleCreateMovement} className="space-y-4">
@@ -538,7 +538,7 @@ export function CashRegisterView({
                   }`}
                 >
                   <ArrowDownRight className="w-4 h-4" />
-                  <span>Entrâ”œÂ®e d'Espâ”œÂ¿ces (+)</span>
+                  <span>Entrâ”œ®e d'Espâ”œ¿ces (+)</span>
                 </button>
 
                 <button
@@ -549,12 +549,12 @@ export function CashRegisterView({
                   }`}
                 >
                   <ArrowUpRight className="w-4 h-4" />
-                  <span>Sortie / Dâ”œÂ®caissement (-)</span>
+                  <span>Sortie / Dâ”œ®caissement (-)</span>
                 </button>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Montant en Espâ”œÂ¿ces (FCFA) *</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Montant en Espâ”œ¿ces (FCFA) *</label>
                 <input
                   type="number"
                   required
@@ -578,7 +578,7 @@ export function CashRegisterView({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Bâ”œÂ®nâ”œÂ®ficiaire ou Payeur</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Bâ”œ®nâ”œ®ficiaire ou Payeur</label>
                 <input
                   type="text"
                   value={movementForm.beneficiaireOuPayeur}
@@ -618,11 +618,11 @@ export function CashRegisterView({
                   <Calculator className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-lg">Arrâ”œÂ¬tâ”œÂ® & Clâ”œâ”¤ture Journaliâ”œÂ¿re de Caisse</h3>
-                  <p className="text-xs text-slate-400">Comptage physique des espâ”œÂ¿ces et comparaison contradictoire.</p>
+                  <h3 className="font-bold text-white text-lg">Arrâ”œ¬tâ”œ® & Clâ”œâ”¤ture Journaliâ”œ¿re de Caisse</h3>
+                  <p className="text-xs text-slate-400">Comptage physique des espâ”œ¿ces et comparaison contradictoire.</p>
                 </div>
               </div>
-              <button onClick={() => setIsClosingModalOpen(false)} className="text-slate-400 hover:text-white">Ã”Â£Ã²</button>
+              <button onClick={() => setIsClosingModalOpen(false)} className="text-slate-400 hover:text-white">Ã”£Ã²</button>
             </div>
 
             <form onSubmit={handleCreateClosing} className="space-y-4">
@@ -638,13 +638,13 @@ export function CashRegisterView({
                   </strong>
                 </div>
                 <div>
-                  <span className="text-[#E8D5B0] block font-bold">Solde Thâ”œÂ®orique :</span>
+                  <span className="text-[#E8D5B0] block font-bold">Solde Thâ”œ®orique :</span>
                   <strong className="text-lg text-white font-bold font-mono">{formatCurrencyFCFA(theoreticalBalance)}</strong>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-white block mb-2">Comptage Physique des Billets & Piâ”œÂ¿ces :</label>
+                <label className="text-xs font-bold text-white block mb-2">Comptage Physique des Billets & Piâ”œ¿ces :</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
                     <span className="text-slate-400 block font-mono">Billets 10 000 FCFA</span>
@@ -707,7 +707,7 @@ export function CashRegisterView({
                   </div>
 
                   <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
-                    <span className="text-slate-400 block font-mono">Piâ”œÂ¿ces mâ”œÂ®talliques</span>
+                    <span className="text-slate-400 block font-mono">Piâ”œ¿ces mâ”œ®talliques</span>
                     <input
                       type="number"
                       min="0"
@@ -728,13 +728,13 @@ export function CashRegisterView({
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
               }`}>
                 <div>
-                  <div className="font-bold text-sm">Total Physique Comptâ”œÂ® : {formatCurrencyFCFA(physicalCountTotal)}</div>
+                  <div className="font-bold text-sm">Total Physique Comptâ”œ® : {formatCurrencyFCFA(physicalCountTotal)}</div>
                   <div className="text-[11px] mt-0.5">
                     {cashDiscrepancy === 0
-                      ? 'Ã”Â£ô Caisse parfaitement â”œÂ®quilibrâ”œÂ®e (aucun â”œÂ®cart)'
+                      ? 'Ã”£ô Caisse parfaitement â”œ®quilibrâ”œ®e (aucun â”œ®cart)'
                       : cashDiscrepancy > 0
-                      ? `Surplus de caisse constatâ”œÂ® : +${formatCurrencyFCFA(cashDiscrepancy)}`
-                      : `Dâ”œÂ®ficit de caisse constatâ”œÂ® : ${formatCurrencyFCFA(cashDiscrepancy)}`}
+                      ? `Surplus de caisse constatâ”œ® : +${formatCurrencyFCFA(cashDiscrepancy)}`
+                      : `Dâ”œ®ficit de caisse constatâ”œ® : ${formatCurrencyFCFA(cashDiscrepancy)}`}
                   </div>
                 </div>
 
@@ -751,7 +751,7 @@ export function CashRegisterView({
                   rows={2}
                   value={closingObservation}
                   onChange={(e) => setClosingObservation(e.target.value)}
-                  placeholder="Remarques â”œÂ®ventuelles sur la journâ”œÂ®e de caisse..."
+                  placeholder="Remarques â”œ®ventuelles sur la journâ”œ®e de caisse..."
                   className="w-full px-3 py-2 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E]"
                 />
               </div>

@@ -95,7 +95,7 @@ export type ActiveTab =
 
 
 // ============================================================
-// SIGNATURE / TRAÃ‡ABILITÉ
+// SIGNATURE / TRAÇABILITÉ
 // ============================================================
 export interface AuditSignature {
   createdById?: string;
@@ -768,7 +768,7 @@ export interface AuditLog {
 }
 
 // ============================================================
-// PARAMÃˆTRES AGENCE
+// PARAMÈTRES AGENCE
 // ============================================================
 export interface AgencySettings {
   nomAgence: string;
