@@ -46,3 +46,4 @@ playwright-report/
 *.bom.bak
 *.before-*.bak
 ._backups_archive/
+scripts/
