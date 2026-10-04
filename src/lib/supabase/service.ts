@@ -1881,7 +1881,7 @@ export async function createUserAccountInSupabase(
 export async function fetchAgencyUsers(agencyId?: string): Promise<UserAccount[]> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return [];
   try {
-    const { data, error } = await supabase.from('profiles').select('*, agencies(name)').eq('agency_id', agencyId).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('profiles').select('*, agencies:agencies(name)').eq('agency_id', agencyId).order('created_at', { ascending: false });
     if (error || !data) return [];
     return data.map((p: any) => ({
       id: p.id, agencyId: p.agency_id, email: p.email,
@@ -1901,7 +1901,7 @@ export async function fetchAgencyUsers(agencyId?: string): Promise<UserAccount[]
 export async function restoreAllData(backup: any): Promise<{ success: boolean; count?: number; error?: string }> {
   if (!supabase) return { success: false, error: 'Supabase non configuré.' };
   try {
-    const agencyId = backup?.agencies?.[0]?.id || backup?.users?.[0]?.agencyId || '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
+    const agencyId = backup?.agencies?.[0]?.id || backup?.users?.[0]?.agencyId || 'a592861a-68b0-4469-94ee-751f1f2863b7';
     let totalCount = 0;
     const upsertTable = async (tableName: string, data: any[]) => {
       if (!data || data.length === 0) return;

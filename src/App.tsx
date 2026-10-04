@@ -182,7 +182,7 @@ if (storedVersion !== APP_VERSION) {
   localStorage.setItem('fital_immo_version', APP_VERSION);
 }
 
-const FALLBACK_AGENCY_ID = '5f581aa8-6e92-47a6-ae8e-a28a9de66140';
+const FALLBACK_AGENCY_ID = 'a592861a-68b0-4469-94ee-751f1f2863b7'; // FITAL IMMO (active)
 
 export default function App() {
   const [users, setUsers] = useState<UserAccount[]>(() => loadLocalCollection('users', initialUsers));
