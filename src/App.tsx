@@ -1498,7 +1498,19 @@ export default function App() {
           )}
 
           {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
-            <ViewLoader variant="kpi"><LazySuperAdminDashboard currentUser={currentUser} agencyStats={agencyStats} /></ViewLoader>
+            <ViewLoader variant="kpi"><LazySuperAdminDashboard 
+              currentUser={currentUser} 
+              agencyStats={agencyStats}
+              payments={payments}
+              invoices={invoices}
+              cashMovements={cashMovements}
+              owners={owners}
+              tenants={tenants}
+              properties={properties}
+              buildings={buildings}
+              units={units}
+              contracts={contracts}
+            /></ViewLoader>
           )}
 
           {activeTab === 'admin-control' && (

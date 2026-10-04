@@ -11,7 +11,7 @@ import {
 import { supabase } from '../lib/supabase/client';
 import { formatNumber } from '../lib/utils';
 
-interface SuperAdminDashboardProps { currentUser: any; agencyStats?: any; }
+interface SuperAdminDashboardProps { currentUser: any; agencyStats?: any; payments?: any[]; invoices?: any[]; cashMovements?: any[]; owners?: any[]; tenants?: any[]; properties?: any[]; buildings?: any[]; units?: any[]; contracts?: any[]; }
 
 interface Agency {
   id: string; name: string; slug: string; email: string; phone: string;
@@ -24,7 +24,7 @@ interface GlobalStats {
   totalPayments: number;
 }
 
-export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ currentUser, agencyStats }) => {
+export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ currentUser, agencyStats, payments = [], invoices = [], cashMovements = [], owners = [], tenants = [], properties = [], buildings = [], units = [], contracts = [] }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'agencies' | 'users'>('overview');
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -56,19 +56,18 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
       setAgencies(agenciesData);
       setUsers(usersData);
       // Fusionner avec agencyStats (RPC serveur, bypass RLS)
-      if (agencyStats) {
-        setStats({
-          totalAgencies: statsData?.totalAgencies || 0,
-          totalUsers: statsData?.totalUsers || 0,
-          totalBuildings: agencyStats.total_properties || statsData?.totalBuildings || 0,
-          totalUnits: agencyStats.total_units || statsData?.totalUnits || 0,
-          totalTenants: agencyStats.total_tenants || statsData?.totalTenants || 0,
-          totalProperties: agencyStats.total_properties || statsData?.totalProperties || 0,
-          totalPayments: agencyStats.total_payments || statsData?.totalPayments || 0,
-        });
-      } else {
-        setStats(statsData);
-      }
+      // PRIORITE 1 : Utiliser les longueurs des props locales (deja chargees par le parent)
+      // PRIORITE 2 : Fallback sur agencyStats (RPC serveur)
+      // PRIORITE 3 : Fallback sur statsData (fetchGlobalStats, souvent 0 a cause RLS)
+      setStats({
+        totalAgencies: statsData?.totalAgencies || 0,
+        totalUsers: statsData?.totalUsers || 0,
+        totalBuildings: buildings.length || agencyStats?.total_properties || statsData?.totalBuildings || 0,
+        totalUnits: units.length || agencyStats?.total_units || statsData?.totalUnits || 0,
+        totalTenants: tenants.length || agencyStats?.total_tenants || statsData?.totalTenants || 0,
+        totalProperties: properties.length || agencyStats?.total_properties || statsData?.totalProperties || 0,
+        totalPayments: payments.length || agencyStats?.total_payments || statsData?.totalPayments || 0,
+      });
     } catch (err: any) {
       setStatusMessage({ text: '❌ Erreur chargement : ' + err.message, type: 'error' });
     } finally {
@@ -226,7 +225,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
             <StatCard label="Espaces louables" value={stats.totalUnits} icon={<Layers className="w-5 h-5" />} color="from-teal-500 to-teal-700" />
             <StatCard label="Biens" value={stats.totalProperties} icon={<Home className="w-5 h-5" />} color="from-cyan-500 to-cyan-700" />
             <StatCard label="Locataires" value={stats.totalTenants} icon={<Users className="w-5 h-5" />} color="from-emerald-500 to-emerald-700" />
-            <StatCard label="Paiements" value={stats.totalPayments} icon={<CreditCard className="w-5 h-5" />} color="from-amber-500 to-amber-700" />
+            <StatCard label="Paiements" value={payments.length || stats?.totalPayments || 0} icon={<CreditCard className="w-5 h-5" />} color="from-amber-500 to-amber-700" />
             <StatCard label="CA (à venir)" value={0} suffix=" FCFA" icon={<TrendingUp className="w-5 h-5" />} color="from-rose-500 to-rose-700" />
           </div>
           <div className="p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20">
