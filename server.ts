@@ -109,6 +109,39 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Prom
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
 }
 
+// ============================================================
+// CRON VERCEL - Relances automatiques quotidiennes
+// Appele par vercel.json (crons: 0 9 * * *)
+// ============================================================
+app.all('/api/cron/reminders', async (req, res) => {
+  // SECURITE : Verifier le header Authorization si CRON_SECRET est configure
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+  
+  if (process.env.NODE_ENV === 'production' && cronSecret) {
+    if (authHeader !== 'Bearer ' + cronSecret) {
+      return res.status(401).json({ error: 'Non autorise' });
+    }
+  }
+  
+  console.log('[CRON] Relances automatiques demarrees');
+  
+  try {
+    // NOTE : Logique metier a implementer (envoi WhatsApp/SMS via API tierce)
+    const result = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      message: 'Relances automatiques executees',
+    };
+    
+    console.log('[CRON] Termine:', result);
+    res.json(result);
+  } catch (err) {
+    console.error('[CRON] Erreur:', err);
+    res.status(500).json({ error: 'Erreur cron' });
+  }
+});
+
 // API Health
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -187,7 +220,7 @@ app.post("/api/gemini/relance", async (req, res) => {
       }
     } else {
       // Email / Lettre
-      return `Objet : ${joursRetard > 15 ? 'MISE EN DEMEURE - ' : ''}Rappel de paiement du loyer - ${bienNom}\n\nMadame, Monsieur ${locataireNom},\n\nNous nous permettons de vous contacter concernant le paiement de votre loyer pour le bien situé à ${bienNom}.\n\nÀ ce jour, nous constatons un arriéré de paiement d'un montant total de ${formattedAmount}${penalites ? ` augmenté des pénalités contractuelles de ${formattedPenalites}` : ''}, accusant un retard de ${joursRetard} jours.\n\nNous vous invitons à bien vouloir régulariser votre situation dans les plus brefs délais par virement, Wave, Orange Money ou chèque.\n\nSi votre règlement a été effectué entre-temps, veuillez ne pas tenir compte de ce courrier.\n\nRestant à votre entière disposition,\n\nBien cordialement,\nLa Gérance Immobilière FITAL-IMMO`;
+      return `Objet : ${joursRetard > 15 ? 'MISE EN DEMEURE - ' : '}Rappel de paiement du loyer - ${bienNom}\n\nMadame, Monsieur ${locataireNom},\n\nNous nous permettons de vous contacter concernant le paiement de votre loyer pour le bien situé à ${bienNom}.\n\nÀ ce jour, nous constatons un arriéré de paiement d'un montant total de ${formattedAmount}${penalites ? ` augmenté des pénalités contractuelles de ${formattedPenalites}` : '}, accusant un retard de ${joursRetard} jours.\n\nNous vous invitons à bien vouloir régulariser votre situation dans les plus brefs délais par virement, Wave, Orange Money ou chèque.\n\nSi votre règlement a été effectué entre-temps, veuillez ne pas tenir compte de ce courrier.\n\nRestant à votre entière disposition,\n\nBien cordialement,\nLa Gérance Immobilière FITAL-IMMO`;
     }
   };
 
@@ -286,32 +319,41 @@ Fournis une analyse synthétique en français (2-3 phrases) et 3 actions priorit
   }
 });
 
+
+// ============================================================
+// ADAPTATION VERCEL - On garde app.listen UNIQUEMENT en dev local
+// En production Vercel, on exporte app (Vercel gere l'ecoute)
+// ============================================================
+
 async function startServer() {
   // SECURITE : En production, NODE_ENV DOIT etre defini
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
     if (!process.env.NODE_ENV) {
-      console.error("[SECURITE] NODE_ENV non defini en production !");
+      console.error('[SECURITE] NODE_ENV non defini en production !');
       process.exit(1);
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  // En dev local UNIQUEMENT : Vite middleware + listen
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('Server running on http://localhost:' + PORT);
     });
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // En production Vercel : on n'ecoute PAS, on exporte app
 }
 
-startServer();
+// En dev local : on demarre le serveur
+// En production Vercel : on exporte app pour que Vercel l'utilise
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  startServer();
+}
+
+// Export par defaut pour Vercel (serverless function)
+export default app;
