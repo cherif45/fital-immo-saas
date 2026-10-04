@@ -709,15 +709,15 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
       agencyFilter(supabase.from('owners').select('*').is('deleted_at', null)),
       // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
-      fetchAllRows('tenants', agencyId, q => q.is('deleted_at', null)),
+      Promise.resolve({ data: [], error: null }),  // tenants : charge lazy
       agencyFilter(supabase.from('contracts').select('*')),
-      fetchAllRows('payments', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('cash_movements', agencyId, q => q.order('created_at', { ascending: false })),
+      Promise.resolve({ data: [], error: null }),  // payments : charge lazy
+      Promise.resolve({ data: [], error: null }),  // cash_movements : charge lazy
       agencyFilter(supabase.from('cash_closings').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('maintenance_tickets').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('property_inspections').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('disbursements').select('*').order('created_at', { ascending: false })),
-      fetchAllRows('invoices', agencyId, q => q.order('created_at', { ascending: false })),
+      Promise.resolve({ data: [], error: null }),  // invoices : charge lazy
       agencyFilter(supabase.from('tenant_reminders').select('*').order('date_creation', { ascending: false })),
       agencyFilter(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)),
       agencyFilter(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)),
