@@ -1,0 +1,780 @@
+import { paginateTable } from '../lib/supabase/service';
+import React, { useState } from 'react';
+import { 
+  CashMovement, 
+  CashClosing, 
+  CashMovementType, 
+  UserAccount 
+} from '../types';
+import { formatCurrencyFCFA } from '../lib/calculations/financial';
+import { 
+  Coins, 
+  Wallet, 
+  ArrowDownRight, 
+  ArrowUpRight, 
+  PlusCircle, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Lock, 
+  Calculator, 
+  History, 
+  FileText, 
+  Calendar, 
+  Check, 
+  X,
+  Sparkles,
+  Download
+} from 'lucide-react';
+
+interface CashRegisterViewProps {
+  cashMovements: CashMovement[];
+  cashClosings: CashClosing[];
+  currentUser: UserAccount;
+  onAddCashMovement: (movement: CashMovement) => void;
+  onAddCashClosing: (closing: CashClosing) => void;
+  agencyStats?: {
+    total_cash_movements?: number;
+    cash_in?: number;
+    cash_out?: number;
+    cash_balance?: number;
+  } | null;
+}
+
+export function CashRegisterView({
+  cashMovements,
+  cashClosings,
+  currentUser,
+  onAddCashMovement,
+  onAddCashClosing,
+  agencyStats,
+}: CashRegisterViewProps) {
+  const [activeTab, setActiveTab] = useState<'journal' | 'closing' | 'history'>('journal');
+  const [isNewMovementModalOpen, setIsNewMovementModalOpen] = useState(false);
+  const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
+  // ðŸ†• Pagination serveur (mouvements caisse)
+  const [serverMovements, setServerMovements] = useState<CashMovement[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverPage, setServerPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
+
+  React.useEffect(() => {
+    if (!currentUser?.agencyId) return;
+    loadMovementsPage(0);
+  }, [currentUser?.agencyId]);
+
+  const loadMovementsPage = async (page: number) => {
+    if (!currentUser?.agencyId) return;
+    setIsLoadingMore(true);
+    const result = await paginateTable<any>('cash_movements', currentUser.agencyId, page, PAGE_SIZE);
+    const mapped: CashMovement[] = result.data.map((r: any) => ({
+      ...r,
+      id: r.id,
+      reference: r.reference,
+      type: r.type,
+      montant: Number(r.montant) || 0,
+      description: r.description || '',
+      categorie: r.categorie || '',
+      moyenPaiementCode: r.moyen_paiement_code,
+      beneficiaire: r.beneficiaire || '',
+      dateOperation: r.date_operation || r.created_at,
+      statut: r.statut,
+      userNom: r.user_nom,
+    }));
+    if (page === 0) {
+      setServerMovements(mapped);
+    } else {
+      setServerMovements(prev => [...prev, ...mapped]);
+    }
+    setServerTotal(result.total);
+    setServerPage(page);
+    setIsLoadingMore(false);
+  };
+
+  const displayMovements = serverMovements.length > 0 ? serverMovements : cashMovements;
+
+  // Initial cash balance (fond de caisse basâ”œÂ® sur la derniâ”œÂ¿re clâ”œâ”¤ture ou 0)
+  const initialCash = cashClosings.length > 0 ? (cashClosings[0].soldeReel ?? cashClosings[0].soldeReelCompte ?? 0) : 0;
+
+  // Real-time calculations Ã”Ã‡Ã¶ accepte toutes les variantes de type
+  const totalEntries = displayMovements
+    .filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT')
+    .reduce((sum, m) => sum + m.montant, 0);
+
+  const totalExits = displayMovements
+    .filter((m) => m.type === 'SORTIE' || m.type === 'DECAISSEMENT')
+    .reduce((sum, m) => sum + m.montant, 0);
+
+  const theoreticalBalance = initialCash + totalEntries - totalExits;
+
+  // New Movement Form
+  const [movementForm, setMovementForm] = useState<{
+    type: CashMovementType;
+    categorie: 'ENCAISSEMENT_LOYER' | 'DEPENSE_MENUE' | 'AVANCE_PROPRIETAIRE' | 'APPORT_FOND' | 'AUTRE';
+    montant: number;
+    description: string;
+    beneficiaireOuPayeur: string;
+    pieceJustificative: string;
+  }>({
+    type: 'ENTREE',
+    categorie: 'ENCAISSEMENT_LOYER',
+    montant: 0,
+    description: '',
+    beneficiaireOuPayeur: '',
+    pieceJustificative: '',
+  });
+
+  // Physical Denomination Count for Closing
+  const [denominations, setDenominations] = useState<{
+    b10000: number;
+    b5000: number;
+    b2000: number;
+    b1000: number;
+    b500: number;
+    coins: number;
+  }>({
+    b10000: 0,
+    b5000: 0,
+    b2000: 0,
+    b1000: 0,
+    b500: 0,
+    coins: 0,
+  });
+
+  const [closingObservation, setClosingObservation] = useState('');
+
+  const physicalCountTotal =
+    denominations.b10000 * 10000 +
+    denominations.b5000 * 5000 +
+    denominations.b2000 * 2000 +
+    denominations.b1000 * 1000 +
+    denominations.b500 * 500 +
+    denominations.coins;
+
+  const cashDiscrepancy = physicalCountTotal - theoreticalBalance;
+
+  const handleCreateMovement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (movementForm.montant <= 0 || !movementForm.description) return;
+
+    const newMov: CashMovement = {
+      id: `mov-${Date.now()}`,
+      reference: `MVT-${Date.now().toString().slice(-6)}`,
+      ref: `MVT-${Date.now().toString().slice(-6)}`,
+      dateOperation: new Date().toISOString().split('T')[0],
+      dateHeure: new Date().toISOString(),
+      type: movementForm.type,
+      categorie: movementForm.categorie,
+      montant: movementForm.montant,
+      description: movementForm.description,
+      libelle: movementForm.description,
+      moyenPaiementCode: 'ESPECES',
+      beneficiaire: movementForm.beneficiaireOuPayeur || 'Non prâ”œÂ®cisâ”œÂ®',
+      beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || 'Non prâ”œÂ®cisâ”œÂ®',
+      justificatifRef: movementForm.pieceJustificative || undefined,
+      userId: currentUser.id,
+      userNom: `${currentUser.prenom} ${currentUser.nom}`,
+      auteurId: currentUser.id,
+      auteurNom: `${currentUser.prenom} ${currentUser.nom}`,
+      caissierNom: `${currentUser.prenom} ${currentUser.nom}`,
+      statut: 'Validâ”œÂ®',
+      createdAt: new Date().toISOString(),
+    };
+
+    onAddCashMovement(newMov);
+    setIsNewMovementModalOpen(false);
+    setMovementForm({
+      type: 'ENTREE',
+      categorie: 'ENCAISSEMENT_LOYER',
+      montant: 0,
+      description: '',
+      beneficiaireOuPayeur: '',
+      pieceJustificative: '',
+    });
+  };
+
+  const handleCreateClosing = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newClosing: CashClosing = {
+      id: `cloture-${Date.now()}`,
+      reference: `CLOT-${new Date().toISOString().split('T')[0].replace(/-/g, '')}`,
+      numero: `CLOT-${new Date().toISOString().split('T')[0].replace(/-/g, '')}`,
+      date: new Date().toISOString().split('T')[0],
+      dateCloture: new Date().toISOString().split('T')[0],
+      heureCloture: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      soldeInitial: initialCash,
+      totalEntreesEspeces: totalEntries,
+      totalSortiesEspeces: totalExits,
+      soldeTheorique: theoreticalBalance,
+      soldeReel: physicalCountTotal,
+      soldeReelCompte: physicalCountTotal,
+      ecart: cashDiscrepancy,
+      ecartCaisse: cashDiscrepancy,
+      statut: cashDiscrepancy === 0 ? 'CONFORME' : cashDiscrepancy > 0 ? 'SURPLUS' : 'DEFICIT',
+      caissierId: currentUser.id,
+      caissierNom: `${currentUser.prenom} ${currentUser.nom}`,
+      observations: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œÂ®e.',
+      observation: closingObservation || 'Clâ”œâ”¤ture de caisse quotidienne standard effectuâ”œÂ®e.',
+      createdAt: new Date().toISOString(),
+    };
+
+    onAddCashClosing(newClosing);
+    setIsClosingModalOpen(false);
+    setActiveTab('history');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Module Caisse & Trâ”œÂ®sorerie Guichet
+            </span>
+            <span className="text-xs text-slate-400">Ã”Ã‡Ã³ Journal des Espâ”œÂ¿ces</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white mt-1">Gestion de Caisse & Clâ”œâ”¤ture Journaliâ”œÂ¿re</h1>
+          <p className="text-xs text-slate-400">
+            Contrâ”œâ”¤le rigoureux des flux d'espâ”œÂ¿ces, dâ”œÂ®caissements, menues dâ”œÂ®penses et arrâ”œÂ¬tâ”œÂ®s de caisse contradictoires.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsNewMovementModalOpen(true)}
+            className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4 text-emerald-400" />
+            <span>+ Mouvement de Caisse</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const q10k = Math.floor(theoreticalBalance / 10000);
+              const rem = theoreticalBalance % 10000;
+              setDenominations({
+                b10000: q10k,
+                b5000: 0,
+                b2000: 0,
+                b1000: 0,
+                b500: 0,
+                coins: rem,
+              });
+              setIsClosingModalOpen(true);
+            }}
+            className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs transition-all shadow-lg flex items-center gap-2 cursor-pointer"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Effectuer la Clâ”œâ”¤ture de Caisse</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Real-time Cash Balance Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#111C2E] p-5 rounded-2xl border border-white/5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fond de Caisse Initial</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <Wallet className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-white">{formatCurrencyFCFA(initialCash)}</div>
+            <div className="text-xs text-slate-400 mt-1">Ouverture de session</div>
+          </div>
+        </div>
+
+        <div className="bg-[#111C2E] p-5 rounded-2xl border border-emerald-500/20 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Total Entrâ”œÂ®es (+)</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <ArrowDownRight className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-emerald-400">+{formatCurrencyFCFA(totalEntries)}</div>
+            <div className="text-xs text-slate-400 mt-1">Loyers en espâ”œÂ¿ces et apports</div>
+          </div>
+        </div>
+
+        <div className="bg-[#111C2E] p-5 rounded-2xl border border-rose-500/20 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Total Sorties (-)</span>
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <ArrowUpRight className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-rose-400">-{formatCurrencyFCFA(totalExits)}</div>
+            <div className="text-xs text-slate-400 mt-1">Dâ”œÂ®penses et acomptes propriâ”œÂ®taires</div>
+          </div>
+        </div>
+
+        <div className={`p-5 rounded-2xl border shadow-xl ${
+          theoreticalBalance >= 0 
+            ? 'bg-gradient-to-br from-[#111C2E] to-[#17253D] border-[#C9A96E]/40' 
+            : 'bg-gradient-to-br from-[#2E1A1A] to-[#1C1111] border-rose-500/40'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#E8D5B0] uppercase tracking-wider">Solde Thâ”œÂ®orique Caisse</span>
+            <div className="w-8 h-8 rounded-lg bg-[#C9A96E]/20 text-[#E8D5B0] flex items-center justify-center font-bold">
+              <Coins className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className={`text-2xl font-bold ${theoreticalBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+              {formatCurrencyFCFA(theoreticalBalance)}
+            </div>
+            <div className={`text-xs mt-1 flex items-center gap-1 font-semibold ${theoreticalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {theoreticalBalance >= 0 ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Montant attendu dans le tiroir</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Solde nâ”œÂ®gatif Ã”Ã‡Ã¶ vâ”œÂ®rifier les sorties</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-white/10 gap-6">
+        <button
+          onClick={() => setActiveTab('journal')}
+          className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-2 cursor-pointer ${
+            activeTab === 'journal' ? 'text-[#C9A96E]' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Coins className="w-4 h-4" />
+          <span>Journal des Mouvements ({serverTotal || cashMovements.length})</span>
+          {activeTab === 'journal' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C9A96E] rounded-full" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-2 cursor-pointer ${
+            activeTab === 'history' ? 'text-[#C9A96E]' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Historique des Clâ”œâ”¤tures ({cashClosings.length})</span>
+          {activeTab === 'history' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C9A96E] rounded-full" />
+          )}
+        </button>
+      </div>
+
+      {/* TAB: Journal */}
+      {activeTab === 'journal' && (
+        <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-white">Opâ”œÂ®rations d'Espâ”œÂ¿ces Enregistrâ”œÂ®es</h2>
+            <span className="text-xs text-slate-400">Responsable actuel : {currentUser.prenom} {currentUser.nom}</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-400">
+                  <th className="py-3 px-3">Râ”œÂ®f / Date</th>
+                  <th className="py-3 px-3">Type</th>
+                  <th className="py-3 px-3">Description & Motif</th>
+                  <th className="py-3 px-3">Bâ”œÂ®nâ”œÂ®ficiaire / Tiers</th>
+                  <th className="py-3 px-3">Caissier</th>
+                  <th className="py-3 px-3 text-right">Montant</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {displayMovements.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <Coins className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
+                      <p className="text-xs font-semibold text-white">Aucun mouvement de caisse</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Les opâ”œÂ®rations d'espâ”œÂ¿ces apparaâ”œ«tront ici.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  displayMovements.map((m) => {
+                    const isEntry = m.type === 'ENTREE' || m.type === 'ENCAISSEMENT';
+                    return (
+                      <tr key={m.id} className="hover:bg-white/[0.02]">
+                        <td className="py-3 px-3">
+                          <div className="font-mono font-bold text-white">{m.reference || m.ref}</div>
+                          <div className="text-[10px] text-slate-400">{m.dateOperation || m.dateHeure?.split(' ')[0]}</div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 w-fit ${
+                              isEntry
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {isEntry ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                            {isEntry ? 'ENTRâ”œëE' : 'SORTIE'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-white">{m.description || m.libelle || 'Ã”Ã‡Ã¶'}</div>
+                          <div className="text-[10px] text-slate-400">{m.categorie || 'Ã”Ã‡Ã¶'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || 'Ã”Ã‡Ã¶'}</td>
+                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || 'Ã”Ã‡Ã¶'}</td>
+                        <td className="py-3 px-3 text-right">
+                          <span className={`font-bold text-sm ${isEntry ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isEntry ? '+' : '-'} {formatCurrencyFCFA(m.montant)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+
+            {/* 🆕 Bouton Charger plus */}
+            {serverMovements.length > 0 && serverMovements.length < serverTotal && (
+              <div className="flex justify-center mt-4 mb-6">
+                <button
+                  onClick={() => loadMovementsPage(serverPage + 1)}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {isLoadingMore ? '⏳ Chargement...' : `📥 Charger plus (${serverMovements.length} / ${serverTotal})`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Historique */}
+      {activeTab === 'history' && (
+        <div className="bg-[#111C2E] p-6 rounded-2xl border border-white/5 shadow-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-white">Procâ”œÂ¿s-Verbaux de Clâ”œâ”¤ture Quotidienne</h2>
+            <span className="text-xs text-slate-400">Archivage inviolable pour l'expert-comptable</span>
+          </div>
+
+          <div className="space-y-3">
+            {cashClosings.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">
+                <Lock className="w-8 h-8 mx-auto text-slate-500/50 mb-2" />
+                <p className="text-xs font-semibold text-white">Aucune clâ”œâ”¤ture enregistrâ”œÂ®e</p>
+                <p className="text-[11px] text-slate-500 mt-1">Les clâ”œâ”¤tures quotidiennes apparaâ”œ«tront ici.</p>
+              </div>
+            ) : (
+              cashClosings.map((clot) => (
+                <div key={clot.id} className="p-4 bg-[#0A111D] border border-white/5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-white text-sm">{clot.reference || clot.numero}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                          clot.statut === 'CONFORME' || clot.statut === 'Validâ”œÂ® par Responsable'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : clot.statut === 'SURPLUS'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-rose-500/20 text-rose-400'
+                        }`}
+                      >
+                        {clot.statut}
+                      </span>
+                    </div>
+                    <p className="text-slate-400">
+                      Clâ”œâ”¤turâ”œÂ® le <strong className="text-slate-200">{clot.dateCloture || clot.date} â”œÃ¡ {clot.heureCloture || '18:00'}</strong> par {clot.caissierNom}
+                    </p>
+                    <p className="text-slate-500 text-[11px] italic">"{clot.observations || clot.observation}"</p>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <div className="text-slate-400 text-[11px]">Solde Thâ”œÂ®orique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
+                      <div className="text-sm font-bold text-white">Solde Comptâ”œÂ® : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
+                      <div className={`text-[11px] font-bold ${(clot.ecart ?? clot.ecartCaisse ?? 0) === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        â”œëcart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
+                      </div>
+                    </div>
+
+                    <button className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10" title="Tâ”œÂ®lâ”œÂ®charger PV de Clâ”œâ”¤ture PDF">
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Cash Movement */}
+      {isNewMovementModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111C2E] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                <PlusCircle className="w-5 h-5 text-emerald-400" />
+                Nouveau Mouvement de Caisse
+              </h3>
+              <button onClick={() => setIsNewMovementModalOpen(false)} className="text-slate-400 hover:text-white">Ã”Â£Ã²</button>
+            </div>
+
+            <form onSubmit={handleCreateMovement} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMovementForm({ ...movementForm, type: 'ENTREE', categorie: 'ENCAISSEMENT_LOYER' })}
+                  className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
+                    movementForm.type === 'ENTREE' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-[#0A111D] border-white/10 text-slate-400'
+                  }`}
+                >
+                  <ArrowDownRight className="w-4 h-4" />
+                  <span>Entrâ”œÂ®e d'Espâ”œÂ¿ces (+)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMovementForm({ ...movementForm, type: 'SORTIE', categorie: 'DEPENSE_MENUE' })}
+                  className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
+                    movementForm.type === 'SORTIE' ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-[#0A111D] border-white/10 text-slate-400'
+                  }`}
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  <span>Sortie / Dâ”œÂ®caissement (-)</span>
+                </button>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Montant en Espâ”œÂ¿ces (FCFA) *</label>
+                <input
+                  type="number"
+                  required
+                  min="100"
+                  value={movementForm.montant || ''}
+                  onChange={(e) => setMovementForm({ ...movementForm, montant: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-lg font-bold text-white focus:outline-none focus:border-[#C9A96E]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Description / Motif *</label>
+                <input
+                  type="text"
+                  required
+                  value={movementForm.description}
+                  onChange={(e) => setMovementForm({ ...movementForm, description: e.target.value })}
+                  placeholder="Ex: Achat fournitures bureau & papier quittance"
+                  className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Bâ”œÂ®nâ”œÂ®ficiaire ou Payeur</label>
+                <input
+                  type="text"
+                  value={movementForm.beneficiaireOuPayeur}
+                  onChange={(e) => setMovementForm({ ...movementForm, beneficiaireOuPayeur: e.target.value })}
+                  placeholder="Ex: Papeterie Centrale / Artisan Plombier"
+                  className="w-full px-3.5 py-2.5 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewMovementModalOpen(false)}
+                  className="px-4 py-2 bg-white/5 text-white rounded-xl text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer"
+                >
+                  Enregistrer dans le Journal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Daily Cash Closing */}
+      {isClosingModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111C2E] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#C9A96E]/20 text-[#E8D5B0] flex items-center justify-center">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Arrâ”œÂ¬tâ”œÂ® & Clâ”œâ”¤ture Journaliâ”œÂ¿re de Caisse</h3>
+                  <p className="text-xs text-slate-400">Comptage physique des espâ”œÂ¿ces et comparaison contradictoire.</p>
+                </div>
+              </div>
+              <button onClick={() => setIsClosingModalOpen(false)} className="text-slate-400 hover:text-white">Ã”Â£Ã²</button>
+            </div>
+
+            <form onSubmit={handleCreateClosing} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 p-3.5 bg-white/[0.02] border border-white/10 rounded-xl text-xs">
+                <div>
+                  <span className="text-slate-400 block">Solde Initial :</span>
+                  <strong className="text-white font-mono">{formatCurrencyFCFA(initialCash)}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Flux Net Jour :</span>
+                  <strong className={`font-mono ${(totalEntries - totalExits) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {(totalEntries - totalExits) >= 0 ? '+' : ''}{formatCurrencyFCFA(totalEntries - totalExits)}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[#E8D5B0] block font-bold">Solde Thâ”œÂ®orique :</span>
+                  <strong className="text-lg text-white font-bold font-mono">{formatCurrencyFCFA(theoreticalBalance)}</strong>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-white block mb-2">Comptage Physique des Billets & Piâ”œÂ¿ces :</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Billets 10 000 FCFA</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.b10000}
+                      onChange={(e) => setDenominations({ ...denominations, b10000: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.b10000 * 10000)}</div>
+                  </div>
+
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Billets 5 000 FCFA</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.b5000}
+                      onChange={(e) => setDenominations({ ...denominations, b5000: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.b5000 * 5000)}</div>
+                  </div>
+
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Billets 2 000 FCFA</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.b2000}
+                      onChange={(e) => setDenominations({ ...denominations, b2000: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.b2000 * 2000)}</div>
+                  </div>
+
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Billets 1 000 FCFA</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.b1000}
+                      onChange={(e) => setDenominations({ ...denominations, b1000: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.b1000 * 1000)}</div>
+                  </div>
+
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Billets 500 FCFA</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.b500}
+                      onChange={(e) => setDenominations({ ...denominations, b500: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.b500 * 500)}</div>
+                  </div>
+
+                  <div className="p-3 bg-[#0A111D] border border-white/10 rounded-xl">
+                    <span className="text-slate-400 block font-mono">Piâ”œÂ¿ces mâ”œÂ®talliques</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={denominations.coins}
+                      onChange={(e) => setDenominations({ ...denominations, coins: Number(e.target.value) })}
+                      className="w-full mt-1 px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-bold"
+                    />
+                    <div className="text-[10px] text-[#C9A96E] mt-1 font-mono">{formatCurrencyFCFA(denominations.coins)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-xl border text-xs flex items-center justify-between ${
+                cashDiscrepancy === 0
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : cashDiscrepancy > 0
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+              }`}>
+                <div>
+                  <div className="font-bold text-sm">Total Physique Comptâ”œÂ® : {formatCurrencyFCFA(physicalCountTotal)}</div>
+                  <div className="text-[11px] mt-0.5">
+                    {cashDiscrepancy === 0
+                      ? 'Ã”Â£ô Caisse parfaitement â”œÂ®quilibrâ”œÂ®e (aucun â”œÂ®cart)'
+                      : cashDiscrepancy > 0
+                      ? `Surplus de caisse constatâ”œÂ® : +${formatCurrencyFCFA(cashDiscrepancy)}`
+                      : `Dâ”œÂ®ficit de caisse constatâ”œÂ® : ${formatCurrencyFCFA(cashDiscrepancy)}`}
+                  </div>
+                </div>
+
+                <span className={`px-3 py-1 rounded-full font-bold text-xs ${
+                  cashDiscrepancy === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                }`}>
+                  {cashDiscrepancy === 0 ? 'CONFORME' : cashDiscrepancy > 0 ? 'SURPLUS' : 'Dâ”œëFICIT'}
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Observations / Commentaires de clâ”œâ”¤ture</label>
+                <textarea
+                  rows={2}
+                  value={closingObservation}
+                  onChange={(e) => setClosingObservation(e.target.value)}
+                  placeholder="Remarques â”œÂ®ventuelles sur la journâ”œÂ®e de caisse..."
+                  className="w-full px-3 py-2 bg-[#0A111D] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsClosingModalOpen(false)}
+                  className="px-4 py-2 bg-white/5 text-white rounded-xl text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer"
+                >
+                  Valider & Verrouiller la Clâ”œâ”¤ture
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

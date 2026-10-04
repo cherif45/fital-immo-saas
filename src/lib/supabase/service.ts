@@ -64,7 +64,7 @@ export const defaultSettings: AgencySettings = {
 };
 
 export const defaultPaymentMethods: PaymentMethodConfig[] = [
-  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espà¨ces (Caisse Agence)', description: 'Rà¨glement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
+  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espèces (Caisse Agence)', description: 'Rà¨glement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
   { id: 'pm-wave', code: 'WAVE', libelle: 'Wave Mobile Money', description: 'Paiement par QR Code.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 0, numeroCompteOuTelephone: '+221 76 328 58 29', instructions: 'Scannez le QR Code Wave.' },
   { id: 'pm-orange-money', code: 'ORANGE_MONEY', libelle: 'Orange Money (OM)', description: 'Paiement via USSD #144#.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 1, numeroCompteOuTelephone: '784912', instructions: 'Composez le code marchand.' },
   { id: 'pm-virement', code: 'VIREMENT', libelle: 'Virement Bancaire', description: 'Virement interbancaire.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 24, banqueNom: 'CBAO Attijariwafa Bank', instructions: 'Effectuez votre virement.' },
@@ -290,7 +290,7 @@ export function mapTenantFromDb(r: any): Tenant {
     email: r.email || '', cni: r.cni || '', fonction: r.fonction || '',
     profession: r.profession || r.fonction || '', employeur: r.employeur || '',
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
-    statut: r.statut || 'à€ jour',
+    statut: r.statut || 'À jour',
     scoreSolvabilite: Number(r.score_solvabilite ?? r.scoreSolvabilite ?? 85),
     bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
     proprietaireId: r.proprietaire_id || r.proprietaireId || '',
@@ -348,7 +348,7 @@ export function mapPaymentFromDb(r: any): Payment {
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
     statut: r.statut || 'Payé',
-    modePaiement: r.mode_paiement || r.modePaiement || 'Espà¨ces',
+    modePaiement: r.mode_paiement || r.modePaiement || 'Espèces',
     moyenPaiementCode: r.moyen_paiement_code || r.moyenPaiementCode || 'ESPECES',
     verificationStatut: r.verification_statut || r.verificationStatut || 'valide',
     referenceTransaction: r.reference_transaction || r.referenceTransaction || '',
@@ -617,7 +617,7 @@ export function mapInvoiceFromDb(r: any): Invoice {
     dateEcheance: r.date_echeance || r.dateEcheance || new Date().toISOString().split('T')[0],
     sousTotal: Number(r.sous_total ?? r.sousTotal ?? tot),
     taxes: Number(r.taxes ?? 0), total: tot, montantTotal: tot,
-    statut: r.statut || 'à‰mise', lignes: r.lignes || [],
+    statut: r.statut || 'Émise', lignes: r.lignes || [],
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -1289,7 +1289,7 @@ export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string):
       nom: tenant.nom, prenom: tenant.prenom, telephone: tenant.telephone,
       email: tenant.email, cni: tenant.cni || '', fonction: tenant.fonction || '',
       employeur: tenant.employeur || '', revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || 'à€ jour', score_solvabilite: tenant.scoreSolvabilite || 85,
+      statut: tenant.statut || 'À jour', score_solvabilite: tenant.scoreSolvabilite || 85,
       bien_id: tenant.bienId || null, proprietaire_id: tenant.proprietaireId || null,
       date_entree: tenant.dateEntree || new Date().toISOString().split('T')[0],
       date_sortie: tenant.dateSortie || null,
@@ -1600,7 +1600,7 @@ export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): 
       date_echeance: inv.dateEcheance || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
       sous_total: inv.sousTotal || inv.montantTotal || 0,
       taxes: inv.taxes || 0, total: inv.total || inv.montantTotal || 0,
-      statut: inv.statut || 'à‰mise', lignes: inv.lignes || [],
+      statut: inv.statut || 'Émise', lignes: inv.lignes || [],
       created_by_id: inv.createdById || null,
       created_by_nom: inv.createdByNom || null,
       created_by_role: inv.createdByRole || null,
@@ -2026,7 +2026,7 @@ export async function createAgencyWithAdmin(params: {
     }
     try {
       await supabase.from('payment_methods_config').insert([
-        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espà¨ces', description: 'Rà¨glement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
+        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espèces', description: 'Rà¨glement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
         { agency_id: agency.id, code: 'WAVE', libelle: 'Wave', description: 'Paiement Wave', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
         { agency_id: agency.id, code: 'ORANGE_MONEY', libelle: 'Orange Money', description: 'Paiement OM', actif: true, frais_pourcentage: 0, delai_validation_heures: 1 },
         { agency_id: agency.id, code: 'VIREMENT', libelle: 'Virement', description: 'Virement bancaire', actif: true, frais_pourcentage: 0, delai_validation_heures: 24 },
