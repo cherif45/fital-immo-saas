@@ -51,3 +51,47 @@ scripts/
 *.csv
 *.xlsx
 *.py
+
+# ═══════════════════════════════════════════════════════════
+# AJOUTS FITAL IMMO
+# ═══════════════════════════════════════════════════════════
+
+# Bulletins PDF generes (regenerables)
+bulletins_pdf/
+*.pdf
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Diagnostics de migration (temporaires)
+diag_*.py
+voir_*.py
+bulletin_*.py
+check_*.py
+test_*.py
+analyse_*.py
+analyse-*.ps1
+etat_*.py
+etat_*.ps1
+
+# SQL temporaire (garder fix_rls.sql)
+# (ne pas ignorer fix_rls.sql car documente)
+
+# PowerShell temporaires
+*.ps1
+
+# Excel/CSV (donnees sources)
+*.xlsx
+*.csv
+
+# BOM backups
+*.bom.bak
+*.before-*.bak
+
+# Node/Python mix
+*.log
