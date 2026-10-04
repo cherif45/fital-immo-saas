@@ -1177,7 +1177,7 @@ export async function fetchArchivesFromDb(agencyId: string, entityType?: string)
   try {
     let query = supabase.from('archives').select('*').eq('agency_id', agencyId);
     if (entityType) query = query.eq('entity_type', entityType);
-    const { data, error } = await query.order('archived_at', { ascending: false });
+    const { data, error } = await query.order('archived_at', { ascending: false }).limit(500);
     if (error) throw error;
     return (data || []).map(mapArchiveFromDb);
   } catch (err: any) { return []; }
