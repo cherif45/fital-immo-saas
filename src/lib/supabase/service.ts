@@ -2330,3 +2330,151 @@ export async function getDailyActivity(
     return [];
   }
 }
+
+// ============================================================
+// AUTO-LOG WRAPPER — Log automatique de toutes les actions
+// Ajouté le 04/10/2026
+// ============================================================
+
+/**
+ * Wrapper qui log automatiquement chaque action CRUD
+ * Utilisation : logAndRun('OWNER_CREATED', 'Propriétaires', 'Création', () => saveOwnerToDb(...))
+ */
+async function logAndRun<T extends { success: boolean; data?: any; error?: string }>(
+  action: string,
+  module: string,
+  description: string,
+  agencyId: string,
+  fn: () => Promise<T>,
+  entityRef?: string,
+  montant?: number
+): Promise<T> {
+  const result = await fn();
+  
+  if (result.success && agencyId) {
+    try {
+      const { data: { user } } = await supabase!.auth.getUser();
+      const userNom = user?.email || 'Système';
+      
+      await supabase!.from('activity_logs').insert([{
+        agency_id: agencyId,
+        user_id: user?.id || null,
+        user_nom: userNom,
+        activity_type: action,
+        entity_type: module.toUpperCase(),
+        entity_id: result.data?.id || null,
+        entity_ref: entityRef || result.data?.ref || null,
+        title: `${module} : ${action}`,
+        description,
+        montant: montant || null,
+        activity_date: new Date().toISOString().split('T')[0],
+        activity_hour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        metadata: { source: 'AUTO_LOG_WRAPPER' },
+      }]);
+      
+      console.log(`📝 Log: ${action} - ${description}`);
+    } catch (e) {
+      console.warn('AUTO-LOG failed:', e);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================================
+// WRAPPERS PUBLICS — À utiliser dans App.tsx
+// ============================================================
+
+export async function saveOwnerToDbWithLog(owner: any, agencyId: string) {
+  return logAndRun(
+    'OWNER_CREATED',
+    'Propriétaires',
+    `Nouveau propriétaire : ${owner.prenom || ''} ${owner.nom || ''}`.trim(),
+    agencyId,
+    () => saveOwnerToDb(owner, agencyId),
+    owner.ref
+  );
+}
+
+export async function saveTenantToDbWithLog(tenant: any, agencyId: string) {
+  return logAndRun(
+    'TENANT_CREATED',
+    'Locataires',
+    `Nouveau locataire : ${tenant.prenom || ''} ${tenant.nom || ''}`.trim(),
+    agencyId,
+    () => saveTenantToDb(tenant, agencyId),
+    tenant.ref
+  );
+}
+
+export async function savePropertyToDbWithLog(property: any, agencyId: string) {
+  return logAndRun(
+    'PROPERTY_CREATED',
+    'Biens',
+    `Nouveau bien : ${property.nom || ''}`.trim(),
+    agencyId,
+    () => savePropertyToDb(property, agencyId),
+    property.ref
+  );
+}
+
+export async function saveContractToDbWithLog(contract: any, agencyId: string) {
+  return logAndRun(
+    'CONTRACT_CREATED',
+    'Contrats',
+    `Nouveau contrat : ${contract.ref || ''}`.trim(),
+    agencyId,
+    () => saveContractToDb(contract, agencyId),
+    contract.ref
+  );
+}
+
+export async function savePaymentToDbWithLog(payment: any, agencyId: string, authorId?: string) {
+  return logAndRun(
+    'PAYMENT_ENCAISSE',
+    'Paiements',
+    `Encaissement : ${payment.locataireNom || ''} - ${payment.periode || ''} - ${payment.montantPaye || 0} FCFA`.trim(),
+    agencyId,
+    () => savePaymentToDb(payment, agencyId, authorId),
+    payment.ref,
+    payment.montantPaye
+  );
+}
+
+export async function saveBuildingToDbWithLog(building: any, agencyId: string) {
+  return logAndRun(
+    'BUILDING_CREATED',
+    'Immeubles',
+    `Nouvel immeuble : ${building.nom || ''}`.trim(),
+    agencyId,
+    () => saveBuildingToDb(building, agencyId),
+    building.ref
+  );
+}
+
+export async function saveUnitToDbWithLog(unit: any, agencyId: string) {
+  return logAndRun(
+    'UNIT_CREATED',
+    'Espaces',
+    `Nouvel espace : ${unit.nom || ''}`.trim(),
+    agencyId,
+    () => saveUnitToDb(unit, agencyId),
+    unit.nom
+  );
+}
+
+export async function saveCashMovementToDbWithLog(movement: any, agencyId: string, authorId?: string) {
+  return logAndRun(
+    'CASH_MOVEMENT',
+    'Caisse',
+    `Mouvement : ${movement.libelle || movement.description || ''} - ${movement.montant || 0} FCFA`.trim(),
+    agencyId,
+    () => saveCashMovementToDb(movement, agencyId, authorId),
+    movement.reference,
+    movement.montant
+  );
+}
+
+// ============================================================
+// FIN AUTO-LOG WRAPPER
+// ============================================================

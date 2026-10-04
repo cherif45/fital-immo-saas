@@ -1,0 +1,14 @@
+﻿INSTRUCTIONS POUR LE CLIENT
+============================
+
+OBJECTIF :
+Compléter la liste des propriétaires pour chaque immeuble.
+
+ÉTAPES :
+1. Ouvrez le fichier "1_Immeubles_a_valider.csv" dans Excel
+2. Pour chaque ligne, remplissez la colonne "Nom Propriétaire (à remplir)"
+3. Format : NOM Prénom (ex: DIOP Astou)
+4. Utilisez le fichier "2_Proprietaires_disponibles.csv" pour trouver les noms exacts
+5. Si le propriétaire n'existe pas, laissez vide
+
+Une fois terminé, sauvegardez en .xlsx et renvoyez le fichier.

@@ -1,0 +1,62 @@
+﻿{
+  "name": "FITAL-IMMO — Gestion Locative & Loyers",
+  "short_name": "FITAL-IMMO",
+  "description": "Plateforme SaaS professionnelle de gestion locative, quittances, caisse, baux et recouvrement.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A111D",
+  "theme_color": "#C9A96E",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Encaisser un loyer",
+      "short_name": "Encaisser",
+      "description": "Enregistrer un paiement",
+      "url": "/?tab=payments",
+      "icons": [
+        {
+          "src": "/icons/shortcut-payment.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nouveau locataire",
+      "short_name": "Locataire",
+      "description": "Assistant nouveau locataire",
+      "url": "/?tab=tenants",
+      "icons": [
+        {
+          "src": "/icons/shortcut-tenant.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

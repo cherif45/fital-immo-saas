@@ -420,7 +420,7 @@ export function CashRegisterView({
                             }`}
                           >
                             {isEntry ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                            {isEntry ? 'ENTRâ”œÃ«E' : 'SORTIE'}
+                            {isEntry ? 'ENTRâ”œëE' : 'SORTIE'}
                           </span>
                         </td>
                         <td className="py-3 px-3">
@@ -501,7 +501,7 @@ export function CashRegisterView({
                       <div className="text-slate-400 text-[11px]">Solde Thâ”œÂ®orique : {formatCurrencyFCFA(clot.soldeTheorique)}</div>
                       <div className="text-sm font-bold text-white">Solde Comptâ”œÂ® : {formatCurrencyFCFA(clot.soldeReel ?? clot.soldeReelCompte ?? 0)}</div>
                       <div className={`text-[11px] font-bold ${(clot.ecart ?? clot.ecartCaisse ?? 0) === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        â”œÃ«cart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
+                        â”œëcart : {(clot.ecart ?? clot.ecartCaisse ?? 0) > 0 ? '+' : ''}{formatCurrencyFCFA(clot.ecart ?? clot.ecartCaisse ?? 0)}
                       </div>
                     </div>
 
@@ -741,7 +741,7 @@ export function CashRegisterView({
                 <span className={`px-3 py-1 rounded-full font-bold text-xs ${
                   cashDiscrepancy === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                 }`}>
-                  {cashDiscrepancy === 0 ? 'CONFORME' : cashDiscrepancy > 0 ? 'SURPLUS' : 'Dâ”œÃ«FICIT'}
+                  {cashDiscrepancy === 0 ? 'CONFORME' : cashDiscrepancy > 0 ? 'SURPLUS' : 'Dâ”œëFICIT'}
                 </span>
               </div>
 

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Wifi, WifiOff, Download, Trash2, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 interface AppStatusModalProps {

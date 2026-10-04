@@ -385,7 +385,7 @@ export function InvoicesView({
                     const hasAny = filteredProps.length > 0 || filteredBuildings.length > 0 || filteredUnits.length > 0;
 
                     if (!hasAny) {
-                      return <option value="" disabled>Aucun bien lié Ã  ce destinataire</option>;
+                      return <option value="" disabled>Aucun bien lié à ce destinataire</option>;
                     }
 
                     return (
@@ -510,7 +510,7 @@ export function InvoicesView({
 
             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl text-sm">
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase">Facturé Ã  :</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">Facturé à :</p>
                 <p className="font-bold text-gray-900">{selectedInvoice.proprietaireNom}</p>
                 <p className="text-xs text-gray-600">Bien : {selectedInvoice.bienNom}</p>
               </div>
@@ -560,7 +560,7 @@ export function InvoicesView({
             </div>
 
                        <div className="bg-amber-50 p-3 rounded-lg text-xs text-amber-950 font-medium">
-              Arrêtée la présente facture Ã  la somme de : <br />
+              Arrêtée la présente facture à la somme de : <br />
               <strong className="text-sm font-bold">{numberToWordsFrench(selectedInvoice.total)}</strong>
             </div>
 

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Wifi, WifiOff, Database } from 'lucide-react';
 
 interface ConnectionIndicatorProps {
