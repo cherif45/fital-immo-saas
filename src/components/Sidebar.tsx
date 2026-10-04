@@ -127,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'owners' as ActiveTab, label: 'Propriétaires Mandants', icon: UserCheck },
         { id: 'buildings' as ActiveTab, label: 'Immeubles & Résidences', icon: Building2 },
         { id: 'units' as ActiveTab, label: 'Espaces Louables', icon: Layers },
-        { id: 'properties' as ActiveTab, label: 'Biens Anciens', icon: Building2 },
+        { id: 'properties' as ActiveTab, label: 'Biens Simples', icon: Building2 },
         { id: 'tenants' as ActiveTab, label: 'Locataires & Fiches', icon: Users },
         { id: 'contracts' as ActiveTab, label: 'Contrats de Baux', icon: FileCheck2 },
         { id: 'inspections' as ActiveTab, label: 'États des Lieux', icon: ClipboardList },
