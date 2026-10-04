@@ -27,6 +27,9 @@ export default defineConfig(() => {
 
         // Configuration du Service Worker (Workbox)
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           // Pattern des fichiers � pr�-cacher
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,json}'],
 
