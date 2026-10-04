@@ -42,3 +42,7 @@ playwright-report/
 *.tsx.backup
 *.ts.backup
 *.css.backup
+*.bak
+*.bom.bak
+*.before-*.bak
+._backups_archive/
