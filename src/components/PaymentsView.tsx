@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   CreditCard,
   Plus,
@@ -168,20 +168,22 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
   }, [isLocataire, isNewPaymentModalOpen, setIsNewPaymentModalOpen]);
 
-  const filteredPayments = displayPayments.filter((p) => {
-    if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
-    if (methodFilter !== 'all' && p.modePaiement !== methodFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        p.locataireNom.toLowerCase().includes(q) ||
-        p.bienNom.toLowerCase().includes(q) ||
-        p.quittanceNumero.toLowerCase().includes(q) ||
-        p.ref.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+  const filteredPayments = React.useMemo(() => {
+    return displayPayments.filter((p) => {
+      if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
+      if (methodFilter !== 'all' && p.modePaiement !== methodFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          p.locataireNom.toLowerCase().includes(q) ||
+          p.bienNom.toLowerCase().includes(q) ||
+          p.quittanceNumero.toLowerCase().includes(q) ||
+          p.ref.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [displayPayments, statusFilter, methodFilter, search]);
 
   const totalCollected = filteredPayments
     .filter((p) => p.statut === 'Payé')

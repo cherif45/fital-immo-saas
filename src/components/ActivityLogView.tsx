@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   CalendarDays,
   Search,
@@ -95,10 +95,12 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
   });
 
   // Tri par date décroissante + heure
-  const sortedActivities = [...filteredActivities].sort((a, b) => {
-    if (a.activityDate !== b.activityDate) return b.activityDate.localeCompare(a.activityDate);
-    return (b.createdAt || '').localeCompare(a.createdAt || '');
-  });
+  const sortedActivities = React.useMemo(() => {
+    return [...filteredActivities].sort((a, b) => {
+      if (a.activityDate !== b.activityDate) return b.activityDate.localeCompare(a.activityDate);
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+  }, [filteredActivities]);
 
   // ============================================================
   // STATS

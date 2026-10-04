@@ -83,6 +83,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<ArchiveTab>('all');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
   const [selectedRecord, setSelectedRecord] = useState<UnifiedRecord | null>(null);
 
   // ============================================================
@@ -201,6 +203,20 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }, [allRecords, activeTab, search]);
 
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginatedFiltered = React.useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  // Reset page si filtre change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search]);
+
   // Compteurs par onglet
   const counts: Record<ArchiveTab, number> = useMemo(() => {
     const c: any = { all: allRecords.length };
@@ -300,7 +316,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => {
+                paginatedFiltered.map((r) => {
                   const cfg = TAB_CONFIG[r.tab];
                   return (
                     <tr key={`${r.tab}-${r.id}`} className="hover:bg-[#1E2E45]/40 transition-colors">
@@ -359,6 +375,32 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
           </table>
         </div>
       </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 mt-4 px-4 py-3 rounded-2xl bg-[#162133] border border-[#2A3447]">
+            <div className="text-xs text-[#A8B4C4]">
+              Page <span className="text-[#C9A96E] font-bold">{currentPage}</span> sur <span className="text-white font-bold">{totalPages}</span>
+              <span className="ml-2 text-[#6B7C94]">({filtered.length} elements)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-white text-xs font-semibold border border-[#C9A96E]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Precedent
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-white text-xs font-semibold border border-[#C9A96E]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Suivant
+              </button>
+            </div>
+          </div>
+        )}
       
       {/* Modal détail */}
       {selectedRecord && (

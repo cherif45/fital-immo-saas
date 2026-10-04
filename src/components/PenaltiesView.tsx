@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AlertTriangle,
   Calculator,
@@ -105,18 +105,20 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   // ============================================================
   // FILTRES
   // ============================================================
-  const filteredPenalties = displayPenalties.filter((p) => {
-    if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        (p.locataireNom || '').toLowerCase().includes(q) ||
-        (p.bienNom || '').toLowerCase().includes(q) ||
-        (p.periode || '').toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+  const filteredPenalties = React.useMemo(() => {
+    return displayPenalties.filter((p) => {
+      if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          (p.locataireNom || '').toLowerCase().includes(q) ||
+          (p.bienNom || '').toLowerCase().includes(q) ||
+          (p.periode || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [displayPenalties, statusFilter, search]);
 
   // ============================================================
   // STATS
