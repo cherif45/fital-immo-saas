@@ -56,16 +56,25 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     if (!currentUser?.agencyId) return;
     setIsLoadingMore(true);
     const result = await paginateTable<any>('penalties', currentUser.agencyId, page, PAGE_SIZE);
-    const mapped: Penalty[] = result.data.map((r: any) => ({
-      ...r,
+    const mapped: Penalty[] = (result.data || []).map((r: any) => ({
       id: r.id,
-      tenantId: r.tenant_id,
-      tenantNom: r.tenant_nom,
-      montant: Number(r.montant) || 0,
-      motif: r.motif || '',
+      agencyId: r.agency_id,
+      paymentId: r.payment_id,
+      locataireId: r.locataire_id,
+      locataireNom: r.locataire_nom,
+      bienId: r.bien_id,
+      bienNom: r.bien_nom,
+      periode: r.periode,
+      joursRetard: Number(r.jours_retard ?? 0),
+      tauxPenalite: Number(r.taux_penalite ?? 10),
+      montantBase: Number(r.montant_base ?? 0),
+      montantPenalite: Number(r.montant_penalite ?? 0),
       statut: r.statut || 'En attente',
-      dateCreation: r.created_at,
+      dateCalcul: r.date_calcul || new Date().toISOString().split('T')[0],
       dateApplication: r.date_application,
+      notes: r.notes || '',
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }));
     if (page === 0) {
       setServerPenalties(mapped);
@@ -299,7 +308,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               statusFilter === 'Appliquée' ? 'bg-emerald-500 text-white font-bold' : 'bg-[#1E2E45] text-emerald-400 hover:text-white'
             }`}
           >
-            Appliquées ({serverTotal ? displayPenalties.filter((p) => p.statut === 'Appliquée').length : penalties.filter((p) => p.statut === 'Appliquée').length})
+            Appliquées ({serverTotal ? displayPenalties.filter((p) => p.statut === 'Appliquée' || p.statut === 'Payée').length : penalties.filter((p) => p.statut === 'Appliquée' || p.statut === 'Payée').length})
           </button>
         </div>
 
