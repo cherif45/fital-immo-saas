@@ -1498,7 +1498,7 @@ export default function App() {
           )}
 
           {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
-            <ViewLoader variant="kpi"><LazySuperAdminDashboard currentUser={currentUser} /></ViewLoader>
+            <ViewLoader variant="kpi"><LazySuperAdminDashboard currentUser={currentUser} agencyStats={agencyStats} /></ViewLoader>
           )}
 
           {activeTab === 'admin-control' && (

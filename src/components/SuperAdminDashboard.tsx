@@ -11,7 +11,7 @@ import {
 import { supabase } from '../lib/supabase/client';
 import { formatNumber } from '../lib/utils';
 
-interface SuperAdminDashboardProps { currentUser: any; }
+interface SuperAdminDashboardProps { currentUser: any; agencyStats?: any; }
 
 interface Agency {
   id: string; name: string; slug: string; email: string; phone: string;
@@ -24,7 +24,7 @@ interface GlobalStats {
   totalPayments: number;
 }
 
-export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ currentUser }) => {
+export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ currentUser, agencyStats }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'agencies' | 'users'>('overview');
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -55,7 +55,20 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
       ]);
       setAgencies(agenciesData);
       setUsers(usersData);
-      setStats(statsData);
+      // Fusionner avec agencyStats (RPC serveur, bypass RLS)
+      if (agencyStats) {
+        setStats({
+          totalAgencies: statsData?.totalAgencies || 0,
+          totalUsers: statsData?.totalUsers || 0,
+          totalBuildings: agencyStats.total_properties || statsData?.totalBuildings || 0,
+          totalUnits: agencyStats.total_units || statsData?.totalUnits || 0,
+          totalTenants: agencyStats.total_tenants || statsData?.totalTenants || 0,
+          totalProperties: agencyStats.total_properties || statsData?.totalProperties || 0,
+          totalPayments: agencyStats.total_payments || statsData?.totalPayments || 0,
+        });
+      } else {
+        setStats(statsData);
+      }
     } catch (err: any) {
       setStatusMessage({ text: '❌ Erreur chargement : ' + err.message, type: 'error' });
     } finally {
