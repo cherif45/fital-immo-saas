@@ -709,7 +709,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
       agencyFilter(supabase.from('owners').select('*').is('deleted_at', null)),
       // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
-      fetchAllRows('tenants', agencyId, q => q.is('deleted_at', null)),
+      agencyFilter(supabase.from('tenants').select('*').is('deleted_at', null).order('created_at', { ascending: false }).limit(500)),
       agencyFilter(supabase.from('contracts').select('*')),
       Promise.resolve({ data: [], error: null }),  // payments : charge lazy
       Promise.resolve({ data: [], error: null }),  // cash_movements : charge lazy
@@ -717,7 +717,7 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       agencyFilter(supabase.from('maintenance_tickets').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('property_inspections').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('disbursements').select('*').order('created_at', { ascending: false })),
-      fetchAllRows('invoices', agencyId, q => q.order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('invoices').select('*').order('created_at', { ascending: false }).limit(500)),
       agencyFilter(supabase.from('tenant_reminders').select('*').order('date_creation', { ascending: false })),
       agencyFilter(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100)),
       agencyFilter(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)),
@@ -725,13 +725,13 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
       supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle(),
       agencyFilter(supabase.from('profiles').select('*')),
       agencyFilter(supabase.from('buildings').select('*').order('created_at', { ascending: false }).limit(2000)),
-      fetchAllRows('units', agencyId, q => q.order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('units').select('*').order('created_at', { ascending: false }).limit(500)),
       agencyFilter(supabase.from('owner_deductions').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('bulletin_versements').select('*').order('created_at', { ascending: false })),
       agencyFilter(supabase.from('archives').select('*').order('archived_at', { ascending: false }).limit(200)),
       agencyFilter(supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500)),
       fetchAllRows('penalties', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('owner_charges', agencyId, q => q.order('created_at', { ascending: false })),
+      agencyFilter(supabase.from('owner_charges').select('*').order('created_at', { ascending: false }).limit(500)),
     ]);
 
     if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
