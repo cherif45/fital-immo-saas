@@ -10,39 +10,39 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        // Le SW se met à jour automatiquement quand une nouvelle version est déployée
+        // Le SW se met ï¿½ jour automatiquement quand une nouvelle version est dï¿½ployï¿½e
         registerType: 'autoUpdate',
 
         // Injecte automatiquement l'enregistrement du SW dans le build
         injectRegister: 'auto',
 
-        // Fichiers inclus dans le pré-cache (uniquement des assets statiques)
+        // Fichiers inclus dans le prï¿½-cache (uniquement des assets statiques)
         includeAssets: [
           'favicon.svg',
           'icons/*.png',
         ],
 
-        // Référence au manifest existant (public/manifest.json)
+        // Rï¿½fï¿½rence au manifest existant (public/manifest.json)
         manifest: false, // On utilise notre propre manifest.json dans public/
 
         // Configuration du Service Worker (Workbox)
         workbox: {
-          // Pattern des fichiers à pré-cacher
+          // Pattern des fichiers ï¿½ prï¿½-cacher
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,json}'],
 
           // Nettoyage automatique des anciens caches
           cleanupOutdatedCaches: true,
 
-          // Taille max d'un fichier à pré-cacher (5 MB)
+          // Taille max d'un fichier ï¿½ prï¿½-cacher (5 MB)
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 
           // ?? IMPORTANT : NE JAMAIS intercepter les mutations
-          // On laisse passer toutes les requêtes non-GET
+          // On laisse passer toutes les requï¿½tes non-GET
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api/, /^\/rest/, /supabase/],
 
           runtimeCaching: [
-            // ? GET Supabase ? NetworkFirst (fraîcheur prioritaire)
+            // ? GET Supabase ? NetworkFirst (fraï¿½cheur prioritaire)
             {
               urlPattern: ({ url, request }) =>
                 url.hostname.includes('supabase.co') && request.method === 'GET',
@@ -80,12 +80,31 @@ export default defineConfig(() => {
           ],
         },
 
-        // ?? Désactivé en dev (évite les faux bugs de cache)
+        // ?? Dï¿½sactivï¿½ en dev (ï¿½vite les faux bugs de cache)
         devOptions: {
           enabled: false,
         },
       }),
     ],
+
+    // ============================================================
+    // OPTIMISATION BUNDLE SPLITTING
+    // Separe les librairies communes en chunks caches par le navigateur
+    // ============================================================
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Librairies principales (cache long terme)
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-icons': ['lucide-react'],
+          },
+        },
+      },
+      // Alerte a 600 KB au lieu de 500 KB
+      chunkSizeWarningLimit: 600,
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

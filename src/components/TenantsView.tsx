@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   Plus,
@@ -27,8 +27,12 @@ import {
 } from 'lucide-react';
 import { Tenant, Property, ActiveTab, Inspection, UserAccount } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
+import { lazy, Suspense } from 'react';
+
+// Lazy import pour reduire le bundle de cette vue
+const MobileMoneyPaymentModal = lazy(() => import('./MobileMoneyPaymentModal').then(m => ({ default: m.MobileMoneyPaymentModal })));
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
-import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
+// import statique retire - deja en lazy dans lazyImports
 
 interface TenantsViewProps {
   tenants: Tenant[];
@@ -181,11 +185,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     return '—';
   };
 
-  // Filtres
-  const activeTenants = tenants.filter((t) => !isTenantSorted(t));
-  const sortedTenants = tenants.filter((t) => isTenantSorted(t));
-
-  const filteredTenants = tenants.filter((t) => {
+  // Filtres (memoises pour eviter les recalculs a chaque frappe)
+  const { activeTenants, sortedTenants, filteredTenants } = React.useMemo(() => {
+    const actives = tenants.filter((t) => !isTenantSorted(t));
+    const sortis = tenants.filter((t) => isTenantSorted(t));
+    
+    const filtered = tenants.filter((t) => {
     if (statusFilter === 'actifs' && isTenantSorted(t)) return false;
     if (statusFilter === 'sortis' && !isTenantSorted(t)) return false;
     if (statusFilter === 'a_jour' && (isTenantSorted(t) || t.statut !== 'À jour')) return false;
@@ -204,6 +209,9 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     }
     return true;
   });
+    
+    return { activeTenants: actives, sortedTenants: sortis, filteredTenants: filtered };
+  }, [tenants, statusFilter, search]);
 
   // ============================================================
   // BIENS VACANTS
@@ -1113,7 +1121,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
 
       {/* Mobile Money Modal */}
       {selectedTenantForPayment && (
-        <MobileMoneyPaymentModal
+        <Suspense fallback={null}><MobileMoneyPaymentModal
           isOpen={!!selectedTenantForPayment}
           onClose={() => setSelectedTenantForPayment(null)}
           amount={selectedTenantForPayment.arrieresCumules || selectedTenantForPayment.loyerMensuel}
@@ -1126,7 +1134,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             alert(`Paiement de ${amount.toLocaleString('fr-FR')} FCFA validé pour ${selectedTenantForPayment.prenom} ${selectedTenantForPayment.nom} (Réf: ${ref}).`);
             setSelectedTenantForPayment(null);
           }}
-        />
+        /></Suspense>
       )}
     </div>
   );

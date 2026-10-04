@@ -7,62 +7,68 @@ import {
   Coins,
   Menu as MenuIcon,
   Sparkles,} from 'lucide-react';
-import { ResetPasswordView } from './components/ResetPasswordView';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { DashboardView } from './components/DashboardView';
-import { RecoveryTrackerView } from './components/RecoveryTrackerView';
-import { AutomatedRemindersView } from './components/AutomatedRemindersView';
-import { PaymentsView } from './components/PaymentsView';
-import { PropertiesView } from './components/PropertiesView';
-import { BuildingsView } from './components/BuildingsView';
-import { UnitsView } from './components/UnitsView';
-import { TenantsView } from './components/TenantsView';
-import { OwnersView } from './components/OwnersView';
-import { AgencySettingsView } from './components/AgencySettingsView';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useTheme } from './hooks/useTheme';
 import { useAgencySettings } from './hooks/useAgencySettings';
-import { ContractsView } from './components/ContractsView';
-import { InspectionsView } from './components/InspectionsView';
-import { MaintenanceView } from './components/MaintenanceView';
-import { FinanceView } from './components/FinanceView';
-import { DocumentsView } from './components/DocumentsView';
-import { ReportsView } from './components/ReportsView';
-import { SettingsView } from './components/SettingsView';
-import { InvoicesView } from './components/InvoicesView';
-import { ReceiptModal } from './components/ReceiptModal';
-import { PaymentBulletinModal } from './components/PaymentBulletinModal';
-import { CashVoucherModal } from './components/CashVoucherModal';
-import { NewTenantWizardModal } from './components/NewTenantWizardModal';
-import { TenantExitModal } from './components/TenantExitModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { MobileMoneyPaymentModal } from './components/MobileMoneyPaymentModal';
-import { QuickCommsModal } from './components/QuickCommsModal';
-import { AdminControlCenterView } from './components/AdminControlCenterView';
-import { SuperAdminDashboard } from './components/SuperAdminDashboard';
-import { AdminActivityJournalView } from './components/AdminActivityJournalView';
-import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { AdminUsersView } from './components/AdminUsersView';
-import { CashierDashboardView } from './components/CashierDashboardView';
-import { OwnerDashboardView } from './components/OwnerDashboardView';
-import { TenantDashboardView } from './components/TenantDashboardView';
-import { AgentDashboardView } from './components/AgentDashboardView';
-import { ManagerDashboardView } from './components/ManagerDashboardView';
-import { CashRegisterView } from './components/CashRegisterView';
-import { PendingPaymentsView } from './components/PendingPaymentsView';
-import { PaymentMethodsConfigView } from './components/PaymentMethodsConfigView';
-import { PaymentMethodReportsView } from './components/PaymentMethodReportsView';
-import { LoginView } from './components/LoginView';
-import { ThemePreview } from './components/ThemePreview';
-import { OwnerBulletinModal } from './components/OwnerBulletinModal';
-import { PaymentReceiptModal } from './components/PaymentReceiptModal';
-import { ArchiveView } from './components/ArchiveView';
-import { ActivityLogView } from './components/ActivityLogView';
-import { PenaltiesView } from './components/PenaltiesView';
-import { OwnerChargesView } from './components/OwnerChargesView';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { formatNumber } from './lib/utils';
+// ============================================================
+// BUNDLE SPLITTING - Lazy imports
+// ============================================================
+import { ViewLoader } from './components/ViewLoader';
+import {
+  LazyLoginView,
+  LazyResetPasswordView,
+  LazyPaymentsView,
+  LazyPropertiesView,
+  LazyBuildingsView,
+  LazyUnitsView,
+  LazyTenantsView,
+  LazyOwnersView,
+  LazyContractsView,
+  LazyInspectionsView,
+  LazyMaintenanceView,
+  LazyFinanceView,
+  LazyInvoicesView,
+  LazyPenaltiesView,
+  LazyOwnerChargesView,
+  LazyDocumentsView,
+  LazyReportsView,
+  LazySettingsView,
+  LazyAgencySettingsView,
+  LazyArchiveView,
+  LazyActivityLogView,
+  LazyAdminControlCenterView,
+  LazyAdminUsersView,
+  LazyAdminActivityJournalView,
+  LazySuperAdminDashboard,
+  LazyCashierDashboardView,
+  LazyOwnerDashboardView,
+  LazyTenantDashboardView,
+  LazyAgentDashboardView,
+  LazyManagerDashboardView,
+  LazyCashRegisterView,
+  LazyPendingPaymentsView,
+  LazyPaymentMethodsConfigView,
+  LazyPaymentMethodReportsView,
+  LazyRecoveryTrackerView,
+  LazyAutomatedRemindersView,
+  LazyReceiptModal,
+  LazyPaymentBulletinModal,
+  LazyCashVoucherModal,
+  LazyNewTenantWizardModal,
+  LazyTenantExitModal,
+  LazyUserProfileModal,
+  LazyMobileMoneyPaymentModal,
+  LazyQuickCommsModal,
+  LazyGlobalSearchModal,
+  LazyOwnerBulletinModal,
+  LazyPaymentReceiptModal,
+  LazyThemePreview,
+} from './lib/lazyImports';
 import {
   ActiveTab,
   Property,
@@ -1298,12 +1304,12 @@ export default function App() {
 
   if (isResetPasswordMode) {
     return (
-      <ResetPasswordView
+      <ViewLoader variant="form"><LazyResetPasswordView
         onSuccess={() => {
           setIsResetPasswordMode(false);
           window.location.hash = '';
         }}
-      />
+      /></ViewLoader>
     );
   }
 
@@ -1320,7 +1326,7 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <LoginView
+      <ViewLoader variant="form"><LazyLoginView
         availableUsers={users}
         onLoginSuccess={async (user) => {
           let resolvedUser = user;
@@ -1345,13 +1351,13 @@ export default function App() {
             return next;
           });
         }}
-      />
+      /></ViewLoader>
     );
   }
 
   // Page de prévisualisation des thèmes
   if (showThemePreview) {
-    return <ThemePreview onBack={() => setShowThemePreview(false)} />;
+    return <ViewLoader variant="default"><LazyThemePreview onBack={() => setShowThemePreview(false)} /></ViewLoader>;
   }
 
   return (
@@ -1375,7 +1381,7 @@ export default function App() {
         pendingPaymentsCount={pendingPaymentsCount}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
-      />
+            />
       <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         <Topbar
           activeTab={activeTab}
@@ -1420,7 +1426,7 @@ export default function App() {
           )}
 
           {activeTab === 'dashboard' && currentUser.role === 'CAISSIER' && (
-            <CashierDashboardView
+            <ViewLoader variant="kpi"><LazyCashierDashboardView
               payments={payments}
               tenants={tenants}
               owners={owners}
@@ -1430,11 +1436,11 @@ export default function App() {
               onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               setActiveTab={handleSafeTabChange}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'dashboard' && currentUser.role === 'PROPRIETAIRE' && (
-            <OwnerDashboardView
+            <ViewLoader variant="kpi"><LazyOwnerDashboardView
               currentUser={currentUser}
               owner={owners.find((o) => o.id === currentUser.proprietaireId) || owners[0]}
               properties={scopedProperties}
@@ -1445,11 +1451,11 @@ export default function App() {
               cashVouchers={cashVouchers.filter((v) => v.proprietaireId === currentUser.proprietaireId || !currentUser.proprietaireId)}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'dashboard' && currentUser.role === 'LOCATAIRE' && (
-            <TenantDashboardView
+            <ViewLoader variant="kpi"><LazyTenantDashboardView
               currentUser={currentUser}
               tenant={tenants.find((t) => t.id === currentUser.locataireId) || tenants[0]}
               property={properties.find((p) => p.id === (currentUser.bienId || tenants.find((t) => t.id === currentUser.locataireId)?.bienId))}
@@ -1458,11 +1464,11 @@ export default function App() {
               inspections={scopedInspections}
               maintenance={scopedMaintenance}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'dashboard' && currentUser.role === 'AGENT' && (
-            <AgentDashboardView
+            <ViewLoader variant="kpi"><LazyAgentDashboardView
               currentUser={currentUser}
               properties={properties}
               tenants={tenants}
@@ -1472,11 +1478,11 @@ export default function App() {
               onOpenInspectionModal={() => handleSafeTabChange('inspections')}
               onOpenMaintenanceModal={() => handleSafeTabChange('maintenance')}
               setActiveTab={handleSafeTabChange}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'dashboard' && currentUser.role === 'GESTIONNAIRE' && (
-            <ManagerDashboardView
+            <ViewLoader variant="kpi"><LazyManagerDashboardView
               properties={properties}
               tenants={tenants}
               owners={owners}
@@ -1488,15 +1494,15 @@ export default function App() {
               onOpenNewTenant={() => setIsNewTenantWizardOpen(true)}
               onOpenNewReminder={() => handleSafeTabChange('reminders')}
               setActiveTab={handleSafeTabChange}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
-            <SuperAdminDashboard currentUser={currentUser} />
+            <ViewLoader variant="kpi"><LazySuperAdminDashboard currentUser={currentUser} /></ViewLoader>
           )}
 
           {activeTab === 'admin-control' && (
-            <AdminControlCenterView
+            <ViewLoader variant="default"><LazyAdminControlCenterView
               users={users}
               properties={properties}
               owners={owners}
@@ -1524,19 +1530,19 @@ export default function App() {
               notifications={notifications}
               onTriggerAuditLog={handleTriggerAuditLog}
               agencyStats={agencyStats}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'admin-journal' && (
-            <AdminActivityJournalView auditLogs={auditLogs} onTriggerAuditLog={handleTriggerAuditLog} />
+            <ViewLoader variant="list"><LazyAdminActivityJournalView auditLogs={auditLogs} onTriggerAuditLog={handleTriggerAuditLog} /></ViewLoader>
           )}
 
           {activeTab === 'agency-settings' && currentUser?.agencyId && (
-            <AgencySettingsView agencyId={currentUser.agencyId} />
+            <ViewLoader variant="form"><LazyAgencySettingsView agencyId={currentUser.agencyId} /></ViewLoader>
           )}
 
           {activeTab === 'admin-users' && (
-            <AdminUsersView
+            <ViewLoader variant="list"><LazyAdminUsersView
               users={users}
               currentUser={currentUser}
               owners={owners}
@@ -1554,11 +1560,11 @@ export default function App() {
                 saveUserToDb(updatedUser, currentUser.agencyId).catch(console.warn);
               }}
               onSwitchActiveUser={handleSwitchUser}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'archives' && (
-            <ArchiveView
+            <ViewLoader variant="list"><LazyArchiveView
               currentUser={currentUser}
               tenants={tenants}
               owners={owners}
@@ -1572,15 +1578,15 @@ export default function App() {
               maintenance={maintenance}
               invoices={invoices}
               bulletins={bulletinsVersements}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'activity-logs' && (
-            <ActivityLogView activities={activityLogs} currentUser={currentUser} />
+            <ViewLoader variant="list"><LazyActivityLogView activities={activityLogs} currentUser={currentUser} /></ViewLoader>
           )}
 
           {activeTab === 'penalties' && (
-            <PenaltiesView
+            <ViewLoader variant="list"><LazyPenaltiesView
               penalties={penalties}
               tenants={scopedTenants}
               payments={scopedPayments}
@@ -1588,62 +1594,62 @@ export default function App() {
               onAddPenalty={handleAddPenalty}
               onDeletePenalty={handleDeletePenalty}
               onUpdatePenalty={handleUpdatePenalty}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'owner-charges' && (
-            <OwnerChargesView
+            <ViewLoader variant="list"><LazyOwnerChargesView
               ownerCharges={ownerCharges}
               owners={owners}
               currentUser={currentUser}
               onAddOwnerCharge={handleAddOwnerCharge}
               onDeleteOwnerCharge={handleDeleteOwnerCharge}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'caisse' && (
-            <CashRegisterView
+            <ViewLoader variant="list"><LazyCashRegisterView
               cashMovements={cashMovements}
               cashClosings={cashClosings}
               currentUser={currentUser}
               onAddCashMovement={handleAddCashMovement}
               onAddCashClosing={handleAddCashClosing}
               agencyStats={agencyStats}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'pending-payments' && (
-            <PendingPaymentsView
+            <ViewLoader variant="list"><LazyPendingPaymentsView
               payments={payments}
               currentUser={currentUser}
               onValidatePayment={handleValidatePendingPayment}
               onRejectPayment={handleRejectPendingPayment}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'payment-methods' && (
-            <PaymentMethodsConfigView
+            <ViewLoader variant="list"><LazyPaymentMethodsConfigView
               paymentMethods={paymentMethods}
               settings={settings}
               onUpdatePaymentMethod={handleUpdatePaymentMethod}
               onAddPaymentMethod={handleAddPaymentMethod}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'payment-reports' && (
-            <PaymentMethodReportsView
+            <ViewLoader variant="list"><LazyPaymentMethodReportsView
               payments={payments}
               paymentMethods={paymentMethods}
               owners={owners}
               properties={properties}
               tenants={tenants}
               currentUser={currentUser}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'recovery' && (
-            <RecoveryTrackerView
+            <ViewLoader variant="list"><LazyRecoveryTrackerView
               properties={scopedProperties}
               owners={owners}
               tenants={scopedTenants}
@@ -1654,21 +1660,21 @@ export default function App() {
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
               onAddPayment={handleAddPayment}
               currentUser={currentUser}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'reminders' && (
-            <AutomatedRemindersView
+            <ViewLoader variant="list"><LazyAutomatedRemindersView
               tenants={scopedTenants}
               properties={scopedProperties}
               payments={scopedPayments}
               reminders={reminders}
               onAddReminder={handleAddReminder}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'payments' && (
-            <PaymentsView
+            <ViewLoader variant="list"><LazyPaymentsView
               payments={scopedPayments}
               tenants={scopedTenants}
               properties={scopedProperties}
@@ -1680,11 +1686,11 @@ export default function App() {
               isNewPaymentModalOpen={isNewPaymentModalOpen}
               setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
               initialTenantForPayment={initialTenantForPayment}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'buildings' && (
-            <BuildingsView
+            <ViewLoader variant="list"><LazyBuildingsView
               buildings={scopedBuildings}
               units={scopedUnits}
               owners={owners}
@@ -1693,11 +1699,11 @@ export default function App() {
               onUpdateBuilding={handleUpdateBuilding}
               onDeleteBuilding={handleDeleteBuilding}
               onSelectBuilding={() => handleSafeTabChange('units')}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'units' && (
-            <UnitsView
+            <ViewLoader variant="list"><LazyUnitsView
               units={scopedUnits}
               buildings={scopedBuildings}
               owners={owners}
@@ -1706,11 +1712,11 @@ export default function App() {
               onAddUnit={handleAddUnit}
               onUpdateUnit={handleUpdateUnit}
               onDeleteUnit={handleDeleteUnit}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'properties' && (
-            <PropertiesView
+            <ViewLoader variant="list"><LazyPropertiesView
               properties={scopedProperties}
               owners={owners}
               tenants={scopedTenants}
@@ -1720,7 +1726,7 @@ export default function App() {
               onDeleteProperty={handleDeleteProperty}
               isNewPropertyModalOpen={isNewPropertyModalOpen}
               setIsNewPropertyModalOpen={setIsNewPropertyModalOpen}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'tenants' && (
@@ -1735,7 +1741,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TenantsView
+              <ViewLoader variant="list"><LazyTenantsView
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 units={scopedUnits}
@@ -1747,12 +1753,12 @@ export default function App() {
                 onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
                 onAddPayment={handleAddPayment}
                 onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
-              />
+              /></ViewLoader>
             </div>
           )}
 
           {activeTab === 'owners' && (
-            <OwnersView
+            <ViewLoader variant="list"><LazyOwnersView
   owners={owners}
   properties={properties}
   buildings={buildings}
@@ -1780,11 +1786,11 @@ export default function App() {
     }
     setOwners((prev) => prev.filter((o) => o.id !== ownerId));
   }}
-/>
+/></ViewLoader>
           )}
 
           {activeTab === 'contracts' && (
-            <ContractsView
+            <ViewLoader variant="list"><LazyContractsView
               contracts={scopedContracts}
               tenants={tenants}
               properties={scopedProperties}
@@ -1792,20 +1798,20 @@ export default function App() {
               currentUser={currentUser}
               onAddContract={handleAddContract}
               onUpdateContract={handleUpdateContract}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'inspections' && (
-            <InspectionsView
+            <ViewLoader variant="list"><LazyInspectionsView
               inspections={scopedInspections}
               tenants={scopedTenants}
               properties={scopedProperties}
               onAddInspection={handleAddInspection}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'maintenance' && (
-            <MaintenanceView
+            <ViewLoader variant="list"><LazyMaintenanceView
               tickets={scopedMaintenance}
               properties={scopedProperties}
               tenants={scopedTenants}
@@ -1816,11 +1822,11 @@ export default function App() {
               onAddCashMovement={handleAddCashMovement}
               onTriggerAuditLog={handleTriggerAuditLog}
               agencyStats={agencyStats}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'invoices' && (
-            <InvoicesView
+            <ViewLoader variant="list"><LazyInvoicesView
               invoices={invoices}
               properties={scopedProperties}
               buildings={scopedBuildings}
@@ -1829,11 +1835,11 @@ export default function App() {
               tenants={scopedTenants}
               onAddInvoice={handleAddInvoice}
               currentUser={currentUser}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'finance' && (
-            <FinanceView
+            <ViewLoader variant="default"><LazyFinanceView
               disbursements={scopedDisbursements}
               payments={scopedPayments}
               owners={currentUser?.role === 'PROPRIETAIRE'
@@ -1849,22 +1855,22 @@ export default function App() {
               onAddDisbursement={handleAddDisbursement}
               onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
               currentUser={currentUser}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'reports' && (
-            <ReportsView
+            <ViewLoader variant="default"><LazyReportsView
               properties={scopedProperties}
               tenants={scopedTenants}
               payments={scopedPayments}
               owners={owners}
               disbursements={scopedDisbursements}
               selectedPeriod={selectedPeriod}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'documents' && (
-            <DocumentsView
+            <ViewLoader variant="list"><LazyDocumentsView
               payments={scopedPayments}
               owners={owners}
               tenants={scopedTenants}
@@ -1873,28 +1879,28 @@ export default function App() {
               currentUser={currentUser}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-            />
+            /></ViewLoader>
           )}
 
           {activeTab === 'settings' && currentUser?.agencyId && (
-  <AgencySettingsView agencyId={currentUser.agencyId} />
+  <ViewLoader variant="form"><LazyAgencySettingsView agencyId={currentUser.agencyId} /></ViewLoader>
 )}
         </main>
       </div>
 
       {receiptModalPayment && (
-        <PaymentReceiptModal
+        <ViewLoader variant="default"><LazyPaymentReceiptModal
           payment={receiptModalPayment}
           settings={settings}
           units={units}
           buildings={buildings}
           currentUser={currentUser}
           onClose={() => setReceiptModalPayment(null)}
-        />
+        /></ViewLoader>
       )}
 
       {ownerSlipModalOwner && (
-        <PaymentBulletinModal
+        <ViewLoader variant="default"><LazyPaymentBulletinModal
           owner={ownerSlipModalOwner}
           properties={properties}
           tenants={tenants}
@@ -1902,11 +1908,11 @@ export default function App() {
           tickets={maintenance}
           selectedPeriod={selectedPeriod}
           onClose={() => setOwnerSlipModalOwner(null)}
-        />
+        /></ViewLoader>
       )}
 
       {ownerBulletinModalOwner && (
-        <OwnerBulletinModal
+        <ViewLoader variant="default"><LazyOwnerBulletinModal
           currentUser={currentUser}
           owner={ownerBulletinModalOwner}
           properties={properties}
@@ -1922,7 +1928,7 @@ export default function App() {
           onSaveDeduction={handleAddOwnerDeduction}
           onDeleteDeduction={handleDeleteOwnerDeduction}
           onSaveBulletin={handleSaveBulletinVersement}
-        />
+        /></ViewLoader>
       )}
 
       {cashVoucherModalOwner && (() => {
@@ -1938,36 +1944,36 @@ export default function App() {
           ?? Math.round(loyersBruts * ((cashVoucherModalOwner.tauxCommission || 10) / 100));
         const montantNet = ownerDisb?.montantNetPaye ?? Math.max(0, loyersBruts - commission);
         return (
-          <CashVoucherModal
+          <ViewLoader variant="default"><LazyCashVoucherModal
             owner={cashVoucherModalOwner}
             montantNet={montantNet}
             loyersBruts={loyersBruts}
             commission={commission}
             periode={selectedPeriod}
             onClose={() => setCashVoucherModalOwner(null)}
-          />
+          /></ViewLoader>
         );
       })()}
 
       {isNewTenantWizardOpen && (
-        <NewTenantWizardModal
+        <ViewLoader variant="form"><LazyNewTenantWizardModal
           properties={properties}
           units={units}
           onComplete={handleCompleteNewTenantWizard}
           onClose={() => setIsNewTenantWizardOpen(false)}
-        />
+        /></ViewLoader>
       )}
 
       {tenantExitTarget && (
-        <TenantExitModal
+        <ViewLoader variant="default"><LazyTenantExitModal
           tenant={tenantExitTarget}
           property={properties.find((p) => p.id === tenantExitTarget.bienId)}
           onConfirmExit={handleCompleteTenantExit}
           onClose={() => setTenantExitTarget(null)}
-        />
+        /></ViewLoader>
       )}
 
-      <GlobalSearchModal
+      <ViewLoader variant="form"><LazyGlobalSearchModal
         isOpen={isGlobalSearchOpen}
         onClose={() => setIsGlobalSearchOpen(false)}
         properties={properties}
@@ -1978,9 +1984,9 @@ export default function App() {
         invoices={invoices}
         maintenance={maintenance}
         onNavigate={(targetTab) => handleSafeTabChange(targetTab)}
-      />
+      /></ViewLoader>
 
-      <UserProfileModal
+      <ViewLoader variant="form"><LazyUserProfileModal
         currentUser={currentUser}
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
@@ -1999,10 +2005,10 @@ export default function App() {
             ...prev,
           ]);
         }}
-      />
+      /></ViewLoader>
 
       {mobileMoneyModalConfig && (
-        <MobileMoneyPaymentModal
+        <ViewLoader variant="form"><LazyMobileMoneyPaymentModal
           isOpen={mobileMoneyModalConfig.isOpen}
           onClose={() => setMobileMoneyModalConfig(null)}
           amount={mobileMoneyModalConfig.amount || 250000}
@@ -2019,11 +2025,11 @@ export default function App() {
           currentUser={currentUser}
           tenantId={mobileMoneyModalConfig.tenantId}
           payments={payments}
-        />
+        /></ViewLoader>
       )}
 
       {quickCommsModalConfig && (
-        <QuickCommsModal
+        <ViewLoader variant="form"><LazyQuickCommsModal
           isOpen={quickCommsModalConfig.isOpen}
           onClose={() => setQuickCommsModalConfig(null)}
           tenants={tenants}
@@ -2035,7 +2041,7 @@ export default function App() {
           propertyNom={quickCommsModalConfig.propertyNom}
           dueAmount={quickCommsModalConfig.dueAmount}
           daysLate={quickCommsModalConfig.daysLate}
-        />
+        /></ViewLoader>
       )}
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0F1B2D]/95 backdrop-blur-xl border-t border-[#C9A96E]/20 px-2 py-1.5 shadow-2xl flex items-center justify-around">
