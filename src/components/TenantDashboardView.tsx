@@ -622,6 +622,7 @@ export function TenantDashboardView({
       {isContractModalOpen && (
         <LeaseContractModal
           contract={activeContract}
+          settings={settings}
           onClose={() => setIsContractModalOpen(false)}
         />
       )}

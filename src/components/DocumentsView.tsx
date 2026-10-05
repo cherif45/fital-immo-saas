@@ -236,6 +236,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       {selectedDoc === 'bail' && contracts[0] && (
         <LeaseContractModal
           contract={contracts[0]}
+          settings={settings}
           onClose={() => setSelectedDoc(null)}
         />
       )}

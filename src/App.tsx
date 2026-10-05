@@ -1811,6 +1811,7 @@ export default function App() {
               properties={scopedProperties}
               owners={owners}
               currentUser={currentUser}
+              settings={agencySettings}
               onAddContract={handleAddContract}
               onUpdateContract={handleUpdateContract}
             /></ViewLoader>

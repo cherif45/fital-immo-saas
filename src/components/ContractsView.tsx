@@ -19,7 +19,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react';
-import { LeaseContract, Tenant, Property, Owner, UserAccount, Unit, Building as BuildingType } from '../types';
+import { LeaseContract, Tenant, Property, Owner, UserAccount, Unit, Building as BuildingType, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { LeaseContractModal } from './LeaseContractModal';
 
@@ -29,6 +29,7 @@ interface ContractsViewProps {
   properties: Property[];
   owners: Owner[];
   currentUser?: UserAccount;
+  settings?: AgencySettings;
   onAddContract: (contract: LeaseContract) => void;
   onUpdateContract?: (contract: LeaseContract) => void;
 }
@@ -95,6 +96,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
   properties,
   owners,
   currentUser,
+  settings,
   onAddContract,
   onUpdateContract,
 }) => {
@@ -580,6 +582,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
           property={properties.find((p) => p.id === selectedContractForPrint.bienId)}
           tenant={tenants.find((t) => t.id === selectedContractForPrint.locataireId)}
           owner={owners.find((o) => o.id === selectedContractForPrint.proprietaireId)}
+          settings={settings}
           onClose={() => setSelectedContractForPrint(null)}
         />
       )}
