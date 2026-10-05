@@ -80,6 +80,87 @@ export const emptySettings: AgencySettings = {
   waveNumero: '', orangeMoneyCode: '', whatsappBusiness: '', standardTelephone: '',
 };
 
+/**
+ * Recupere l agency_id de l utilisateur actuellement connecte.
+ * Lit directement depuis localStorage pour etre accessible avant React.
+ */
+function getCurrentAgencyIdFromStorage(): string | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    // Essayer plusieurs cles possibles
+    const candidates = ['fital_immo_current_user', 'fital_immo_user'];
+    for (const k of candidates) {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        try {
+          const user = JSON.parse(raw);
+          if (user?.agencyId) return user.agencyId;
+        } catch {}
+      }
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Verifie si une collection appartient bien a l agence courante.
+ * Si non, retourne null (les donnees seront ignorees).
+ */
+function filterByAgency<T>(key: string, data: T): T {
+  // Liste des collections METIER qui doivent etre isolees par agence
+  const ISOLATED_KEYS = [
+    'properties', 'buildings', 'units', 'owners', 'tenants', 'contracts',
+    'payments', 'reminders', 'inspections', 'maintenance', 'disbursements',
+    'invoices', 'cash_vouchers', 'notifications', 'audit_logs', 'settings',
+    'payment_methods', 'cash_movements', 'cash_closings', 'owner_deductions',
+    'bulletin_versements', 'archives', 'activity_logs', 'penalties', 'owner_charges'
+  ];
+
+  if (!ISOLATED_KEYS.includes(key)) {
+    return data; // Pas une collection metier, retour direct
+  }
+
+  const expectedAgencyId = getCurrentAgencyIdFromStorage();
+
+  // Si pas d agence connectee -> on ne peut pas verifier, on retourne fallback
+  if (!expectedAgencyId) {
+    return data;
+  }
+
+  // Filtrer les elements d une autre agence
+  if (Array.isArray(data)) {
+    const filtered = data.filter((item: any) => {
+      const itemAgencyId = item?.agencyId || item?.agency_id;
+      // Si pas d agencyId dans l item -> on garde (compatibilite)
+      if (!itemAgencyId) return true;
+      // Sinon on ne garde que les items de l agence courante
+      return itemAgencyId === expectedAgencyId;
+    });
+
+    if (filtered.length !== data.length) {
+      console.warn(
+        `[SECURITY] Collection '${key}' : ` +
+        `${data.length - filtered.length} elements d autres agences ignores ` +
+        `(attendu: ${expectedAgencyId.substring(0, 8)}...)`
+      );
+    }
+    return filtered as T;
+  }
+
+  // Pour les objets (settings), verifier l agency_id
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const obj: any = data;
+    const itemAgencyId = obj.agencyId || obj.agency_id || obj.id;
+    // Si l objet est une agence ET qu il n appartient pas a la bonne -> rejeter
+    if (itemAgencyId && itemAgencyId !== expectedAgencyId && key === 'agency') {
+      console.warn(`[SECURITY] Agency mismatch pour '${key}'`);
+      return null as any;
+    }
+  }
+
+  return data;
+}
+
 export function loadLocalCollection<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined' || !window.localStorage) return fallback;
   try {
@@ -87,7 +168,14 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(fallback)) {
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed as unknown as T;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // VERIFICATION SECURITE : filtrer par agence
+          const filtered = filterByAgency(key, parsed);
+          if (Array.isArray(filtered) && filtered.length > 0) {
+            return filtered as unknown as T;
+          }
+          return fallback;
+        }
       } else if (parsed && typeof parsed === 'object') {
         return { ...fallback, ...parsed } as T;
       }
