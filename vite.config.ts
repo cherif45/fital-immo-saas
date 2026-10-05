@@ -34,7 +34,6 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,json}'],
 
           // Nettoyage automatique des anciens caches
-          cleanupOutdatedCaches: true,
 
           // Taille max d'un fichier � pr�-cacher (5 MB)
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
