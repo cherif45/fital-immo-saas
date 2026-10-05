@@ -2600,22 +2600,46 @@ export async function saveCashMovementToDbWithLog(movement: any, agencyId: strin
 export async function getAgencyDetails(agencyId: string): Promise<any> {
   if (!supabase) return null;
   try {
-    const [agencyRes, usersRes, tenantsRes, paymentsRes] = await Promise.all([
-      supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
-      supabase.from('profiles').select('id, role, statut').eq('agency_id', agencyId),
-      supabase.from('tenants').select('id').eq('agency_id', agencyId),
-      supabase.from('payments').select('id, montant_paye').eq('agency_id', agencyId),
+    // 1. Recuperer l'agence
+    const agencyRes = await supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle();
+    
+    // 2. Utiliser count: 'exact', head: true pour eviter la limite de 1000
+    const [
+      usersCountRes,
+      adminsCountRes,
+      tenantsCountRes,
+      paymentsCountRes,
+    ] = await Promise.all([
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).in('role', ['ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN_SAAS']),
+      supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
+      supabase.from('payments').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
     ]);
 
-    const totalPaiements = paymentsRes.data?.reduce((sum: number, p: any) => sum + (Number(p.montant_paye) || 0), 0) || 0;
+    // 3. Utiliser RPC pour le total encaisse (evite la limite de 1000)
+    let totalPaiements = 0;
+    try {
+      const rpcRes = await supabase.rpc('get_agency_stats', { p_agency_id: agencyId });
+      if (rpcRes.data && rpcRes.data.payments_total) {
+        totalPaiements = Number(rpcRes.data.payments_total) || 0;
+      }
+    } catch {
+      // Fallback : charger les paiements (limite 5000)
+      const paymentsSumRes = await supabase
+        .from('payments')
+        .select('montant_paye')
+        .eq('agency_id', agencyId)
+        .limit(5000);
+      totalPaiements = paymentsSumRes.data?.reduce((sum: number, p: any) => sum + (Number(p.montant_paye) || 0), 0) || 0;
+    }
 
     return {
       agency: agencyRes.data,
       stats: {
-        users: usersRes.data?.length || 0,
-        admins: usersRes.data?.filter((u: any) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length || 0,
-        tenants: tenantsRes.data?.length || 0,
-        payments: paymentsRes.data?.length || 0,
+        users: usersCountRes.count || 0,
+        admins: adminsCountRes.count || 0,
+        tenants: tenantsCountRes.count || 0,
+        payments: paymentsCountRes.count || 0,
         totalPaiements,
       },
     };

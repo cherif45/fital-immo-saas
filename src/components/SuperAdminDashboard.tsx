@@ -462,7 +462,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
           {/* FILTRES AVANCES */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* Recherche */}
-            <div className="relative md:col-span-4">
+            <div className="relative md:col-span-5">
               <Search className="w-4 h-4 text-[#6B7C94] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input 
                 type="text" 
@@ -485,19 +485,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
               <option value="archived">Archivées</option>
             </select>
             
-            {/* Filtre Plan */}
-            <select 
-              value={agencyPlanFilter} 
-              onChange={(e) => setAgencyPlanFilter(e.target.value)}
-              className="md:col-span-2 px-3 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white focus:border-[#C9A96E] focus:outline-none cursor-pointer"
-            >
-              <option value="ALL">Tous plans</option>
-              <option value="BASIC">Basic</option>
-              <option value="PRO">Pro</option>
-              <option value="ENTERPRISE">Enterprise</option>
-            </select>
-            
-            {/* Tri */}
+{/* Tri */}
             <select 
               value={agencySortBy} 
               onChange={(e) => setAgencySortBy(e.target.value)}
