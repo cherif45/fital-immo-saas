@@ -44,7 +44,7 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
             )}
             <div>
               <h1 className="text-2xl font-bold text-[#0F1B2D]">
-                {agency.nomAgence}
+                {agency.nomAgence || 'MON AGENCE'}
               </h1>
               {agency.slogan1 && (
                 <p className="text-sm text-[#C9A96E] font-semibold">
@@ -72,11 +72,9 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
       {/* Titre du document */}
       {(documentType || documentRef) && (
         <div className="text-center my-4">
-          {documentType && (
-            <h2 className="text-xl font-bold text-[#0F1B2D] uppercase tracking-wider">
-              {documentType}
+          <h2 className="text-xl font-bold text-[#0F1B2D] uppercase tracking-wider">
+              {documentType || 'DOCUMENT'}
             </h2>
-          )}
           {documentRef && (
             <p className="text-sm text-[#C9A96E] font-mono font-bold">
               N° {documentRef}
@@ -152,7 +150,7 @@ export const PrintFooter: React.FC<PrintFooterProps> = ({
         </div>
       ) : (
         <div className="border-t-2 border-[#C9A96E] pt-3 text-center text-[10px] text-[#0F1B2D]/70">
-          <p className="font-bold">{agency.nomAgence}</p>
+          <p className="font-bold">{agency.nomAgence || 'MON AGENCE'}</p>
           <p>
             {agency.adresse} {agency.telephone && `— Tél : ${agency.telephone}`}{' '}
             {agency.rcNumero && `— RC : ${agency.rcNumero}`}{' '}
