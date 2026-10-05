@@ -1023,3 +1023,130 @@ body {
 .theme-light hr {
   border-color: rgba(15, 23, 42, 0.08) !important;
 }
+
+/* ============================================================
+   FIX FINAL - Theme CLAIR : textes NOIRS partout
+   ============================================================ */
+
+/* Textes principaux en NOIR */
+.theme-light {
+  --text-primary: #000000 !important;
+  --text-secondary: #1F2937 !important;
+  --text-muted: #4B5563 !important;
+}
+
+/* Force le noir sur tous les textes */
+.theme-light body,
+.theme-light #root {
+  color: #000000 !important;
+}
+
+/* Textes blancs -> NOIRS */
+.theme-light .text-white,
+.theme-light [class*="text-white"] {
+  color: #000000 !important;
+}
+
+/* Textes clairs -> NOIRS */
+.theme-light .text-\[\#F0EDE8\],
+.theme-light [class*="text-[#F0EDE8]"],
+.theme-light [class*="text-[#f0ede8]"] {
+  color: #000000 !important;
+}
+
+/* Textes gris clairs -> NOIRS */
+.theme-light .text-\[\#A8B4C4\],
+.theme-light [class*="text-[#A8B4C4]"],
+.theme-light [class*="text-[#a8b4c4]"] {
+  color: #1F2937 !important;
+}
+
+.theme-light .text-\[\#6B7C94\],
+.theme-light [class*="text-[#6B7C94]"] {
+  color: #374151 !important;
+}
+
+/* Slate colors -> plus foncés */
+.theme-light .text-slate-300 { color: #374151 !important; }
+.theme-light .text-slate-400 { color: #4B5563 !important; }
+.theme-light .text-slate-500 { color: #4B5563 !important; }
+.theme-light .text-slate-600 { color: #1F2937 !important; }
+
+/* Neutral colors -> plus foncés */
+.theme-light .text-neutral-500 { color: #4B5563 !important; }
+.theme-light .text-neutral-600 { color: #374151 !important; }
+.theme-light .text-neutral-700 { color: #1F2937 !important; }
+.theme-light .text-neutral-800 { color: #111827 !important; }
+.theme-light .text-neutral-900 { color: #000000 !important; }
+
+/* Inputs : texte NOIR */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  color: #000000 !important;
+}
+
+/* Placeholder : gris moyen visible */
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #6B7280 !important;
+}
+
+/* Labels : noir */
+.theme-light label {
+  color: #000000 !important;
+}
+
+/* Titres : noir */
+.theme-light h1,
+.theme-light h2,
+.theme-light h3,
+.theme-light h4,
+.theme-light h5,
+.theme-light h6 {
+  color: #000000 !important;
+}
+
+/* Paragraphes : noir */
+.theme-light p {
+  color: #1F2937 !important;
+}
+
+/* Tableaux : texte noir */
+.theme-light table th,
+.theme-light table td {
+  color: #000000 !important;
+}
+
+/* Modales : texte noir */
+.theme-light [class*="rounded-2xl"] h1,
+.theme-light [class*="rounded-2xl"] h2,
+.theme-light [class*="rounded-2xl"] h3,
+.theme-light [class*="rounded-3xl"] h1,
+.theme-light [class*="rounded-3xl"] h2,
+.theme-light [class*="rounded-3xl"] h3 {
+  color: #000000 !important;
+}
+
+/* Conserver les couleurs de statut (badges) */
+.theme-light [class*="bg-emerald-"] * { color: inherit !important; }
+.theme-light [class*="bg-rose-"] * { color: inherit !important; }
+.theme-light [class*="bg-amber-"] * { color: inherit !important; }
+.theme-light [class*="bg-blue-"] * { color: inherit !important; }
+.theme-light [class*="bg-purple-"] * { color: inherit !important; }
+
+/* Boutons avec fond coloré : garder le blanc */
+.theme-light button[class*="bg-gradient"] {
+  color: #FFFFFF !important;
+}
+
+.theme-light button[class*="bg-\[\#C9A96E\]"] {
+  color: #FFFFFF !important;
+}
+
+.theme-light button[class*="bg-emerald"],
+.theme-light button[class*="bg-blue"],
+.theme-light button[class*="bg-purple"],
+.theme-light button[class*="bg-rose"] {
+  color: #FFFFFF !important;
+}
