@@ -38,6 +38,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [agencyFilter, setAgencyFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  
+  // ============================================================
+  // NOUVEAUX STATES - Filtres avances AGENCIES
+  // ============================================================
+  const [agencyStatusFilter, setAgencyStatusFilter] = useState<string>('ALL');
+  const [agencyPlanFilter, setAgencyPlanFilter] = useState<string>('ALL');
+  const [agencySortBy, setAgencySortBy] = useState<string>('created_desc');
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -252,12 +259,63 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
     }
   };
 
-  const filteredAgencies = agencies.filter((a) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q)
-      || a.slug.toLowerCase().includes(q) || a.city.toLowerCase().includes(q);
-  });
+  const filteredAgencies = (() => {
+    // 1. Filtrer
+    let result = agencies.filter((a) => {
+      // Filtre recherche
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matches = a.name.toLowerCase().includes(q) 
+          || a.email.toLowerCase().includes(q)
+          || a.slug.toLowerCase().includes(q) 
+          || a.city.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      
+      // Filtre statut
+      if (agencyStatusFilter !== 'ALL' && a.status !== agencyStatusFilter) return false;
+      
+      // Filtre plan
+      if (agencyPlanFilter !== 'ALL') {
+        const plan = (a as any).plan || 'BASIC';
+        if (plan !== agencyPlanFilter) return false;
+      }
+      
+      return true;
+    });
+
+    // 2. Trier
+    result = [...result].sort((a, b) => {
+      switch (agencySortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'created_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'created_desc':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+    return result;
+  })();
+
+  // Statistiques de croissance
+  const agencyGrowthStats = (() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const thisMonth = agencies.filter(a => new Date(a.created_at) >= startOfMonth).length;
+    const lastMonth = agencies.filter(a => {
+      const d = new Date(a.created_at);
+      return d >= startOfLastMonth && d < startOfMonth;
+    }).length;
+    
+    return { thisMonth, lastMonth };
+  })();
 
   const filteredUsers = users.filter((u) => {
     if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
@@ -365,11 +423,98 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
 
       {activeTab === 'agencies' && (
         <div className="space-y-4">
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#6B7C94] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Rechercher une agence..." value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white placeholder:text-[#6B7C94] focus:outline-none focus:border-[#C9A96E]" />
+          {/* STATS DE CROISSANCE */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30">
+              <div className="text-2xl font-black font-mono text-blue-300">
+                {agencyGrowthStats.thisMonth}
+              </div>
+              <div className="text-[10px] text-blue-300/80 uppercase mt-1 font-semibold">
+                Nouvelles ce mois
+              </div>
+            </div>
+            <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30">
+              <div className="text-2xl font-black font-mono text-purple-300">
+                {agencyGrowthStats.lastMonth}
+              </div>
+              <div className="text-[10px] text-purple-300/80 uppercase mt-1 font-semibold">
+                Mois précédent
+              </div>
+            </div>
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+              <div className="text-2xl font-black font-mono text-emerald-300">
+                {agencies.filter(a => a.status === 'active').length}
+              </div>
+              <div className="text-[10px] text-emerald-300/80 uppercase mt-1 font-semibold">
+                Agences actives
+              </div>
+            </div>
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30">
+              <div className="text-2xl font-black font-mono text-rose-300">
+                {agencies.filter(a => a.status !== 'active').length}
+              </div>
+              <div className="text-[10px] text-rose-300/80 uppercase mt-1 font-semibold">
+                Suspendues
+              </div>
+            </div>
+          </div>
+
+          {/* FILTRES AVANCES */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* Recherche */}
+            <div className="relative md:col-span-4">
+              <Search className="w-4 h-4 text-[#6B7C94] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Rechercher une agence..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white placeholder:text-[#6B7C94] focus:outline-none focus:border-[#C9A96E]"
+              />
+            </div>
+            
+            {/* Filtre Statut */}
+            <select 
+              value={agencyStatusFilter} 
+              onChange={(e) => setAgencyStatusFilter(e.target.value)}
+              className="md:col-span-2 px-3 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white focus:border-[#C9A96E] focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Tous statuts</option>
+              <option value="active">Actives</option>
+              <option value="suspendu">Suspendues</option>
+              <option value="archived">Archivées</option>
+            </select>
+            
+            {/* Filtre Plan */}
+            <select 
+              value={agencyPlanFilter} 
+              onChange={(e) => setAgencyPlanFilter(e.target.value)}
+              className="md:col-span-2 px-3 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white focus:border-[#C9A96E] focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Tous plans</option>
+              <option value="BASIC">Basic</option>
+              <option value="PRO">Pro</option>
+              <option value="ENTERPRISE">Enterprise</option>
+            </select>
+            
+            {/* Tri */}
+            <select 
+              value={agencySortBy} 
+              onChange={(e) => setAgencySortBy(e.target.value)}
+              className="md:col-span-2 px-3 py-2.5 rounded-xl bg-[#162133] border border-[#C9A96E]/20 text-xs text-white focus:border-[#C9A96E] focus:outline-none cursor-pointer"
+            >
+              <option value="created_desc">Plus récentes</option>
+              <option value="created_asc">Plus anciennes</option>
+              <option value="name_asc">Nom (A-Z)</option>
+              <option value="name_desc">Nom (Z-A)</option>
+            </select>
+            
+            {/* Compteur */}
+            <div className="md:col-span-2 flex items-center justify-center px-3 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/30">
+              <span className="text-xs text-[#C9A96E] font-bold font-mono">
+                {filteredAgencies.length}/{agencies.length}
+              </span>
+            </div>
           </div>
           <div className="rounded-2xl bg-[#162133] border border-[#C9A96E]/20 overflow-hidden">
             <table className="w-full text-left text-xs">
