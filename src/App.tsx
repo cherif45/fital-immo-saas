@@ -1919,6 +1919,7 @@ export default function App() {
           payments={payments}
           tickets={maintenance}
           selectedPeriod={selectedPeriod}
+          settings={settings}
           onClose={() => setOwnerSlipModalOwner(null)}
         /></ViewLoader>
       )}

@@ -8,7 +8,8 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import { Owner, Property, Tenant, Payment, MaintenanceTicket } from '../types';
+import { Owner, Property, Tenant, Payment, MaintenanceTicket, AgencySettings } from '../types';
+import { PrintHeader } from './PrintHeader';
 import { formatCurrency, formatNumber, formatDate, nombreEnLettres } from '../lib/utils';
 
 interface PaymentBulletinModalProps {
@@ -18,6 +19,7 @@ interface PaymentBulletinModalProps {
   payments: Payment[];
   tickets?: MaintenanceTicket[];
   selectedPeriod: string;
+  settings?: AgencySettings | null;
   onClose: () => void;
 }
 
@@ -28,6 +30,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
   payments,
   tickets = [],
   selectedPeriod,
+  settings,
   onClose,
 }) => {
   if (!owner) return null;
@@ -102,24 +105,12 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
 
         {/* Printable Bulletin Document */}
         <div className="p-8 bg-white text-neutral-900 rounded-b-3xl font-sans print-container">
-          {/* Header */}
-          <div className="text-center border-b-2 border-neutral-900 pb-4 mb-5">
-            <div className="text-xs font-bold uppercase tracking-widest text-neutral-700">
-              FITAL-IMMO SERVICES SARL
-            </div>
-            <div className="text-[10px] text-neutral-500 font-semibold uppercase tracking-wider">
-              GÉRANCE · LOCATION · VENTE · RECOUVREMENT
-            </div>
-            <div className="inline-block mt-3 px-6 py-1.5 border-2 border-neutral-900 bg-neutral-100 rounded-lg">
-              <h2 className="text-lg font-black tracking-wider uppercase text-neutral-900">
-                BULLETIN DE VERSEMENT
-              </h2>
-            </div>
-            <div className="text-xs font-semibold text-neutral-700 mt-2">
-              Mois de : <strong className="text-neutral-950 underline">{selectedPeriod}</strong> · Réf
-              Mandat : <span className="font-mono">{owner.mandatGerance}</span>
-            </div>
-          </div>
+          {/* Header dynamique */}
+          <PrintHeader 
+            agency={settings || null} 
+            documentType="BULLETIN DE VERSEMENT" 
+            documentRef={`Mois de : ${selectedPeriod} · Réf Mandat : ${owner.mandatGerance}`}
+          />
 
           {/* Owner & Account Details Box */}
           <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-neutral-50 border border-neutral-300 text-xs mb-5">
@@ -255,8 +246,8 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
             </div>
             <div className="text-right flex flex-col justify-between">
               <div>
-                <div className="font-bold text-neutral-800">Pour FITAL-IMMO GÉRANCE</div>
-                <div className="text-[10px] text-neutral-500">Dakar, le {formatDate(new Date().toISOString())}</div>
+                <div className="font-bold text-neutral-800">Pour {settings?.nomAgence || 'FITAL IMMO'}</div>
+                <div className="text-[10px] text-neutral-500">{settings?.ville || 'Dakar'}, le {formatDate(new Date().toISOString())}</div>
               </div>
               <div className="text-center p-2 border-2 border-dashed border-amber-800/60 bg-amber-50 rounded-lg text-[10px] font-black text-amber-900 uppercase">
                 ★ BON POUR VIREMENT BANCAIRE ★
