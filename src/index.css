@@ -289,34 +289,34 @@
    ============================================================ */
 :root {
   /* Thème SOMBRE (défaut actuel) */
-  --bg-body: #0F1B2D;
-  --bg-card: #162133;
-  --bg-card-hover: #1E2E45;
-  --bg-input: #1E2E45;
-  --bg-header: #1E2E45;
-  --text-primary: #F0EDE8;
-  --text-secondary: #A8B4C4;
-  --text-muted: #6B7C94;
-  --border-primary: rgba(201, 169, 110, 0.2);
-  --border-hover: rgba(201, 169, 110, 0.5);
-  --accent: #C9A96E;
-  --accent-dark: #A07840;
+  --bg-body: #111827;
+  --bg-card: #1F2937;
+  --bg-card-hover: #374151;
+  --bg-input: #1F2937;
+  --bg-header: #1F2937;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --accent: #3B82F6;
+  --accent-dark: #2563EB;
 }
 
 .theme-light {
   /* Thème CLAIR */
-  --bg-body: #F5F5F0;
+  --bg-body: #F8FAFC;
   --bg-card: #FFFFFF;
-  --bg-card-hover: #F0F0EB;
+  --bg-card-hover: #F1F5F9;
   --bg-input: #FFFFFF;
   --bg-header: #FFFFFF;
-  --text-primary: #1A1A1A;
-  --text-secondary: #4A5568;
-  --text-muted: #718096;
-  --border-primary: rgba(201, 169, 110, 0.35);
-  --border-hover: rgba(201, 169, 110, 0.6);
-  --accent: #A07840;
-  --accent-dark: #8B6530;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border-primary: #E2E8F0;
+  --border-hover: #CBD5E1;
+  --accent: #3B82F6;
+  --accent-dark: #2563EB;
 }
 
 /* Classe utilitaire pour appliquer le thème */

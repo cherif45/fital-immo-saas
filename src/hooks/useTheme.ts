@@ -72,10 +72,10 @@ export function useTheme() {
 
     // Fond de body
     if (realTheme === 'light') {
-      body.style.backgroundColor = '#F5F5F0';
+      body.style.backgroundColor = '#F8FAFC';
       body.style.color = '#1A1A1A';
     } else {
-      body.style.backgroundColor = '#0F1B2D';
+      body.style.backgroundColor = '#111827';
       body.style.color = '#F0EDE8';
     }
 
