@@ -57,7 +57,7 @@ export function useAgencySettings(agencyId?: string) {
         // Mapper les champs DB (snake_case) → TS (camelCase)
         const mapped: AgencySettings = {
           nomAgence: data.name || '',
-          slogan: data.slogan || '',
+          slogan: data.slogan_1 || '',
           telephone: data.phone || '',
           email: data.email || '',
           adresse: data.address || '',
@@ -92,6 +92,16 @@ export function useAgencySettings(agencyId?: string) {
           nineaNumero: data.ninea_numero,
           boitePostale: data.boite_postale,
           siteWeb: data.site_web,
+          slogan1: data.slogan_1,
+          slogan2: data.slogan_2,
+          logoUrl: data.logo_url,
+          cachetUrl: data.cachet_url,
+          enteteUrl: data.entete_url,
+          piedPageUrl: data.pied_page_url,
+          boitePostale: data.boite_postale,
+          rcNumero: data.rc_numero,
+          nineaNumero: data.ninea_numero,
+          devise: data.devise || 'FCFA',
         };
 
         setSettings(mapped);
@@ -125,7 +135,7 @@ export function useAgencySettings(agencyId?: string) {
         // Mapper TS → DB (camelCase → snake_case)
         const dbPatch: Record<string, any> = {};
         if (patch.nomAgence !== undefined) dbPatch.name = patch.nomAgence;
-        if (patch.slogan !== undefined) dbPatch.slogan = patch.slogan;
+        if (patch.slogan !== undefined) dbPatch.slogan_1 = patch.slogan;
         if (patch.telephone !== undefined) dbPatch.phone = patch.telephone;
         if (patch.email !== undefined) dbPatch.email = patch.email;
         if (patch.adresse !== undefined) dbPatch.address = patch.adresse;
@@ -145,6 +155,24 @@ export function useAgencySettings(agencyId?: string) {
         if (patch.nineaNumero !== undefined) dbPatch.ninea_numero = patch.nineaNumero;
         if (patch.boitePostale !== undefined) dbPatch.boite_postale = patch.boitePostale;
         if (patch.siteWeb !== undefined) dbPatch.site_web = patch.siteWeb;
+        if (patch.tauxGeranceDefaut !== undefined) dbPatch.taux_gerance_defaut = patch.tauxGeranceDefaut;
+        if (patch.penaliteDefaut !== undefined) dbPatch.penalite_defaut = patch.penaliteDefaut;
+        if (patch.tvaTaux !== undefined) dbPatch.tva_taux = patch.tvaTaux;
+        if (patch.prefixFacture !== undefined) dbPatch.prefix_facture = patch.prefixFacture;
+        if (patch.prefixQuittance !== undefined) dbPatch.prefix_quittance = patch.prefixQuittance;
+        if (patch.prefixPaiement !== undefined) dbPatch.prefix_paiement = patch.prefixPaiement;
+        if (patch.prefixContrat !== undefined) dbPatch.prefix_contrat = patch.prefixContrat;
+        if (patch.prefixBonCaisse !== undefined) dbPatch.prefix_bon_caisse = patch.prefixBonCaisse;
+        if (patch.waveNumero !== undefined) dbPatch.wave_numero = patch.waveNumero;
+        if (patch.orangeMoneyCode !== undefined) dbPatch.orange_money_code = patch.orangeMoneyCode;
+        if (patch.whatsappBusiness !== undefined) dbPatch.whatsapp_business = patch.whatsappBusiness;
+        if (patch.standardTelephone !== undefined) dbPatch.standard_telephone = patch.standardTelephone;
+        if (patch.pays !== undefined) dbPatch.country = patch.pays;
+        if (patch.devise !== undefined) dbPatch.devise = patch.devise;
+        if (patch.logoUrl !== undefined) dbPatch.logo_url = patch.logoUrl;
+        if (patch.cachetUrl !== undefined) dbPatch.cachet_url = patch.cachetUrl;
+        if (patch.enteteUrl !== undefined) dbPatch.entete_url = patch.enteteUrl;
+        if (patch.piedPageUrl !== undefined) dbPatch.pied_page_url = patch.piedPageUrl;
 
         const { error: updateError } = await supabase
           .from('agencies')
