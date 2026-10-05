@@ -343,19 +343,19 @@ body {
    OVERRIDE THÈME CLAIR (force les couleurs Tailwind hard-codées)
    ============================================================ */
 .theme-light body {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
   color: #1A1A1A !important;
 }
 
 /* Fonds sombres → clairs */
 .theme-light .bg-\[\#0F1B2D\] {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
 }
 .theme-light .bg-\[\#162133\] {
   background-color: #FFFFFF !important;
 }
 .theme-light .bg-\[\#1E2E45\] {
-  background-color: #F0F0EB !important;
+  background-color: #F1F5F9 !important;
 }
 .theme-light .bg-\[\#1E2E45\]\/80 {
   background-color: rgba(240, 240, 235, 0.8) !important;
@@ -380,13 +380,13 @@ body {
 
 /* Bordures */
 .theme-light .border-\[\#C9A96E\]\/20 {
-  border-color: rgba(201, 169, 110, 0.4) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 .theme-light .border-\[\#C9A96E\]\/30 {
-  border-color: rgba(201, 169, 110, 0.5) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
 }
 .theme-light .border-\[\#C9A96E\]\/15 {
-  border-color: rgba(201, 169, 110, 0.35) !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
 }
 
 /* Input/Select */
@@ -395,19 +395,19 @@ body {
 .theme-light textarea {
   background-color: #FFFFFF !important;
   color: #1A1A1A !important;
-  border-color: rgba(201, 169, 110, 0.4) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 .theme-light input::placeholder {
-  color: #A0AEC0 !important;
+  color: #94A3B8 !important;
 }
 
 /* Gradients (or) - garde la couleur or mais assombrit le texte */
 .theme-light .from-\[\#C9A96E\] {
-  --tw-gradient-from: #C9A96E !important;
+  --tw-gradient-from: #3B82F6 !important;
 }
 .theme-light .to-\[\#A07840\] {
-  --tw-gradient-to: #A07840 !important;
+  --tw-gradient-to: #2563EB !important;
 }
 /* ============================================================
    OVERRIDE THÈME CLAIR v2 — Couverture COMPLÈTE
@@ -417,7 +417,7 @@ body {
 .theme-light,
 .theme-light body,
 .theme-light #root {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
   color: #1A1A1A !important;
 }
 
@@ -430,7 +430,7 @@ body {
 .theme-light [class*="sidebar"],
 .theme-light [class*="topbar"] {
   background-color: #FFFFFF !important;
-  border-color: rgba(201, 169, 110, 0.3) !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
 }
 
 /* Tous les fonds sombres en dur */
@@ -438,7 +438,7 @@ body {
 .theme-light [class*="bg-[#0A111D]"],
 .theme-light [class*="bg-[#0a111d]"],
 .theme-light [class*="bg-[#0F1115]"] {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
 }
 
 .theme-light [class*="bg-[#162133]"],
@@ -452,7 +452,7 @@ body {
 .theme-light [class*="bg-[#2A3F5C]"],
 .theme-light [class*="bg-[#2a3f5c]"],
 .theme-light [class*="bg-[#263850]"] {
-  background-color: #F0F0EB !important;
+  background-color: #F1F5F9 !important;
 }
 
 /* Tous les fonds "slate" et "gray" sombres */
@@ -491,7 +491,7 @@ body {
 .theme-light [class*="text-[#6b7c94]"],
 .theme-light .text-slate-400,
 .theme-light .text-slate-500 {
-  color: #718096 !important;
+  color: #475569 !important;
 }
 
 /* Garde les couleurs dynamiques (statuts, alertes) */
@@ -508,7 +508,7 @@ body {
    BORDURES
    ═══════════════════════════════════════════════════════════ */
 .theme-light [class*="border-[#C9A96E]"] {
-  border-color: rgba(201, 169, 110, 0.4) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 .theme-light [class*="border-white/"],
@@ -524,12 +524,12 @@ body {
 .theme-light textarea {
   background-color: #FFFFFF !important;
   color: #1A1A1A !important;
-  border-color: rgba(201, 169, 110, 0.4) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 .theme-light input::placeholder,
 .theme-light textarea::placeholder {
-  color: #A0AEC0 !important;
+  color: #94A3B8 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -570,20 +570,20 @@ body {
 .theme-light,
 .theme-light body,
 .theme-light #root {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
   color: #1A1A1A !important;
 }
 
 /* Fond très sombre (headers de tableaux) */
 .theme-light [class*="bg-[#0A111D]"],
 .theme-light [class*="bg-[#0a111d]"] {
-  background-color: #FAFAF5 !important;
+  background-color: #FFFFFF !important;
 }
 
 /* Fond principal app */
 .theme-light [class*="bg-[#0F1B2D]"],
 .theme-light [class*="bg-[#0f1b2d]"] {
-  background-color: #F5F5F0 !important;
+  background-color: #F8FAFC !important;
 }
 
 /* Cartes principales */
@@ -594,7 +594,7 @@ body {
 /* Cartes secondaires, inputs, hovers */
 .theme-light [class*="bg-[#1E2E45]"],
 .theme-light [class*="bg-[#1e2e45]"] {
-  background-color: #F0F0EB !important;
+  background-color: #F1F5F9 !important;
 }
 
 /* Fond très sombre alternatif */
@@ -604,12 +604,12 @@ body {
 .theme-light [class*="bg-[#1E2C44]"],
 .theme-light [class*="bg-[#16243A]"],
 .theme-light [class*="bg-[#0F172A]"] {
-  background-color: #F0F0EB !important;
+  background-color: #F1F5F9 !important;
 }
 
 /* Hovers plus clairs */
 .theme-light [class*="bg-[#2A3F5C]"] {
-  background-color: #E5E5DD !important;
+  background-color: #E2E8F0 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -672,7 +672,7 @@ body {
 /* Bordures dorées (gardent leur couleur mais plus claires) */
 .theme-light [class*="border-[#C9A96E]"],
 .theme-light [class*="border-[#c9a96e]"] {
-  border-color: rgba(201, 169, 110, 0.5) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
 }
 
 /* Bordures dynamiques (gardent leur couleur) */
@@ -690,12 +690,12 @@ body {
 .theme-light textarea {
   background-color: #FFFFFF !important;
   color: #1A1A1A !important;
-  border-color: rgba(201, 169, 110, 0.4) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 .theme-light input::placeholder,
 .theme-light textarea::placeholder {
-  color: #A0AEC0 !important;
+  color: #94A3B8 !important;
 }
 
 .theme-light input:focus,
@@ -971,3 +971,55 @@ body {
    Pour DÉSACTIVER la migration : commenter le bloc ci-dessus
    Pour AJOUTER un composant : ajouter la classe Tailwind exacte
    ============================================================ */
+
+/* ============================================================
+   FIX - Renforcer le contraste du theme CLAIR
+   ============================================================ */
+.theme-light {
+  --text-secondary: #334155;   /* Plus fonce */
+  --text-muted: #64748B;        /* Plus fonce */
+  --border-primary: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(15, 23, 42, 0.2);
+}
+
+/* Cartes claires : ajouter une ombre subtile pour la separation */
+.theme-light [class*="rounded-2xl"][class*="bg-"],
+.theme-light [class*="rounded-3xl"][class*="bg-"],
+.theme-light [class*="rounded-xl"][class*="bg-"] {
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+}
+
+/* Inputs clairs : bordure visible */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0F172A !important;
+}
+
+.theme-light input:focus,
+.theme-light select:focus,
+.theme-light textarea:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Tableaux clairs : bordures visibles */
+.theme-light table {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light thead tr {
+  background-color: rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Boutons primary en clair : bon contraste */
+.theme-light [class*="from-[#C9A96E]"],
+.theme-light [class*="to-[#A07840]"] {
+  color: #FFFFFF !important;
+}
+
+/* Separateurs visibles */
+.theme-light hr {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
