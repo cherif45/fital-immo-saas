@@ -2478,3 +2478,107 @@ export async function saveCashMovementToDbWithLog(movement: any, agencyId: strin
 // ============================================================
 // FIN AUTO-LOG WRAPPER
 // ============================================================
+
+// ============================================================
+// SUPER ADMIN - Fonctions de gestion des agences et users
+// ============================================================
+
+/**
+ * Recupere les details complets d'une agence + stats
+ */
+export async function getAgencyDetails(agencyId: string): Promise<any> {
+  if (!supabase) return null;
+  try {
+    const [agencyRes, usersRes, tenantsRes, paymentsRes] = await Promise.all([
+      supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
+      supabase.from('profiles').select('id, role, statut').eq('agency_id', agencyId),
+      supabase.from('tenants').select('id').eq('agency_id', agencyId),
+      supabase.from('payments').select('id, montant_paye').eq('agency_id', agencyId),
+    ]);
+
+    const totalPaiements = paymentsRes.data?.reduce((sum: number, p: any) => sum + (Number(p.montant_paye) || 0), 0) || 0;
+
+    return {
+      agency: agencyRes.data,
+      stats: {
+        users: usersRes.data?.length || 0,
+        admins: usersRes.data?.filter((u: any) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length || 0,
+        tenants: tenantsRes.data?.length || 0,
+        payments: paymentsRes.data?.length || 0,
+        totalPaiements,
+      },
+    };
+  } catch (err) {
+    console.error('getAgencyDetails:', err);
+    return null;
+  }
+}
+
+/**
+ * Met a jour les informations d'une agence
+ */
+export async function updateAgency(
+  agencyId: string,
+  data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    city?: string;
+    address?: string;
+    country?: string;
+    slug?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase non configure' };
+  try {
+    const { error } = await supabase
+      .from('agencies')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', agencyId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Reinitialise le mot de passe d'un utilisateur (via API admin)
+ */
+export async function resetUserPassword(userId: string): Promise<{ success: boolean; error?: string; email?: string }> {
+  try {
+    const res = await fetch('/api/admin/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Erreur reset password' };
+    }
+    return { success: true, email: data.email };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Recupere les details complets d'un utilisateur
+ */
+export async function getUserDetails(userId: string): Promise<any> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, agencies(name, slug)')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) return null;
+    return data;
+  } catch (err) {
+    console.error('getUserDetails:', err);
+    return null;
+  }
+}

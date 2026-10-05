@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Crown, Building2, Users, TrendingUp, Plus, Search, CheckCircle2,
   AlertTriangle, RefreshCw, Ban, Play, X, Database, Briefcase, Home,
-  Layers, CreditCard,
+  Layers, CreditCard, Eye, Edit3, KeyRound, Save, Mail, Phone, MapPin,
+  Calendar, Check, Info, UserCog,
 } from 'lucide-react';
 import {
   fetchAllAgencies, fetchAllUsers, fetchGlobalStats,
   createAgencyWithAdmin, toggleAgencyStatus,
+  getAgencyDetails, updateAgency, resetUserPassword, getUserDetails,
 } from '../lib/supabase/service';
 import { supabase } from '../lib/supabase/client';
 import { formatNumber } from '../lib/utils';
@@ -46,6 +48,30 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
     adminEmail: '', adminPassword: '', adminNom: '', adminPrenom: '', adminTelephone: '',
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  // ============================================================
+  // STATES - Details agence
+  // ============================================================
+  const [selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
+  const [agencyDetails, setAgencyDetails] = useState<any>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  // ============================================================
+  // STATES - Edition agence
+  // ============================================================
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '', email: '', phone: '', city: '', address: '', country: 'Sénégal', slug: '',
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // ============================================================
+  // STATES - Reset password user
+  // ============================================================
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -136,6 +162,93 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
       await loadData();
     } catch (err: any) {
       setStatusMessage({ text: '❌ Erreur : ' + err.message, type: 'error' });
+    }
+  };
+
+  // ============================================================
+  // HANDLERS - Details agence
+  // ============================================================
+  const handleOpenDetails = async (agency: Agency) => {
+    setSelectedAgency(agency);
+    setIsDetailsOpen(true);
+    setIsLoadingDetails(true);
+    setAgencyDetails(null);
+    try {
+      const details = await getAgencyDetails(agency.id);
+      setAgencyDetails(details);
+    } catch (err) {
+      console.error('Erreur chargement details:', err);
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  // ============================================================
+  // HANDLERS - Edition agence
+  // ============================================================
+  const handleOpenEdit = (agency: Agency) => {
+    setSelectedAgency(agency);
+    setEditForm({
+      name: agency.name || '',
+      email: agency.email || '',
+      phone: agency.phone || '',
+      city: agency.city || '',
+      address: (agency as any).address || '',
+      country: (agency as any).country || 'Sénégal',
+      slug: agency.slug || '',
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedAgency) return;
+    setIsSavingEdit(true);
+    try {
+      const result = await updateAgency(selectedAgency.id, editForm);
+      if (result.success) {
+        setStatusMessage({ text: '✅ Agence mise à jour', type: 'success' });
+        // Recharger la liste
+        const freshData = await fetchAllAgencies();
+        setAgencies(freshData);
+        setTimeout(() => setIsEditOpen(false), 800);
+      } else {
+        setStatusMessage({ text: '❌ ' + result.error, type: 'error' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: '❌ ' + err.message, type: 'error' });
+    } finally {
+      setIsSavingEdit(false);
+      setTimeout(() => setStatusMessage(null), 3000);
+    }
+  };
+
+  // ============================================================
+  // HANDLERS - Reset password user
+  // ============================================================
+  const handleOpenResetPassword = (user: any) => {
+    setSelectedUser(user);
+    setIsResetPasswordOpen(true);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!selectedUser) return;
+    setIsResettingPassword(true);
+    try {
+      const result = await resetUserPassword(selectedUser.id);
+      if (result.success) {
+        setStatusMessage({ 
+          text: `✅ Email envoyé à ${result.email}`, 
+          type: 'success' 
+        });
+        setTimeout(() => setIsResetPasswordOpen(false), 1500);
+      } else {
+        setStatusMessage({ text: '❌ ' + result.error, type: 'error' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: '❌ ' + err.message, type: 'error' });
+    } finally {
+      setIsResettingPassword(false);
+      setTimeout(() => setStatusMessage(null), 4000);
     }
   };
 
@@ -294,15 +407,31 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                     <td className="py-3 px-3 text-slate-400 text-[11px]">
                       {new Date(agency.created_at).toLocaleDateString('fr-FR')}
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <button onClick={() => handleToggleStatus(agency)}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 mx-auto cursor-pointer ${
-                          agency.status === 'active'
-                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}>
-                        {agency.status === 'active' ? <><Ban className="w-3 h-3" /> Suspendre</> : <><Play className="w-3 h-3" /> Activer</>}
-                      </button>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        <button 
+                          onClick={() => handleOpenDetails(agency)}
+                          className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition-all"
+                          title="Voir les détails">
+                          <Eye className="w-3 h-3" />
+                        </button>
+                        <button 
+                          onClick={() => handleOpenEdit(agency)}
+                          className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all"
+                          title="Modifier">
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                        <button 
+                          onClick={() => handleToggleStatus(agency)}
+                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all ${
+                            agency.status === 'active'
+                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}
+                          title={agency.status === 'active' ? 'Suspendre' : 'Réactiver'}>
+                          {agency.status === 'active' ? <Ban className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -402,15 +531,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                           user.statut === 'actif' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
                         }`}>{user.statut}</span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <button onClick={() => handleToggleUserStatus(user)} disabled={user.role === 'SUPER_ADMIN_SAAS'}
-                          className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer ${
-                            user.role === 'SUPER_ADMIN_SAAS' ? 'bg-slate-500/10 text-slate-500 cursor-not-allowed'
-                            : user.statut === 'actif' ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          }`}>
-                          {user.role === 'SUPER_ADMIN_SAAS' ? '🔒 Protégé' : user.statut === 'actif' ? 'Suspendre' : 'Activer'}
-                        </button>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button 
+                            onClick={() => handleOpenResetPassword(user)}
+                            disabled={user.role === 'SUPER_ADMIN_SAAS'}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all ${
+                              user.role === 'SUPER_ADMIN_SAAS' 
+                                ? 'bg-slate-500/10 text-slate-500 cursor-not-allowed' 
+                                : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            }`}
+                            title={user.role === 'SUPER_ADMIN_SAAS' ? 'Protégé' : 'Réinitialiser le mot de passe'}>
+                            <KeyRound className="w-3 h-3" />
+                          </button>
+                          <button 
+                            onClick={() => handleToggleUserStatus(user)} 
+                            disabled={user.role === 'SUPER_ADMIN_SAAS'}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all ${
+                              user.role === 'SUPER_ADMIN_SAAS' 
+                                ? 'bg-slate-500/10 text-slate-500 cursor-not-allowed'
+                                : user.statut === 'actif' 
+                                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}
+                            title={user.role === 'SUPER_ADMIN_SAAS' ? 'Protégé' : (user.statut === 'actif' ? 'Suspendre' : 'Réactiver')}>
+                            {user.role === 'SUPER_ADMIN_SAAS' 
+                              ? <Ban className="w-3 h-3" />
+                              : (user.statut === 'actif' ? <Ban className="w-3 h-3" /> : <Play className="w-3 h-3" />)}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -602,8 +751,351 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
           </div>
         </div>
       )}
+      {/* ============================================================ */}
+      {/* MODALE 1 : Détails Agence                                     */}
+      {/* ============================================================ */}
+      {isDetailsOpen && selectedAgency && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <Eye className="w-5 h-5 text-blue-400" />
+                <span>Détails de l'agence</span>
+              </div>
+              <button 
+                onClick={() => { setIsDetailsOpen(false); setAgencyDetails(null); }} 
+                className="p-2 rounded-lg text-[#A8B4C4] hover:text-white hover:bg-[#2A3F5C] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6 space-y-5 text-xs">
+              {/* Infos generales */}
+              <div>
+                <h3 className="text-sm font-bold text-[#C9A96E] mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" /> Informations générales
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Nom</div>
+                    <div className="font-bold text-white">{selectedAgency.name}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Slug</div>
+                    <div className="font-mono text-[#C9A96E]">{selectedAgency.slug}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Email</div>
+                    <div className="text-white flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> {selectedAgency.email}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Téléphone</div>
+                    <div className="text-white flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {selectedAgency.phone || '—'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Ville</div>
+                    <div className="text-white flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {selectedAgency.city || '—'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Statut</div>
+                    <div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        selectedAgency.status === 'active' 
+                          ? 'bg-emerald-500/20 text-emerald-300' 
+                          : 'bg-rose-500/20 text-rose-300'
+                      }`}>
+                        {selectedAgency.status === 'active' ? 'ACTIVE' : 'SUSPENDUE'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#1E2E45]/40 md:col-span-2">
+                    <div className="text-[10px] text-[#A8B4C4] uppercase mb-1">Créée le</div>
+                    <div className="text-white flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> 
+                      {new Date(selectedAgency.created_at).toLocaleDateString('fr-FR', {
+                        day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div>
+                <h3 className="text-sm font-bold text-[#C9A96E] mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" /> Statistiques
+                </h3>
+                {isLoadingDetails ? (
+                  <div className="p-6 text-center text-[#A8B4C4]">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                    Chargement des statistiques...
+                  </div>
+                ) : agencyDetails?.stats ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center">
+                      <div className="text-2xl font-black font-mono text-blue-300">
+                        {agencyDetails.stats.users}
+                      </div>
+                      <div className="text-[10px] text-blue-300/80 uppercase mt-1">Utilisateurs</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 text-center">
+                      <div className="text-2xl font-black font-mono text-purple-300">
+                        {agencyDetails.stats.admins}
+                      </div>
+                      <div className="text-[10px] text-purple-300/80 uppercase mt-1">Admins</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                      <div className="text-2xl font-black font-mono text-emerald-300">
+                        {agencyDetails.stats.tenants}
+                      </div>
+                      <div className="text-[10px] text-emerald-300/80 uppercase mt-1">Locataires</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+                      <div className="text-2xl font-black font-mono text-amber-300">
+                        {agencyDetails.stats.payments}
+                      </div>
+                      <div className="text-[10px] text-amber-300/80 uppercase mt-1">Paiements</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#C9A96E]/10 border border-[#C9A96E]/30 text-center col-span-2 md:col-span-4">
+                      <div className="text-2xl font-black font-mono text-[#C9A96E]">
+                        {formatNumber(agencyDetails.stats.totalPaiements)} FCFA
+                      </div>
+                      <div className="text-[10px] text-[#C9A96E]/80 uppercase mt-1">Total encaissé</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-[#A8B4C4]">
+                    Impossible de charger les statistiques
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#C9A96E]/20">
+                <button 
+                  onClick={() => { setIsDetailsOpen(false); setAgencyDetails(null); }}
+                  className="px-5 py-2.5 rounded-xl bg-[#1E2E45] text-white font-bold text-xs hover:bg-[#2A3F5C] transition-all">
+                  Fermer
+                </button>
+                <button 
+                  onClick={() => { setIsDetailsOpen(false); handleOpenEdit(selectedAgency); }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xs flex items-center gap-2 hover:scale-105 transition-all">
+                  <Edit3 className="w-4 h-4" /> Modifier
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODALE 2 : Modifier Agence                                    */}
+      {/* ============================================================ */}
+      {isEditOpen && selectedAgency && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <Edit3 className="w-5 h-5 text-amber-400" />
+                <span>Modifier l'agence</span>
+              </div>
+              <button 
+                onClick={() => setIsEditOpen(false)} 
+                className="p-2 rounded-lg text-[#A8B4C4] hover:text-white hover:bg-[#2A3F5C] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulaire */}
+            <div className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Nom de l'agence *
+                  </label>
+                  <input 
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="Nom de l'agence"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Slug (identifiant unique)
+                  </label>
+                  <input 
+                    type="text"
+                    value={editForm.slug}
+                    onChange={(e) => setEditForm({ ...editForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none font-mono"
+                    placeholder="nom-agence"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Email *
+                  </label>
+                  <input 
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="email@exemple.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Téléphone *
+                  </label>
+                  <input 
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="+221 XX XXX XX XX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Ville
+                  </label>
+                  <input 
+                    type="text"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="Dakar"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Pays
+                  </label>
+                  <input 
+                    type="text"
+                    value={editForm.country}
+                    onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="Sénégal"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-[#A8B4C4] uppercase mb-1.5">
+                    Adresse complète
+                  </label>
+                  <input 
+                    type="text"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white text-sm focus:border-[#C9A96E] focus:outline-none"
+                    placeholder="Adresse complète"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#C9A96E]/20">
+                <button 
+                  onClick={() => setIsEditOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-[#1E2E45] text-white font-bold text-xs hover:bg-[#2A3F5C] transition-all">
+                  Annuler
+                </button>
+                <button 
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50">
+                  <Save className="w-4 h-4" /> 
+                  {isSavingEdit ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODALE 3 : Reset Password User                                */}
+      {/* ============================================================ */}
+      {isResetPasswordOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-md shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <KeyRound className="w-5 h-5 text-purple-400" />
+                <span>Réinitialiser le mot de passe</span>
+              </div>
+              <button 
+                onClick={() => setIsResetPasswordOpen(false)} 
+                className="p-2 rounded-lg text-[#A8B4C4] hover:text-white hover:bg-[#2A3F5C] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-4 rounded-xl bg-[#1E2E45]/40 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Nom :</span>
+                  <span className="font-bold text-white">
+                    {selectedUser.prenom} {selectedUser.nom}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Email :</span>
+                  <span className="text-white font-mono text-[11px]">
+                    {selectedUser.email}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Rôle :</span>
+                  <span className="text-[#C9A96E] font-bold">
+                    {selectedUser.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+                <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-amber-200 text-[11px] leading-relaxed">
+                  Un email de réinitialisation sera envoyé à <strong className="font-mono">{selectedUser.email}</strong>.
+                  L'utilisateur devra cliquer sur le lien pour définir un nouveau mot de passe.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 border-t border-[#C9A96E]/20 flex items-center justify-end gap-3">
+              <button 
+                onClick={() => setIsResetPasswordOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-[#1E2E45] text-white font-bold text-xs hover:bg-[#2A3F5C] transition-all">
+                Annuler
+              </button>
+              <button 
+                onClick={handleConfirmResetPassword}
+                disabled={isResettingPassword}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold text-xs flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50">
+                <Mail className="w-4 h-4" />
+                {isResettingPassword ? "Envoi..." : "Envoyer l'email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
+
 };
 
 const StatCard: React.FC<{
