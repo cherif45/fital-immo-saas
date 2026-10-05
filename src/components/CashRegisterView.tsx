@@ -340,9 +340,9 @@ export function CashRegisterView({
 
       moyenPaiementCode: 'ESPECES',
 
-      beneficiaire: movementForm.beneficiaireOuPayeur || 'Non précisé',
+      beneficiaire: movementForm.beneficiaireOuPayeur || '—',
 
-      beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || 'Non précisé',
+      beneficiaireOuPayeur: movementForm.beneficiaireOuPayeur || '—',
 
       justificatifRef: movementForm.pieceJustificative || undefined,
 
@@ -850,15 +850,15 @@ export function CashRegisterView({
 
                         <td className="py-3 px-3">
 
-                          <div className="font-bold text-white">{m.description || m.libelle || 'Ã”Çö'}</div>
+                          <div className="font-bold text-white">{m.description || m.libelle || '—'}</div>
 
-                          <div className="text-[10px] text-slate-400">{m.categorie || 'Ã”Çö'}</div>
+                          <div className="text-[10px] text-slate-400">{m.categorie || '—'}</div>
 
                         </td>
 
-                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || 'Ã”Çö'}</td>
+                        <td className="py-3 px-3 text-slate-300">{m.beneficiaireOuPayeur || m.beneficiaire || '—'}</td>
 
-                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || 'Ã”Çö'}</td>
+                        <td className="py-3 px-3 text-slate-400">{m.caissierNom || m.auteurNom || m.userNom || '—'}</td>
 
                         <td className="py-3 px-3 text-right">
 

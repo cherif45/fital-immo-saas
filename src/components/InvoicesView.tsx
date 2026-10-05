@@ -66,10 +66,10 @@ export function InvoicesView({
       ref: r.ref || r.numero || 'FAC-?',
       type: r.type || 'Autre',
       proprietaireId: r.proprietaire_id,
-      proprietaireNom: r.proprietaire_nom || '"”',
+      proprietaireNom: r.proprietaire_nom || '—',
       locataireId: r.locataire_id,
-      locataireNom: r.locataire_nom || '"”',
-      bienNom: r.bien_nom || '"”',
+      locataireNom: r.locataire_nom || '—',
+      bienNom: r.bien_nom || '—',
       dateFacture: r.date_facture || r.created_at,
       dateEcheance: r.date_echeance,
       montantHT: Number(r.montant_ht) || 0,
@@ -329,7 +329,7 @@ export function InvoicesView({
                     onChange={(e) => setTargetOwnerId(e.target.value)}
                     className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                   >
-                    <option value="">"” Choisir un locataire "”</option>
+                    <option value="">— Choisir un locataire —</option>
                     {tenants.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.prenom} {t.nom} - {t.telephone}
@@ -360,7 +360,7 @@ export function InvoicesView({
                   onChange={(e) => setTargetBienNom(e.target.value)}
                   className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
-                  <option value="">"” Choisir "”</option>
+                  <option value="">— Choisir —</option>
 
                   {/* Biens simples du propriétaire sélectionné */}
                   {(() => {
@@ -412,7 +412,7 @@ export function InvoicesView({
                           <optgroup label="ðŸ”‘ Espaces / Unités">
                             {filteredUnits.map((u: any) => (
                               <option key={u.id} value={u.nom}>
-                                {u.nom} "” {u.loyerBase} FCFA
+                                {u.nom} — {u.loyerBase} FCFA
                               </option>
                             ))}
                           </optgroup>
