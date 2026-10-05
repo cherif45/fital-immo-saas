@@ -1279,3 +1279,104 @@ html.theme-light [class*="text-[#F0EDE8]"] {
 /* ============================================================================
    FIN FIX
    ============================================================================ */
+
+/* ============================================================================
+   FIX ULTIME 2 - Theme CLAIR : FORCER tous les FONDS sombres -> CLAIRS
+   ============================================================================ */
+
+/* Toutes les cartes avec bg bleu nuit -> fond BLANC */
+.theme-light [class*="bg-[#0F1B2D]"],
+.theme-light [class*="bg-[#0f1b2d]"],
+.theme-light .bg-\[\#0F1B2D\] {
+  background-color: #F8FAFC !important;
+}
+
+.theme-light [class*="bg-[#162133]"],
+.theme-light [class*="bg-[#162133]/"],
+.theme-light .bg-\[\#162133\] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#1E2E45]"],
+.theme-light [class*="bg-[#1E2E45]/"],
+.theme-light .bg-\[\#1E2E45\] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#0A111D]"],
+.theme-light [class*="bg-[#0a111d]"] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#0F172A]"],
+.theme-light [class*="bg-[#0f172a]"] {
+  background-color: #F8FAFC !important;
+}
+
+.theme-light [class*="bg-[#111827]"],
+.theme-light [class*="bg-[#111827]/"] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#1F2937]"],
+.theme-light [class*="bg-[#1F2937]/"] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#263850]"] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#2A3F5C]"],
+.theme-light [class*="bg-[#2A3F5C]/"] {
+  background-color: #E2E8F0 !important;
+}
+
+/* Overlays et modales */
+.theme-light [class*="bg-black/"],
+.theme-light [class*="bg-black\/"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Fallback : si la classe contient bg-[#...] et n'est pas deja convertie */
+.theme-light [class*="rounded-2xl"][class*="bg-\[\#0"],
+.theme-light [class*="rounded-3xl"][class*="bg-\[\#0"],
+.theme-light [class*="rounded-xl"][class*="bg-\[\#0"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Cartes de stat avec fond semi-transparent : garder les couleurs */
+.theme-light [class*="bg-emerald-500\/"],
+.theme-light [class*="bg-rose-500\/"],
+.theme-light [class*="bg-amber-500\/"],
+.theme-light [class*="bg-blue-500\/"],
+.theme-light [class*="bg-purple-500\/"],
+.theme-light [class*="bg-cyan-500\/"] {
+  /* Ne pas toucher - garder la couleur de statut */
+}
+
+/* Header sticky de la navbar */
+.theme-light [class*="topbar"],
+.theme-light header.sticky {
+  background-color: #FFFFFF !important;
+}
+
+/* Cartes qui utilisent bg-card via variables CSS */
+.theme-light .theme-bg-card {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light .theme-bg-body {
+  background-color: #F8FAFC !important;
+}
+
+/* Input, selects et textareas */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  background-color: #FFFFFF !important;
+}
+
+/* ============================================================================
+   FIN FIX FONDS
+   ============================================================================ */

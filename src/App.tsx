@@ -623,8 +623,8 @@ export default function App() {
 
     if (existingPaid) {
       alert(
-        `â›” DOUBLON DÃƒ‰TECTÃƒ‰ â€” Paiement refusé\n\n` +
-        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjÃ  pour ce locataire (${existingPaid.periode}).\n\n` +
+        `â›” DOUBLON DÃƒ‰TECTÃƒ‰ "” Paiement refusé\n\n` +
+        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjà pour ce locataire (${existingPaid.periode}).\n\n` +
         `Quittance : ${existingPaid.quittanceNumero}\n` +
         `Date : ${existingPaid.datePaiement}\n\n` +
         `Pour éviter un double encaissement, ce paiement est bloqué.`
@@ -647,8 +647,8 @@ export default function App() {
 
     if (existingPending) {
       alert(
-        `â³ Paiement déjÃ  en attente\n\n` +
-        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjÃ  en attente de validation pour ce locataire.\n\n` +
+        `â³ Paiement déjà en attente\n\n` +
+        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
         `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
       );
       return;
@@ -718,7 +718,7 @@ export default function App() {
       entityType: 'payment',
       entityId: newPayment.id,
       entityRef: newPayment.quittanceNumero,
-      title: `Paiement ${newPayment.statut} â€” ${newPayment.locataireNom}`,
+      title: `Paiement ${newPayment.statut} "” ${newPayment.locataireNom}`,
       description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
       montant: newPayment.montantPaye,
       activityDate: new Date().toISOString().split('T')[0],
@@ -771,7 +771,7 @@ export default function App() {
     if (existingPayment) {
       alert(
         `â›” PAIEMENT DÃƒ‰JÃƒ€ ENREGISTRÃƒ‰\n\n` +
-        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjÃ  pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
+        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
         `Quittance : ${existingPayment.quittanceNumero}\n\n` +
         `Impossible de créer un doublon.`
       );
@@ -789,7 +789,7 @@ export default function App() {
     if (pendingPayment) {
       alert(
         `â³ PAIEMENT EN ATTENTE\n\n` +
-        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjÃ  en attente de validation.\n\n` +
+        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjà en attente de validation.\n\n` +
         `Veuillez d'abord valider ou rejeter ce paiement.`
       );
       setMobileMoneyModalConfig(null);
@@ -924,20 +924,20 @@ export default function App() {
   // HANDLER : AJOUT LOCATAIRE (corrigé v3.0.5 - properties ET units)
   // ============================================================
   const handleAddTenant = (newTenant: Tenant) => {
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : vérifier que le bien n'est pas déjÃ  occupé
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
     const existingUnit = units.find((u) => u.id === newTenant.bienId);
     const existingProp = properties.find((p) => p.id === newTenant.bienId);
 
     if (existingUnit && existingUnit.statut === 'Occupé' && existingUnit.locataireActuelId !== newTenant.id) {
-      alert(`â›” Le bien ${existingUnit.nom} est déjÃ  occupé.`);
+      alert(`â›” Le bien ${existingUnit.nom} est déjà occupé.`);
       return;
     }
     if (existingProp && existingProp.statut === 'Occupé' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
-      alert(`â›” Le bien ${existingProp.nom} est déjÃ  occupé.`);
+      alert(`â›” Le bien ${existingProp.nom} est déjà occupé.`);
       return;
     }
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : ce locataire occupe-t-il déjÃ  un autre bien ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
@@ -950,7 +950,7 @@ export default function App() {
     if (existingActiveLease) {
       alert(
         `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
-        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjÃ  : ${existingActiveLease.bienNom}`
+        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjà : ${existingActiveLease.bienNom}`
       );
       return;
     }
@@ -959,9 +959,9 @@ export default function App() {
     setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
     if (currentUser?.agencyId) saveTenantToDbWithLog(newTenant, currentUser.agencyId).catch(console.warn);
 
-    // Ã°Ÿ”§ FIX v3.0.5 : mise Ã  jour des DEUX si les deux existent (plus de return prématuré)
+    // Ã°Ÿ”§ FIX v3.0.5 : mise à jour des DEUX si les deux existent (plus de return prématuré)
     if (newTenant.bienId) {
-      // Mise Ã  jour PROPERTY si existe
+      // Mise à jour PROPERTY si existe
       if (existingProp) {
         setProperties((prev) => {
           const next = prev.map((p) => {
@@ -982,7 +982,7 @@ export default function App() {
         });
       }
 
-      // Mise Ã  jour UNIT si existe
+      // Mise à jour UNIT si existe
       if (existingUnit) {
         setUnits((prev) => {
           const next = prev.map((u) => {
@@ -1008,14 +1008,14 @@ export default function App() {
   const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 1 : le bien est-il déjÃ  occupé ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 1 : le bien est-il déjà occupé ?
     const existingUnit = units.find((u) => u.id === data.tenant.bienId);
     const existingProp = properties.find((p) => p.id === data.tenant.bienId);
 
     if (existingUnit && existingUnit.statut === 'Occupé') {
       alert(
         `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
-        `L'unité ${existingUnit.nom} est déjÃ  louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
         `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
       return;
@@ -1023,13 +1023,13 @@ export default function App() {
     if (existingProp && existingProp.statut === 'Occupé') {
       alert(
         `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
-        `Le bien ${existingProp.nom} est déjÃ  loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
+        `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
         `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
       );
       return;
     }
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjÃ  un autre bien ?
+    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
@@ -1042,9 +1042,9 @@ export default function App() {
     if (existingActiveLease) {
       alert(
         `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
-        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjÃ  :\n` +
+        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
         `${existingActiveLease.bienNom}\n\n` +
-        `Un locataire ne peut occuper qu'un seul bien Ã  la fois.\n\n` +
+        `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
         `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
       );
       return;
@@ -1064,7 +1064,7 @@ export default function App() {
     await saveContractToDb(contractToSave, currentUser.agencyId);
     await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
 
-    // Mettre Ã  jour UNIT ou PROPERTY
+    // Mettre à jour UNIT ou PROPERTY
     if (existingUnit) {
       const updatedU = {
         ...existingUnit,
@@ -1096,7 +1096,7 @@ export default function App() {
   const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
     if (!currentUser?.agencyId) return;
 
-    // 1. Locataire â€” sauvegarder en DB
+    // 1. Locataire "” sauvegarder en DB
     const tenantToUpdate = tenants.find((t) => t.id === data.tenantId);
     if (tenantToUpdate) {
       const updatedTenant = {
@@ -1110,7 +1110,7 @@ export default function App() {
       }
     }
 
-    // 2. Bien ou Unit â€” sauvegarder en DB
+    // 2. Bien ou Unit "” sauvegarder en DB
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
@@ -1131,7 +1131,7 @@ export default function App() {
       }
     }
 
-    // 3. Inspection â€” sauvegarder en DB
+    // 3. Inspection "” sauvegarder en DB
     const inspRes = await saveInspectionToDb(data.inspection, currentUser.agencyId);
     if (inspRes.success && inspRes.data) {
       setInspections((prev) => [inspRes.data!, ...prev]);
@@ -2019,7 +2019,7 @@ export default function App() {
               entite: 'USER',
               entiteId: currentUser.id,
               utilisateur: `${currentUser.prenom} ${currentUser.nom}`,
-              details: `Mise Ã  jour sécurisée du mot de passe via Supabase Auth`,
+              details: `Mise à jour sécurisée du mot de passe via Supabase Auth`,
               createdAt: new Date().toISOString(),
             },
             ...prev,

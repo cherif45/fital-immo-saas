@@ -1927,7 +1927,7 @@ export async function bootstrapAdminProfile(
     nom: profileRecord.nom, prenom: profileRecord.prenom,
     telephone: profileRecord.telephone, role: profileRecord.role,
     statut: 'actif', permissions: ['*'], organisation: agency.name,
-    createdAt: new Date().toISOString(), derniereConnexion: 'à€ l\'instant',
+    createdAt: new Date().toISOString(), derniereConnexion: ' l\'instant',
   };
 }
 
