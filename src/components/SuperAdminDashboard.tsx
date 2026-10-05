@@ -53,6 +53,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
     agencyLogoUrl: '', agencyPrimaryColor: '#C9A96E', agencyWebsite: '',
     agencyNinea: '', agencyRc: '', agencyBankName: '', agencyBankAccount: '',
     adminEmail: '', adminPassword: '', adminNom: '', adminPrenom: '', adminTelephone: '',
+    adminRole: 'ADMIN', // ADMIN ou SUPER_ADMIN_SAAS
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -127,6 +128,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
         agencyLogoUrl: '', agencyPrimaryColor: '#C9A96E', agencyWebsite: '',
         agencyNinea: '', agencyRc: '', agencyBankName: '', agencyBankAccount: '',
         adminEmail: '', adminPassword: '', adminNom: '', adminPrenom: '', adminTelephone: '',
+        adminRole: 'ADMIN',
       });
       await loadData();
     } else {
@@ -860,13 +862,30 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                       onChange={(e) => setFormData({ ...formData, adminTelephone: e.target.value })}
                       required className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white" />
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Mot de passe temporaire * (min 6 caractères)</label>
+                                    <div className="col-span-2">
+                    <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">Mot de passe admin *</label>
                     <input type="text" value={formData.adminPassword}
                       onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
                       required minLength={6} placeholder="Ex: Immo2026!"
-                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold" />
-                    <p className="text-[10px] text-amber-300 mt-1">⚠️ Notez ce mot de passe et communiquez-le à l'admin de la nouvelle agence.</p>
+                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
+                    />
+                    <p className="text-[10px] text-amber-300 mt-1">⚠️ Notez ce mot de passe et communiquez-le à l'admin</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-bold text-[#C9A96E] uppercase mb-1">
+                      Rôle de l'admin *
+                    </label>
+                    <select 
+                      value={formData.adminRole}
+                      onChange={(e) => setFormData({ ...formData, adminRole: e.target.value })}
+                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-semibold cursor-pointer"
+                    >
+                      <option value="ADMIN">ADMIN — Gère uniquement son agence</option>
+                      <option value="SUPER_ADMIN_SAAS">SUPER_ADMIN_SAAS — Gère TOUT le SaaS</option>
+                    </select>
+                    <p className="text-[10px] text-blue-300 mt-1">
+                      💡 Choisissez SUPER_ADMIN_SAAS pour donner tous les droits (gestion des agences)
+                    </p>
                   </div>
                 </div>
               </div>

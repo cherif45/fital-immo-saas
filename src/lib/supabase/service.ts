@@ -2086,6 +2086,7 @@ export async function createAgencyWithAdmin(params: {
   agencyRc?: string; agencyBankName?: string; agencyBankAccount?: string;
   adminEmail: string; adminPassword: string; adminNom: string;
   adminPrenom: string; adminTelephone: string;
+  adminRole?: string; // ADMIN (defaut) ou SUPER_ADMIN_SAAS
 }): Promise<{ success: boolean; agencyId?: string; error?: string }> {
   let agencyId: string | null = null;
   try {
@@ -2114,7 +2115,7 @@ export async function createAgencyWithAdmin(params: {
     const { data: authData, error: authError } = await ephemeralClient.auth.signUp({
       email: params.adminEmail.trim().toLowerCase(),
       password: params.adminPassword,
-      options: { data: { nom: params.adminNom, prenom: params.adminPrenom, role: 'SUPER_ADMIN', agency_id: agency.id } },
+      options: { data: { nom: params.adminNom, prenom: params.adminPrenom, role: params.adminRole || 'ADMIN', agency_id: agency.id } },
     });
     if (authError) {
       await supabase.from('agencies').delete().eq('id', agency.id);
@@ -2128,7 +2129,7 @@ export async function createAgencyWithAdmin(params: {
       id: authData.user.id, agency_id: agency.id,
       email: params.adminEmail.trim().toLowerCase(),
       nom: params.adminNom.toUpperCase(), prenom: params.adminPrenom,
-      telephone: params.adminTelephone, role: 'SUPER_ADMIN',
+      telephone: params.adminTelephone, role: params.adminRole || 'ADMIN',
       statut: 'actif', permissions: ['*'],
     });
     if (profileError) {
