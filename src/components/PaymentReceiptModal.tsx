@@ -149,13 +149,13 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
     ? `${immeuble.adresse || ''} ${immeuble.nom || ''}`.trim()
     : (immeuble?.nom || payment.bienNom || '—');
 
-  const nomAgence = settings?.nomAgence || 'TRANS IMMOBILIER SARL';
-  const slogan = 'GÉRANCE · LOCATION · VENTE · ACHAT · RECOUVREMENT DE CRÉANCE';
-  const adresse = settings?.adresse || 'Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté';
+  const nomAgence = settings?.nomAgence || 'MON AGENCE';
+  const slogan = settings?.slogan1 || settings?.slogan || '';
+  const adresse = settings?.adresse || '';
   const telephone = settings?.standardTelephone || settings?.telephone || '+221 77 551 16 70 / 77 786 45 45';
-  const ninea = settings?.ninea || '0050875072C2';
-  const rc = 'SN-DKR-2014B10248';
-  const email = settings?.email || 'tiser.immo@gmail.com';
+  const ninea = settings?.ninea || '';
+  const rc = settings?.rcNumero || '';
+  const email = settings?.email || '';
 
   const { debut: dateDebut, fin: dateFin } = getPeriodeDates(payment.periode);
   const datePaiement = payment.datePaiement
@@ -240,35 +240,11 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         {/* CONTENU IMPRIMABLE */}
         <div className="print-container p-6 bg-white text-neutral-900">
 
-          {/* En-tête TISER */}
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="w-14 h-14 flex-shrink-0 border border-neutral-900 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl font-black text-neutral-900">T</div>
-                <div className="text-[6px] text-neutral-700 leading-tight">T.I.SER</div>
-              </div>
-            </div>
-
-            <div className="flex-1 text-center">
-              <div className="text-[11px] font-black text-neutral-900 uppercase tracking-wide">
-                {nomAgence}
-              </div>
-              <div className="text-[7px] text-neutral-700 mt-0.5 leading-tight">
-                {slogan}
-              </div>
-              <div className="text-[7px] text-neutral-700 mt-1 leading-tight">
-                RC : {rc} N.I.N.E.A : {ninea}
-              </div>
-              <div className="text-[7px] text-neutral-700 leading-tight">
-                {adresse}
-              </div>
-              <div className="text-[7px] text-neutral-700 leading-tight">
-                Tél : {telephone} E-mail : {email}
-              </div>
-            </div>
-
-            <div className="w-14 h-14 flex-shrink-0"></div>
-          </div>
+          {/* En-tête dynamique */}
+          <PrintHeader
+            agency={settings || null}
+            documentType={titre}
+          />
 
           {/* Titre */}
           <div className="text-center my-4">
@@ -358,8 +334,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           {/* Pied de page fixe */}
           <div className="print-footer">
             <div className="font-bold">
-              TRANS IMMOBILIER & SERVICES SARL (T.I.SER) Grand Dakar Pile N° 224 B.P. : 10 055 Dakar Liberté
-            </div>
+              {settings?.nomAgence || ""}</div>
             <div>
               Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
             </div>

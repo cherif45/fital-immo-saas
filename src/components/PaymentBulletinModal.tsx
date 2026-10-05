@@ -12,6 +12,29 @@ import { Owner, Property, Tenant, Payment, MaintenanceTicket, AgencySettings } f
 import { PrintHeader } from './PrintHeader';
 import { formatCurrency, formatNumber, formatDate, nombreEnLettres } from '../lib/utils';
 
+
+// ============================================================
+// FALLBACK (si l'agence n'a pas rempli ses paramètres)
+// ============================================================
+const FALLBACK_SETTINGS: any = {
+  nomAgence: 'MON AGENCE',
+  slogan1: '',
+  slogan2: '',
+  adresse: '',
+  telephone: '',
+  email: '',
+  rcNumero: '',
+  nineaNumero: '',
+  gerantNom: 'Le Gérant',
+  gerantTitre: 'Gérant',
+  logoUrl: null,
+  cachetUrl: null,
+  enteteUrl: null,
+  piedPageUrl: null,
+  gerantSignatureUrl: null,
+};
+
+
 interface PaymentBulletinModalProps {
   owner: Owner | null;
   properties: Property[];
@@ -107,7 +130,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
         <div className="p-8 bg-white text-neutral-900 rounded-b-3xl font-sans print-container">
           {/* Header dynamique */}
           <PrintHeader 
-            agency={settings || null} 
+            agency={settings || FALLBACK_SETTINGS} 
             documentType="BULLETIN DE VERSEMENT" 
             documentRef={`Mois de : ${selectedPeriod} · Réf Mandat : ${owner.mandatGerance}`}
           />
