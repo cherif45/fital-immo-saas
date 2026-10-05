@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Printer, FileText, Plus, Trash2, Save } from 'lucide-react';
 import {Owner, Property, Building, Unit, Tenant, Payment, Invoice,
-  MaintenanceTicket, OwnerDeduction, BulletinVersement, UserAccount,, AgencySettings} from '../types';
+  MaintenanceTicket, OwnerDeduction, BulletinVersement, UserAccount, AgencySettings} from '../types';
 import { formatNumber } from '../lib/utils';
 import { UserSignatureBlock } from './UserSignatureBlock';
 import { getOwnerBulletinData } from '../lib/supabase/service';
