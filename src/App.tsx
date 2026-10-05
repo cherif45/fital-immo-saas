@@ -366,7 +366,7 @@ export default function App() {
       return;
     }
 
-    console.log('Ã°Ÿ“¥ Chargement des données pour:', currentUser.agencyId);
+    console.log('📝¥ Chargement des données pour:', currentUser.agencyId);
 
     let cancelled = false;
 
@@ -440,10 +440,10 @@ export default function App() {
 
   const handleTriggerAuditLog = (action: string, module: string, details: string, entityRef?: string) => {
     const userLabel = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système';
-    const userRole = currentUser ? currentUser.role : 'SYSTÃƒˆME';
+    const userRole = currentUser ? currentUser.role : 'SYSTÈME';
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
-      action, entite: module, entiteId: entityRef || 'SYSTÃƒˆME',
+      action, entite: module, entiteId: entityRef || 'SYSTÈME',
       utilisateur: `${userLabel} (${userRole})`,
       userNom: userLabel, module, entityRef, details,
       date: new Date().toISOString().replace('T', ' ').substring(0, 19),
@@ -566,7 +566,7 @@ export default function App() {
     if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-    console.log('Ã°Ÿ“ handleLogActivity REÃƒ‡U:', activity.title);
+    console.log('📝 handleLogActivity REÃƒ‡U:', activity.title);
     setActivityLogs((prev) => {
       const next = [activity, ...prev];
       persistCollection('activity_logs', next);

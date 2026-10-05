@@ -1016,17 +1016,58 @@ export async function fetchUserProfile(userId: string): Promise<UserAccount | nu
 
 export async function logSystemAudit(log: Partial<AuditLog>, agencyId?: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return;
+  
+  const userNom = log.userNom || log.utilisateur || 'Système';
+  const module = log.module || log.entite || 'SYSTÈME';
+  const entityType = log.entityType || log.entite || 'GENERAL';
+  const entityRef = log.entityRef || log.entiteId || 'N/A';
+  const details = log.details || '';
+  const action = log.action || 'ACTION';
+  
+  const today = new Date().toISOString().split('T')[0];
+  const now = new Date().toISOString();
+  
+  // 1. Ecrire dans audit_logs
   try {
     await supabase.from('audit_logs').insert([{
       agency_id: agencyId,
-      user_nom: log.userNom || log.utilisateur || 'Systà¨me',
-      action: log.action || 'ACTION',
-      module: log.module || log.entite || 'SYSTàˆME',
-      entity_type: log.entityType || log.entite || 'GENERAL',
-      entity_ref: log.entityRef || log.entiteId || 'N/A',
-      details: log.details || '',
+      user_nom: userNom,
+      action: action,
+      module: module,
+      entity_type: entityType,
+      entity_ref: entityRef,
+      details: details,
     }]);
-  } catch (e) { console.warn('Erreur insertion audit log:', e); }
+  } catch (e) { console.warn('Erreur insertion audit_logs:', e); }
+  
+  // 2. Ecrire dans activity_logs (pour le Journal d'Activite)
+  try {
+    // Mapper l'action vers un activity_type
+    const getActivityType = (act: string): string => {
+      if (act.includes('PAYMENT') || act.includes('Paiement')) return 'PAYMENT';
+      if (act.includes('TENANT_CREATED') || act.includes('Nouveau locataire')) return 'TENANT_CREATED';
+      if (act.includes('TENANT_EXIT') || act.includes('Sortie')) return 'TENANT_EXIT';
+      if (act.includes('CONTRACT') || act.includes('Contrat')) return 'CONTRACT';
+      if (act.includes('MAINTENANCE') || act.includes('Travaux')) return 'MAINTENANCE';
+      if (act.includes('INSPECTION') || act.includes('Etat des lieux')) return 'INSPECTION';
+      if (act.includes('DISBURSEMENT') || act.includes('Reversement')) return 'DISBURSEMENT';
+      if (act.includes('CASH') || act.includes('Caisse')) return 'CASH_MOVEMENT';
+      if (act.includes('REMINDER') || act.includes('Relance')) return 'REMINDER';
+      return 'OTHER';
+    };
+    
+    await supabase.from('activity_logs').insert([{
+      agency_id: agencyId,
+      user_nom: userNom,
+      activity_type: getActivityType(action),
+      entity_type: entityType,
+      entity_ref: entityRef,
+      title: action,
+      description: details,
+      activity_date: today,
+      activity_hour: now.split('T')[1].substring(0, 8),
+    }]);
+  } catch (e) { console.warn('Erreur insertion activity_logs:', e); }
 }
 
 async function recordExists(table: string, id: string, agencyId: string): Promise<boolean> {
