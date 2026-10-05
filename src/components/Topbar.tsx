@@ -25,7 +25,7 @@ import {
 import { ActiveTab, UserAccount, NotificationItem } from '../types';
 import { DatabaseStatusModal } from './DatabaseStatusModal';
 import { ConnectionIndicator } from './ConnectionIndicator';
-import { ThemeStudio } from './ThemeStudio';
+import { ThemeToggle } from './ThemeToggle';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 
 interface TopbarProps {
@@ -404,8 +404,8 @@ export const Topbar: React.FC<TopbarProps> = ({
             </button>
           )}
 
-          <div className="relative">
-                        <ThemeStudio onOpenPreview={onOpenThemePreview} />
+          <div className="relative flex items-center gap-2">
+            <ThemeToggle />
 
             <button
               onClick={() => setShowNotifications(!showNotifications)}
