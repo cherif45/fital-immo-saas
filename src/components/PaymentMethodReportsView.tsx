@@ -49,16 +49,29 @@ export function PaymentMethodReportsView({
     setIsLoadingMore(true);
     try {
       const result = await paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE);
-      const mapped: Payment[] = result.data.map((r: any) => ({
-        ...r,
-        id: r.id,
-        montantPaye: Number(r.montant_paye) || 0,
-        datePaiement: r.date_paiement,
-        statut: r.statut,
-        modePaiement: r.mode_paiement,
-        moyenPaiementCode: r.moyen_paiement_code,
-        proprietaireId: r.proprietaire_id,
-      }));
+          const mapped: Payment[] = result.data.map((r: any) => ({
+      ...r,
+      id: r.id,
+      ref: r.ref,
+      quittanceNumero: r.quittance_numero || r.numero_quittance || r.ref,
+      numeroQuittance: r.numero_quittance || r.quittance_numero || r.ref,
+      locataireId: r.locataire_id,
+      locataireNom: r.locataire_nom || r.locataireNom || '',
+      bienId: r.bien_id,
+      bienNom: r.bien_nom || r.bienNom || '',
+      proprietaireId: r.proprietaire_id,
+      proprietaireNom: r.proprietaire_nom,
+      montantPaye: Number(r.montant_paye) || 0,
+      montantTotal: Number(r.montant_total) || 0,
+      montantRestant: Number(r.montant_restant) || 0,
+      loyerBase: Number(r.loyer_base) || 0,
+      charges: Number(r.charges) || 0,
+      periode: r.periode,
+      datePaiement: r.date_paiement,
+      statut: r.statut,
+      modePaiement: r.mode_paiement,
+      moyenPaiementCode: r.moyen_paiement_code || r.mode_paiement,
+    }));
       if (page === 0) {
         setServerPayments(mapped);
       } else {
