@@ -1933,6 +1933,7 @@ export default function App() {
       {ownerBulletinModalOwner && (
         <ViewLoader variant="default"><LazyOwnerBulletinModal
           currentUser={currentUser}
+          settings={agencySettings}
           owner={ownerBulletinModalOwner}
           properties={properties}
           buildings={buildings}

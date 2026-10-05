@@ -1,9 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Printer, FileText, Plus, Trash2, Save } from 'lucide-react';
-import {
-  Owner, Property, Building, Unit, Tenant, Payment, Invoice,
-  MaintenanceTicket, OwnerDeduction, BulletinVersement, UserAccount,
-} from '../types';
+import {Owner, Property, Building, Unit, Tenant, Payment, Invoice,
+  MaintenanceTicket, OwnerDeduction, BulletinVersement, UserAccount,, AgencySettings} from '../types';
 import { formatNumber } from '../lib/utils';
 import { UserSignatureBlock } from './UserSignatureBlock';
 import { getOwnerBulletinData } from '../lib/supabase/service';
@@ -22,6 +20,7 @@ interface OwnerBulletinModalProps {
   deductions: OwnerDeduction[];
   selectedPeriod: string;
   currentUser?: UserAccount | null;
+  settings?: AgencySettings | null;
   onClose: () => void;
   onSaveDeduction?: (deduction: OwnerDeduction) => void;
   onDeleteDeduction?: (deductionId: string) => void;
@@ -142,6 +141,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   deductions,
   selectedPeriod,
   currentUser,
+  settings,
   onClose,
   onSaveDeduction,
   onDeleteDeduction,
@@ -562,26 +562,12 @@ console.log('🔍 data.payments:', data?.payments);
         <div className="print-container p-8 bg-white text-neutral-900 overflow-y-auto">
           {/* PAGE 1 */}
           <div className="print-page">
-            {/* En-tête TISER avec logo */}
-            <div className="flex items-start gap-4 mb-3">
-              <div className="w-16 h-16 flex-shrink-0 border border-neutral-900 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-2xl font-black text-neutral-900 leading-none">T</div>
-                  <div className="text-[7px] text-neutral-700 leading-tight mt-0.5">T.I.SER</div>
-                </div>
-              </div>
-
-              <div className="flex-1 text-center pt-1">
-                <div className="text-[13px] font-black uppercase text-neutral-900 tracking-wide">
-                  TRANS IMMOBILIER ET SERVICES SARL
-                </div>
-                <div className="text-[9px] text-neutral-700 font-semibold mt-0.5">
-                  GÉRANCE- LOCATION- VENTE- ACHAT
-                </div>
-              </div>
-
-              <div className="w-16 h-16 flex-shrink-0"></div>
-            </div>
+            {/* En-tête dynamique */}
+            <PrintHeader
+              agency={settings || null}
+              documentType="BULLETIN DE VERSEMENT"
+              documentRef={`Mois de : ${moisEnMajuscules}`}
+            />
 
             {/* Titre */}
             <div className="text-center mb-4 mt-3">
