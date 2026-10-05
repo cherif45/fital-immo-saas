@@ -1744,11 +1744,34 @@ export async function changeUserPassword(newPassword: string): Promise<{ success
 }
 
 export async function signOutSession(): Promise<void> {
+  // 1. Deconnexion Supabase
   if (isSupabaseConfigured && supabase) {
     try { await supabase.auth.signOut(); } catch (err) { console.error('Erreur signOut:', err); }
   }
-  localStorage.removeItem('fital_immo_session');
-  localStorage.removeItem('fital_immo_user');
+
+  // 2. Purger TOUT le localStorage (isolation des agences)
+  try {
+    // Supprimer TOUTES les cles fital_immo_*
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('fital_immo_'))
+      .forEach(k => localStorage.removeItem(k));
+
+    // Supprimer les cles specifiques
+    localStorage.removeItem('fital_immo_session');
+    localStorage.removeItem('fital_immo_user');
+    localStorage.removeItem('fital_immo_current_user');
+    localStorage.removeItem('fital_immo_settings');
+    localStorage.removeItem('fital_immo_agency');
+  } catch (err) {
+    console.warn('Erreur purge localStorage:', err);
+  }
+
+  // 3. Purger sessionStorage
+  try {
+    sessionStorage.clear();
+  } catch (err) {
+    console.warn('Erreur purge sessionStorage:', err);
+  }
 }
 
 export async function getAuthSession() {
