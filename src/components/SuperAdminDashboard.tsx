@@ -3,12 +3,13 @@ import {
   Crown, Building2, Users, TrendingUp, Plus, Search, CheckCircle2,
   AlertTriangle, RefreshCw, Ban, Play, X, Database, Briefcase, Home,
   Layers, CreditCard, Eye, Edit3, KeyRound, Save, Mail, Phone, MapPin,
-  Calendar, Check, Info, UserCog,
+  Calendar, Check, Info, UserCog, Package, ArchiveRestore,
 } from 'lucide-react';
 import {
   fetchAllAgencies, fetchAllUsers, fetchGlobalStats,
   createAgencyWithAdmin, toggleAgencyStatus,
   getAgencyDetails, updateAgency, resetUserPassword, getUserDetails,
+  archiveAgency, restoreAgency,
 } from '../lib/supabase/service';
 import { supabase } from '../lib/supabase/client';
 import { formatNumber } from '../lib/utils';
@@ -80,6 +81,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  // ============================================================
+  // STATES - Archivage d'agence
+  // ============================================================
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -237,6 +244,54 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
   const handleOpenResetPassword = (user: any) => {
     setSelectedUser(user);
     setIsResetPasswordOpen(true);
+  };
+
+  // ============================================================
+  // HANDLERS - Archivage
+  // ============================================================
+  const handleOpenArchive = (agency: Agency) => {
+    setSelectedAgency(agency);
+    setIsArchiveOpen(true);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!selectedAgency) return;
+    setIsArchiving(true);
+    try {
+      const result = await archiveAgency(selectedAgency.id);
+      if (result.success) {
+        setStatusMessage({ 
+          text: `✅ Agence "${selectedAgency.name}" archivée`, 
+          type: 'success' 
+        });
+        setTimeout(() => setIsArchiveOpen(false), 800);
+        await loadData();
+      } else {
+        setStatusMessage({ text: '❌ ' + result.error, type: 'error' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: '❌ ' + err.message, type: 'error' });
+    } finally {
+      setIsArchiving(false);
+      setTimeout(() => setStatusMessage(null), 3000);
+    }
+  };
+
+  const handleRestore = async (agency: Agency) => {
+    if (!window.confirm(`Restaurer l'agence "${agency.name}" ?`)) return;
+    try {
+      const result = await restoreAgency(agency.id);
+      if (result.success) {
+        setStatusMessage({ text: `✅ Agence "${agency.name}" restaurée`, type: 'success' });
+        await loadData();
+      } else {
+        setStatusMessage({ text: '❌ ' + result.error, type: 'error' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: '❌ ' + err.message, type: 'error' });
+    } finally {
+      setTimeout(() => setStatusMessage(null), 3000);
+    }
   };
 
   const handleConfirmResetPassword = async () => {
@@ -566,6 +621,21 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                           title={agency.status === 'active' ? 'Suspendre' : 'Réactiver'}>
                           {agency.status === 'active' ? <Ban className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                         </button>
+                        {agency.status !== 'archived' ? (
+                          <button 
+                            onClick={() => handleOpenArchive(agency)}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 bg-slate-500/10 hover:bg-slate-500/20 text-slate-300 border border-slate-500/30 transition-all"
+                            title="Archiver">
+                            <Package className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleRestore(agency)}
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all"
+                            title="Restaurer">
+                            <ArchiveRestore className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1244,6 +1314,76 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODALE 4 : Confirmation Archivage                            */}
+      {/* ============================================================ */}
+      {isArchiveOpen && selectedAgency && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-slate-500/30 rounded-3xl w-full max-w-md shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-500/20 flex items-center justify-between bg-[#1E2E45]/80">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <Package className="w-5 h-5 text-slate-400" />
+                <span>Archiver l'agence</span>
+              </div>
+              <button 
+                onClick={() => setIsArchiveOpen(false)} 
+                className="p-2 rounded-lg text-[#A8B4C4] hover:text-white hover:bg-[#2A3F5C] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-4 rounded-xl bg-[#1E2E45]/40 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Nom :</span>
+                  <span className="font-bold text-white">{selectedAgency.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Slug :</span>
+                  <span className="text-white font-mono text-[11px]">{selectedAgency.slug}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#A8B4C4] uppercase w-20">Email :</span>
+                  <span className="text-white font-mono text-[11px]">{selectedAgency.email}</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="text-amber-200 text-[11px] leading-relaxed">
+                  <p className="font-bold">Que se passe-t-il ?</p>
+                  <ul className="list-disc ml-4 mt-1 space-y-0.5">
+                    <li>L'agence disparaît de la liste par défaut</li>
+                    <li>Ses utilisateurs ne peuvent plus se connecter</li>
+                    <li><strong className="text-emerald-300">Aucune donnée n'est supprimée</strong></li>
+                    <li>Vous pouvez la restaurer à tout moment</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 border-t border-slate-500/20 flex items-center justify-end gap-3">
+              <button 
+                onClick={() => setIsArchiveOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-[#1E2E45] text-white font-bold text-xs hover:bg-[#2A3F5C] transition-all">
+                Annuler
+              </button>
+              <button 
+                onClick={handleConfirmArchive}
+                disabled={isArchiving}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-slate-600 to-slate-800 text-white font-bold text-xs flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50">
+                <Package className="w-4 h-4" />
+                {isArchiving ? 'Archivage...' : 'Archiver'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );

@@ -2718,3 +2718,46 @@ export async function getUserDetails(userId: string): Promise<any> {
     return null;
   }
 }
+
+/**
+ * Archive une agence (soft delete)
+ * L'agence disparait de la liste mais ses donnees restent intactes
+ */
+export async function archiveAgency(agencyId: string): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase non configure' };
+  try {
+    const { error } = await supabase
+      .from('agencies')
+      .update({ 
+        status: 'archived',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', agencyId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Restaure une agence archivee
+ */
+export async function restoreAgency(agencyId: string): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase non configure' };
+  try {
+    const { error } = await supabase
+      .from('agencies')
+      .update({ 
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', agencyId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
