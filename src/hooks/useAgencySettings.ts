@@ -92,15 +92,6 @@ export function useAgencySettings(agencyId?: string) {
           nineaNumero: data.ninea_numero,
           boitePostale: data.boite_postale,
           siteWeb: data.site_web,
-          slogan1: data.slogan_1,
-          slogan2: data.slogan_2,
-          logoUrl: data.logo_url,
-          cachetUrl: data.cachet_url,
-          enteteUrl: data.entete_url,
-          piedPageUrl: data.pied_page_url,
-          boitePostale: data.boite_postale,
-          rcNumero: data.rc_numero,
-          nineaNumero: data.ninea_numero,
           devise: data.devise || 'FCFA',
         };
 

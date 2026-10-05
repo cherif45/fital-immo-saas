@@ -1366,7 +1366,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={handleSafeTabChange}
         unpaidCount={unpaidCount}
-        settings={settings}
+        settings={agencySettings}
         urgentMaintenanceCount={maintenance.filter((m) => m.priorite === 'Urgente').length}
         currentUser={{
           ...currentUser,
@@ -1524,7 +1524,7 @@ export default function App() {
               cashClosings={cashClosings}
               paymentMethods={paymentMethods}
               auditLogs={auditLogs}
-              settings={settings}
+              settings={agencySettings}
               maintenance={maintenance}
               buildings={buildings}
               units={units}
@@ -1643,7 +1643,7 @@ export default function App() {
           {activeTab === 'payment-methods' && (
             <ViewLoader variant="list"><LazyPaymentMethodsConfigView
               paymentMethods={paymentMethods}
-              settings={settings}
+              settings={agencySettings}
               onUpdatePaymentMethod={handleUpdatePaymentMethod}
               onAddPaymentMethod={handleAddPaymentMethod}
             /></ViewLoader>
@@ -1692,7 +1692,7 @@ export default function App() {
               properties={scopedProperties}
               owners={owners}
               currentUser={currentUser || undefined}
-              settings={settings}
+              settings={agencySettings}
               onAddPayment={handleAddPayment}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               isNewPaymentModalOpen={isNewPaymentModalOpen}
@@ -1903,7 +1903,7 @@ export default function App() {
       {receiptModalPayment && (
         <ViewLoader variant="default"><LazyPaymentReceiptModal
           payment={receiptModalPayment}
-          settings={settings}
+          settings={agencySettings}
           units={units}
           buildings={buildings}
           currentUser={currentUser}
@@ -1919,7 +1919,7 @@ export default function App() {
           payments={payments}
           tickets={maintenance}
           selectedPeriod={selectedPeriod}
-          settings={settings}
+          settings={agencySettings}
           onClose={() => setOwnerSlipModalOwner(null)}
         /></ViewLoader>
       )}
@@ -2034,7 +2034,7 @@ export default function App() {
           waveNumero={settings.waveNumero}
           orangeMoneyCode={settings.orangeMoneyCode}
           whatsappBusiness={settings.whatsappBusiness}
-          settings={settings}
+          settings={agencySettings}
           currentUser={currentUser}
           tenantId={mobileMoneyModalConfig.tenantId}
           payments={payments}
