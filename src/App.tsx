@@ -1448,6 +1448,7 @@ export default function App() {
               payments={scopedPayments}
               maintenance={scopedMaintenance}
               disbursements={scopedDisbursements}
+              settings={agencySettings}
               cashVouchers={cashVouchers.filter((v) => v.proprietaireId === currentUser.proprietaireId || !currentUser.proprietaireId)}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
@@ -1457,6 +1458,7 @@ export default function App() {
           {activeTab === 'dashboard' && currentUser.role === 'LOCATAIRE' && (
             <ViewLoader variant="kpi"><LazyTenantDashboardView
               currentUser={currentUser}
+              settings={agencySettings}
               tenant={tenants.find((t) => t.id === currentUser.locataireId) || tenants[0]}
               property={properties.find((p) => p.id === (currentUser.bienId || tenants.find((t) => t.id === currentUser.locataireId)?.bienId))}
               contract={contracts.find((c) => c.locataireId === currentUser.locataireId)}
@@ -1776,6 +1778,7 @@ export default function App() {
   buildings={buildings}
   units={units}
   payments={payments}
+  settings={agencySettings}
   onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
   onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
   onAddOwner={handleAddOwner}
@@ -1818,6 +1821,7 @@ export default function App() {
               inspections={scopedInspections}
               tenants={scopedTenants}
               properties={scopedProperties}
+              settings={agencySettings}
               onAddInspection={handleAddInspection}
             /></ViewLoader>
           )}
@@ -1889,6 +1893,7 @@ export default function App() {
               contracts={scopedContracts}
               properties={scopedProperties}
               currentUser={currentUser}
+              settings={agencySettings}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
             /></ViewLoader>

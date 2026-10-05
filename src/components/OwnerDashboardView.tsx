@@ -8,7 +8,7 @@ import {
   OwnerDisbursement,
   CashVoucher,
   UserAccount
-} from '../types';
+, AgencySettings } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
   Building2, 
@@ -43,6 +43,7 @@ interface OwnerDashboardViewProps {
   cashVouchers: CashVoucher[];
   onOpenReceipt: (payment: Payment) => void;
   onOpenOwnerSlip: (owner: Owner) => void;
+  settings?: AgencySettings;
 }
 
 export function OwnerDashboardView({
@@ -55,7 +56,7 @@ export function OwnerDashboardView({
   disbursements,
   cashVouchers,
   onOpenReceipt,
-  onOpenOwnerSlip,
+  onOpenOwnerSlip
 }: OwnerDashboardViewProps) {
   const [isMandateModalOpen, setIsMandateModalOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<
@@ -513,6 +514,7 @@ export function OwnerDashboardView({
         <OwnerMandateModal
           owner={owner}
           properties={properties}
+          agencySettings={settings}
           onClose={() => setIsMandateModalOpen(false)}
         />
       )}

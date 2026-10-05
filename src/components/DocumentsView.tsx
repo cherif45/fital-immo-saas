@@ -11,9 +11,9 @@ import {
   Eye,
   CheckCircle2,
   FileCheck,
-  X,
+  X
 } from 'lucide-react';
-import { Payment, Owner, Tenant, LeaseContract, Property, UserAccount } from '../types';
+import {Payment, Owner, Tenant, LeaseContract, Property, UserAccount, AgencySettings } from '../types';
 import { LeaseContractModal } from './LeaseContractModal';
 import { OwnerMandateModal } from './OwnerMandateModal';
 import { InspectionPrintModal } from './InspectionPrintModal';
@@ -27,6 +27,7 @@ interface DocumentsViewProps {
   currentUser?: UserAccount;
   onOpenReceipt: (payment: Payment) => void;
   onOpenOwnerSlip: (owner: Owner) => void;
+  settings?: AgencySettings;
 }
 
 export const DocumentsView: React.FC<DocumentsViewProps> = ({
@@ -38,6 +39,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   currentUser,
   onOpenReceipt,
   onOpenOwnerSlip,
+  settings
 }) => {
   const role = currentUser?.role || 'ADMIN';
   const isProprietaire = role === 'PROPRIETAIRE';
@@ -74,7 +76,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           return;
         }
         onOpenReceipt(payments[0]);
-      },
+      }
     },
     {
       id: 'bulletin',
@@ -86,7 +88,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       action: () => {
         if (!requireOwner()) return;
         onOpenOwnerSlip(owners[0]);
-      },
+      }
     },
     {
       id: 'mandat',
@@ -98,7 +100,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       action: () => {
         if (!requireOwner()) return;
         setSelectedDoc('mandat');
-      },
+      }
     },
     {
       id: 'bail',
@@ -110,7 +112,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       action: () => {
         if (!requireContract()) return;
         setSelectedDoc('bail');
-      },
+      }
     },
     {
       id: 'etat_lieux',
@@ -125,7 +127,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           return;
         }
         setSelectedDoc('etat_lieux');
-      },
+      }
     },
     {
       id: 'mise_demeure',
@@ -134,7 +136,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       description: 'Sommation formelle de payer sous 8 jours francs avant saisine d’huissier et résiliation de bail.',
       icon: ShieldAlert,
       color: 'text-rose-400',
-      action: () => setSelectedDoc('mise_demeure'),
+      action: () => setSelectedDoc('mise_demeure')
     },
        {
       id: 'fiche',
@@ -143,7 +145,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       description: 'Dossier de candidature et informations complètes: identité, employeur, garant et conjoint.',
       icon: Users,
       color: 'text-amber-400',
-      action: () => setSelectedDoc('fiche'),
+      action: () => setSelectedDoc('fiche')
     },
   ];
 
@@ -242,6 +244,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       {selectedDoc === 'mandat' && owners[0] && (
         <OwnerMandateModal
           owner={owners[0]}
+          agencySettings={settings}
           onClose={() => setSelectedDoc(null)}
         />
       )}
@@ -249,6 +252,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       {/* Modal: État des Lieux Type */}
       {selectedDoc === 'etat_lieux' && tenants[0] && (
         <InspectionPrintModal
+          agencySettings={settings}
           inspection={{
             id: `edl-${tenants[0].id}`,
             ref: `EDL-${tenants[0].ref}`,
@@ -263,7 +267,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             etatGeneral: 'Bon état',
             remarques: '',
             statut: 'Validé',
-            signe: true,
+            signe: true
           }}
           onClose={() => setSelectedDoc(null)}
         />

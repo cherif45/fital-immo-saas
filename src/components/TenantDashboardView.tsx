@@ -8,7 +8,7 @@ import { ContractStatus,
   MaintenanceTicket,
   UserAccount,
   PaymentMethodCode
-} from '../types';
+, AgencySettings } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
   Home, 
@@ -49,6 +49,7 @@ interface TenantDashboardViewProps {
   onOpenReceipt: (payment: Payment) => void;
   onInitiateOnlinePayment?: (amount: number, methodCode: PaymentMethodCode, ref: string) => void;
   onSubmitIncident?: (title: string, description: string) => void;
+  settings?: AgencySettings;
 }
 
 export function TenantDashboardView({
@@ -61,7 +62,7 @@ export function TenantDashboardView({
   maintenance,
   onOpenReceipt,
   onInitiateOnlinePayment,
-  onSubmitIncident,
+  onSubmitIncident
 }: TenantDashboardViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<
     'overview' | 'home' | 'payments' | 'receipts' | 'incident'
@@ -105,7 +106,7 @@ export function TenantDashboardView({
     tva: 0,
     tom: Math.round(tenant.loyerMensuel * 0.036),
     tlv: 0,
-    statut: 'Actif' as ContractStatus,
+    statut: 'Actif' as ContractStatus
   };
 
   const sampleInspection = myInspections.length > 0 ? myInspections[0] : {
@@ -125,7 +126,7 @@ export function TenantDashboardView({
       { piece: 'Chambre', nom: 'Portes & Serrures', etat: 'Bon état' as const, commentaire: 'Clés testées et fonctionnelles', coutReparationEstime: 0 },
       { piece: 'Cuisine', nom: 'Robinetterie & Évier', etat: 'Très bon état' as const, commentaire: 'Aucune fuite constatée', coutReparationEstime: 0 },
       { piece: 'Salle de bain', nom: 'Sanitaires & Chauffe-eau', etat: 'Bon état' as const, commentaire: 'Alimentation vérifiée', coutReparationEstime: 0 },
-    ],
+    ]
   };
 
   const handleIncidentSubmit = (e: React.FormEvent) => {
@@ -628,6 +629,7 @@ export function TenantDashboardView({
       {/* Modal: État des Lieux Imprimable */}
       {selectedInspectionForPrint && (
         <InspectionPrintModal
+          agencySettings={settings}
           inspection={selectedInspectionForPrint}
           onClose={() => setSelectedInspectionForPrint(null)}
         />

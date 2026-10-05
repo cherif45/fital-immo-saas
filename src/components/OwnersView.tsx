@@ -17,9 +17,9 @@ import {
   Download,
   PhoneCall,
   MessageSquare,
-  Send,
+  Send
 } from 'lucide-react';
-import { Owner, Property, Payment, Unit, Building } from '../types';
+import { Owner, Property, Payment, Unit, Building , AgencySettings } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { OwnerMandateModal } from './OwnerMandateModal';
@@ -35,6 +35,7 @@ interface OwnersViewProps {
   onAddOwner: (owner: Owner) => void;
   onUpdateOwner?: (owner: Owner) => void;
   onDeleteOwner?: (ownerId: string) => void;
+  settings?: AgencySettings;
 }
 
 // Helper : libellé du type de pièce
@@ -62,6 +63,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
   onAddOwner,
   onUpdateOwner,
   onDeleteOwner,
+  settings
 }) => {
   const [search, setSearch] = useState('');
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -140,7 +142,7 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
       banque,
       compteBancaire: compteBancaire || `SN08 SN012 012345678901 ${Math.floor(10 + Math.random() * 89)}`,
       totalBiens: 1,
-      totalLoyersMensuels: 350000,
+      totalLoyersMensuels: 350000
     };
     onAddOwner(newOwner);
     setIsFormModalOpen(false);
@@ -387,6 +389,7 @@ const totalLotsRent = ownerUnits.reduce((sum: number, u: any) => sum + (u.loyerB
         <OwnerMandateModal
           owner={selectedOwnerForMandate}
           properties={properties}
+          agencySettings={settings}
           onClose={() => setSelectedOwnerForMandate(null)}
         />
       )}

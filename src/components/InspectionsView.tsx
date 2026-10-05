@@ -9,9 +9,9 @@ import {
   Calendar,
   Building,
   User,
-  Download,
+  Download
 } from 'lucide-react';
-import { Inspection, Tenant, Property } from '../types';
+import { Inspection, Tenant, Property , AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { InspectionPrintModal } from './InspectionPrintModal';
 
@@ -20,6 +20,7 @@ interface InspectionsViewProps {
   tenants: Tenant[];
   properties: Property[];
   onAddInspection: (inspection: Inspection) => void;
+  settings?: AgencySettings;
 }
 
 export const InspectionsView: React.FC<InspectionsViewProps> = ({
@@ -27,6 +28,7 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
   tenants,
   properties,
   onAddInspection,
+  settings
 }) => {
   const [search, setSearch] = useState('');
   const [selectedInspectionForPrint, setSelectedInspectionForPrint] = useState<Inspection | null>(null);
@@ -69,7 +71,7 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
       etatGeneral: formEtatGeneral,
       remarques: formRemarques,
       statut: 'Validé',
-      signe: true,
+      signe: true
     };
 
     onAddInspection(newInspection);
@@ -353,6 +355,7 @@ setIsSubmitting(false);
       {/* Modal Print État des Lieux */}
       {selectedInspectionForPrint && (
         <InspectionPrintModal
+          agencySettings={settings}
           inspection={selectedInspectionForPrint}
           onClose={() => setSelectedInspectionForPrint(null)}
         />
