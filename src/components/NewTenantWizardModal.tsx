@@ -4,12 +4,14 @@ import {
   CheckCircle2, X, ChevronRight, ChevronLeft, AlertTriangle,
   Percent, User, Users,
 } from 'lucide-react';
-import { Property, Tenant, LeaseContract, Inspection, Unit } from '../types';
+import { AgencySettings, Property, Tenant, LeaseContract, Inspection, Unit } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface NewTenantWizardModalProps {
   properties: Property[];
   units?: Unit[];
+  settings?: AgencySettings;
   onComplete: (data: {
     tenant: Tenant;
     contract: LeaseContract;
@@ -65,6 +67,7 @@ function nombreEnLettres(n: number): string {
 export function NewTenantWizardModal({
   properties,
   units = [],
+  settings,
   onComplete,
   onClose,
 }: NewTenantWizardModalProps) {
@@ -99,7 +102,7 @@ export function NewTenantWizardModal({
   // ============================================================
   // ÉTAPE 3 : Contrat (tous les champs de ContractsView)
   // ============================================================
-  const [refLocatif, setRefLocatif] = useState(`CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [refLocatif, setRefLocatif] = useState(() => createDocumentNumber(settings?.prefixContrat, 'BAIL-'));
   const [dateContrat, setDateContrat] = useState(new Date().toISOString().split('T')[0]);
   const [debutContrat, setDebutContrat] = useState(new Date().toISOString().split('T')[0]);
   const [refPeriode, setRefPeriode] = useState(new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
@@ -187,8 +190,7 @@ export function NewTenantWizardModal({
     const contractId = crypto.randomUUID();
     const inspectionId = crypto.randomUUID();
 
-    // Ref locataire format LOC-2026-XXXXX
-    const refLocataire = `LOC-${new Date().getFullYear()}-${String(Math.floor(1 + Math.random() * 99999)).padStart(5, '0')}`;
+    const refLocataire = createDocumentNumber(undefined, 'LOC-');
 
     const newTenant: Tenant = {
       id: tenantId,
@@ -265,7 +267,7 @@ export function NewTenantWizardModal({
 
     const newInspection: Inspection = {
       id: inspectionId,
-      ref: `EDL-E-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      ref: createDocumentNumber(undefined, 'EDL-E-'),
       bienId: selectedBien.id,
       bienNom: selectedBien.nom,
       locataireId: tenantId,

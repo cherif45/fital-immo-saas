@@ -66,13 +66,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 4. Si succès → créer la quittance
     if (isSuccess && locataireId && periode) {
-      try {
-        await createPaymentFromWebhook(
-          agencyId, locataireId, montant, periode, 'WAVE', waveTxId
-        );
-      } catch (err: any) {
-        console.error('Erreur création quittance:', err.message);
-      }
+      await createPaymentFromWebhook(
+        agencyId, locataireId, montant, periode, 'WAVE', waveTxId
+      );
     }
 
     return res.status(200).json({ received: true });

@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { createDocumentNumber } from '../../src/lib/documentNumber.js';
+import { getPeriodDueDate } from '../../src/lib/payments/dueDate.js';
 
 // ⚠️ Ces variables doivent être dans .env.local ET dans Vercel Environment Variables
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
@@ -15,6 +17,13 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+export class PaymentAlreadyExistsError extends Error {
+  constructor() {
+    super('Un paiement est déjà en cours ou confirmé pour cette période.');
+    this.name = 'PaymentAlreadyExistsError';
+  }
+}
 
 /**
  * Récupère les settings d'une agence avec ses clés API
@@ -52,6 +61,7 @@ export async function savePaymentTransaction(tx: {
     .select()
     .single();
 
+  if (error?.code === '23505') throw new PaymentAlreadyExistsError();
   if (error) throw new Error(`Erreur sauvegarde transaction: ${error.message}`);
   return data;
 }
@@ -62,20 +72,39 @@ export async function savePaymentTransaction(tx: {
 export async function checkDuplicatePayment(
   agencyId: string,
   locataireId: string,
-  periode: string,
-  provider: string
+  periode: string
 ): Promise<boolean> {
-  const { data } = await supabaseAdmin
+  const normalizedPeriod = periode.trim().toLowerCase();
+  const { data: transactions, error: transactionError } = await supabaseAdmin
     .from('payment_transactions')
-    .select('id, status')
+    .select('id, periode')
     .eq('agency_id', agencyId)
     .eq('locataire_id', locataireId)
     .eq('periode', periode)
-    .eq('provider', provider)
     .in('status', ['pending', 'success'])
-    .maybeSingle();
+  if (transactionError) throw new Error(`Erreur vérification paiement en ligne: ${transactionError.message}`);
+  if (transactions?.some((transaction) => transaction.periode.trim().toLowerCase() === normalizedPeriod)) {
+    return true;
+  }
 
-  return !!data;
+  const { data: payments, error: paymentError } = await supabaseAdmin
+    .from('payments')
+    .select('periode, statut, verification_statut, deleted_at')
+    .eq('agency_id', agencyId)
+    .eq('locataire_id', locataireId)
+    .eq('periode', periode)
+    .is('deleted_at', null);
+  if (paymentError) throw new Error(`Erreur vérification des paiements existants: ${paymentError.message}`);
+
+  return !!payments?.some((payment) =>
+    payment.periode.trim().toLowerCase() === normalizedPeriod &&
+    payment.verification_statut !== 'rejete' &&
+    (
+      payment.verification_statut === 'en_attente' ||
+      payment.statut === 'Payé' ||
+      payment.statut === 'En attente'
+    )
+  );
 }
 
 /**
@@ -104,17 +133,60 @@ export async function createPaymentFromWebhook(
   provider: string,
   transactionId: string
 ) {
-  // Récupérer les infos du locataire
-  const { data: tenant } = await supabaseAdmin
-    .from('tenants')
-    .select('nom, prenom, bien_id, bien_nom, proprietaire_id, loyer_mensuel')
-    .eq('id', locataireId)
+  const { data: existingPayment, error: existingPaymentError } = await supabaseAdmin
+    .from('payments')
+    .select('ref, quittance_numero')
+    .eq('agency_id', agencyId)
+    .eq('reference_transaction', transactionId)
     .maybeSingle();
 
-  if (!tenant) throw new Error('Locataire introuvable.');
+  if (existingPaymentError) {
+    throw new Error(`Erreur vérification du paiement reçu: ${existingPaymentError.message}`);
+  }
+  if (existingPayment) {
+    return { quittanceNumero: existingPayment.quittance_numero, ref: existingPayment.ref };
+  }
 
-  const quittanceNumero = `QUI-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
-  const ref = `PAY-${provider}-${Date.now().toString().slice(-8)}`;
+  // Récupérer les infos du locataire
+  const { data: tenant, error: tenantError } = await supabaseAdmin
+    .from('tenants')
+    .select('nom, prenom, bien_id, proprietaire_id, loyer_mensuel')
+    .eq('id', locataireId)
+    .eq('agency_id', agencyId)
+    .maybeSingle();
+
+  if (tenantError) throw new Error(`Erreur récupération locataire: ${tenantError.message}`);
+  if (!tenant) throw new Error('Locataire introuvable.');
+  if (!tenant.bien_id) throw new Error('Le locataire n’est associé à aucun bien.');
+
+  const { data: property, error: propertyError } = await supabaseAdmin
+    .from('properties')
+    .select('id, nom, proprietaire_id')
+    .eq('id', tenant.bien_id)
+    .eq('agency_id', agencyId)
+    .maybeSingle();
+
+  if (propertyError) throw new Error(`Erreur récupération bien: ${propertyError.message}`);
+  if (!property) throw new Error('Bien du locataire introuvable.');
+
+  const { data: contract, error: contractError } = await supabaseAdmin
+    .from('contracts')
+    .select('jour_echeance')
+    .eq('agency_id', agencyId)
+    .eq('locataire_id', locataireId)
+    .eq('bien_id', property.id)
+    .eq('statut', 'En cours')
+    .order('date_debut', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (contractError) throw new Error(`Erreur récupération du bail: ${contractError.message}`);
+
+  const agencySettings = await getAgencySettings(agencyId);
+  const quittanceNumero = createDocumentNumber(agencySettings.prefix_quittance, 'QUI-');
+  const ref = createDocumentNumber(agencySettings.prefix_paiement, `PAY-${provider}-`);
+  const today = new Date().toISOString().split('T')[0];
+  const dateEcheance = getPeriodDueDate(periode, Number(contract?.jour_echeance ?? 5));
 
   const { error } = await supabaseAdmin.from('payments').insert([{
     agency_id: agencyId,
@@ -122,9 +194,9 @@ export async function createPaymentFromWebhook(
     quittance_numero: quittanceNumero,
     locataire_id: locataireId,
     locataire_nom: `${tenant.prenom} ${tenant.nom}`,
-    bien_id: tenant.bien_id,
-    bien_nom: tenant.bien_nom,
-    proprietaire_id: tenant.proprietaire_id,
+    bien_id: property.id,
+    bien_nom: property.nom,
+    proprietaire_id: property.proprietaire_id,
     periode,
     loyer_base: montant,
     montant_total: montant,
@@ -135,7 +207,8 @@ export async function createPaymentFromWebhook(
     moyen_paiement_code: provider === 'WAVE' ? 'WAVE' : provider === 'ORANGE_MONEY' ? 'ORANGE_MONEY' : 'AUTRE',
     verification_statut: 'valide',
     reference_transaction: transactionId,
-    date_paiement: new Date().toISOString().split('T')[0],
+    date_paiement: today,
+    date_echeance: dateEcheance,
     recu_par: `Automatique ${provider}`,
     observation: `Paiement en ligne confirmé (tx: ${transactionId})`,
   }]);

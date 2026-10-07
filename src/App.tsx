@@ -15,6 +15,9 @@ import { useTheme } from './hooks/useTheme';
 import { useAgencySettings } from './hooks/useAgencySettings';
 import { supabase, isSupabaseConfigured } from './lib/supabase/client';
 import { formatNumber } from './lib/utils';
+import { findBlockingPayment } from './lib/payments/duplicate';
+import { createDocumentNumber } from './lib/documentNumber';
+import { createPendingMobilePayment } from './lib/payments/createPendingMobilePayment';
 // ============================================================
 // BUNDLE SPLITTING - Lazy imports
 // ============================================================
@@ -198,7 +201,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   
   // ðŸ†• Chargement des paramètres d'agence (dynamique, cache 5min)
-  const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
+  const { settings: agencySettings, reload: reloadAgencySettings } = useAgencySettings(currentUser?.agencyId);
   useTheme(); // Initialise le thème global
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -312,14 +315,30 @@ export default function App() {
           }
 
           if (profile) {
-            let agencyData = null;
-            if (profile.agency_id) {
-              const { data: agency } = await supabase
-                .from('agencies')
-                .select('name, slug, status')
-                .eq('id', profile.agency_id)
-                .maybeSingle();
-              agencyData = agency;
+            if (profile.statut === 'suspendu' || profile.statut === 'desactive') {
+              console.warn('Session restaurée refusée : compte suspendu ou désactivé.');
+              const { error } = await supabase.auth.signOut();
+              if (error) console.error('Impossible de fermer la session du compte bloqué :', error);
+              localStorage.removeItem('fital_immo_user');
+              localStorage.removeItem('fital_immo_current_user');
+              return;
+            }
+
+            const { data: agencyData, error: agencyError } = await supabase
+              .from('agencies')
+              .select('name, slug, status')
+              .eq('id', profile.agency_id)
+              .maybeSingle();
+            if (agencyError || !agencyData || !['active', 'trial'].includes(agencyData.status)) {
+              console.warn(
+                'Session restaurée refusée : agence inaccessible, suspendue ou inactive.',
+                agencyError?.message,
+              );
+              const { error } = await supabase.auth.signOut();
+              if (error) console.error('Impossible de fermer la session de l’agence bloquée :', error);
+              localStorage.removeItem('fital_immo_user');
+              localStorage.removeItem('fital_immo_current_user');
+              return;
             }
 
             const userAccount: UserAccount = {
@@ -334,10 +353,17 @@ export default function App() {
               permissions: profile.permissions || ['ALL'],
               organisation: agencyData?.name || 'FITAL-IMMO Agence',
               createdAt: session.user.created_at || new Date().toISOString(),
+              initiales: profile.initiales || (profile.prenom && profile.nom ? `${profile.prenom.trim()[0]}${profile.nom.trim()[0]}`.toUpperCase() : undefined),
+              signatureUrl: profile.signature_url || undefined,
+              fonction: profile.fonction || undefined,
             };
             setCurrentUser(userAccount);
             persistCollection('current_user', userAccount);
             setUsers((prev) => (prev.some((u) => u.id === userAccount.id) ? prev : [userAccount, ...prev]));
+          } else {
+            console.warn('Session restaurée refusée : profil utilisateur absent.');
+            const { error } = await supabase.auth.signOut();
+            if (error) console.error('Impossible de fermer la session sans profil :', error);
           }
         } else {
           const localUserJson = localStorage.getItem('fital_immo_user');
@@ -484,6 +510,10 @@ export default function App() {
   };
 
   const handleSwitchUser = (newUser: UserAccount) => {
+    if (newUser.statut !== 'actif') {
+      alert('Ce compte est suspendu ou désactivé et ne peut pas être ouvert.');
+      return;
+    }
     setCurrentUser(newUser);
     persistCollection('current_user', newUser);
     localStorage.setItem('fital_immo_user', JSON.stringify(newUser));
@@ -611,22 +641,32 @@ export default function App() {
   // ============================================================
   // HANDLERS : PAIEMENTS (avec anti-doublon affiné v3.0.5)
   // ============================================================
-  const handleAddPayment = (newPayment: Payment) => {
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : bloque uniquement Payé + Payé
-    const existingPaid = payments.find(
-      (p) =>
-        p.locataireId === newPayment.locataireId &&
-        p.periode === newPayment.periode &&
-        p.statut === 'Payé' &&
-        newPayment.statut === 'Payé'
+  const handleAddPayment = async (newPayment: Payment): Promise<boolean> => {
+    const existingPayment = findBlockingPayment(
+      payments,
+      newPayment.locataireId,
+      newPayment.periode,
     );
 
-    if (existingPaid) {
+    const existingPaymentIsPending = existingPayment?.statut === 'En attente'
+      || existingPayment?.verificationStatut === 'en_attente';
+    const isUpdatingExistingPayment = existingPayment?.id === newPayment.id;
+
+    if (existingPayment && !isUpdatingExistingPayment && existingPaymentIsPending) {
+      alert(
+        `â³ Paiement déjà en attente\n\n` +
+        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
+        `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
+      );
+      return false;
+    }
+
+    if (existingPayment && !isUpdatingExistingPayment) {
       alert(
         `â›” DOUBLON DÃƒ‰TECTÃƒ‰ "” Paiement refusé\n\n` +
-        `Un paiement de ${formatNumber(existingPaid.montantPaye)} FCFA existe déjà pour ce locataire (${existingPaid.periode}).\n\n` +
-        `Quittance : ${existingPaid.quittanceNumero}\n` +
-        `Date : ${existingPaid.datePaiement}\n\n` +
+        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ce locataire (${existingPayment.periode}).\n\n` +
+        `Quittance : ${existingPayment.quittanceNumero}\n` +
+        `Date : ${existingPayment.datePaiement}\n\n` +
         `Pour éviter un double encaissement, ce paiement est bloqué.`
       );
       handleTriggerAuditLog(
@@ -635,23 +675,7 @@ export default function App() {
         `Tentative bloquée : ${newPayment.locataireNom} - ${newPayment.periode} - ${formatNumber(newPayment.montantPaye)} FCFA`,
         newPayment.quittanceNumero
       );
-      return;
-    }
-
-    const existingPending = payments.find(
-      (p) =>
-        p.locataireId === newPayment.locataireId &&
-        p.periode === newPayment.periode &&
-        p.verificationStatut === 'en_attente'
-    );
-
-    if (existingPending) {
-      alert(
-        `â³ Paiement déjà en attente\n\n` +
-        `Un paiement de ${formatNumber(existingPending.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
-        `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
-      );
-      return;
+      return false;
     }
 
     const enrichedPayment: Payment = {
@@ -660,8 +684,21 @@ export default function App() {
       createdByNom: newPayment.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
       createdByRole: newPayment.createdByRole || currentUser?.role,
     };
-    setPayments((prev) => { const next = [enrichedPayment, ...prev]; persistCollection('payments', next); return next; });
-    if (currentUser?.agencyId) savePaymentToDbWithLog(enrichedPayment, currentUser.agencyId, currentUser.id).catch(console.warn);
+    if (currentUser?.agencyId) {
+      const result = await savePaymentToDbWithLog(enrichedPayment, currentUser.agencyId, currentUser.id);
+      if (!result.success) {
+        alert(result.error || "Le paiement n'a pas pu être enregistré.");
+        return false;
+      }
+    }
+    setPayments((prev) => {
+      const exists = prev.some((payment) => payment.id === enrichedPayment.id);
+      const next = exists
+        ? prev.map((payment) => payment.id === enrichedPayment.id ? enrichedPayment : payment)
+        : [enrichedPayment, ...prev];
+      persistCollection('payments', next);
+      return next;
+    });
 
     if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
       const newCashEntry: CashMovement = {
@@ -680,6 +717,9 @@ export default function App() {
     }
 
     setTenants((prev) => {
+      if (newPayment.statut === 'En attente' || newPayment.verificationStatut === 'en_attente') {
+        return prev;
+      }
       const next = prev.map((t) => {
         if (t.id !== newPayment.locataireId) return t;
 
@@ -728,7 +768,12 @@ export default function App() {
     handleLogActivity(activityEntry);
     console.log('Ã°Ÿ”¥ LOG ACTIVITÃƒ‰ ENVOYÃƒ‰:', activityEntry.title);
 
-    alert(`âœ… Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`);
+    alert(
+      newPayment.statut === 'En attente' || newPayment.verificationStatut === 'en_attente'
+        ? `Paiement transmis et en attente de validation.\n\nRéférence : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`
+        : `âœ… Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`
+    );
+    return true;
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -740,7 +785,7 @@ export default function App() {
       propertyNom: t?.bienNom || 'Résidence FITAL-IMMO',
       amount: amount || t?.arrieresCumules || t?.loyerMensuel || 250000,
       period: selectedPeriod,
-      reference: `LOY-${(t?.nom || 'CLI').slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+      reference: createDocumentNumber(agencySettings?.prefixPaiement, 'PAY-'),
       tenantId: t?.id,
     });
   };
@@ -754,79 +799,98 @@ export default function App() {
     }
   };
 
-  const handleConfirmMobileMoneyPayment = (amount: number, method: string, transactionId: string) => {
-    const tId = mobileMoneyModalConfig?.tenantId;
-    const tenant = tenants.find((t) => t.id === tId) || tenants[0];
+  const resolvePaymentStatus = (payment: Partial<Payment>): Payment['statut'] => {
+    const paid = Number(payment.montantPaye ?? 0);
+    const totalFromBreakdown =
+      (payment.loyerBase ?? 0) +
+      (payment.charges ?? 0) +
+      (payment.penalites ?? 0) +
+      (payment.tva ?? 0) +
+      (payment.tom ?? 0);
+    const total = Number(
+      payment.montantTotal ?? ((totalFromBreakdown > 0 ? totalFromBreakdown : paid)),
+    );
+
+    if (payment.verificationStatut === 'en_attente') return 'En attente';
+    if (payment.verificationStatut === 'rejete') return 'Impayé';
+    if (total > 0 && paid >= total) return 'Payé';
+    if (paid > 0) return 'Partiel';
+    if (payment.statut === 'Impayé') return 'Impayé';
+    return 'Impayé';
+  };
+
+  const handleConfirmMobileMoneyPayment = async (
+    amount: number,
+    method: string,
+    transactionId: string,
+    tenantId = mobileMoneyModalConfig?.tenantId,
+    period = selectedPeriod,
+  ): Promise<boolean> => {
+    const tenant = tenants.find((t) => t.id === tenantId);
     const property = properties.find((p) => p.id === tenant?.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
-    if (!tenant || !property) { alert('âŒ Impossible de valider le paiement : locataire ou bien introuvable.'); return; }
-
-    const existingPayment = payments.find(
-      (p) =>
-        p.locataireId === tenant.id &&
-        p.periode === selectedPeriod &&
-        p.statut === 'Payé'
-    );
-
-    if (existingPayment) {
-      alert(
-        `â›” PAIEMENT DÃƒ‰JÃƒ€ ENREGISTRÃƒ‰\n\n` +
-        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ${tenant.prenom} ${tenant.nom} (${selectedPeriod}).\n\n` +
-        `Quittance : ${existingPayment.quittanceNumero}\n\n` +
-        `Impossible de créer un doublon.`
-      );
-      setMobileMoneyModalConfig(null);
-      return;
+    if (!tenant || !property || !period.trim() || !transactionId.trim() || !Number.isFinite(amount) || amount <= 0) {
+      alert('âŒ Impossible de valider le paiement : données de paiement invalides ou locataire/bien introuvable.');
+      return false;
     }
 
-    const pendingPayment = payments.find(
-      (p) =>
-        p.locataireId === tenant.id &&
-        p.periode === selectedPeriod &&
-        p.verificationStatut === 'en_attente'
-    );
+    const samePeriodPayment = findBlockingPayment(payments, tenant.id, period);
 
-    if (pendingPayment) {
+    if (samePeriodPayment) {
       alert(
-        `â³ PAIEMENT EN ATTENTE\n\n` +
-        `Un paiement de ${formatNumber(pendingPayment.montantPaye)} FCFA est déjà en attente de validation.\n\n` +
-        `Veuillez d'abord valider ou rejeter ce paiement.`
+        `â³ PAIEMENT DÉJÀ TRAITÉ\n\n` +
+        `Un paiement de ${formatNumber(samePeriodPayment.montantPaye)} FCFA est déjà enregistré pour ${tenant.prenom} ${tenant.nom} (${period}).\n\n` +
+        `Statut : ${
+          samePeriodPayment.statut === 'En attente' || samePeriodPayment.verificationStatut === 'en_attente'
+            ? 'En attente de validation'
+            : samePeriodPayment.statut
+        }.\n\n` +
+        `Veuillez d'abord le valider ou le rejeter avant d'en créer un nouveau.`
       );
       setMobileMoneyModalConfig(null);
-      return;
+      return false;
     }
 
-    const newPayment: Payment = {
-      id: crypto.randomUUID(),
-      ref: transactionId || `PAY-MM-${Date.now().toString().slice(-6)}`,
-      quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
-      locataireId: tenant.id,
-      locataireNom: `${tenant.prenom} ${tenant.nom}`,
-      bienId: property.id,
-      bienNom: property.nom,
-      proprietaireId: owner?.id || '',
-      proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : 'Propriétaire',
-      periode: selectedPeriod,
-      loyerBase: amount, charges: 0, tva: 0, tom: 0, penalites: 0,
-      montantTotal: amount, montantPaye: amount, montantRestant: 0,
-      modePaiement: 'Mobile Money',
-      moyenPaiementCode: method === 'WAVE' ? 'WAVE' : 'ORANGE_MONEY',
-      numeroTransaction: transactionId,
-      datePaiement: new Date().toISOString().split('T')[0],
-      statut: 'Payé',
-      observation: `Règlement via ${method === 'WAVE' ? 'Wave' : 'Orange Money'} (Tx: ${transactionId})`,
-      auteurId: currentUser?.id,
-      auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
-      dateHeurePaiement: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      typeRecu: 'QUITTANCE',
-    };
-    handleAddPayment(newPayment);
-    setMobileMoneyModalConfig(null);
+    const methodCode = method === 'WAVE' ? 'WAVE' : method === 'ORANGE_MONEY' ? 'ORANGE_MONEY' : 'AUTRE';
+    const newPayment = createPendingMobilePayment({
+      tenant,
+      property,
+      owner,
+      amount,
+      method: methodCode,
+      transactionId,
+      period,
+      settings: agencySettings,
+      currentUser,
+      dueDay: contracts.find((item) => item.locataireId === tenant.id)?.jourEcheance ?? 5,
+    });
+    const saved = await handleAddPayment(newPayment);
+    if (saved) setMobileMoneyModalConfig(null);
+    return saved;
   };
 
   const handleValidatePendingPayment = (paymentId: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'valide' as const, statut: 'Payé' as const, dateValidation: new Date().toISOString().split('T')[0], valideParId: currentUser?.id, valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système' } : p);
+      const next = prev.map((p) => {
+        if (p.id !== paymentId) return p;
+
+        const finalStatus = resolvePaymentStatus({
+          ...p,
+          verificationStatut: 'valide',
+          montantPaye: Number(p.montantPaye ?? 0),
+          montantTotal: Number(p.montantTotal ?? p.montantPaye ?? 0),
+        });
+
+        return {
+          ...p,
+          verificationStatut: 'valide' as const,
+          statut: finalStatus,
+          dateValidation: new Date().toISOString().split('T')[0],
+          valideParId: currentUser?.id,
+          valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
+          montantRestant: Math.max(0, Number(p.montantTotal ?? p.montantPaye ?? 0) - Number(p.montantPaye ?? 0)),
+        };
+      });
       persistCollection('payments', next);
       return next;
     });
@@ -835,7 +899,13 @@ export default function App() {
 
   const handleRejectPendingPayment = (paymentId: string, reason: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => p.id === paymentId ? { ...p, verificationStatut: 'rejete' as const, statut: 'Impayé' as const, motifRejet: reason } : p);
+      const next = prev.map((p) => p.id === paymentId ? {
+        ...p,
+        verificationStatut: 'rejete' as const,
+        statut: 'Impayé' as const,
+        motifRejet: reason,
+        montantRestant: Number(p.montantTotal ?? p.montantPaye ?? 0),
+      } : p);
       persistCollection('payments', next);
       return next;
     });
@@ -890,6 +960,23 @@ export default function App() {
     }
     setUsers((prev) => { const next = [user, ...prev]; persistCollection('users', next); return next; });
     return { success: true, error: isSupabaseConfigured ? undefined : 'Compte local.' };
+  };
+
+  const handleUpdateUser = async (
+    updatedUser: UserAccount,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const isLocalUser = updatedUser.id.startsWith('user-') || updatedUser.id.startsWith('usr-');
+    if (isSupabaseConfigured && !isLocalUser) {
+      const result = await saveUserToDb(updatedUser, updatedUser.agencyId || currentUser?.agencyId);
+      if (!result.success) return result;
+    }
+
+    setUsers((prev) => {
+      const next = prev.map((user) => user.id === updatedUser.id ? updatedUser : user);
+      persistCollection('users', next);
+      return next;
+    });
+    return { success: true };
   };
 
   const handleAddProperty = (newProperty: Property) => {
@@ -1193,10 +1280,14 @@ export default function App() {
     setInvoices((prev) => { const next = [enrichedInvoice, ...prev]; persistCollection('invoices', next); return next; });
     if (currentUser?.agencyId) saveInvoiceToDb(enrichedInvoice, currentUser.agencyId).catch(console.warn);
   };
-  const handleSaveSettings = (newSettings: AgencySettings) => {
+  const handleSaveSettings = async (newSettings: AgencySettings): Promise<void> => {
+    if (currentUser?.agencyId) {
+      const result = await saveSettingsToDb(newSettings, currentUser.agencyId);
+      if (!result.success) throw new Error(result.error || 'Impossible de sauvegarder les paramètres.');
+      await reloadAgencySettings();
+    }
     setSettings(newSettings);
     persistCollection('settings', newSettings);
-    if (currentUser?.agencyId) saveSettingsToDb(newSettings, currentUser.agencyId).catch(console.warn);
   };
   const handleOpenQuickReminder = (tenant: Tenant) => { setActiveTab('reminders'); };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
@@ -1419,8 +1510,6 @@ export default function App() {
               onOpenQuickReminder={handleOpenQuickReminder}
               onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
               onOpenNewProperty={() => setIsNewPropertyModalOpen(true)}
-              selectedPeriod={selectedPeriod}
-              setSelectedPeriod={setSelectedPeriod}
               currentUser={currentUser}
             />
           )}
@@ -1466,6 +1555,16 @@ export default function App() {
               inspections={scopedInspections}
               maintenance={scopedMaintenance}
               onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+              onInitiateOnlinePayment={(amount, method, transactionRef) => {
+                return handleConfirmMobileMoneyPayment(
+                  amount,
+                  method,
+                  transactionRef,
+                  currentUser.locataireId,
+                  selectedPeriod,
+                );
+              }}
+              paymentPeriod={selectedPeriod}
             /></ViewLoader>
           )}
 
@@ -1565,14 +1664,7 @@ export default function App() {
               buildings={buildings}
               onAddUser={handleAddUser}
               isSupabaseOnline={isSupabaseConfigured}
-              onUpdateUser={(updatedUser) => {
-                setUsers((prev) => {
-                  const next = prev.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-                  persistCollection('users', next);
-                  return next;
-                });
-                saveUserToDb(updatedUser, currentUser.agencyId).catch(console.warn);
-              }}
+              onUpdateUser={handleUpdateUser}
               onSwitchActiveUser={handleSwitchUser}
             /></ViewLoader>
           )}
@@ -1669,6 +1761,7 @@ export default function App() {
               tenants={scopedTenants}
               payments={scopedPayments}
               selectedPeriod={selectedPeriod}
+              settings={agencySettings}
               onOpenQuickReminder={handleOpenQuickComms}
               onOpenNewPayment={handleOpenNewPaymentForTenant}
               onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
@@ -1700,6 +1793,7 @@ export default function App() {
               isNewPaymentModalOpen={isNewPaymentModalOpen}
               setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
               initialTenantForPayment={initialTenantForPayment}
+              onValidatePendingPayment={handleValidatePendingPayment}
             /></ViewLoader>
           )}
 
@@ -1760,6 +1854,9 @@ export default function App() {
                 properties={scopedProperties}
                 units={scopedUnits}
                 payments={scopedPayments}
+                owners={owners}
+                selectedPeriod={selectedPeriod}
+                settings={agencySettings}
                 currentUser={currentUser}
                 onOpenQuickReminder={handleOpenQuickComms}
                 onOpenNewPayment={handleOpenNewPaymentForTenant}
@@ -1852,6 +1949,7 @@ export default function App() {
               tenants={scopedTenants}
               onAddInvoice={handleAddInvoice}
               currentUser={currentUser}
+              settings={agencySettings}
             /></ViewLoader>
           )}
 
@@ -1979,6 +2077,7 @@ export default function App() {
         <ViewLoader variant="form"><LazyNewTenantWizardModal
           properties={properties}
           units={units}
+          settings={agencySettings}
           onComplete={handleCompleteNewTenantWizard}
           onClose={() => setIsNewTenantWizardOpen(false)}
         /></ViewLoader>
@@ -2036,7 +2135,7 @@ export default function App() {
           tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
           propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
           period={mobileMoneyModalConfig.period || selectedPeriod}
-          reference={mobileMoneyModalConfig.reference || `LOY-${Date.now().toString().slice(-4)}`}
+          reference={mobileMoneyModalConfig.reference || createDocumentNumber(agencySettings?.prefixPaiement, 'PAY-')}
           onConfirmPayment={handleConfirmMobileMoneyPayment}
           waveNumero={settings.waveNumero}
           orangeMoneyCode={settings.orangeMoneyCode}

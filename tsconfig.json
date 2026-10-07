@@ -22,5 +22,21 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "._backups",
+    "**/._backups",
+    "**/backup-*",
+    "**/*backup*",
+    "**/src-APRES-CRASH-*",
+    "**/*.backup",
+    "**/*.backup-*",
+    "**/*.before-*",
+    "**/*.bak",
+    "**/*.bom.bak"
+  ]
 }

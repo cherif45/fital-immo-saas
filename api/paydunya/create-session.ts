@@ -3,6 +3,7 @@ import {
   getAgencySettings,
   savePaymentTransaction,
   checkDuplicatePayment,
+  PaymentAlreadyExistsError,
 } from '../_lib/supabaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Paramètres manquants.' });
     }
 
-    const isDuplicate = await checkDuplicatePayment(agencyId, locataireId, periode, 'PAYDUNYA');
+    const isDuplicate = await checkDuplicatePayment(agencyId, locataireId, periode);
     if (isDuplicate) {
       return res.status(409).json({ error: 'Paiement déjà en cours.' });
     }
@@ -92,6 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error('Erreur PayDunya create-session:', err);
-    return res.status(500).json({ error: err.message || 'Erreur serveur.' });
+    return res.status(err instanceof PaymentAlreadyExistsError ? 409 : 500).json({
+      error: err.message || 'Erreur serveur.',
+    });
   }
 }

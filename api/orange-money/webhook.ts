@@ -30,14 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (isSuccess) {
-      try {
-        await createPaymentFromWebhook(
-          tx.agency_id, tx.locataire_id, parseFloat(amount || tx.montant),
-          tx.periode, 'ORANGE_MONEY', txnid || tx.provider_transaction_id
-        );
-      } catch (err: any) {
-        console.error('Erreur création quittance OM:', err.message);
-      }
+      await createPaymentFromWebhook(
+        tx.agency_id, tx.locataire_id, parseFloat(amount || tx.montant),
+        tx.periode, 'ORANGE_MONEY', txnid || tx.provider_transaction_id
+      );
     }
 
     return res.status(200).json({ received: true });

@@ -69,6 +69,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     return stored && stored.length > 0 ? stored : initialUsers;
   };
 
+  const rejectAuthenticatedLogin = async (message: string) => {
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Impossible de fermer la session du compte bloqué :', error);
+        setErrorMsg(`${message} La fermeture de session a échoué : ${error.message}`);
+        setLoading(false);
+        return;
+      }
+    }
+    setErrorMsg(message);
+    setLoading(false);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -123,26 +137,33 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           }
 
           if (!profile) {
-            setErrorMsg('Compte valide mais profil absent. Contactez l\'administrateur.');
-            setLoading(false);
+            await rejectAuthenticatedLogin('Compte valide mais profil absent. Contactez l\'administrateur.');
             return;
           }
 
           if (profile.statut === 'suspendu' || profile.statut === 'desactive') {
-            setErrorMsg('Ce compte est suspendu ou désactivé. Contactez votre administrateur.');
-            setLoading(false);
+            await rejectAuthenticatedLogin('Ce compte est suspendu ou désactivé. Contactez votre administrateur.');
             return;
           }
 
           // 2. Charger l'agence séparément
-          let agencyData = null;
-          if (profile.agency_id) {
-            const { data: agency } = await supabase
-              .from('agencies')
-              .select('name, slug, status')
-              .eq('id', profile.agency_id)
-              .maybeSingle();
-            agencyData = agency;
+          const { data: agencyData, error: agencyError } = await supabase
+            .from('agencies')
+            .select('name, slug, status')
+            .eq('id', profile.agency_id)
+            .maybeSingle();
+
+          if (agencyError) {
+            await rejectAuthenticatedLogin(`Impossible de vérifier le statut de l'agence : ${agencyError.message}`);
+            return;
+          }
+          if (!agencyData) {
+            await rejectAuthenticatedLogin('Agence introuvable. Contactez votre administrateur.');
+            return;
+          }
+          if (!['active', 'trial'].includes(agencyData.status)) {
+            await rejectAuthenticatedLogin('Cette agence est suspendue ou inactive. Contactez votre administrateur.');
+            return;
           }
 
           // 3. Construire l'utilisateur

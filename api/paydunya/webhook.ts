@@ -30,18 +30,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (isSuccess) {
-      try {
-        await createPaymentFromWebhook(
-          tx.agency_id,
-          customData.locataire_id || tx.locataire_id,
-          parseFloat(data.invoice?.total_amount || tx.montant),
-          customData.periode || tx.periode,
-          'PAYDUNYA',
-          token
-        );
-      } catch (err: any) {
-        console.error('Erreur création quittance PayDunya:', err.message);
-      }
+      await createPaymentFromWebhook(
+        tx.agency_id,
+        customData.locataire_id || tx.locataire_id,
+        parseFloat(data.invoice?.total_amount || tx.montant),
+        customData.periode || tx.periode,
+        'PAYDUNYA',
+        token
+      );
     }
 
     return res.status(200).json({ received: true });

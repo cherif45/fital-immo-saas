@@ -14,6 +14,7 @@ import {
 import { Inspection, Tenant, Property , AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { InspectionPrintModal } from './InspectionPrintModal';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface InspectionsViewProps {
   inspections: Inspection[];
@@ -59,7 +60,7 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({
 
     const newInspection: Inspection = {
       id: crypto.randomUUID(),
-      ref: `EDL-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      ref: createDocumentNumber(undefined, 'EDL-'),
       bienId: formBienId,
       bienNom: bien?.nom || 'Bien',
       locataireId: formLocataireId,

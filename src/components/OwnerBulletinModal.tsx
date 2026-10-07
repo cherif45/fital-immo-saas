@@ -529,7 +529,7 @@ console.log('🔍 data.payments:', data?.payments);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div className="bulletin-print-modal bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
         <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
           <div className="flex items-center gap-3">
@@ -559,7 +559,7 @@ console.log('🔍 data.payments:', data?.payments);
         </div>
 
         {/* Document */}
-        <div className="print-container p-8 bg-white text-neutral-900 overflow-y-auto">
+        <div className="bulletin-print-container print-container p-8 bg-white text-neutral-900 overflow-y-auto">
           {/* PAGE 1 */}
           <div className="print-page">
             {/* En-tête dynamique */}

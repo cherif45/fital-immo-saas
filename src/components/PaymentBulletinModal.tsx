@@ -102,7 +102,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div className="bulletin-print-modal bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Top action bar (no-print) */}
         <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 no-print">
           <div className="flex items-center gap-2 text-white font-bold text-sm">
@@ -127,7 +127,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
         </div>
 
         {/* Printable Bulletin Document */}
-        <div className="p-8 bg-white text-neutral-900 rounded-b-3xl font-sans print-container">
+        <div className="bulletin-print-container p-8 bg-white text-neutral-900 rounded-b-3xl font-sans print-container">
           {/* Header dynamique */}
           <PrintHeader 
             agency={settings || FALLBACK_SETTINGS} 

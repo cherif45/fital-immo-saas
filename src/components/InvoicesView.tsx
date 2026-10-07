@@ -13,8 +13,9 @@ import {
   X,
   Eye
 } from 'lucide-react';
-import { Invoice, Property, Owner, Tenant } from '../types';
+import { AgencySettings, Invoice, Property, Owner, Tenant } from '../types';
 import { formatCurrencyFCFA, numberToWordsFrench } from '../lib/calculations/financial';
+import { createDocumentNumber } from '../lib/documentNumber';
 import { UserSignatureBlock } from './UserSignatureBlock';
 import { paginateTable } from '../lib/supabase/service';
 import { PrintHeader, PrintFooter } from './PrintHeader';
@@ -28,6 +29,7 @@ interface InvoicesViewProps {
   tenants: Tenant[];
   onAddInvoice: (newInvoice: Invoice) => void;
   currentUser?: { agencyId?: string } | null;
+  settings?: AgencySettings;
 }
 
 export function InvoicesView({
@@ -39,6 +41,7 @@ export function InvoicesView({
   tenants,
   onAddInvoice,
   currentUser,
+  settings,
 }: InvoicesViewProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -141,10 +144,11 @@ export function InvoicesView({
       }
     }
 
+    const invoiceNumber = createDocumentNumber(settings?.prefixFacture, 'FAC-');
     const newInv: Invoice = {
       id: crypto.randomUUID(),
-      ref: `FAC-2026-${String(invoices.length + 1).padStart(4, '0')}-${String(Date.now()).slice(-4)}`,
-      numero: `FAC-2026-${String(invoices.length + 1).padStart(4, '0')}`,
+      ref: invoiceNumber,
+      numero: invoiceNumber,
       type,
            proprietaireId: owner?.id,
       proprietaireNom: owner ? `${owner.prenom} ${owner.nom}` : undefined,

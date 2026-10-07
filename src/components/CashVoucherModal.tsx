@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Printer, FileText, CheckCircle2, DollarSign } from 'lucide-react';
 import { Owner, OwnerDisbursement } from '../types';
 import { formatCurrencyFCFA, numberToWordsFrench } from '../lib/calculations/financial';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface CashVoucherModalProps {
   owner: Owner;
@@ -24,7 +25,8 @@ export function CashVoucherModal({
   periode,
   onClose,
 }: CashVoucherModalProps) {
-  const voucherNumber = disbursement?.ref || `BCA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const fallbackVoucherNumber = React.useMemo(() => createDocumentNumber(undefined, 'BCA-'), []);
+  const voucherNumber = disbursement?.ref || fallbackVoucherNumber;
   const dateStr = disbursement?.dateReversement || new Date().toISOString().split('T')[0];
 
   const handlePrint = () => {

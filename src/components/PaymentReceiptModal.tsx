@@ -1,16 +1,17 @@
-import React, { useState, useMemo } from 'react';
-import { Printer, X } from 'lucide-react';
-import { Payment, AgencySettings, ReceiptType, Unit, Building } from '../types';
-import { formatNumber, formatDate } from '../lib/utils';
-import { UserSignatureBlock } from './UserSignatureBlock';
-import { PrintHeader, PrintFooter } from './PrintHeader';
+import React, { useState, useMemo } from "react";
+import { Printer, X } from "lucide-react";
+import { Payment, AgencySettings, ReceiptType, Unit, Building } from "../types";
+import { formatNumber, formatDate } from "../lib/utils";
+import { UserSignatureBlock } from "./UserSignatureBlock";
+import { PrintHeader, PrintFooter } from "./PrintHeader";
+import { createDocumentNumber } from "../lib/documentNumber";
 
 interface PaymentReceiptModalProps {
   payment: Payment;
   settings?: AgencySettings;
   units?: Unit[];
   buildings?: Building[];
-  currentUser?: { nom: string; prenom: string; role?: string } | null;
+  currentUser?: { nom: string; prenom: string; role?: string; initiales?: string } | null;
   onClose: () => void;
 }
 
@@ -18,31 +19,75 @@ interface PaymentReceiptModalProps {
 // Helper : Montant en lettres
 // ============================================================
 function nombreEnLettres(n: number): string {
-  if (n === 0) return 'zéro';
-  if (n < 0) return 'moins ' + nombreEnLettres(Math.abs(n));
-  const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
-  const dizaines = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
-  const centaines = ['', 'cent', 'deux cent', 'trois cent', 'quatre cent', 'cinq cent', 'six cent', 'sept cent', 'huit cent', 'neuf cent'];
+  if (n === 0) return "zéro";
+  if (n < 0) return "moins " + nombreEnLettres(Math.abs(n));
+  const unites = [
+    "",
+    "un",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+  ];
+  const dizaines = [
+    "",
+    "dix",
+    "vingt",
+    "trente",
+    "quarante",
+    "cinquante",
+    "soixante",
+    "soixante-dix",
+    "quatre-vingt",
+    "quatre-vingt-dix",
+  ];
+  const centaines = [
+    "",
+    "cent",
+    "deux cent",
+    "trois cent",
+    "quatre cent",
+    "cinq cent",
+    "six cent",
+    "sept cent",
+    "huit cent",
+    "neuf cent",
+  ];
 
   function convert(num: number): string {
-    if (num === 0) return '';
+    if (num === 0) return "";
     if (num < 10) return unites[num];
     if (num < 20) {
-      const speciaux = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+      const speciaux = [
+        "dix",
+        "onze",
+        "douze",
+        "treize",
+        "quatorze",
+        "quinze",
+        "seize",
+        "dix-sept",
+        "dix-huit",
+        "dix-neuf",
+      ];
       return speciaux[num - 10];
     }
     if (num < 100) {
       const d = Math.floor(num / 10);
       const u = num % 10;
-      if (d === 7 || d === 9) return dizaines[d - 1] + '-' + convert(10 + u);
-      if (d === 8 && u === 0) return 'quatre-vingts';
-      return dizaines[d] + (u > 0 ? '-' + unites[u] : '');
+      if (d === 7 || d === 9) return dizaines[d - 1] + "-" + convert(10 + u);
+      if (d === 8 && u === 0) return "quatre-vingts";
+      return dizaines[d] + (u > 0 ? "-" + unites[u] : "");
     }
     const c = Math.floor(num / 100);
     const r = num % 100;
     let prefix = centaines[c];
-    if (c > 1 && r === 0) prefix += 's';
-    return prefix + (r > 0 ? ' ' + convert(r) : '');
+    if (c > 1 && r === 0) prefix += "s";
+    return prefix + (r > 0 ? " " + convert(r) : "");
   }
 
   const milliards = Math.floor(n / 1000000000);
@@ -50,23 +95,30 @@ function nombreEnLettres(n: number): string {
   const milliers = Math.floor((n % 1000000) / 1000);
   const reste = n % 1000;
 
-  let result = '';
-  if (milliards > 0) result += convert(milliards) + ' milliard' + (milliards > 1 ? 's' : '') + ' ';
-  if (millions > 0) result += convert(millions) + ' million' + (millions > 1 ? 's' : '') + ' ';
-  if (milliers > 0) result += (milliers === 1 ? 'mille' : convert(milliers) + ' mille') + ' ';
+  let result = "";
+  if (milliards > 0)
+    result +=
+      convert(milliards) + " milliard" + (milliards > 1 ? "s" : "") + " ";
+  if (millions > 0)
+    result += convert(millions) + " million" + (millions > 1 ? "s" : "") + " ";
+  if (milliers > 0)
+    result += (milliers === 1 ? "mille" : convert(milliers) + " mille") + " ";
   if (reste > 0) result += convert(reste);
-
   return result.trim();
 }
 
 // ============================================================
 // Helper : Observation par défaut
 // ============================================================
-function getDefaultObservation(receiptType: ReceiptType, periode: string): string {
-  const mois = (periode || '').toUpperCase();
-  if (receiptType === 'RECU_ACOMPTE') return `ACOMPTE ${mois}`;
-  if (receiptType === 'QUITTANCE_SOLDE' || receiptType === 'QUITTANCE') return `SOLDE ${mois}`;
-  return '';
+function getDefaultObservation(
+  receiptType: ReceiptType,
+  periode: string,
+): string {
+  const mois = (periode || "").toUpperCase();
+  if (receiptType === "RECU_ACOMPTE") return `ACOMPTE ${mois}`;
+  if (receiptType === "QUITTANCE_SOLDE" || receiptType === "QUITTANCE")
+    return `SOLDE ${mois}`;
+  return "";
 }
 
 // ============================================================
@@ -78,23 +130,174 @@ function getPeriodeDates(periode: string): { debut: string; fin: string } {
   let annee = now.getFullYear();
 
   const moisMap: Record<string, number> = {
-    'janvier': 0, 'février': 1, 'fevrier': 1, 'mars': 2, 'avril': 3, 'mai': 4, 'juin': 5,
-    'juillet': 6, 'août': 7, 'aout': 7, 'septembre': 8, 'octobre': 9, 'novembre': 10, 'décembre': 11, 'decembre': 11,
+    janvier: 0,
+    février: 1,
+    fevrier: 1,
+    mars: 2,
+    avril: 3,
+    mai: 4,
+    juin: 5,
+    juillet: 6,
+    août: 7,
+    aout: 7,
+    septembre: 8,
+    octobre: 9,
+    novembre: 10,
+    décembre: 11,
+    decembre: 11,
   };
 
-  const parts = (periode || '').toLowerCase().trim().split(' ');
-  if (parts.length >= 1 && moisMap[parts[0]] !== undefined) mois = moisMap[parts[0]];
-  if (parts.length >= 2 && !isNaN(parseInt(parts[1]))) annee = parseInt(parts[1]);
+  const parts = (periode || "").toLowerCase().trim().split(" ");
+  if (parts.length >= 1 && moisMap[parts[0]] !== undefined)
+    mois = moisMap[parts[0]];
+  if (parts.length >= 2 && !isNaN(parseInt(parts[1])))
+    annee = parseInt(parts[1]);
 
   const debut = new Date(annee, mois, 1);
   const fin = new Date(annee, mois + 1, 0);
-
-  const fmt = (d: Date) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   return { debut: fmt(debut), fin: fmt(fin) };
 }
 
 // ============================================================
-// COMPOSANT
+// Helper : Rendu d'une COPIE complète (utilisé 2x)
+// ============================================================
+interface QuittanceCopyProps {
+  copyLabel: string;
+  titre: string;
+  settings?: AgencySettings | null;
+  numeroQuittance: number;
+  montantPaye: number;
+  payment: Payment;
+  isRecu: boolean;
+  nomUnite: string;
+  adresseImmeuble: string;
+  dateDebut: string;
+  dateFin: string;
+  datePaiement: string;
+  observation: string;
+  referenceCaissier: string;
+  currentUser?: { nom: string; prenom: string; role?: string; initiales?: string } | null;
+}
+
+const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
+  copyLabel,
+  titre,
+  settings,
+  numeroQuittance,
+  montantPaye,
+  payment,
+  isRecu,
+  nomUnite,
+  adresseImmeuble,
+  dateDebut,
+  dateFin,
+  datePaiement,
+  observation,
+  referenceCaissier,
+  currentUser,
+}) => (
+  <div className="quittance-copy">
+    <PrintHeader agency={settings || null} compact />
+
+    {/* Titre */}
+    <div className="text-center my-1.5">
+      <div className="inline-block border border-neutral-900 px-4 py-0.5">
+        <span className="text-xs font-black uppercase tracking-wider text-neutral-900">
+          {titre}
+        </span>
+      </div>
+    </div>
+
+    {/* N° et Montant */}
+    <div className="flex justify-between items-center px-4 mb-2">
+      <div className="border border-neutral-900 px-2.5 py-0.5 text-[9px] font-bold">
+        N° <span className="font-mono">{numeroQuittance}</span>
+      </div>
+      <div className="border border-dashed border-neutral-900 px-3 py-1 bg-neutral-50">
+        <span className="text-[7.5px] text-neutral-600 mr-2">Montant :</span>
+        <span className="text-xs font-black text-neutral-900 font-mono">
+          {formatNumber(montantPaye)} F CFA
+        </span>
+      </div>
+    </div>
+
+    {/* Corps */}
+    <div className="text-[9.5px] text-neutral-900 leading-snug space-y-1 px-4">
+      <div>
+        Reçu de Mr (mme) : <strong className="underline">{payment.locataireNom}</strong>
+      </div>
+      <div>
+        {isRecu ? "la somme de : " : "La somme de : "}
+        <strong>{nombreEnLettres(montantPaye)}</strong> Francs CFA
+      </div>
+      <div>
+        {isRecu ? "Désignation : " : "pour la Location de : "}
+        <strong>{nomUnite}</strong>
+      </div>
+      <div>
+        Lieux qu'il occupe dans l'immeuble situé : <strong>{adresseImmeuble}</strong>
+      </div>
+      {!isRecu ? (
+        <div>
+          Période : du <strong>{dateDebut}</strong> au <strong>{dateFin}</strong>
+        </div>
+      ) : (
+        <div>
+          Dakar, le <strong>{datePaiement}</strong>
+        </div>
+      )}
+      {observation && (
+        <div>
+          Observation : <strong>{observation}</strong>
+        </div>
+      )}
+    </div>
+
+    {/* Signature et Réf Caissier */}
+    <div className="flex items-end justify-between px-4 mt-2">
+      <div className="flex-1">
+        <UserSignatureBlock
+          userId={
+            (payment as any).created_by_id ||
+            (payment as any).createdById ||
+            (currentUser as any)?.id
+          }
+          label="Encaissé par"
+          date={payment.datePaiement || payment.date}
+          cachetUrl={settings?.cachetUrl || undefined}
+        />
+      </div>
+      <div className="text-right text-[8.5px] pl-3 flex-shrink-0">
+        <div className="font-bold text-neutral-900 mb-0.5">Réf Caissier</div>
+        <div className="font-mono text-xs font-bold text-neutral-900">{referenceCaissier}</div>
+      </div>
+    </div>
+
+    {/* NOTA */}
+    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[7px] text-neutral-700 leading-tight px-4">
+      <span className="font-bold">NOTA :</span> 1. Le locataire ne peut déménager sans préavis écrit. 2. Un reçu écrit doit être délivré dans les délais prescrits. 3. Réparations locatives à la charge du locataire sauf force majeure.
+    </div>
+
+    {/* Pied de page */}
+    <div className="mt-1 pt-0.5 border-t border-neutral-200 text-center text-[7px] text-neutral-600">
+      <span className="font-bold">{settings?.nomAgence || "FITAL-IMMO"}</span>
+      {settings?.telephone && <span> — Tél : {settings.telephone}</span>}
+      {settings?.rcNumero && <span> — RC : {settings.rcNumero}</span>}
+      {settings?.nineaNumero && <span> — NINEA : {settings.nineaNumero}</span>}
+    </div>
+
+    <div className="copy-label">{copyLabel}</div>
+  </div>
+);
+
+// ============================================================
+// COMPOSANT PRINCIPAL
 // ============================================================
 export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   payment,
@@ -106,74 +309,98 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
 }) => {
   const montantTotal = payment.montantTotal || 0;
   const montantPaye = payment.montantPaye || 0;
-  const montantRestant = payment.montantRestant ?? (montantTotal - montantPaye);
+  const montantRestant = payment.montantRestant ?? montantTotal - montantPaye;
 
   const [receiptType, setReceiptType] = useState<ReceiptType>(() => {
     if (payment.typeRecu) return payment.typeRecu;
     if (montantPaye >= montantTotal && montantRestant === 0) {
-      if (payment.referencePaiementInitial && payment.referencePaiementInitial !== payment.ref) {
-        return 'QUITTANCE_SOLDE';
+      if (
+        payment.referencePaiementInitial &&
+        payment.referencePaiementInitial !== payment.ref
+      ) {
+        return "QUITTANCE_SOLDE";
       }
-      return 'QUITTANCE';
+      return "QUITTANCE";
     }
-    if (montantPaye > 0 && montantPaye < montantTotal) return 'RECU_ACOMPTE';
-    return 'QUITTANCE';
+    if (montantPaye > 0 && montantPaye < montantTotal) return "RECU_ACOMPTE";
+    return "QUITTANCE";
   });
 
   const [observation, setObservation] = useState<string>(
-    payment.observation || getDefaultObservation(receiptType, payment.periode)
+    payment.observation || getDefaultObservation(receiptType, payment.periode),
   );
 
   const [numeroQuittance, setNumeroQuittance] = useState<number>(
-    (payment as any).numero_quittance || parseInt(payment.quittanceNumero?.replace(/\D/g, '') || '0') || Math.floor(Math.random() * 900000) + 100000
+    (payment as any).numero_quittance ||
+      parseInt(payment.quittanceNumero?.replace(/\D/g, "") || "0") ||
+    Number(createDocumentNumber(settings?.prefixQuittance, "QUI-").replace(/\D/g, "").slice(-12)),
   );
 
-  const [referenceCaissier, setReferenceCaissier] = useState<number>(
-    (payment as any).reference_caissier || Math.floor(Math.random() * 9000) + 1000
+  // Bug 3 & Bug 21 : Calcul des initiales Prénom + Nom (ex: "TA" pour Test ADMIN, "OF" pour Ousmane FALL)
+  const computedInitiales = useMemo(() => {
+    if (currentUser?.initiales?.trim()) return currentUser.initiales.trim().toUpperCase();
+    if (currentUser?.prenom && currentUser?.nom) {
+      const p = currentUser.prenom.trim()[0] || '';
+      const n = currentUser.nom.trim()[0] || '';
+      if (p || n) return `${p}${n}`.toUpperCase();
+    }
+    return "AG";
+  }, [currentUser]);
+
+  const [referenceCaissier, setReferenceCaissier] = useState<string>(
+    String(
+      (payment as any).reference_caissier ||
+      computedInitiales,
+    ).toUpperCase().slice(0, 4),
   );
 
   const unite = useMemo(
     () => units.find((u) => u.id === payment.bienId),
-    [units, payment.bienId]
+    [units, payment.bienId],
   );
   const immeuble = useMemo(
-    () => unite ? buildings.find((b) => b.id === unite.buildingId) : null,
-    [buildings, unite]
+    () => (unite ? buildings.find((b) => b.id === unite.buildingId) : null),
+    [buildings, unite],
   );
 
   const nomUnite = unite
-    ? `${unite.type} - ${unite.nom}${unite.etage ? ` (${unite.etage})` : ''}`
-    : (payment.bienNom || '—');
+    ? `${unite.type} - ${unite.nom}${unite.etage ? ` (${unite.etage})` : ""}`
+    : payment.bienNom || "—";
 
   const adresseImmeuble = immeuble
-    ? `${immeuble.adresse || ''} ${immeuble.nom || ''}`.trim()
-    : (immeuble?.nom || payment.bienNom || '—');
-
-  const nomAgence = settings?.nomAgence || 'MON AGENCE';
-  const slogan = settings?.slogan1 || settings?.slogan || '';
-  const adresse = settings?.adresse || '';
-  const telephone = settings?.standardTelephone || settings?.telephone || '+221 77 551 16 70 / 77 786 45 45';
-  const ninea = settings?.ninea || '';
-  const rc = settings?.rcNumero || '';
-  const email = settings?.email || '';
+    ? `${immeuble.adresse || ""} ${immeuble.nom || ""}`.trim()
+    : immeuble?.nom || payment.bienNom || "—";
 
   const { debut: dateDebut, fin: dateFin } = getPeriodeDates(payment.periode);
   const datePaiement = payment.datePaiement
     ? formatDate(payment.datePaiement)
-    : new Date().toLocaleDateString('fr-FR');
+    : new Date().toLocaleDateString("fr-FR");
 
-  const nomSignataire = currentUser
-    ? `${currentUser.prenom} ${currentUser.nom}`.trim()
-    : (payment.auteurNom || payment.createdByNom || payment.recuPar || 'Service Caisse');
-  const roleSignataire = currentUser?.role || payment.createdByRole || '—';
+  const titre =
+    receiptType === "RECU_ACOMPTE" ? "REÇU DE LOYER" : "QUITTANCE DE LOYER";
+  const isRecu = receiptType === "RECU_ACOMPTE";
 
-  const titre = receiptType === 'RECU_ACOMPTE' ? 'REÇU DE LOYER' : 'QUITTANCE DE LOYER';
-  const isRecu = receiptType === 'RECU_ACOMPTE';
+  const copyProps: Omit<QuittanceCopyProps, "copyLabel"> = {
+    titre,
+    settings,
+    numeroQuittance,
+    montantPaye,
+    payment,
+    isRecu,
+    nomUnite,
+    adresseImmeuble,
+    dateDebut,
+    dateFin,
+    datePaiement,
+    observation,
+    referenceCaissier,
+    currentUser,
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
-
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 print-reset">
+      <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col print-reset">
+        {/* Header écran */}
         <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
           <h2 className="text-base font-bold text-white">{titre}</h2>
           <div className="flex items-center gap-2">
@@ -184,15 +411,21 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               <Printer className="w-4 h-4" />
               <span>Imprimer</span>
             </button>
-            <button onClick={onClose} className="p-2 rounded-lg text-[#A8B4C4] hover:text-white cursor-pointer">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg text-[#A8B4C4] hover:text-white cursor-pointer"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* Formulaire écran */}
         <div className="p-4 bg-[#0F1B2D] border-b border-[#C9A96E]/20 flex flex-wrap gap-3 text-xs print:hidden">
           <div>
-            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">Type</label>
+            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">
+              Type
+            </label>
             <select
               value={receiptType}
               onChange={(e) => {
@@ -208,7 +441,9 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">N° Quittance</label>
+            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">
+              N° Quittance
+            </label>
             <input
               type="number"
               value={numeroQuittance}
@@ -217,16 +452,24 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             />
           </div>
           <div>
-            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">Réf Caissier</label>
+            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">
+              Réf Caissier
+            </label>
             <input
-              type="number"
+              type="text"
               value={referenceCaissier}
-              onChange={(e) => setReferenceCaissier(Number(e.target.value))}
-              className="w-24 px-3 py-1.5 rounded-lg bg-[#1E2E45] border border-[#C9A96E]/30 text-white font-mono"
+              onChange={(e) =>
+                setReferenceCaissier(e.target.value.toUpperCase())
+              }
+              maxLength={4}
+              placeholder="OF"
+              className="w-24 px-3 py-1.5 rounded-lg bg-[#1E2E45] border border-[#C9A96E]/30 text-white font-mono uppercase"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">Observation</label>
+            <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">
+              Observation
+            </label>
             <input
               type="text"
               value={observation}
@@ -237,108 +480,20 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           </div>
         </div>
 
-        {/* CONTENU IMPRIMABLE */}
+        {/* ============================================================ */}
+        {/* CONTENU IMPRIMABLE - 2 COPIES                                */}
+        {/* ============================================================ */}
         <div className="print-container p-6 bg-white text-neutral-900">
+          {/* COPIE 1 - LOCATAIRE */}
+          <QuittanceCopy {...copyProps} copyLabel="— COPIE LOCATAIRE —" />
 
-          {/* En-tête dynamique */}
-          <PrintHeader
-            agency={settings || null}
-            documentType={titre}
-          />
-
-          {/* Titre */}
-          <div className="text-center my-4">
-            <div className="inline-block border-2 border-neutral-900 px-6 py-1">
-              <span className="text-base font-black uppercase tracking-widest text-neutral-900">
-                {titre}
-              </span>
-            </div>
+          {/* LIGNE DE DÉCOUPE */}
+          <div className="cut-line">
+            ✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
           </div>
 
-          {/* N° et Montant */}
-          <div className="flex justify-end items-center gap-3 mb-5 pr-8">
-            <div className="border-2 border-neutral-900 px-3 py-1 text-[10px] font-bold">
-              N° <span className="font-mono">{numeroQuittance}</span>
-            </div>
-            <div className="border-2 border-dashed border-neutral-900 px-4 py-2">
-              <div className="text-[8px] text-neutral-600 text-center">Montant</div>
-              <div className="text-base font-black text-neutral-900 font-mono text-center">
-                {formatNumber(montantPaye)}
-              </div>
-            </div>
-          </div>
-
-          {/* Corps */}
-          <div className="text-[11px] text-neutral-900 leading-relaxed space-y-3 px-4">
-            <div>
-              Reçu de Mr (mme) : <strong className="underline">{payment.locataireNom}</strong>
-            </div>
-
-            <div>
-              {isRecu ? 'la somme de : ' : 'La somme de : '}
-              <strong>{nombreEnLettres(montantPaye)}</strong> Francs
-            </div>
-
-            <div>
-              {isRecu ? 'Désignation : ' : 'pour la Location de : '}
-              <strong>{nomUnite}</strong>
-            </div>
-
-            <div>
-              Lieux qu'il occupe dans la maison située : <strong>{adresseImmeuble}</strong>
-            </div>
-
-            {!isRecu ? (
-              <>
-                <div>
-                  Le dit commençant le : <strong>{dateDebut}</strong>
-                </div>
-                <div>
-                  et finissant le : <strong>{dateFin}</strong>
-                </div>
-              </>
-            ) : (
-              <div className="pt-2">
-                Dakar le : <strong>{datePaiement}</strong>
-              </div>
-            )}
-
-            <div className="pt-2">
-              Observation : <strong>{observation}</strong>
-            </div>
-          </div>
-
-                    {/* Signature DYNAMIQUE du caissier */}
-          <UserSignatureBlock 
-            userId={(payment as any).created_by_id || (payment as any).createdById || (currentUser as any)?.id} 
-            label="Encaissé par" 
-            date={payment.datePaiement || payment.date}
-          />
-
-          {/* Réf Caissier */}
-          <div className="mt-4 px-4 text-[10px] flex justify-end">
-            <div className="text-right">
-              <div className="font-bold text-neutral-900 mb-1">Réf Caissier</div>
-              <span className="font-mono text-sm font-bold">{referenceCaissier}</span>
-            </div>
-          </div>
-
-          {/* NOTA */}
-          <div className="mt-6 pt-3 border-t border-neutral-400 text-[8px] text-neutral-800 leading-relaxed px-4">
-            <div className="font-bold text-neutral-900 mb-1">NOTA :</div>
-            <div>1. Le locataire ne peut déménager sans prévenir par écrit au propriétaire ou à l'agence.</div>
-            <div>2. Un reçu écrit doit être délivré dans les délais prescrits.</div>
-            <div>3. Le bail est établi pour toutes réparations locatives à charge du locataire, sauf cas de force majeure.</div>
-          </div>
-
-          {/* Pied de page fixe */}
-          <div className="print-footer">
-            <div className="font-bold">
-              {settings?.nomAgence || ""}</div>
-            <div>
-              Tél : 33 825 17 38 RC : SN-DKR-2014B10248 NINEA : 0050875072C2 E-mail : tiser.immo@gmail.com
-            </div>
-          </div>
+          {/* COPIE 2 - AGENCE */}
+          <QuittanceCopy {...copyProps} copyLabel="— COPIE AGENCE —" />
         </div>
       </div>
     </div>

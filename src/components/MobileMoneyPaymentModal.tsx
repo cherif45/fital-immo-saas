@@ -16,6 +16,8 @@ import {
   getActiveProviders,
   createCheckout,
 } from '../lib/payments';
+import { findBlockingPayment } from '../lib/payments/duplicate';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface MobileMoneyPaymentModalProps {
   isOpen: boolean;
@@ -26,7 +28,12 @@ interface MobileMoneyPaymentModalProps {
   propertyNom: string;
   period?: string;
   reference?: string;
-  onConfirmPayment?: (amount: number, method: PaymentMethodCode, transactionRef: string) => void;
+  successMessage?: string;
+  onConfirmPayment?: (
+    amount: number,
+    method: PaymentMethodCode,
+    transactionRef: string,
+  ) => boolean | void | Promise<boolean | void>;
   waveNumero?: string;
   orangeMoneyCode?: string;
   whatsappBusiness?: string;
@@ -44,14 +51,14 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
   onClose,
   amount,
   tenantName,
-  tenantPhone = '+221 77 000 00 00',
+  tenantPhone = '',
   propertyNom,
   period = 'Mois en cours',
-  reference = `LOY-${Date.now().toString().slice(-6)}`,
+  reference = createDocumentNumber(undefined, 'PAY-'),
+  successMessage = 'Paiement transmis. En attente de validation par l’agence.',
   onConfirmPayment,
   waveNumero,
   orangeMoneyCode,
-  whatsappBusiness,
   settings,
   currentUser,
   tenantId,
@@ -68,12 +75,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
     // 🛡️ DÉTECTION ANTI-DOUBLON (Payé OU en attente)
   const duplicatePayment = useMemo(() => {
     if (!tenantId || !payments || payments.length === 0) return null;
-    return payments.find(
-      (p) =>
-        p.locataireId === tenantId &&
-        p.periode === period &&
-        (p.statut === 'Payé' || p.verificationStatut === 'en_attente')
-    );
+    return findBlockingPayment(payments, tenantId, period);
   }, [tenantId, period, payments]);
 
   const hasDuplicate = !!duplicatePayment;
@@ -92,10 +94,11 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
 
   // Config manuelle (fallback)
   const config = {
-    wavePhone: waveNumero || '⚠️ NON CONFIGURÉ',
-    orangeMoneyMerchantCode: orangeMoneyCode || '⚠️ NON CONFIGURÉ',
-    whatsappBusiness: whatsappBusiness || tenantPhone,
+    wavePhone: waveNumero?.trim() || '',
+    orangeMoneyMerchantCode: orangeMoneyCode?.trim() || '',
   };
+  const canManualWave = Boolean(config.wavePhone);
+  const canManualOrangeMoney = Boolean(config.orangeMoneyMerchantCode);
 
   // Génération des liens manuels (toujours dispo en fallback)
   const wavePayUrl = generateWavePaymentUrl(amount, config.wavePhone, reference);
@@ -194,20 +197,39 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
     triggerSMS(tenantPhone, text);
   };
 
-  const handleSubmitValidation = (e: React.FormEvent) => {
+  const handleSubmitValidation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!transactionIdInput) return;
-    if (onConfirmPayment) {
+    if (!transactionIdInput.trim()) {
+      setErrorMsg('Saisissez la référence de la transaction pour continuer.');
+      return;
+    }
+    if (!onConfirmPayment) {
+      setErrorMsg('La validation du paiement est indisponible. Contactez votre agence.');
+      return;
+    }
+
+    setErrorMsg(null);
+    setIsProcessing(true);
+    try {
       const methodCode: PaymentMethodCode = selectedMethod === 'WAVE' ? 'WAVE'
         : selectedMethod === 'ORANGE_MONEY' ? 'ORANGE_MONEY'
         : 'AUTRE';
-      onConfirmPayment(amount, methodCode, transactionIdInput);
+      const saved = await onConfirmPayment(amount, methodCode, transactionIdInput.trim());
+      if (saved === false) {
+        setErrorMsg("Le paiement n'a pas été enregistré. Vérifiez les données et réessayez.");
+        return;
+      }
+
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        onClose();
+      }, 2000);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Le paiement n'a pas pu être enregistré.");
+    } finally {
+      setIsProcessing(false);
     }
-    setIsSuccess(true);
-    setTimeout(() => {
-      setIsSuccess(false);
-      onClose();
-    }, 2000);
   };
 
   return (
@@ -265,18 +287,22 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
               <span className="text-[11px] text-slate-400 block mt-0.5">{propertyNom} • {period}</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <button
-                onClick={handleShareOnWhatsApp}
-                className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5" /> WhatsApp
-              </button>
-              <button
-                onClick={handleShareSMS}
-                className="px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5" /> SMS
-              </button>
+              {tenantPhone && (
+                <>
+                  <button
+                    onClick={handleShareOnWhatsApp}
+                    className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> WhatsApp
+                  </button>
+                  <button
+                    onClick={handleShareSMS}
+                    className="px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> SMS
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -317,12 +343,21 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
               <button
                 type="button"
                 onClick={() => setSelectedMethod('WAVE')}
-                disabled={paymentMode === 'api' && !activeProviders.includes('WAVE')}
+                disabled={
+                  paymentMode === 'api'
+                    ? !activeProviders.includes('WAVE')
+                    : !canManualWave
+                }
                 className={`p-3.5 rounded-2xl border text-left flex items-center gap-3.5 transition-all cursor-pointer ${
                   selectedMethod === 'WAVE'
                     ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg ring-1 ring-blue-500'
                     : 'bg-[#0A111D] border-white/10 text-slate-400 hover:border-white/20'
-                } ${paymentMode === 'api' && !activeProviders.includes('WAVE') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                } ${
+                  (paymentMode === 'api' && !activeProviders.includes('WAVE')) ||
+                  (paymentMode === 'manual' && !canManualWave)
+                    ? 'opacity-40 cursor-not-allowed'
+                    : ''
+                }`}
               >
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
                   🌊
@@ -338,12 +373,21 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
               <button
                 type="button"
                 onClick={() => setSelectedMethod('ORANGE_MONEY')}
-                disabled={paymentMode === 'api' && !activeProviders.includes('ORANGE_MONEY')}
+                disabled={
+                  paymentMode === 'api'
+                    ? !activeProviders.includes('ORANGE_MONEY')
+                    : !canManualOrangeMoney
+                }
                 className={`p-3.5 rounded-2xl border text-left flex items-center gap-3.5 transition-all cursor-pointer ${
                   selectedMethod === 'ORANGE_MONEY'
                     ? 'bg-orange-600/20 border-orange-500 text-white shadow-lg ring-1 ring-orange-500'
                     : 'bg-[#0A111D] border-white/10 text-slate-400 hover:border-white/20'
-                } ${paymentMode === 'api' && !activeProviders.includes('ORANGE_MONEY') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                } ${
+                  (paymentMode === 'api' && !activeProviders.includes('ORANGE_MONEY')) ||
+                  (paymentMode === 'manual' && !canManualOrangeMoney)
+                    ? 'opacity-40 cursor-not-allowed'
+                    : ''
+                }`}
               >
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
                   🟠
@@ -378,6 +422,18 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
             )}
           </div>
 
+          {paymentMode === 'manual' &&
+            ((selectedMethod === 'WAVE' && !canManualWave) ||
+              (selectedMethod === 'ORANGE_MONEY' && !canManualOrangeMoney)) && (
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs"
+              >
+                Le compte {selectedMethod === 'WAVE' ? 'Wave' : 'Orange Money'} de l’agence n’est pas configuré.
+                Contactez l’administrateur avant d’effectuer le paiement.
+              </div>
+            )}
+
           {/* Action principale */}
           {paymentMode === 'api' ? (
             <button
@@ -400,7 +456,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
           ) : (
             <>
               {/* MODE MANUEL : Wave */}
-              {selectedMethod === 'WAVE' && (
+              {selectedMethod === 'WAVE' && canManualWave && (
                 <div className="bg-[#0A111D] border border-blue-500/30 rounded-2xl p-5 space-y-4">
                   <div className="flex flex-col sm:flex-row items-center gap-5">
                     <div className="bg-white p-2.5 rounded-2xl shadow-xl flex-shrink-0 text-center">
@@ -430,7 +486,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
               )}
 
               {/* MODE MANUEL : OM */}
-              {selectedMethod === 'ORANGE_MONEY' && (
+              {selectedMethod === 'ORANGE_MONEY' && canManualOrangeMoney && (
                 <div className="bg-[#0A111D] border border-orange-500/30 rounded-2xl p-5 space-y-4">
                   <div className="flex flex-col sm:flex-row items-center gap-5">
                     <div className="bg-white p-2.5 rounded-2xl shadow-xl flex-shrink-0 text-center">
@@ -459,7 +515,9 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
           )}
 
                     {/* Formulaire de confirmation manuelle (mode manuel uniquement) */}
-          {paymentMode === 'manual' && (
+          {paymentMode === 'manual' &&
+            ((selectedMethod === 'WAVE' && canManualWave) ||
+              (selectedMethod === 'ORANGE_MONEY' && canManualOrangeMoney)) && (
             <form
               onSubmit={handleSubmitValidation}
               className={`p-4 rounded-2xl space-y-3 border ${
@@ -500,15 +558,17 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
                       required
                       placeholder="Ex: TX-WAVE-892134"
                       value={transactionIdInput}
+                      disabled={isProcessing}
                       onChange={(e) => setTransactionIdInput(e.target.value)}
                       className="flex-1 px-4 py-2.5 bg-[#0A111D] border border-white/15 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-[#C9A96E]"
                     />
                     <button
                       type="submit"
+                      disabled={isProcessing}
                       className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md flex-shrink-0"
                     >
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Valider</span>
+                      <span>{isProcessing ? 'Enregistrement...' : 'Transmettre à la caisse'}</span>
                     </button>
                   </div>
                 </>
@@ -517,7 +577,7 @@ export const MobileMoneyPaymentModal: React.FC<MobileMoneyPaymentModalProps> = (
               {isSuccess && (
                 <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 font-bold flex items-center gap-2">
                   <Check className="w-4 h-4" />
-                  <span>Paiement validé. Quittance générée.</span>
+                  <span>{successMessage}</span>
                 </div>
               )}
             </form>

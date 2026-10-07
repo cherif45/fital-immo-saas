@@ -3,6 +3,7 @@ import {
   getAgencySettings,
   savePaymentTransaction,
   checkDuplicatePayment,
+  PaymentAlreadyExistsError,
 } from '../_lib/supabaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -26,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 2. Anti-doublon
-    const isDuplicate = await checkDuplicatePayment(agencyId, locataireId, periode, 'WAVE');
+    const isDuplicate = await checkDuplicatePayment(agencyId, locataireId, periode);
     if (isDuplicate) {
       return res.status(409).json({
         error: 'Un paiement est déjà en cours pour cette période.',
@@ -90,6 +91,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error('Erreur Wave create-session:', err);
-    return res.status(500).json({ error: err.message || 'Erreur serveur.' });
+    return res.status(err instanceof PaymentAlreadyExistsError ? 409 : 500).json({
+      error: err.message || 'Erreur serveur.',
+    });
   }
 }

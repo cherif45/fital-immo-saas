@@ -27,6 +27,25 @@ interface GlobalStats {
   totalPayments: number;
 }
 
+const generateUniqueAgencySlug = (name: string, agencies: Agency[]): string => {
+  const baseSlug = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'agence';
+  const existingSlugs = new Set(agencies.map((agency) => agency.slug.toLowerCase()));
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (existingSlugs.has(slug)) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+};
+
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ currentUser, agencyStats, payments = [], invoices = [], cashMovements = [], owners = [], tenants = [], properties = [], buildings = [], units = [], contracts = [] }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'agencies' | 'users'>('overview');
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -145,8 +164,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
   };
 
   const handleToggleStatus = async (agency: Agency) => {
-    const newStatus = agency.status === 'active' ? 'suspendu' : 'active';
-    const confirmMsg = newStatus === 'suspendu'
+    const newStatus = agency.status === 'active' ? 'suspended' : 'active';
+    const confirmMsg = newStatus === 'suspended'
       ? `⚠️ Suspendre l'agence "${agency.name}" ?`
       : `Réactiver l'agence "${agency.name}" ?`;
     if (!window.confirm(confirmMsg)) return;
@@ -802,8 +821,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                     <input type="text" value={formData.agencyName}
                       onChange={(e) => {
                         const name = e.target.value;
-                        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                        setFormData({ ...formData, agencyName: name, agencySlug: slug });
+                        const agencySlug = generateUniqueAgencySlug(name, agencies);
+                        setFormData((current) => ({ ...current, agencyName: name, agencySlug }));
                       }}
                       required placeholder="Ex: IMMO DAKAR"
                       className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white" />
@@ -811,7 +830,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                   <div>
                     <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">Slug (auto) *</label>
                     <input type="text" value={formData.agencySlug}
-                      onChange={(e) => setFormData({ ...formData, agencySlug: e.target.value })}
+                      readOnly
                       required className="w-full p-2.5 rounded-xl bg-[#0A111D] border border-[#C9A96E]/10 text-slate-400 font-mono" />
                   </div>
                   <div>

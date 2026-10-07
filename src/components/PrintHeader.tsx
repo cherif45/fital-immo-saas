@@ -9,55 +9,57 @@ interface PrintHeaderProps {
   agency: AgencySettings | null;
   documentType?: string;
   documentRef?: string;
+  compact?: boolean;
 }
 
 export const PrintHeader: React.FC<PrintHeaderProps> = ({
   agency,
   documentType,
   documentRef,
+  compact = false,
 }) => {
   if (!agency) return null;
 
   return (
-    <div className="print-header">
+    <div className={`print-header ${compact ? 'print-header-compact' : ''}`}>
       {/* En-tête personnalisé (image optionnelle) */}
       {agency.enteteUrl && (
-        <div className="mb-4">
+        <div className={compact ? 'mb-1.5' : 'mb-4'}>
           <img
             src={agency.enteteUrl}
             alt="En-tête"
-            className="w-full max-h-32 object-contain"
+            className={`w-full object-contain ${compact ? 'max-h-12' : 'max-h-32'}`}
           />
         </div>
       )}
 
       {/* En-tête standard (si pas d'image personnalisée) */}
       {!agency.enteteUrl && (
-        <div className="flex items-start justify-between border-b-2 border-[#C9A96E] pb-4 mb-4">
-          <div className="flex items-center gap-4">
+        <div className={`flex items-start justify-between border-b border-[#C9A96E] ${compact ? 'pb-1.5 mb-2' : 'border-b-2 pb-4 mb-4'}`}>
+          <div className="flex items-center gap-3">
             {agency.logoUrl && (
               <img
                 src={agency.logoUrl}
                 alt="Logo"
-                className="w-20 h-20 object-contain"
+                className={`object-contain ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}
               />
             )}
             <div>
-              <h1 className="text-2xl font-bold text-[#0F1B2D]">
+              <h1 className={`font-bold text-[#0F1B2D] ${compact ? 'text-sm' : 'text-2xl'}`}>
                 {agency.nomAgence || 'MON AGENCE'}
               </h1>
               {agency.slogan1 && (
-                <p className="text-sm text-[#C9A96E] font-semibold">
+                <p className={`text-[#C9A96E] font-semibold ${compact ? 'text-[9px]' : 'text-sm'}`}>
                   {agency.slogan1}
                 </p>
               )}
               {agency.slogan2 && (
-                <p className="text-xs text-[#0F1B2D]/70">{agency.slogan2}</p>
+                <p className={`text-[#0F1B2D]/70 ${compact ? 'text-[8px]' : 'text-xs'}`}>{agency.slogan2}</p>
               )}
             </div>
           </div>
 
-          <div className="text-right text-xs space-y-1">
+          <div className={`text-right space-y-0.5 ${compact ? 'text-[8px]' : 'text-xs space-y-1'}`}>
             {agency.adresse && <div>📍 {agency.adresse}</div>}
             {agency.telephone && <div>📞 {agency.telephone}</div>}
             {agency.email && <div>✉️ {agency.email}</div>}
@@ -69,14 +71,16 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
         </div>
       )}
 
-      {/* Titre du document */}
+      {/* Titre du document (ignoré si compact et documentType non demandé) */}
       {(documentType || documentRef) && (
-        <div className="text-center my-4">
-          <h2 className="text-xl font-bold text-[#0F1B2D] uppercase tracking-wider">
-              {documentType || 'DOCUMENT'}
+        <div className={`text-center ${compact ? 'my-1.5' : 'my-4'}`}>
+          {documentType && (
+            <h2 className={`font-bold text-[#0F1B2D] uppercase tracking-wider ${compact ? 'text-xs' : 'text-xl'}`}>
+              {documentType}
             </h2>
+          )}
           {documentRef && (
-            <p className="text-sm text-[#C9A96E] font-mono font-bold">
+            <p className={`text-[#C9A96E] font-mono font-bold ${compact ? 'text-xs' : 'text-sm'}`}>
               N° {documentRef}
             </p>
           )}

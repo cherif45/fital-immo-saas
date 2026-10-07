@@ -25,9 +25,11 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import { Tenant, Property, ActiveTab, Inspection, UserAccount } from '../types';
+import { Tenant, Property, ActiveTab, Inspection, UserAccount, Payment, Owner, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { lazy, Suspense } from 'react';
+import { createDocumentNumber } from '../lib/documentNumber';
+import { createPendingMobilePayment } from '../lib/payments/createPendingMobilePayment';
 
 // Lazy import pour reduire le bundle de cette vue
 const MobileMoneyPaymentModal = lazy(() => import('./MobileMoneyPaymentModal').then(m => ({ default: m.MobileMoneyPaymentModal })));
@@ -38,13 +40,16 @@ interface TenantsViewProps {
   tenants: Tenant[];
   properties: Property[];
   units?: any[];
-  payments?: any[];
+  payments?: Payment[];
+  owners?: Owner[];
+  selectedPeriod: string;
+  settings?: AgencySettings;
   currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
   onAddTenant: (tenant: Tenant) => void;
   onOpenMobileMoney?: (tenant: Tenant) => void;
-  onAddPayment?: (payment: any) => void;
+  onAddPayment?: (payment: Payment) => boolean | Promise<boolean>;
   onInitiateExit?: (tenant: Tenant) => void;
 }
 
@@ -67,6 +72,9 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   properties,
   units = [],
   payments = [],
+  owners = [],
+  selectedPeriod,
+  settings,
   currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
@@ -976,12 +984,11 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° de la pièce</label>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">N° de la pièce (facultatif)</label>
                   <input
                     type="text"
                     value={cni}
                     onChange={(e) => setCni(e.target.value)}
-                    required
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                     placeholder={typePiece === 'CNI' ? '1 755 1989 00412' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'}
                   />
@@ -1128,11 +1135,38 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
           tenantName={`${selectedTenantForPayment.prenom} ${selectedTenantForPayment.nom}`}
           tenantPhone={selectedTenantForPayment.telephone}
           propertyNom={selectedTenantForPayment.bienNom}
-          period="Loyer en cours"
-          reference={`LOY-${selectedTenantForPayment.nom.slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`}
-          onConfirmPayment={(amount, method, ref) => {
-            alert(`Paiement de ${amount.toLocaleString('fr-FR')} FCFA validé pour ${selectedTenantForPayment.prenom} ${selectedTenantForPayment.nom} (Réf: ${ref}).`);
-            setSelectedTenantForPayment(null);
+          period={selectedPeriod}
+          reference={createDocumentNumber(settings?.prefixPaiement, 'PAY-')}
+          settings={settings}
+          tenantId={selectedTenantForPayment.id}
+          payments={payments}
+          waveNumero={settings?.waveNumero}
+          orangeMoneyCode={settings?.orangeMoneyCode}
+          whatsappBusiness={settings?.whatsappBusiness}
+          currentUser={currentUser}
+          onConfirmPayment={async (amount, method, transactionRef) => {
+            const property = properties.find((item) => item.id === selectedTenantForPayment.bienId);
+            const ownerId = property?.proprietaireId || selectedTenantForPayment.proprietaireId;
+            const owner = owners.find((item) => item.id === ownerId);
+            if (!property || !ownerId || !onAddPayment) {
+              alert("Impossible d'enregistrer le paiement : bien, propriétaire ou service de paiement indisponible.");
+              return false;
+            }
+
+            const payment = createPendingMobilePayment({
+              tenant: selectedTenantForPayment,
+              property,
+              owner,
+              amount,
+              method,
+              transactionId: transactionRef,
+              period: selectedPeriod,
+              settings,
+              currentUser,
+            });
+            const saved = await onAddPayment(payment);
+            if (saved) setSelectedTenantForPayment(null);
+            return saved;
           }}
         /></Suspense>
       )}

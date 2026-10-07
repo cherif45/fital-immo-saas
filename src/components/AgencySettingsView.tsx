@@ -15,7 +15,7 @@ type Tab = 'infos' | 'gerant' | 'documents' | 'preferences';
 
 export const AgencySettingsView: React.FC<AgencySettingsViewProps> = ({ agencyId }) => {
   const [activeTab, setActiveTab] = useState<Tab>('infos');
-  const { settings, loading, updateSettings, uploadAsset } = useAgencySettings(agencyId);
+  const { settings, loading, error, updateSettings, uploadAsset } = useAgencySettings(agencyId);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -75,6 +75,11 @@ export const AgencySettingsView: React.FC<AgencySettingsViewProps> = ({ agencyId
         <div className="p-3 rounded-xl bg-[#1E2E45] text-white text-sm">
           {message}
         </div>
+      )}
+      {error && (
+        <p role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
+          Impossible de charger les paramètres de l’agence : {error}
+        </p>
       )}
 
       {/* Tabs */}

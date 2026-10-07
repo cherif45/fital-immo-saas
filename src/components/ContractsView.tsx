@@ -22,6 +22,7 @@ import {
 import { LeaseContract, Tenant, Property, Owner, UserAccount, Unit, Building as BuildingType, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { LeaseContractModal } from './LeaseContractModal';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface ContractsViewProps {
   contracts: LeaseContract[];
@@ -110,7 +111,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
   // ============================================================
   const [locataireId, setLocataireId] = useState(tenants[0]?.id || '');
   const [bienId, setBienId] = useState(properties[0]?.id || '');
-  const [refLocatif, setRefLocatif] = useState(`CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [refLocatif, setRefLocatif] = useState(() => createDocumentNumber(settings?.prefixContrat, 'BAIL-'));
   const [dateContrat, setDateContrat] = useState(new Date().toISOString().split('T')[0]);
   const [debutContrat, setDebutContrat] = useState(new Date().toISOString().split('T')[0]);
   const [refPeriode, setRefPeriode] = useState(new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
@@ -203,7 +204,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
   const resetForm = () => {
     setLocataireId(tenants[0]?.id || '');
     setBienId(properties[0]?.id || '');
-    setRefLocatif(`CTR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setRefLocatif(createDocumentNumber(settings?.prefixContrat, 'BAIL-'));
     setDateContrat(new Date().toISOString().split('T')[0]);
     setDebutContrat(new Date().toISOString().split('T')[0]);
     setRefPeriode(new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));

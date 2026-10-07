@@ -56,7 +56,8 @@ export function OwnerDashboardView({
   disbursements,
   cashVouchers,
   onOpenReceipt,
-  onOpenOwnerSlip
+  onOpenOwnerSlip,
+  settings,
 }: OwnerDashboardViewProps) {
   const [isMandateModalOpen, setIsMandateModalOpen] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<

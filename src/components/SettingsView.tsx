@@ -11,7 +11,7 @@ import {
 
 interface SettingsViewProps {
   settings: AgencySettings;
-  onSaveSettings: (newSettings: AgencySettings) => void;
+  onSaveSettings: (newSettings: AgencySettings) => void | Promise<void>;
 }
 
 type TabId = 'agency' | 'financial' | 'numbering' | 'mobileMoney' | 'payments' | 'roles' | 'database';
@@ -19,6 +19,8 @@ type TabId = 'agency' | 'financial' | 'numbering' | 'mobileMoney' | 'payments' |
 export function SettingsView({ settings, onSaveSettings }: SettingsViewProps) {
   const [formData, setFormData] = useState<AgencySettings>(settings);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('agency');
   const [healthResult, setHealthResult] = useState<SupabaseHealthCheckResult | null>(null);
   const [isTestingDb, setIsTestingDb] = useState(false);
@@ -43,11 +45,20 @@ export function SettingsView({ settings, onSaveSettings }: SettingsViewProps) {
     } finally { setIsTestingDb(false); }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveSettings(formData);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await onSaveSettings(formData);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (error) {
+      setSavedSuccess(false);
+      setSaveError(error instanceof Error ? error.message : 'Échec de la sauvegarde des paramètres.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 🔐 Test rapide d'une clé API Wave (HEAD sur l'API)
@@ -114,8 +125,8 @@ export function SettingsView({ settings, onSaveSettings }: SettingsViewProps) {
             Identité, finances, paiements, numérotation et sécurité.
           </p>
         </div>
-        <button onClick={handleSubmit} className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] rounded-xl text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer shadow-md">
-          <Save className="w-4 h-4" /> Enregistrer
+        <button onClick={handleSubmit} disabled={isSaving} className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] rounded-xl text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50">
+          <Save className="w-4 h-4" /> {isSaving ? 'Enregistrement...' : 'Enregistrer'}
         </button>
       </div>
 
@@ -123,6 +134,12 @@ export function SettingsView({ settings, onSaveSettings }: SettingsViewProps) {
         <div className="p-4 bg-[#10B981]/20 border border-[#10B981]/40 rounded-xl text-[#10B981] flex items-center gap-3 text-sm animate-fade-in">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
           <span>Paramètres enregistrés avec succès !</span>
+        </div>
+      )}
+      {saveError && (
+        <div role="alert" className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 flex items-center gap-3 text-sm">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{saveError}</span>
         </div>
       )}
 

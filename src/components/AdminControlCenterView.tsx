@@ -56,7 +56,7 @@ import {
 } from '../types';
 import { formatCurrency, formatNumber } from '../lib/utils';
 import { isSupabaseConfigured } from '../lib/supabase/client';
-import { restoreAllData } from '../lib/supabase/service';
+import { restoreAllData, type AgencyStats } from '../lib/supabase/service';
 
 interface AdminControlCenterViewProps {
   users: UserAccount[];
@@ -86,21 +86,7 @@ interface AdminControlCenterViewProps {
   notifications?: NotificationItem[];
   onTriggerAuditLog: (action: string, module: string, details: string) => void;
   onRefreshData?: () => void;
-  agencyStats?: {
-    total_owners: number;
-    total_tenants: number;
-    total_properties: number;
-    total_units: number;
-    total_contracts: number;
-    total_payments: number;
-    total_invoices: number;
-    total_cash_movements: number;
-    payments_total: number;
-    payments_last_30_days: number;
-    cash_in: number;
-    cash_out: number;
-    cash_balance: number;
-  } | null;
+  agencyStats?: AgencyStats | null;
 }
 
 export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
@@ -146,6 +132,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
   const suspendedUsers = users.filter((u) => u.statut === 'suspendu').length;
 
   const totalProps = properties.length;
+  const totalOwners = agencyStats?.total_owners ?? owners.length;
   const occupiedProps = properties.filter((p) => p.statut === 'Occupé').length;
   const vacantProps = properties.filter((p) => p.statut === 'Vacant').length;
   const maintenanceProps = properties.filter((p) => p.statut === 'Maintenance').length;
@@ -157,7 +144,7 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
 
   const totalCashIn = agencyStats?.cash_in ?? cashMovements.filter((m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
   const totalCashOut = agencyStats?.cash_out ?? cashMovements.filter((m) => m.type === 'SORTIE' || m.type === 'DECAISSEMENT').reduce((acc, m) => acc + m.montant, 0);
-  const currentCashBalance = totalCashIn - totalCashOut;
+  const currentCashBalance = agencyStats?.cash_balance ?? totalCashIn - totalCashOut;
 
   // ============================================================
   // EXPORT COMPLET (toutes les tables)
@@ -613,17 +600,17 @@ export const AdminControlCenterView: React.FC<AdminControlCenterViewProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {[
                 { label: 'Utilisateurs', value: users.length, color: 'text-rose-400' },
-                { label: 'Propriétaires', value: owners.length, color: 'text-blue-400' },
-                { label: 'Immeubles', value: agencyStats?.total_buildings || buildings.length, color: 'text-indigo-400' },
-                { label: 'Espaces louables', value: agencyStats?.total_units || units.length, color: 'text-purple-400' },
-                { label: 'Biens', value: agencyStats?.total_properties || properties.length, color: 'text-cyan-400' },
-                { label: 'Locataires', value: agencyStats?.total_tenants || tenants.length, color: 'text-teal-400' },
-                { label: 'Contrats', value: agencyStats?.total_contracts || contracts.length, color: 'text-emerald-400' },
-                { label: 'Paiements', value: agencyStats?.total_payments || payments.length, color: 'text-amber-400' },
-                { label: 'Factures', value: agencyStats?.total_invoices || invoices.length, color: 'text-orange-400' },
+                { label: 'Propriétaires', value: totalOwners, color: 'text-blue-400' },
+                { label: 'Immeubles', value: buildings.length, color: 'text-indigo-400' },
+                { label: 'Espaces louables', value: agencyStats?.total_units ?? units.length, color: 'text-purple-400' },
+                { label: 'Biens', value: agencyStats?.total_properties ?? properties.length, color: 'text-cyan-400' },
+                { label: 'Locataires', value: totalTenants, color: 'text-teal-400' },
+                { label: 'Contrats', value: agencyStats?.total_contracts ?? contracts.length, color: 'text-emerald-400' },
+                { label: 'Paiements', value: agencyStats?.total_payments ?? payments.length, color: 'text-amber-400' },
+                { label: 'Factures', value: agencyStats?.total_invoices ?? invoices.length, color: 'text-orange-400' },
                 { label: 'Bulletins', value: bulletins.length, color: 'text-lime-400' },
                 { label: 'Reversements', value: disbursements.length, color: 'text-yellow-400' },
-                { label: 'Mouvements caisse', value: agencyStats?.total_cash_movements || cashMovements.length, color: 'text-[#C9A96E]' },
+                { label: 'Mouvements caisse', value: agencyStats?.total_cash_movements ?? cashMovements.length, color: 'text-[#C9A96E]' },
                 { label: 'États des lieux', value: inspections.length, color: 'text-pink-400' },
                 { label: 'Travaux', value: maintenance.length, color: 'text-red-400' },
                 { label: 'Activités', value: activityLogs.length, color: 'text-violet-400' },

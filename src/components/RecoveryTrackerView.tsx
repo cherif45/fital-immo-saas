@@ -24,12 +24,16 @@ import {
   Tenant,
   Payment,
   ActiveTab,
+  AgencySettings,
+  UserAccount,
 } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { paginateTable } from '../lib/supabase/service';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp, generateLateRentMessage } from '../lib/comms/commsHelper';
 import { QuickCommsModal } from './QuickCommsModal';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
+import { createDocumentNumber } from '../lib/documentNumber';
+import { createPendingMobilePayment } from '../lib/payments/createPendingMobilePayment';
 
 interface RecoveryTrackerViewProps {
   properties: Property[];
@@ -37,10 +41,12 @@ interface RecoveryTrackerViewProps {
   tenants: Tenant[];
   payments: Payment[];
   selectedPeriod: string;
+  settings?: AgencySettings;
+  currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
   onOpenOwnerSlip: (owner: Owner) => void;
-  onAddPayment?: (payment: Payment) => void;
+  onAddPayment?: (payment: Payment) => boolean | Promise<boolean>;
 }
 
 export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
@@ -49,6 +55,8 @@ export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
   tenants,
   payments,
   selectedPeriod,
+  settings,
+  currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
   onOpenOwnerSlip,
@@ -552,41 +560,37 @@ export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
           tenantPhone={selectedTenantForPayment.telephone}
           propertyNom={selectedTenantForPayment.bienNom}
           period={selectedPeriod}
-          reference={`RECOV-${selectedTenantForPayment.nom.slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}`}
-          onConfirmPayment={(amount, method, ref) => {
-            if (onAddPayment) {
-              const quittanceNum = `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`;
-              const p = properties.find((item) => item.id === selectedTenantForPayment.bienId);
-              const o = owners.find((item) => item.id === (p?.proprietaireId || selectedTenantForPayment.proprietaireId));
-              const newPayment: Payment = {
-                id: `pay-${Date.now()}`,
-                ref: ref || `PAY-MM-${Date.now().toString().slice(-6)}`,
-                quittanceNumero: quittanceNum,
-                locataireId: selectedTenantForPayment.id,
-                locataireNom: `${selectedTenantForPayment.prenom} ${selectedTenantForPayment.nom}`,
-                bienId: selectedTenantForPayment.bienId || 'bien-1',
-                bienNom: selectedTenantForPayment.bienNom || 'Bien FITAL-IMMO',
-                proprietaireId: o?.id || 'prop-1',
-                proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire',
-                periode: selectedPeriod,
-                loyerBase: amount,
-                charges: 0,
-                tva: 0,
-                tom: 0,
-                penalites: 0,
-                montantTotal: amount,
-                montantPaye: amount,
-                montantRestant: 0,
-                modePaiement: 'Mobile Money',
-                moyenPaiementCode: method === 'WAVE' ? 'WAVE' : 'ORANGE_MONEY',
-                numeroTransaction: ref,
-                datePaiement: new Date().toISOString().split('T')[0],
-                statut: 'Payé',
-                observation: `Règlement direct validé via ${method === 'WAVE' ? 'Wave Sénégal' : 'Orange Money'} (Tx: ${ref})`,
-              };
-              onAddPayment(newPayment);
+          reference={createDocumentNumber(settings?.prefixPaiement, 'PAY-')}
+          settings={settings}
+          tenantId={selectedTenantForPayment.id}
+          payments={payments}
+          currentUser={currentUser}
+          waveNumero={settings?.waveNumero}
+          orangeMoneyCode={settings?.orangeMoneyCode}
+          whatsappBusiness={settings?.whatsappBusiness}
+          onConfirmPayment={async (amount, method, ref) => {
+            const property = properties.find((item) => item.id === selectedTenantForPayment.bienId);
+            const ownerId = property?.proprietaireId || selectedTenantForPayment.proprietaireId;
+            const owner = owners.find((item) => item.id === ownerId);
+            if (!property || !ownerId || !onAddPayment) {
+              alert("Impossible d'enregistrer le paiement : bien, propriétaire ou service de paiement indisponible.");
+              return false;
             }
-            setSelectedTenantForPayment(null);
+
+            const payment = createPendingMobilePayment({
+              tenant: selectedTenantForPayment,
+              property,
+              owner,
+              amount,
+              method,
+              transactionId: ref,
+              period: selectedPeriod,
+              settings,
+              currentUser,
+            });
+            const saved = await onAddPayment(payment);
+            if (saved) setSelectedTenantForPayment(null);
+            return saved;
           }}
         />
       )}

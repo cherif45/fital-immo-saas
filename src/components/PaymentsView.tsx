@@ -22,6 +22,9 @@ import {
 import { Payment, Tenant, Property, Owner, PaymentMethod, PaymentStatus, UserAccount, AgencySettings } from '../types';
 import { formatCurrency, formatNumber, formatDate, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp, getPaymentReceiptTemplate } from '../lib/comms/commsHelper';
+import { findBlockingPayment } from '../lib/payments/duplicate';
+import { createDocumentNumber } from '../lib/documentNumber';
+import { getPeriodDueDate } from '../lib/payments/dueDate';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
 import { paginateTable } from '../lib/supabase/service';
 import confetti from 'canvas-confetti';
@@ -33,11 +36,12 @@ interface PaymentsViewProps {
   owners: Owner[];
   currentUser?: UserAccount;
   settings?: AgencySettings;
-  onAddPayment: (payment: Payment) => void;
+  onAddPayment: (payment: Payment) => Promise<boolean>;
   onOpenReceipt: (payment: Payment) => void;
   isNewPaymentModalOpen: boolean;
   setIsNewPaymentModalOpen: (open: boolean) => void;
   initialTenantForPayment?: Tenant | null;
+  onValidatePendingPayment?: (paymentId: string) => void;
 }
 
 export const PaymentsView: React.FC<PaymentsViewProps> = ({
@@ -52,6 +56,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   isNewPaymentModalOpen,
   setIsNewPaymentModalOpen,
   initialTenantForPayment,
+  onValidatePendingPayment,
 }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Payé' | 'Impayé'>('all');
@@ -59,6 +64,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   const [selectedTenantId, setSelectedTenantId] = useState<string>(initialTenantForPayment?.id || '');
   const [selectedPaymentForMobileMoney, setSelectedPaymentForMobileMoney] = useState<Payment | null>(null);
+  const [settlingPayment, setSettlingPayment] = useState<Payment | null>(null);
 
   // 🆕 Pagination côté serveur
   const [serverPage, setServerPage] = useState(0);
@@ -114,6 +120,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   // Utiliser les données serveur si disponibles, sinon les props
   const displayPayments = serverData.length > 0 ? serverData : payments;
+  const allKnownPayments = useMemo(() => {
+    const paymentsById = new Map(payments.map((payment) => [payment.id, payment]));
+    serverData.forEach((payment) => paymentsById.set(payment.id, payment));
+    return Array.from(paymentsById.values());
+  }, [payments, serverData]);
   const [montantPaye, setMontantPaye] = useState<number>(0);
     // Stocke le mois au format YYYY-MM (ex: "2026-09")
   const [periodeMonth, setPeriodeMonth] = useState<string>(() => {
@@ -212,7 +223,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   // ============================================================
   // HANDLER : ENREGISTRER UN PAIEMENT
   // ============================================================
-    const handleSubmitPayment = (e: React.FormEvent) => {
+    const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!canEncaisser) {
@@ -221,93 +232,125 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
 
     const t = tenants.find((item) => item.id === selectedTenantId);
-    if (!t) return;
-
-    // 🚨 CONTRÔLE ANTI-DOUBLE-PAIEMENT
-    const dejaPaye = displayPayments.find(
-      (p) =>
-        p.locataireId === selectedTenantId &&
-        p.periode.trim().toLowerCase() === periode.trim().toLowerCase() &&
-        (p.statut === 'Payé' || p.verificationStatut === 'en_attente')
-    );
-
-    if (dejaPaye) {
-      alert(
-        `⚠️ DOUBLE PAIEMENT DÉTECTÉ\n\n` +
-        `Le loyer de "${periode}" a DÉJÀ été réglé par ${t.prenom} ${t.nom}.\n\n` +
-        `📄 Quittance : ${dejaPaye.quittanceNumero}\n` +
-        `💰 Montant : ${formatNumber(dejaPaye.montantPaye)} FCFA\n` +
-        `📅 Date : ${dejaPaye.datePaiement}\n` +
-        `🔖 Statut : ${dejaPaye.statut}\n\n` +
-        `Si vous devez corriger, supprimez d'abord l'ancien paiement.`
-      );
+    if (!t) {
+      alert('Veuillez sélectionner un locataire valide.');
       return;
+    }
+
+    if (!Number.isFinite(montantPaye) || montantPaye <= 0) {
+      alert('Veuillez saisir un montant encaissé supérieur à zéro.');
+      return;
+    }
+
+    // 🚨 CONTRÔLE ANTI-DOUBLE-PAIEMENT (uniquement pour nouveau paiement)
+    if (!settlingPayment) {
+      const dejaPaye = findBlockingPayment(allKnownPayments, selectedTenantId, periode);
+
+      if (dejaPaye) {
+        const isPending = dejaPaye.statut === 'En attente' || dejaPaye.verificationStatut === 'en_attente';
+        alert(
+          `${isPending ? '⏳ PAIEMENT EN ATTENTE' : '⚠️ DOUBLE PAIEMENT DÉTECTÉ'}\n\n` +
+          `${isPending
+            ? `Un paiement pour "${periode}" attend déjà sa validation.`
+            : `Le loyer de "${periode}" a déjà été réglé par ${t.prenom} ${t.nom}.`}\n\n` +
+          `📄 Quittance : ${dejaPaye.quittanceNumero}\n` +
+          `💰 Montant : ${formatNumber(dejaPaye.montantPaye)} FCFA\n` +
+          `📅 Date : ${dejaPaye.datePaiement}\n` +
+          `🔖 Statut : ${dejaPaye.statut}\n\n` +
+          `${isPending
+            ? "Veuillez valider ou rejeter ce paiement avant d'en créer un nouveau."
+            : "Si vous devez corriger, supprimez d'abord l'ancien paiement."}`
+        );
+        return;
+      }
     }
 
     const p = properties.find((prop) => prop.id === t.bienId);
     const o = owners.find((owner) => owner.id === (p?.proprietaireId || t.proprietaireId));
 
     const totalCalculated = (t.loyerMensuel || 0) + charges + tva + tom + penalites;
-    const isFull = montantPaye >= totalCalculated;
 
-    // ⬇️ NOUVEAU : Récupérer le paiement initial si lié
+    // ⬇️ Récupérer le paiement initial si lié
     const initialPayment = referencePaiementInitial
-      ? payments.find((p) => p.ref === referencePaiementInitial)
+      ? payments.find((pay) => pay.ref === referencePaiementInitial)
       : null;
 
-    // Déterminer le type de reçu
-    let typeRecu: 'QUITTANCE' | 'RECU_ACOMPTE' | 'QUITTANCE_SOLDE';
-    if (referencePaiementInitial && isFull) {
-      typeRecu = 'QUITTANCE_SOLDE';
-    } else if (!isFull) {
-      typeRecu = 'RECU_ACOMPTE';
+    const isMobileMoney = modePaiement === 'Wave' || modePaiement === 'Orange Money' || modePaiement === 'Mobile Money';
+    const moyenCode = modePaiement === 'Wave' ? 'WAVE' 
+                    : modePaiement === 'Orange Money' ? 'ORANGE_MONEY'
+                    : modePaiement === 'Mobile Money' ? 'WAVE'
+                    : modePaiement === 'Virement' ? 'VIREMENT'
+                    : modePaiement === 'Chèque' ? 'CHEQUE'
+                    : 'ESPECES';
+
+    const dateEcheance = getPeriodDueDate(periodeMonth);
+    let paymentToSave: Payment;
+
+    if (settlingPayment) {
+      // 🎯 BUGS 4, 22, 27 : Règlement du solde d'un acompte partiel existant
+      const priorPaid = Number(settlingPayment.montantPaye || 0);
+      const newCumulativePaid = priorPaid + Number(montantPaye);
+      const targetTotal = Number(settlingPayment.montantTotal || (priorPaid + (settlingPayment.montantRestant || 0)));
+      const newMontantRestant = Math.max(0, targetTotal - newCumulativePaid);
+      const isFull = newMontantRestant === 0;
+
+      paymentToSave = {
+        ...settlingPayment,
+        montantPaye: newCumulativePaid,
+        montantRestant: newMontantRestant,
+        statut: isFull ? 'Payé' : 'Partiel',
+        typeRecu: isFull ? 'QUITTANCE_SOLDE' : 'RECU_ACOMPTE',
+        datePaiement,
+        modePaiement,
+        moyenPaiementCode: moyenCode,
+        observation: observation || `Solde loyer ${settlingPayment.periode} réglé (Acompte: ${settlingPayment.ref})`,
+        referencePaiementInitial: settlingPayment.ref,
+        montantInitialDu: targetTotal,
+      };
     } else {
-      typeRecu = 'QUITTANCE';
+      const isFull = Number(montantPaye) >= totalCalculated;
+      const typeRecu = referencePaiementInitial && isFull
+        ? 'QUITTANCE_SOLDE'
+        : (!isFull ? 'RECU_ACOMPTE' : 'QUITTANCE');
+
+      paymentToSave = {
+        id: crypto.randomUUID(),
+        ref: createDocumentNumber(settings?.prefixPaiement, 'PAY-'),
+        quittanceNumero: createDocumentNumber(settings?.prefixQuittance, 'QUI-'),
+        locataireId: t.id,
+        locataireNom: `${t.prenom} ${t.nom}`,
+        bienId: t.bienId,
+        bienNom: p?.nom || t.bienNom,
+        proprietaireId: o?.id || p?.proprietaireId || t.proprietaireId || '',
+        proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire',
+        periode,
+        loyerBase: t.loyerMensuel || 0,
+        charges,
+        tva,
+        tom,
+        penalites,
+        indemnitesOccupation: 0,
+        montantTotal: totalCalculated,
+        montantPaye: Number(montantPaye),
+        montantRestant: Math.max(0, totalCalculated - Number(montantPaye)),
+        statut: isMobileMoney ? 'En attente' : (isFull ? 'Payé' : 'Partiel'),
+        modePaiement,
+        moyenPaiementCode: moyenCode,
+        verificationStatut: isMobileMoney ? 'en_attente' : 'valide',
+        datePaiement,
+        dateEcheance,
+        recuPar: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Caisse FITAL-IMMO',
+        observation,
+        typeRecu,
+        referencePaiementInitial: referencePaiementInitial || undefined,
+        montantInitialDu: initialPayment?.montantTotal || totalCalculated,
+      };
     }
 
-    const isMobileMoney = modePaiement === 'Wave' || modePaiement === 'Orange Money' || modePaiement === 'Mobile Money';
-const moyenCode = modePaiement === 'Wave' ? 'WAVE' 
-                : modePaiement === 'Orange Money' ? 'ORANGE_MONEY'
-                : modePaiement === 'Mobile Money' ? 'WAVE'
-                : modePaiement === 'Virement' ? 'VIREMENT'
-                : modePaiement === 'Chèque' ? 'CHEQUE'
-                : 'ESPECES';
-
-const newPayment: Payment = {
-  id: crypto.randomUUID(),
-  ref: `PAY-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-  quittanceNumero: `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`,
-  locataireId: t.id,
-  locataireNom: `${t.prenom} ${t.nom}`,
-  bienId: t.bienId,
-  bienNom: p?.nom || t.bienNom,
-  proprietaireId: o?.id || p?.proprietaireId || t.proprietaireId || '',
-  proprietaireNom: o ? `${o.prenom} ${o.nom}` : 'Propriétaire',
-  periode,
-  loyerBase: t.loyerMensuel || 0,
-  charges,
-  tva,
-  tom,
-  penalites,
-  indemnitesOccupation: 0,
-  montantTotal: totalCalculated,
-  montantPaye: Number(montantPaye),
-  montantRestant: Math.max(0, totalCalculated - Number(montantPaye)),
-  statut: isMobileMoney ? 'En attente' : (isFull ? 'Payé' : 'Partiel'),
-  modePaiement,
-  moyenPaiementCode: moyenCode,
-  verificationStatut: isMobileMoney ? 'en_attente' : 'valide',
-  datePaiement,
-  dateEcheance: '2026-05-05',
-  recuPar: currentUser ? `${currentUser.prenom} ${currentUser.nom} (${currentUser.role})` : 'Caisse FITAL-IMMO',
-  observation,
-  typeRecu,
-  referencePaiementInitial: referencePaiementInitial || undefined,
-  montantInitialDu: initialPayment?.montantTotal || totalCalculated,
-};
-
-       onAddPayment(newPayment);
+    const saved = await onAddPayment(paymentToSave);
+    if (!saved) return;
     setIsNewPaymentModalOpen(false);
+    setSettlingPayment(null);
 
     // Reset
     setReferencePaiementInitial('');
@@ -521,6 +564,8 @@ const newPayment: Payment = {
                   const isPaid = p.statut === 'Payé';
                   const isAcompte = p.typeRecu === 'RECU_ACOMPTE';
                   const isSolde = p.typeRecu === 'QUITTANCE_SOLDE';
+                  const isPending = p.statut === 'En attente' || p.verificationStatut === 'en_attente';
+                  const isPartiel = p.statut === 'Partiel';
                   return (
                     <tr key={p.id} className="hover:bg-[#1E2E45]/40 transition-colors">
                       <td className="py-3 px-4">
@@ -608,15 +653,44 @@ const newPayment: Payment = {
                             );
                           })()}
 
-                          {!isPaid && canEncaisser && (
+                          {/* Bouton de validation pour les paiements en attente (Mobile Money) - BUG 5 */}
+                          {isPending && canEncaisser && onValidatePendingPayment && (
                             <button
                               onClick={() => {
-                                setSelectedTenantId(p.locataireId);
+                                if (window.confirm(`Valider le paiement de ${formatNumber(p.montantPaye)} FCFA pour ${p.locataireNom} ?`)) {
+                                  onValidatePendingPayment(p.id);
+                                }
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                              title="Valider le paiement Mobile Money"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>✓ Valider</span>
+                            </button>
+                          )}
+
+                          {/* Bouton Encaisser pour les impayés ou partiels - BUGS 4, 22, 27 */}
+                          {!isPaid && !isPending && canEncaisser && (
+                            <button
+                              onClick={() => {
+                                if (isPartiel) {
+                                  setSettlingPayment(p);
+                                  setSelectedTenantId(p.locataireId);
+                                  setMontantPaye(p.montantRestant || 0);
+                                  setReferencePaiementInitial(p.ref);
+                                  setObservation(`Solde loyer ${p.periode} (Acompte: ${p.ref})`);
+                                } else {
+                                  setSettlingPayment(null);
+                                  setSelectedTenantId(p.locataireId);
+                                  setMontantPaye(0);
+                                  setReferencePaiementInitial('');
+                                  setObservation('');
+                                }
                                 setIsNewPaymentModalOpen(true);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all"
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all cursor-pointer"
                             >
-                              Encaisser
+                              {isPartiel ? 'Encaisser le solde' : 'Encaisser'}
                             </button>
                           )}
                         </div>
@@ -840,32 +914,42 @@ const newPayment: Payment = {
         <MobileMoneyPaymentModal
           isOpen={!!selectedPaymentForMobileMoney}
           onClose={() => setSelectedPaymentForMobileMoney(null)}
-          amount={selectedPaymentForMobileMoney.montantPaye || selectedPaymentForMobileMoney.loyerBase || 150000}
+          amount={selectedPaymentForMobileMoney.montantRestant || selectedPaymentForMobileMoney.montantTotal || selectedPaymentForMobileMoney.loyerBase || 150000}
           tenantName={selectedPaymentForMobileMoney.locataireNom}
           tenantPhone={
             tenants.find((t) => t.id === selectedPaymentForMobileMoney.locataireId)?.telephone || '+221 77 000 00 00'
           }
           propertyNom={selectedPaymentForMobileMoney.bienNom}
           period={selectedPaymentForMobileMoney.periode}
-          reference={selectedPaymentForMobileMoney.ref || `LOY-${Date.now().toString().slice(-4)}`}
-          onConfirmPayment={(amount, method, transactionId) => {
-            const quittanceNum = `QUITT-2026-${Math.floor(100 + Math.random() * 900)}`;
+          reference={selectedPaymentForMobileMoney.ref || createDocumentNumber(settings?.prefixPaiement, 'PAY-')}
+          successMessage="Paiement enregistré et quittance actualisée."
+          settings={settings}
+          currentUser={currentUser}
+          tenantId={selectedPaymentForMobileMoney.locataireId}
+          payments={allKnownPayments}
+          onConfirmPayment={async (amount, method, transactionId) => {
+            const amountPaid = Number(selectedPaymentForMobileMoney.montantPaye || 0) + amount;
+            const amountDue = Number(selectedPaymentForMobileMoney.montantTotal || amountPaid);
             const updatedPayment: Payment = {
               ...selectedPaymentForMobileMoney,
-              statut: 'Payé',
-              montantPaye: amount,
-              montantRestant: 0,
+              statut: amountPaid >= amountDue ? 'Payé' : 'Partiel',
+              verificationStatut: 'valide',
+              montantPaye: amountPaid,
+              montantRestant: Math.max(0, amountDue - amountPaid),
               modePaiement: 'Mobile Money',
-              moyenPaiementCode: method === 'WAVE' ? 'WAVE' : 'ORANGE_MONEY',
+              moyenPaiementCode: method === 'WAVE' ? 'WAVE' : method === 'ORANGE_MONEY' ? 'ORANGE_MONEY' : 'AUTRE',
               numeroTransaction: transactionId,
-              quittanceNumero: selectedPaymentForMobileMoney.quittanceNumero || quittanceNum,
+              referenceTransaction: transactionId,
+              quittanceNumero: selectedPaymentForMobileMoney.quittanceNumero || createDocumentNumber(settings?.prefixQuittance, 'QUI-'),
               datePaiement: new Date().toISOString().split('T')[0],
               observation: `Règlement direct validé via ${method === 'WAVE' ? 'Wave Sénégal' : 'Orange Money'} (${transactionId})`,
               typeRecu: 'QUITTANCE',
             };
-            onAddPayment(updatedPayment);
+            const saved = await onAddPayment(updatedPayment);
+            if (!saved) return false;
             setSelectedPaymentForMobileMoney(null);
             confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+            return true;
           }}
           waveNumero={settings?.waveNumero}
           orangeMoneyCode={settings?.orangeMoneyCode}

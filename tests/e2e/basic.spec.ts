@@ -6,10 +6,11 @@ import { test, expect } from '@playwright/test';
 test('1. App charge', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle', { timeout: 30000 });
-  
-  const body = await page.locator('body').textContent();
-  expect(body).toBeTruthy();
-  expect(body!.length).toBeGreaterThan(100);
+
+  await expect(page.locator('body')).toContainText(
+    /FITAL|Connexion|Email|Propriétaires|Locataires|Dashboard/,
+    { timeout: 15000 },
+  );
   
   console.log('✅ App chargée');
 });

@@ -30,6 +30,7 @@ import {
 } from '../lib/comms/commsHelper';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { defaultMobileMoneyConfig } from '../lib/payments/mobileMoney';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 export interface QuickCommsModalProps {
   isOpen: boolean;
@@ -103,9 +104,9 @@ export const QuickCommsModal: React.FC<QuickCommsModalProps> = ({
     if (selectedTemplate === 'rappel_loyer') {
       setMessageBody(getRentReminderTemplate(activeName, activeProperty, activeAmount, 'Mois en cours', activeDaysLate));
     } else if (selectedTemplate === 'quittance') {
-      setMessageBody(getPaymentReceiptTemplate(activeName, activeProperty, activeAmount, `QUI-2026-${Math.floor(100+Math.random()*900)}`, 'Mois en cours'));
+      setMessageBody(getPaymentReceiptTemplate(activeName, activeProperty, activeAmount, createDocumentNumber(undefined, 'QUI-'), 'Mois en cours'));
     } else if (selectedTemplate === 'reversement_bailleur') {
-      setMessageBody(getOwnerDisbursementTemplate(activeName, 'Mois en cours', activeAmount, `BCA-2026-${Math.floor(100+Math.random()*900)}`));
+      setMessageBody(getOwnerDisbursementTemplate(activeName, 'Mois en cours', activeAmount, createDocumentNumber(undefined, 'BCA-')));
     } else if (selectedTemplate === 'intervention_technique') {
       setMessageBody(getMaintenanceNoticeTemplate(activeName, activeProperty, 'Visite technique & contrôle équipement', 'Demain'));
     } else if (selectedTemplate === 'libre') {

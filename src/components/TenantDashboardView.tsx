@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { ContractStatus, 
-  Tenant, 
-  Property, 
-  LeaseContract, 
-  Payment, 
-  PropertyInspection, 
+import {
+  Tenant,
+  Property,
+  LeaseContract,
+  Payment,
+  Inspection,
   MaintenanceTicket,
   UserAccount,
-  PaymentMethodCode
-, AgencySettings } from '../types';
+  PaymentMethodCode,
+  AgencySettings,
+} from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
   Home, 
@@ -35,6 +36,8 @@ import {
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { defaultMobileMoneyConfig } from '../lib/payments/mobileMoney';
+import { createDocumentNumber } from '../lib/documentNumber';
+import { getNextDueDate } from '../lib/payments/dueDate';
 import { LeaseContractModal } from './LeaseContractModal';
 import { InspectionPrintModal } from './InspectionPrintModal';
 
@@ -44,10 +47,11 @@ interface TenantDashboardViewProps {
   property?: Property;
   contract?: LeaseContract;
   payments: Payment[];
-  inspections: PropertyInspection[];
+  inspections: Inspection[];
   maintenance: MaintenanceTicket[];
   onOpenReceipt: (payment: Payment) => void;
-  onInitiateOnlinePayment?: (amount: number, methodCode: PaymentMethodCode, ref: string) => void;
+  onInitiateOnlinePayment: (amount: number, methodCode: PaymentMethodCode, ref: string) => Promise<boolean>;
+  paymentPeriod: string;
   onSubmitIncident?: (title: string, description: string) => void;
   settings?: AgencySettings;
 }
@@ -62,14 +66,16 @@ export function TenantDashboardView({
   maintenance,
   onOpenReceipt,
   onInitiateOnlinePayment,
-  onSubmitIncident
+  paymentPeriod,
+  onSubmitIncident,
+  settings,
 }: TenantDashboardViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<
     'overview' | 'home' | 'payments' | 'receipts' | 'incident'
   >('overview');
 
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
-  const [selectedInspectionForPrint, setSelectedInspectionForPrint] = useState<any | null>(null);
+  const [selectedInspectionForPrint, setSelectedInspectionForPrint] = useState<Inspection | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isSuccessNotification, setIsSuccessNotification] = useState(false);
   const [incidentSuccessMessage, setIncidentSuccessMessage] = useState<string>('');
@@ -79,55 +85,27 @@ export function TenantDashboardView({
 
   // STRICT FILTERING: Only items for THIS tenant
   const myPayments = payments.filter((p) => p.locataireId === tenant.id);
-  const myInspections = inspections.filter((i) => i.locataireId === tenant.id || i.bienId === tenant.bienId);
+  const myInspections = inspections.filter(
+    (inspection) =>
+      inspection.locataireId === tenant.id ||
+      (!inspection.locataireId && inspection.bienId === tenant.bienId),
+  );
   const myMaintenance = maintenance.filter((m) => m.bienId === tenant.bienId);
 
   const lastPayment = myPayments.length > 0 ? myPayments[0] : null;
   const isUpToDate = tenant.statut === 'À jour';
   const totalDue = tenant.loyerMensuel + (tenant.arrieresCumules || 0);
+  const depositAmount =
+    contract?.cautionLoyer ?? contract?.cautionMontant ?? contract?.montantCaution;
+  const agencyPhone = settings?.standardTelephone || settings?.telephone;
+  const agencyWhatsapp = settings?.whatsappBusiness || agencyPhone;
 
-  const activeContract: LeaseContract = contract || {
-    id: `ctr-${tenant.id}`,
-    ref: `CTR-2026-${tenant.id.slice(-4)}`,
-    locataireId: tenant.id,
-    locataireNom: `${tenant.prenom} ${tenant.nom}`,
-    bienId: tenant.bienId || '',
-    bienNom: tenant.bienNom || 'Lot loué FITAL-IMMO',
-    proprietaireId: tenant.proprietaireId || '',
-    proprietaireNom: 'Propriétaire FITAL-IMMO',
-    typeContrat: 'Habitation',
-    loyerBase: tenant.loyerMensuel,
-    charges: 25000,
-    cautionMois: 2,
-    cautionMontant: tenant.loyerMensuel * 2,
-    dateDebut: tenant.dateEntree || '2025-01-01',
-    dateFin: '2026-12-31',
-    fraisAdhesion: 50000,
-    tva: 0,
-    tom: Math.round(tenant.loyerMensuel * 0.036),
-    tlv: 0,
-    statut: 'Actif' as ContractStatus
-  };
-
-  const sampleInspection = myInspections.length > 0 ? myInspections[0] : {
-    id: `insp-${tenant.id}`,
-    bienId: tenant.bienId || '',
-    bienNom: tenant.bienNom || 'Logement',
-    locataireId: tenant.id,
-    locataireNom: `${tenant.prenom} ${tenant.nom}`,
-    type: 'Entrée' as const,
-    date: tenant.dateEntree || '2025-01-01',
-    agentNom: 'FITAL-IMMO Expert',
-    coutDegradations: 0,
-    montantRestitueCaution: tenant.loyerMensuel * 2,
-    elements: [
-      { piece: 'Séjour', nom: 'Peinture & Murs', etat: 'Très bon état' as const, commentaire: 'Peinture blanche neuve', coutReparationEstime: 0 },
-      { piece: 'Séjour', nom: 'Carrelage & Sol', etat: 'Très bon état' as const, commentaire: 'Carrelage propre sans fissure', coutReparationEstime: 0 },
-      { piece: 'Chambre', nom: 'Portes & Serrures', etat: 'Bon état' as const, commentaire: 'Clés testées et fonctionnelles', coutReparationEstime: 0 },
-      { piece: 'Cuisine', nom: 'Robinetterie & Évier', etat: 'Très bon état' as const, commentaire: 'Aucune fuite constatée', coutReparationEstime: 0 },
-      { piece: 'Salle de bain', nom: 'Sanitaires & Chauffe-eau', etat: 'Bon état' as const, commentaire: 'Alimentation vérifiée', coutReparationEstime: 0 },
-    ]
-  };
+  const nextDueDate = new Date(`${getNextDueDate(contract?.jourEcheance ?? 5)}T00:00:00`);
+  const nextDueDateLabel = nextDueDate.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 
   const handleIncidentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,10 +117,17 @@ export function TenantDashboardView({
     setTimeout(() => setIncidentSuccessMessage(''), 5000);
   };
 
-  const handleConfirmMobilePayment = (amount: number, method: PaymentMethodCode, ref: string) => {
-    onInitiateOnlinePayment(amount, method, ref);
-    setIsSuccessNotification(true);
-    setTimeout(() => setIsSuccessNotification(false), 6000);
+  const handleConfirmMobilePayment = async (
+    amount: number,
+    method: PaymentMethodCode,
+    ref: string,
+  ): Promise<boolean> => {
+    const saved = await onInitiateOnlinePayment(amount, method, ref);
+    if (saved) {
+      setIsSuccessNotification(true);
+      setTimeout(() => setIsSuccessNotification(false), 6000);
+    }
+    return saved;
   };
 
   return (
@@ -150,17 +135,28 @@ export function TenantDashboardView({
       {/* Top Banner & Status */}
       <div className="bg-gradient-to-r from-[#111C2E] via-[#1A233A] to-[#111C2E] p-6 rounded-2xl border border-purple-500/20 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <img
-            src={currentUser.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80'}
-            alt={tenant.nom}
-            className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-500/40 shadow-md"
-          />
+          {currentUser.avatar ? (
+            <img
+              src={currentUser.avatar}
+              alt={`${tenant.prenom} ${tenant.nom}`}
+              className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-500/40 shadow-md"
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="w-16 h-16 rounded-2xl border-2 border-purple-500/40 shadow-md bg-purple-500/10 text-purple-300 flex items-center justify-center text-xl font-bold"
+            >
+              {`${tenant.prenom?.[0] || ''}${tenant.nom?.[0] || ''}`.toUpperCase()}
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                 Espace Locataire Dédié
               </span>
-              <span className="text-xs text-slate-400 font-mono">Bail Réf : {contract?.ref || 'CTR-FITAL-01'}</span>
+              <span className="text-xs text-slate-400 font-mono">
+                {contract ? `Bail Réf : ${contract.ref}` : 'Aucun bail enregistré'}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-white mt-1">
               Bonjour, {tenant.prenom} {tenant.nom}
@@ -176,10 +172,11 @@ export function TenantDashboardView({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setIsContractModalOpen(true)}
+            disabled={!contract}
             className="px-3.5 py-2.5 bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#E8D5B0] font-bold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
           >
             <FileText className="w-4 h-4 text-[#C9A96E]" />
-            <span>Mon Bail (PDF)</span>
+            <span>{contract ? 'Mon Bail (PDF)' : 'Bail non enregistré'}</span>
           </button>
           <button
             onClick={() => setIsPayModalOpen(true)}
@@ -262,8 +259,10 @@ export function TenantDashboardView({
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-bold text-white">05 Juin 2026</div>
-                <div className="text-xs text-slate-400 mt-1">Loyer exigible le 5 de chaque mois</div>
+                <div className="text-2xl font-bold text-white">{nextDueDateLabel}</div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Loyer exigible le {contract?.jourEcheance ?? 5} de chaque mois
+                </div>
               </div>
             </div>
 
@@ -374,19 +373,21 @@ export function TenantDashboardView({
               </div>
               <div className="flex justify-between py-2 border-b border-white/5">
                 <span className="text-slate-400">Adresse :</span>
-                <span className="text-white">{property?.adresse || 'Almadies, Dakar'}</span>
+                <span className="text-white">{property?.adresse || 'Adresse non renseignée'}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-white/5">
                 <span className="text-slate-400">Loyer mensuel charges comprises :</span>
                 <span className="text-[#E8D5B0] font-bold text-sm">{formatCurrencyFCFA(tenant.loyerMensuel)}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-white/5">
-                <span className="text-slate-400">Dépôt de garantie versé :</span>
-                <span className="text-white font-bold">{formatCurrencyFCFA(contract?.cautionLoyer || tenant.loyerMensuel * 2)}</span>
+                <span className="text-slate-400">Dépôt de garantie :</span>
+                <span className="text-white font-bold">
+                  {depositAmount === undefined ? 'Non renseigné' : formatCurrencyFCFA(depositAmount)}
+                </span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-slate-400">Date d’entrée dans les lieux :</span>
-                <span className="text-white">{tenant.dateEntree}</span>
+                <span className="text-white">{tenant.dateEntree || 'Non renseignée'}</span>
               </div>
             </div>
           </div>
@@ -396,9 +397,9 @@ export function TenantDashboardView({
               <FileText className="w-4 h-4 text-purple-400" />
               Contrat de Bail & État des Lieux
             </h3>
-            <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-2 text-xs">
-              <div className="font-bold text-white">Contrat de Bail d'Habitation Conforme Sénégal</div>
-              <p className="text-slate-400">Référence légale enregistrée : {contract?.ref || 'CTR-2026-0001'}</p>
+            {contract ? <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-2 text-xs">
+              <div className="font-bold text-white">Contrat de bail — {contract.typeContrat}</div>
+              <p className="text-slate-400">Référence enregistrée : {contract.ref}</p>
               <div className="pt-2 flex items-center gap-2">
                 <button
                   onClick={() => setIsContractModalOpen(true)}
@@ -407,20 +408,30 @@ export function TenantDashboardView({
                   <Download className="w-3.5 h-3.5 text-[#C9A96E]" /> Télécharger / Imprimer mon bail (PDF)
                 </button>
               </div>
-            </div>
+            </div> : (
+              <p className="p-4 text-xs text-slate-400 border border-white/10 rounded-xl">
+                Aucun contrat de bail n’est enregistré pour ce logement.
+              </p>
+            )}
 
-            <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-2 text-xs">
-              <div className="font-bold text-white">État des Lieux d'Entrée Contradictoire</div>
-              <p className="text-slate-400">Signé le {tenant.dateEntree} lors de la remise des clés.</p>
+            {myInspections.length > 0 ? <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-2 text-xs">
+              <div className="font-bold text-white">État des lieux — {myInspections[0].type}</div>
+              <p className="text-slate-400">
+                {myInspections[0].type} enregistré le {myInspections[0].date}.
+              </p>
               <div className="pt-2 flex items-center gap-2">
                 <button
-                  onClick={() => setSelectedInspectionForPrint(sampleInspection)}
+                  onClick={() => setSelectedInspectionForPrint(myInspections[0])}
                   className="px-3 py-1.5 bg-[#C9A96E]/20 hover:bg-[#C9A96E]/30 text-[#E8D5B0] rounded-lg text-xs font-semibold border border-[#C9A96E]/30 flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
                   <Download className="w-3.5 h-3.5 text-[#C9A96E]" /> Télécharger / Imprimer l’état des lieux (PDF)
                 </button>
               </div>
-            </div>
+            </div> : (
+              <p className="p-4 text-xs text-slate-400 border border-white/10 rounded-xl">
+                Aucun état des lieux n’est enregistré pour ce logement.
+              </p>
+            )}
 
             {/* Direct Agency Assistance (Call, WhatsApp, SMS) */}
             <div className="p-4 bg-[#C9A96E]/10 border border-[#C9A96E]/30 rounded-xl space-y-2 text-xs">
@@ -432,27 +443,36 @@ export function TenantDashboardView({
                 Besoin d'aide, d'une quittance urgente ou d'une information sur votre bail ?
               </p>
               <div className="pt-2 flex items-center gap-2 flex-wrap">
+                {agencyPhone && (
                 <button
-                  onClick={() => triggerPhoneCall('+221778452010')}
+                  onClick={() => triggerPhoneCall(agencyPhone)}
                   className="px-3 py-1.5 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 rounded-lg text-xs font-semibold border border-sky-500/40 flex items-center gap-1.5 transition-all"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>Appeler l'Agence</span>
                 </button>
+                )}
+                {agencyWhatsapp && (
                 <button
-                  onClick={() => triggerWhatsApp('+221778452010', `Bonjour FITAL-IMMO, je suis ${tenant.prenom} ${tenant.nom}, locataire de ${tenant.bienNom || 'votre bien'}. Je vous contacte au sujet de mon bail.`)}
+                  onClick={() => triggerWhatsApp(agencyWhatsapp, `Bonjour FITAL-IMMO, je suis ${tenant.prenom} ${tenant.nom}, locataire de ${tenant.bienNom || 'votre bien'}. Je vous contacte au sujet de mon bail.`)}
                   className="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 rounded-lg text-xs font-semibold border border-emerald-500/40 flex items-center gap-1.5 transition-all"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>WhatsApp Agence</span>
                 </button>
+                )}
+                {agencyPhone && (
                 <button
-                  onClick={() => triggerSMS('+221778452010', `FITAL-IMMO: Message de ${tenant.prenom} ${tenant.nom} (Locataire ${tenant.bienNom}).`)}
+                  onClick={() => triggerSMS(agencyPhone, `FITAL-IMMO: Message de ${tenant.prenom} ${tenant.nom} (Locataire ${tenant.bienNom}).`)}
                   className="px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 rounded-lg text-xs font-semibold border border-purple-500/40 flex items-center gap-1.5 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>SMS Agence</span>
                 </button>
+                )}
+                {!agencyPhone && !agencyWhatsapp && (
+                  <span className="text-slate-400">Coordonnées de l’agence non configurées.</span>
+                )}
               </div>
             </div>
           </div>
@@ -610,18 +630,19 @@ export function TenantDashboardView({
         tenantName={`${tenant.prenom} ${tenant.nom}`}
         tenantPhone={tenant.telephone}
         propertyNom={tenant.bienNom}
-        period="Loyer en cours"
-        reference={`LOY-${tenant.nom.toUpperCase().slice(0, 4)}-${Date.now().toString().slice(-4)}`}
-        onConfirmPayment={(amount, method, ref) => {
-          handleConfirmMobilePayment(amount, method, ref);
-          setIsPayModalOpen(false);
+        period={paymentPeriod}
+        reference={createDocumentNumber(settings?.prefixPaiement, 'PAY-')}
+        onConfirmPayment={async (amount, method, ref) => {
+          const saved = await handleConfirmMobilePayment(amount, method, ref);
+          if (saved) setIsPayModalOpen(false);
+          return saved;
         }}
       />
 
       {/* Modal: Contrat de Bail Officiel Imprimable */}
-      {isContractModalOpen && (
+      {isContractModalOpen && contract && (
         <LeaseContractModal
-          contract={activeContract}
+          contract={contract}
           settings={settings}
           onClose={() => setIsContractModalOpen(false)}
         />

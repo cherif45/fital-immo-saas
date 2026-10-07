@@ -199,7 +199,25 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
       alert("Action non autorisée.");
       return;
     }
+
+    const normalizedTitle = titre.trim();
+    const normalizedDescription = description.trim();
+    if (!normalizedTitle || !normalizedDescription) {
+      alert('Veuillez renseigner le titre et la description du problème.');
+      return;
+    }
+
     const selectedProp = properties.find((prop) => prop.id === bienId);
+    if (!selectedProp) {
+      alert('Veuillez sélectionner un bien existant.');
+      return;
+    }
+
+    if (!Number.isFinite(coutEstime) || coutEstime < 0) {
+      alert('Veuillez saisir un coût estimé valide (supérieur ou égal à zéro).');
+      return;
+    }
+
     const selectedTenant = tenants.find((t) => t.bienId === bienId);
     const selectedOwner = owners.find((o) => o.id === selectedProp?.proprietaireId);
 
@@ -207,13 +225,13 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
       id: crypto.randomUUID(),
       ref: `TRV-${Date.now().toString().slice(-6)}`,
       bienId,
-      bienNom: selectedProp?.nom || 'Bien assigné',
+      bienNom: selectedProp.nom,
       proprietaireId: selectedProp?.proprietaireId,
       proprietaireNom: selectedOwner ? `${selectedOwner.prenom} ${selectedOwner.nom}` : undefined,
       locataireId: selectedTenant?.id,
-      locataireNom: selectedTenant ? `${selectedTenant.prenom} ${selectedTenant.nom}` : (selectedProp?.locataireActuelNom || 'Locataire en place'),
-      titre,
-      description,
+      locataireNom: selectedTenant ? `${selectedTenant.prenom} ${selectedTenant.nom}` : (selectedProp.locataireActuelNom || 'Locataire en place'),
+      titre: normalizedTitle,
+      description: normalizedDescription,
       priorite,
       statut: 'Signalé',
       statutReglement: 'Non réglé',
@@ -832,6 +850,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     onChange={(e) => setBienId(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                   >
+                    <option value="">— Sélectionner un bien —</option>
                     {properties.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nom} {p.locataireActuelNom ? `(${p.locataireActuelNom})` : ''}

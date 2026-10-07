@@ -21,7 +21,15 @@ CREATE TABLE IF NOT EXISTS public.agencies (
     country VARCHAR(100) DEFAULT 'Sénégal',
     ninea VARCHAR(100),
     rc_numero VARCHAR(100),
+    rc VARCHAR(100),
     logo_url TEXT,
+    primary_color VARCHAR(20) DEFAULT '#C9A96E',
+    website TEXT,
+    bank_name VARCHAR(100),
+    bank_account VARCHAR(100),
+    plan VARCHAR(30) DEFAULT 'BASIC',
+    subscription_start DATE,
+    subscription_end DATE,
     status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'trial', 'inactive')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -256,13 +264,42 @@ CREATE TABLE IF NOT EXISTS public.payment_methods_config (
 -- ------------------------------------------------------------------------------
 -- 10. TABLE : payments (Paiements, Quittances & Règlements)
 -- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.payment_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
+    locataire_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+    periode VARCHAR(50) NOT NULL,
+    montant NUMERIC(15, 2) NOT NULL CHECK (montant > 0),
+    provider VARCHAR(30) NOT NULL CHECK (provider IN ('WAVE', 'ORANGE_MONEY', 'PAYDUNYA')),
+    provider_transaction_id TEXT,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'success', 'failed', 'cancelled')),
+    checkout_url TEXT,
+    paydunya_token TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::JSONB,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_payment_transactions_active_tenant_period
+    ON public.payment_transactions (agency_id, locataire_id, LOWER(BTRIM(periode)))
+    WHERE status IN ('pending', 'success');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_transaction_provider_id
+    ON public.payment_transactions (provider, provider_transaction_id)
+    WHERE provider_transaction_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
     ref VARCHAR(50) NOT NULL,
     quittance_numero VARCHAR(50) NOT NULL,
     locataire_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE RESTRICT,
+    locataire_nom VARCHAR(150),
     bien_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE RESTRICT,
+    bien_nom VARCHAR(150),
     proprietaire_id UUID NOT NULL REFERENCES public.owners(id) ON DELETE RESTRICT,
     contrat_id UUID REFERENCES public.contracts(id) ON DELETE SET NULL,
     periode VARCHAR(50) NOT NULL,
@@ -287,12 +324,135 @@ CREATE TABLE IF NOT EXISTS public.payments (
     caissier_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     validated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     observation TEXT,
+    created_by_id VARCHAR(100),
+    created_by_nom VARCHAR(150),
+    created_by_role VARCHAR(50),
+    type_recu VARCHAR(30) DEFAULT 'QUITTANCE',
+    reference_paiement_initial VARCHAR(100),
+    montant_initial_du NUMERIC(15, 2) DEFAULT 0.00,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
     CONSTRAINT uq_payment_ref_agency UNIQUE (agency_id, ref),
     CONSTRAINT uq_payment_quittance_agency UNIQUE (agency_id, quittance_numero)
 );
+
+CREATE OR REPLACE FUNCTION public.prevent_duplicate_final_payment()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NEW.deleted_at IS NOT NULL
+       OR NEW.verification_statut IS NOT DISTINCT FROM 'rejete'
+       OR (NEW.statut IN ('Payé', 'En attente') OR NEW.verification_statut = 'en_attente') IS NOT TRUE THEN
+        RETURN NEW;
+    END IF;
+
+    PERFORM pg_advisory_xact_lock(
+        hashtextextended(
+            NEW.agency_id::TEXT || ':' || NEW.locataire_id::TEXT || ':' || LOWER(BTRIM(NEW.periode)),
+            0
+        )
+    );
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.payments AS payment
+        WHERE payment.agency_id = NEW.agency_id
+          AND payment.locataire_id = NEW.locataire_id
+          AND LOWER(BTRIM(payment.periode)) = LOWER(BTRIM(NEW.periode))
+          AND payment.id <> NEW.id
+          AND payment.deleted_at IS NULL
+          AND payment.verification_statut IS DISTINCT FROM 'rejete'
+          AND (
+              payment.statut IN ('Payé', 'En attente')
+              OR payment.verification_statut = 'en_attente'
+          )
+    ) THEN
+        RAISE EXCEPTION 'Un paiement réglé ou en attente existe déjà pour ce locataire et cette période.'
+            USING ERRCODE = '23505', CONSTRAINT = 'uq_payment_tenant_period_blocking';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.payment_transactions AS payment_tx
+        WHERE payment_tx.agency_id = NEW.agency_id
+          AND payment_tx.locataire_id = NEW.locataire_id
+          AND LOWER(BTRIM(payment_tx.periode)) = LOWER(BTRIM(NEW.periode))
+          AND payment_tx.status IN ('pending', 'success')
+          AND payment_tx.provider_transaction_id IS DISTINCT FROM NEW.reference_transaction
+    ) THEN
+        RAISE EXCEPTION 'Un paiement en ligne est déjà en cours ou confirmé pour ce locataire et cette période.'
+            USING ERRCODE = '23505', CONSTRAINT = 'uq_payment_tenant_period_blocking';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_duplicate_final_payment ON public.payments;
+CREATE TRIGGER prevent_duplicate_final_payment
+    BEFORE INSERT OR UPDATE OF agency_id, locataire_id, periode, statut, verification_statut, deleted_at
+    ON public.payments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.prevent_duplicate_final_payment();
+
+CREATE OR REPLACE FUNCTION public.prevent_duplicate_payment_transaction()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NEW.status NOT IN ('pending', 'success') THEN
+        RETURN NEW;
+    END IF;
+
+    PERFORM pg_advisory_xact_lock(
+        hashtextextended(
+            NEW.agency_id::TEXT || ':' || NEW.locataire_id::TEXT || ':' || LOWER(BTRIM(NEW.periode)),
+            0
+        )
+    );
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.payments AS payment
+        WHERE payment.agency_id = NEW.agency_id
+          AND payment.locataire_id = NEW.locataire_id
+          AND LOWER(BTRIM(payment.periode)) = LOWER(BTRIM(NEW.periode))
+          AND payment.deleted_at IS NULL
+          AND payment.verification_statut IS DISTINCT FROM 'rejete'
+          AND (
+              payment.statut IN ('Payé', 'En attente')
+              OR payment.verification_statut = 'en_attente'
+          )
+          AND payment.reference_transaction IS DISTINCT FROM NEW.provider_transaction_id
+    ) OR EXISTS (
+        SELECT 1
+        FROM public.payment_transactions AS payment_tx
+        WHERE payment_tx.agency_id = NEW.agency_id
+          AND payment_tx.locataire_id = NEW.locataire_id
+          AND LOWER(BTRIM(payment_tx.periode)) = LOWER(BTRIM(NEW.periode))
+          AND payment_tx.id <> NEW.id
+          AND payment_tx.status IN ('pending', 'success')
+    ) THEN
+        RAISE EXCEPTION 'Un paiement réglé ou en attente existe déjà pour ce locataire et cette période.'
+            USING ERRCODE = '23505', CONSTRAINT = 'uq_payment_tenant_period_blocking';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_duplicate_payment_transaction ON public.payment_transactions;
+CREATE TRIGGER prevent_duplicate_payment_transaction
+    BEFORE INSERT OR UPDATE OF agency_id, locataire_id, periode, status
+    ON public.payment_transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION public.prevent_duplicate_payment_transaction();
 
 -- ------------------------------------------------------------------------------
 -- 11. TABLE : cash_movements (Journal de Caisse & Flux d'Espèces)
@@ -513,6 +673,39 @@ CREATE TABLE IF NOT EXISTS public.agency_settings (
     prefix_paiement VARCHAR(20) DEFAULT 'PAY-2026-',
     prefix_contrat VARCHAR(20) DEFAULT 'BAIL-2026-',
     prefix_bon_caisse VARCHAR(20) DEFAULT 'BCA-2026-',
+    gerant_nom VARCHAR(150),
+    gerant_titre VARCHAR(100) DEFAULT 'Gérant',
+    gerant_signature_url TEXT,
+    slogan_1 VARCHAR(255),
+    slogan_2 VARCHAR(255),
+    logo_url TEXT,
+    primary_color VARCHAR(20),
+    cachet_url TEXT,
+    entete_url TEXT,
+    pied_page_url TEXT,
+    rc_numero VARCHAR(100),
+    ninea_numero VARCHAR(100),
+    boite_postale VARCHAR(100),
+    site_web TEXT,
+    website TEXT,
+    standard_telephone VARCHAR(50),
+    wave_numero VARCHAR(50),
+    orange_money_code VARCHAR(100),
+    whatsapp_business VARCHAR(50),
+    wave_api_key TEXT,
+    wave_webhook_secret TEXT,
+    wave_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    orange_money_api_key TEXT,
+    orange_money_merchant_id TEXT,
+    orange_money_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    paydunya_master_key TEXT,
+    paydunya_private_key TEXT,
+    paydunya_public_key TEXT,
+    paydunya_token TEXT,
+    paydunya_mode VARCHAR(10) NOT NULL DEFAULT 'test',
+    paydunya_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    payments_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    payments_provider VARCHAR(30) NOT NULL DEFAULT 'NONE',
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

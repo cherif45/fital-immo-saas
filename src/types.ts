@@ -314,6 +314,7 @@ export interface LeaseContract extends AuditSignature {
   fraisAdhesion?: number;
   dateDebut: string;
   dateFin: string;
+  jourEcheance?: number;
   statut: ContractStatus;
   dateContrat?: string;
   debutContrat?: string;

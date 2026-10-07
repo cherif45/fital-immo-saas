@@ -44,10 +44,10 @@ interface DashboardViewProps {
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: () => void;
   onOpenNewProperty: () => void;
-  selectedPeriod: string;
-  setSelectedPeriod: (p: string) => void;
   currentUser?: { id?: string; agencyId?: string; role?: string } | null;
 }
+
+type DashboardPeriod = 'today' | 'last7days' | 'month' | 'quarter' | 'year';
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   properties,
@@ -60,12 +60,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenQuickReminder,
   onOpenNewPayment,
   onOpenNewProperty,
-  selectedPeriod,
-  setSelectedPeriod,
   currentUser,
 }) => {
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
   const [aiInsight, setAiInsight] = useState<{ analysis: string; actionPlan: string[] } | null>(null);
+  const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>('month');
 
   // ============================================================
   // FILTRAGE PAR PÉRIODE
@@ -74,27 +73,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const getPeriodRange = () => {
-    switch (selectedPeriod) {
-      case 'Aujourd’hui': {
-        const end = new Date(today);
-        end.setDate(end.getDate() + 1);
-        return { start: today, end };
-      }
-      case '7 jours': {
+    switch (dashboardPeriod) {
+      case 'today':
+        return { start: today, end: now };
+      case 'last7days': {
         const start = new Date(today);
-        start.setDate(start.getDate() - 7);
+        start.setDate(start.getDate() - 6);
         return { start, end: now };
       }
-      case 'Trimestre': {
+      case 'quarter': {
         const quarter = Math.floor(now.getMonth() / 3);
         const start = new Date(now.getFullYear(), quarter * 3, 1);
         return { start, end: now };
       }
-      case 'Année 2026': {
+      case 'year': {
         const start = new Date(now.getFullYear(), 0, 1);
         return { start, end: now };
       }
-      case 'Ce mois (Mai 2026)':
+      case 'month':
       default: {
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         return { start, end: now };
@@ -104,39 +100,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const { start: periodStart, end: periodEnd } = getPeriodRange();
 
+  const parseDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+      ? new Date(`${dateStr}T00:00:00`)
+      : new Date(dateStr);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
   const isInPeriod = (dateStr?: string) => {
-    if (!dateStr) return false;
-    const d = new Date(dateStr);
-    return d >= periodStart && d <= periodEnd;
+    const date = parseDate(dateStr);
+    return date !== null && date >= periodStart && date <= periodEnd;
   };
 
   const isToday = (dateStr?: string) => {
-    if (!dateStr) return false;
-    return new Date(dateStr).toDateString() === new Date().toDateString();
+    const date = parseDate(dateStr);
+    return date !== null && date.toDateString() === today.toDateString();
   };
 
   // ============================================================
   // MÉTRIQUES
   // ============================================================
+  const isCollectedPayment = (payment: Payment) =>
+    (payment.statut === 'Payé' || payment.statut === 'Partiel') &&
+    payment.verificationStatut !== 'en_attente' &&
+    payment.verificationStatut !== 'rejete';
+  const getReceivedAmount = (payment: Payment) =>
+    Number.isFinite(payment.montantPaye) ? Math.max(0, payment.montantPaye) : 0;
+
   const filteredPayments = payments.filter(
-    (p) => p.statut === 'Payé' && isInPeriod(p.datePaiement)
+    (p) => isCollectedPayment(p) && isInPeriod(p.datePaiement)
   );
 
-  const totalCollected = filteredPayments.reduce((sum, p) => sum + p.montantPaye, 0);
-
-  const totalUnpaid = tenants
-    .filter((t) => t.statut === 'Impayé' || t.statut === 'Retard')
-    .reduce((sum, t) => sum + (t.arrieresCumules || t.loyerMensuel), 0);
+  const totalCollected = filteredPayments.reduce((sum, p) => sum + getReceivedAmount(p), 0);
 
   const overdueTenants = tenants.filter(
     (t) => t.statut === 'Impayé' || t.statut === 'Retard'
   );
+  const totalUnpaid = overdueTenants.reduce((sum, tenant) => {
+    const balance = tenant.arrieresCumules ?? tenant.loyerMensuel;
+    return sum + (Number.isFinite(balance) ? Math.max(0, balance) : 0);
+  }, 0);
 
   const totalCollectedToday = payments
-    .filter((p) => p.statut === 'Payé' && isToday(p.datePaiement))
-    .reduce((sum, p) => sum + p.montantPaye, 0);
+    .filter((p) => isCollectedPayment(p) && isToday(p.datePaiement))
+    .reduce((sum, p) => sum + getReceivedAmount(p), 0);
 
-  const paymentsToday = payments.filter((p) => p.statut === 'Payé' && isToday(p.datePaiement));
+  const paymentsToday = payments.filter((p) => isCollectedPayment(p) && isToday(p.datePaiement));
 
   // 🆕 ADDITIONNER properties + units
   const allLots: any[] = [...properties, ...units];
@@ -146,8 +156,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalProperties = allLots.length;
   const occupancyRate = totalProperties > 0 ? Math.round((occupiedProperties / totalProperties) * 100) : 0;
 
-  const totalTarget = totalCollected + totalUnpaid;
-  const recoveryRate = totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0;
+  const totalCollectedAllTime = payments
+    .filter(isCollectedPayment)
+    .reduce((sum, payment) => sum + getReceivedAmount(payment), 0);
+  const totalTarget = totalCollectedAllTime + totalUnpaid;
+  const recoveryRate = totalTarget > 0 ? Math.round((totalCollectedAllTime / totalTarget) * 100) : 0;
 
   const estimatedCommission = Math.round(totalCollected * 0.095);
 
@@ -193,7 +206,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  const periods = ['Aujourd’hui', '7 jours', 'Ce mois (Mai 2026)', 'Trimestre', 'Année 2026'];
+  const periods: { id: DashboardPeriod; label: string }[] = [
+    { id: 'today', label: 'Aujourd’hui' },
+    { id: 'last7days', label: '7 jours' },
+    {
+      id: 'month',
+      label: `Ce mois (${now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })})`,
+    },
+    { id: 'quarter', label: 'Trimestre' },
+    { id: 'year', label: `Année ${now.getFullYear()}` },
+  ];
+  const selectedPeriodLabel = periods.find((period) => period.id === dashboardPeriod)?.label ?? '';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -202,17 +225,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <DashboardCalendar agencyId={currentUser?.agencyId} />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1 border-b border-[#C9A96E]/10">
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1">
-          {periods.map((p) => (
+          {periods.map((period) => (
             <button
-              key={p}
-              onClick={() => setSelectedPeriod(p)}
+              key={period.id}
+              onClick={() => setDashboardPeriod(period.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                selectedPeriod === p
+                dashboardPeriod === period.id
                   ? 'bg-gradient-to-r from-[#C9A96E]/25 to-[#C9A96E]/10 text-[#E8D5B0] border border-[#C9A96E]/40 font-semibold shadow-sm'
                   : 'text-[#6B7C94] hover:text-[#A8B4C4] hover:bg-[#1E2E45]/40 border border-transparent'
               }`}
             >
-              {p}
+              {period.label}
             </button>
           ))}
         </div>
@@ -305,7 +328,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-xs font-normal text-[#C9A96E]">FCFA</span>
           </div>
           <div className="text-xs font-medium text-[#A8B4C4] mt-1">
-            Loyers perçus · {selectedPeriod}
+            Loyers perçus · {selectedPeriodLabel}
           </div>
           <div className="text-[11px] text-[#6B7C94] mt-3 pt-3 border-t border-[#C9A96E]/10 flex items-center justify-between">
             <span>Commissions agence :</span>

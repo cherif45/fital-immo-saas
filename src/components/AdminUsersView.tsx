@@ -39,7 +39,7 @@ interface AdminUsersViewProps {
   properties?: Property[];
   buildings?: Building[];
   onAddUser: (user: UserAccount) => Promise<{ success: boolean; error?: string }>;
-  onUpdateUser: (user: UserAccount) => void;
+  onUpdateUser: (user: UserAccount) => Promise<{ success: boolean; error?: string }>;
   onSwitchActiveUser: (user: UserAccount) => void;
   currentUser: UserAccount;
   isSupabaseOnline?: boolean;
@@ -139,6 +139,8 @@ export function AdminUsersView({
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [userUpdateError, setUserUpdateError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
@@ -188,6 +190,7 @@ export function AdminUsersView({
     const matchStatus = statusFilter === 'ALL' || u.statut === statusFilter;
     return matchSearch && matchRole && matchStatus;
   });
+  const activeUsersCount = users.filter((user) => user.statut === 'actif').length;
 
   const handleRoleChangeInForm = (newRole: UserRole) => {
     let defaultPerms: string[] = [];
@@ -229,7 +232,7 @@ export function AdminUsersView({
     }
 
     const newUser: UserAccount = {
-      id: crypto.randomUUID(),
+      id: `user-${crypto.randomUUID()}`,
       agencyId: currentUser.agencyId,
       nom: formData.nom.toUpperCase(),
       prenom: formData.prenom,
@@ -280,10 +283,43 @@ export function AdminUsersView({
     }, 1500);
   };
 
-  const toggleUserStatus = (user: UserAccount) => {
-    const nextStatus: UserAccountStatus =
-      user.statut === 'actif' ? 'suspendu' : user.statut === 'suspendu' ? 'desactive' : 'actif';
-    onUpdateUser({ ...user, statut: nextStatus });
+  const persistUserUpdate = async (user: UserAccount): Promise<boolean> => {
+    setUserUpdateError(null);
+    setUpdatingUserId(user.id);
+    try {
+      const result = await onUpdateUser(user);
+      if (!result.success) {
+        setUserUpdateError(result.error || 'La mise à jour du compte a échoué.');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue.';
+      setUserUpdateError(`La mise à jour du compte a échoué : ${message}`);
+      return false;
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const toggleUserStatus = async (user: UserAccount) => {
+    const nextStatus: UserAccountStatus = user.statut === 'actif' ? 'suspendu' : 'actif';
+    if (user.id === currentUser.id && nextStatus !== 'actif') {
+      setUserUpdateError('Vous ne pouvez pas suspendre votre propre compte.');
+      return;
+    }
+    await persistUserUpdate({ ...user, statut: nextStatus });
+  };
+
+  const deactivateUser = async (user: UserAccount) => {
+    if (user.id === currentUser.id) {
+      setUserUpdateError('Vous ne pouvez pas désactiver votre propre compte.');
+      return;
+    }
+    if (!window.confirm(`Désactiver l'accès de ${user.prenom} ${user.nom} ? Le compte sera conservé pour l'historique.`)) {
+      return;
+    }
+    await persistUserUpdate({ ...user, statut: 'desactive' });
   };
 
   return (
@@ -298,7 +334,7 @@ export function AdminUsersView({
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               Gestion Multi-Comptes & Espaces Utilisateurs
               <span className="text-xs bg-[#C9A96E]/20 text-[#E8D5B0] px-2.5 py-0.5 rounded-full font-semibold border border-[#C9A96E]/30">
-                {users.length} comptes actifs
+                {activeUsersCount} comptes actifs
               </span>
             </h1>
             <p className="text-sm text-slate-400">
@@ -317,6 +353,11 @@ export function AdminUsersView({
             <span>+ Nouveau Compte</span>
           </button>
         </div>
+        {userUpdateError && (
+          <p role="alert" className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+            {userUpdateError}
+          </p>
+        )}
       </div>
 
       {/* Sub tabs */}
@@ -507,8 +548,9 @@ export function AdminUsersView({
                   <div className="pt-4 mt-4 border-t border-white/5 flex items-center justify-between gap-2">
                     <button
                       onClick={() => onSwitchActiveUser(user)}
-                      className="px-3 py-1.5 bg-[#C9A96E]/10 hover:bg-[#C9A96E]/20 text-[#E8D5B0] text-xs font-semibold rounded-lg transition-all border border-[#C9A96E]/30 flex items-center gap-1.5 cursor-pointer"
-                      title="Se connecter dans l'espace de cet utilisateur"
+                      disabled={user.statut !== 'actif'}
+                      className="px-3 py-1.5 bg-[#C9A96E]/10 hover:bg-[#C9A96E]/20 text-[#E8D5B0] text-xs font-semibold rounded-lg transition-all border border-[#C9A96E]/30 flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={user.statut === 'actif' ? "Se connecter dans l'espace de cet utilisateur" : "Impossible d'accéder à un compte inactif"}
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Accéder à l'Espace</span>
@@ -523,7 +565,8 @@ export function AdminUsersView({
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => toggleUserStatus(user)}
+                        onClick={() => void toggleUserStatus(user)}
+                        disabled={updatingUserId === user.id}
                         className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                           user.statut === 'actif'
                             ? 'text-amber-400 hover:bg-amber-500/20 bg-amber-500/10'
@@ -533,6 +576,16 @@ export function AdminUsersView({
                       >
                         {user.statut === 'actif' ? <Lock className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
                       </button>
+                      {user.statut !== 'desactive' && (
+                        <button
+                          onClick={() => void deactivateUser(user)}
+                          disabled={updatingUserId === user.id || user.id === currentUser.id}
+                          className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/20 bg-rose-500/10 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Désactiver l'accès en conservant l'historique"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -820,6 +873,11 @@ export function AdminUsersView({
             </div>
 
             <div className="space-y-4">
+              {userUpdateError && (
+                <p role="alert" className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+                  {userUpdateError}
+                </p>
+              )}
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1">Rôle</label>
                 <select
@@ -875,13 +933,13 @@ export function AdminUsersView({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    onUpdateUser(selectedUserForEdit);
-                    setSelectedUserForEdit(null);
+                  onClick={async () => {
+                    if (await persistUserUpdate(selectedUserForEdit)) setSelectedUserForEdit(null);
                   }}
+                  disabled={updatingUserId === selectedUserForEdit.id}
                   className="px-5 py-2 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer"
                 >
-                  Enregistrer
+                  {updatingUserId === selectedUserForEdit.id ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
               </div>
             </div>

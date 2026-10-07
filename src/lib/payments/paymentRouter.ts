@@ -1,4 +1,5 @@
 import { AgencySettings } from '../../types';
+import { createDocumentNumber } from '../documentNumber';
 
 export type PaymentProvider = 'WAVE' | 'ORANGE_MONEY' | 'PAYDUNYA';
 
@@ -71,7 +72,7 @@ async function createWaveCheckout(
       body: JSON.stringify({
         amount: request.montant,
         currency: 'XOF',
-        clientReference: request.metadata?.reference || `PAY-${Date.now()}`,
+        clientReference: request.metadata?.reference || createDocumentNumber(undefined, 'PAY-'),
         successUrl: request.successUrl,
         errorUrl: request.errorUrl,
         agencyId: request.agencyId,
@@ -108,7 +109,7 @@ async function createOrangeMoneyCheckout(
       body: JSON.stringify({
         amount: request.montant,
         currency: 'XOF',
-        orderId: request.metadata?.reference || `PAY-${Date.now()}`,
+        orderId: request.metadata?.reference || createDocumentNumber(undefined, 'PAY-'),
         successUrl: request.successUrl,
         errorUrl: request.errorUrl,
         agencyId: request.agencyId,

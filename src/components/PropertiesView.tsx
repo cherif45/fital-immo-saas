@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Property, Owner, PropertyType, PropertyStatus, UserAccount } from '../types';
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface PropertiesViewProps {
   properties: Property[];
@@ -165,7 +166,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     }
     const newProp: Property = {
       id: crypto.randomUUID(),
-      ref: `LOT-${Math.floor(100 + Math.random() * 900)}`,
+      ref: createDocumentNumber(undefined, 'LOT-'),
       nom,
       type,
       adresse,

@@ -23,6 +23,7 @@ import { Owner, Property, Payment, Unit, Building , AgencySettings } from '../ty
 import { formatCurrency, formatNumber, exportToCSV } from '../lib/utils';
 import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
 import { OwnerMandateModal } from './OwnerMandateModal';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface OwnersViewProps {
   owners: Owner[];
@@ -132,15 +133,15 @@ export const OwnersView: React.FC<OwnersViewProps> = ({
       nom: nom.toUpperCase(),
       prenom,
       telephone,
-      email: email || `${prenom.toLowerCase()}.${nom.toLowerCase()}@gmail.com`,
+      email: email.trim() || undefined,
       adresse,
       typePiece, // 🆕
       cni,       // 🆕
-      mandatGerance: `MANDAT-2026-${Math.floor(100 + Math.random() * 900)}`,
+      mandatGerance: createDocumentNumber(undefined, 'MANDAT-'),
       dateMandat: new Date().toISOString().split('T')[0],
       tauxCommission: Number(tauxCommission),
       banque,
-      compteBancaire: compteBancaire || `SN08 SN012 012345678901 ${Math.floor(10 + Math.random() * 89)}`,
+      compteBancaire: compteBancaire.trim() || undefined,
       totalBiens: 1,
       totalLoyersMensuels: 350000
     };

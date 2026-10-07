@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Tenant, Property, Inspection } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
+import { createDocumentNumber } from '../lib/documentNumber';
 
 interface TenantExitModalProps {
   tenant: Tenant;
@@ -45,7 +46,7 @@ export function TenantExitModal({
   const handleConfirm = () => {
     const inspectionExit: Inspection = {
       id: crypto.randomUUID(),
-      ref: `EDL-S-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      ref: createDocumentNumber(undefined, 'EDL-S-'),
       bienId: tenant.bienId,
       bienNom: tenant.bienNom,
       locataireId: tenant.id,

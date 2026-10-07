@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase/client';
 import { AgencySettings } from '../types';
 import { uploadAgencyAsset, AgencyAssetType } from '../lib/supabase/storage';
 
-const CACHE_KEY = 'fital_immo_agency_settings';
+const CACHE_KEY = 'fital_immo_agency_settings_v2';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEntry {
@@ -21,7 +21,12 @@ export function useAgencySettings(agencyId?: string) {
 
   // Charger les paramètres
   const load = useCallback(async (force = false) => {
-    if (!agencyId || !supabase) return;
+    if (!agencyId || !supabase) {
+      setSettings(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
     // Vérifier le cache
     if (!force) {
@@ -39,12 +44,13 @@ export function useAgencySettings(agencyId?: string) {
 
     setLoading(true);
     setError(null);
+    setSettings(null);
 
     try {
       const { data, error: fetchError } = await supabase
-        .from('agencies')
+        .from('agency_settings')
         .select('*')
-        .eq('id', agencyId)
+        .eq('agency_id', agencyId)
         .maybeSingle();
 
       if (fetchError) {
@@ -56,18 +62,18 @@ export function useAgencySettings(agencyId?: string) {
       if (data) {
         // Mapper les champs DB (snake_case) → TS (camelCase)
         const mapped: AgencySettings = {
-          nomAgence: data.name || '',
-          slogan: data.slogan_1 || '',
-          telephone: data.phone || '',
+          nomAgence: data.nom_agence || '',
+          slogan: data.slogan || '',
+          telephone: data.telephone || '',
           email: data.email || '',
-          adresse: data.address || '',
-          ville: data.city || '',
-          pays: data.country || 'Sénégal',
+          adresse: data.adresse || '',
+          ville: data.ville || '',
+          pays: data.pays || 'Sénégal',
           ninea: data.ninea || '',
-          devise: 'FCFA',
-          tauxGeranceDefaut: data.taux_gerance_defaut || 10,
-          penaliteDefaut: data.penalite_defaut || 10,
-          tvaTaux: data.tva_taux || 18,
+          devise: data.devise || 'FCFA',
+          tauxGeranceDefaut: data.taux_gerance_defaut ?? 10,
+          penaliteDefaut: data.penalite_defaut ?? 10,
+          tvaTaux: data.tva_taux ?? 18,
           prefixFacture: data.prefix_facture || 'FAC-',
           prefixQuittance: data.prefix_quittance || 'QUI-',
           prefixPaiement: data.prefix_paiement || 'PAY-',
@@ -77,6 +83,20 @@ export function useAgencySettings(agencyId?: string) {
           orangeMoneyCode: data.orange_money_code,
           whatsappBusiness: data.whatsapp_business,
           standardTelephone: data.standard_telephone,
+          waveApiKey: data.wave_api_key || '',
+          waveWebhookSecret: data.wave_webhook_secret || '',
+          waveEnabled: data.wave_enabled ?? false,
+          orangeMoneyApiKey: data.orange_money_api_key || '',
+          orangeMoneyMerchantId: data.orange_money_merchant_id || '',
+          orangeMoneyEnabled: data.orange_money_enabled ?? false,
+          paydunyaMasterKey: data.paydunya_master_key || '',
+          paydunyaPrivateKey: data.paydunya_private_key || '',
+          paydunyaPublicKey: data.paydunya_public_key || '',
+          paydunyaToken: data.paydunya_token || '',
+          paydunyaMode: data.paydunya_mode || 'test',
+          paydunyaEnabled: data.paydunya_enabled ?? false,
+          paymentsEnabled: data.payments_enabled ?? false,
+          paymentsProvider: data.payments_provider || 'NONE',
 
           // Nouveaux champs
           gerantNom: data.gerant_nom,
@@ -85,6 +105,7 @@ export function useAgencySettings(agencyId?: string) {
           slogan1: data.slogan_1,
           slogan2: data.slogan_2,
           logoUrl: data.logo_url,
+          primaryColor: data.primary_color,
           cachetUrl: data.cachet_url,
           enteteUrl: data.entete_url,
           piedPageUrl: data.pied_page_url,
@@ -92,7 +113,8 @@ export function useAgencySettings(agencyId?: string) {
           nineaNumero: data.ninea_numero,
           boitePostale: data.boite_postale,
           siteWeb: data.site_web,
-          devise: data.devise || 'FCFA',
+          website: data.website,
+          agencyId,
         };
 
         setSettings(mapped);
@@ -124,14 +146,14 @@ export function useAgencySettings(agencyId?: string) {
 
       try {
         // Mapper TS → DB (camelCase → snake_case)
-        const dbPatch: Record<string, any> = {};
-        if (patch.nomAgence !== undefined) dbPatch.name = patch.nomAgence;
-        if (patch.slogan !== undefined) dbPatch.slogan_1 = patch.slogan;
-        if (patch.telephone !== undefined) dbPatch.phone = patch.telephone;
+        const dbPatch: Record<string, unknown> = { agency_id: agencyId };
+        if (patch.nomAgence !== undefined) dbPatch.nom_agence = patch.nomAgence;
+        if (patch.slogan !== undefined) dbPatch.slogan = patch.slogan;
+        if (patch.telephone !== undefined) dbPatch.telephone = patch.telephone;
         if (patch.email !== undefined) dbPatch.email = patch.email;
-        if (patch.adresse !== undefined) dbPatch.address = patch.adresse;
-        if (patch.ville !== undefined) dbPatch.city = patch.ville;
-        if (patch.pays !== undefined) dbPatch.country = patch.pays;
+        if (patch.adresse !== undefined) dbPatch.adresse = patch.adresse;
+        if (patch.ville !== undefined) dbPatch.ville = patch.ville;
+        if (patch.pays !== undefined) dbPatch.pays = patch.pays;
         if (patch.ninea !== undefined) dbPatch.ninea = patch.ninea;
         if (patch.gerantNom !== undefined) dbPatch.gerant_nom = patch.gerantNom;
         if (patch.gerantTitre !== undefined) dbPatch.gerant_titre = patch.gerantTitre;
@@ -139,6 +161,7 @@ export function useAgencySettings(agencyId?: string) {
         if (patch.slogan1 !== undefined) dbPatch.slogan_1 = patch.slogan1;
         if (patch.slogan2 !== undefined) dbPatch.slogan_2 = patch.slogan2;
         if (patch.logoUrl !== undefined) dbPatch.logo_url = patch.logoUrl;
+        if (patch.primaryColor !== undefined) dbPatch.primary_color = patch.primaryColor;
         if (patch.cachetUrl !== undefined) dbPatch.cachet_url = patch.cachetUrl;
         if (patch.enteteUrl !== undefined) dbPatch.entete_url = patch.enteteUrl;
         if (patch.piedPageUrl !== undefined) dbPatch.pied_page_url = patch.piedPageUrl;
@@ -158,17 +181,27 @@ export function useAgencySettings(agencyId?: string) {
         if (patch.orangeMoneyCode !== undefined) dbPatch.orange_money_code = patch.orangeMoneyCode;
         if (patch.whatsappBusiness !== undefined) dbPatch.whatsapp_business = patch.whatsappBusiness;
         if (patch.standardTelephone !== undefined) dbPatch.standard_telephone = patch.standardTelephone;
-        if (patch.pays !== undefined) dbPatch.country = patch.pays;
+        if (patch.waveApiKey !== undefined) dbPatch.wave_api_key = patch.waveApiKey;
+        if (patch.waveWebhookSecret !== undefined) dbPatch.wave_webhook_secret = patch.waveWebhookSecret;
+        if (patch.waveEnabled !== undefined) dbPatch.wave_enabled = patch.waveEnabled;
+        if (patch.orangeMoneyApiKey !== undefined) dbPatch.orange_money_api_key = patch.orangeMoneyApiKey;
+        if (patch.orangeMoneyMerchantId !== undefined) dbPatch.orange_money_merchant_id = patch.orangeMoneyMerchantId;
+        if (patch.orangeMoneyEnabled !== undefined) dbPatch.orange_money_enabled = patch.orangeMoneyEnabled;
+        if (patch.paydunyaMasterKey !== undefined) dbPatch.paydunya_master_key = patch.paydunyaMasterKey;
+        if (patch.paydunyaPrivateKey !== undefined) dbPatch.paydunya_private_key = patch.paydunyaPrivateKey;
+        if (patch.paydunyaPublicKey !== undefined) dbPatch.paydunya_public_key = patch.paydunyaPublicKey;
+        if (patch.paydunyaToken !== undefined) dbPatch.paydunya_token = patch.paydunyaToken;
+        if (patch.paydunyaMode !== undefined) dbPatch.paydunya_mode = patch.paydunyaMode;
+        if (patch.paydunyaEnabled !== undefined) dbPatch.paydunya_enabled = patch.paydunyaEnabled;
+        if (patch.paymentsEnabled !== undefined) dbPatch.payments_enabled = patch.paymentsEnabled;
+        if (patch.paymentsProvider !== undefined) dbPatch.payments_provider = patch.paymentsProvider;
         if (patch.devise !== undefined) dbPatch.devise = patch.devise;
-        if (patch.logoUrl !== undefined) dbPatch.logo_url = patch.logoUrl;
-        if (patch.cachetUrl !== undefined) dbPatch.cachet_url = patch.cachetUrl;
-        if (patch.enteteUrl !== undefined) dbPatch.entete_url = patch.enteteUrl;
-        if (patch.piedPageUrl !== undefined) dbPatch.pied_page_url = patch.piedPageUrl;
+        if (patch.website !== undefined) dbPatch.website = patch.website;
+        dbPatch.updated_at = new Date().toISOString();
 
         const { error: updateError } = await supabase
-          .from('agencies')
-          .update(dbPatch)
-          .eq('id', agencyId);
+          .from('agency_settings')
+          .upsert(dbPatch, { onConflict: 'agency_id' });
 
         if (updateError) return { success: false, error: updateError.message };
 
@@ -189,19 +222,32 @@ export function useAgencySettings(agencyId?: string) {
 
       const result = await uploadAgencyAsset(agencyId, type, file);
       if (result.url) {
-        // Mettre à jour le state + cache
-        await updateSettings({ [`${type}Url`]: result.url } as any);
+        const patch: Partial<AgencySettings> = type === 'logo'
+          ? { logoUrl: result.url }
+          : type === 'cachet'
+          ? { cachetUrl: result.url }
+          : type === 'signature'
+          ? { gerantSignatureUrl: result.url }
+          : type === 'entete'
+          ? { enteteUrl: result.url }
+          : { piedPageUrl: result.url };
+        const saved = await updateSettings(patch);
+        if (!saved.success) {
+          return { url: null, error: `Fichier envoyé, mais son URL n'a pas pu être enregistrée : ${saved.error}` };
+        }
       }
       return result;
     },
     [agencyId, updateSettings]
   );
 
+  const reload = useCallback(() => load(true), [load]);
+
   return {
     settings,
     loading,
     error,
-    reload: () => load(true),
+    reload,
     updateSettings,
     uploadAsset,
   };

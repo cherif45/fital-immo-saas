@@ -1,4 +1,4 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -35,6 +35,7 @@ import {
   Penalty,
   OwnerCharge,
 } from "../../types";
+import { createDocumentNumber } from "../documentNumber";
 
 export interface AppStateData {
   agency: Agency | null;
@@ -582,6 +583,7 @@ export function mapContractFromDb(r: any): LeaseContract {
     dateDebut: r.date_debut || r.dateDebut || "",
     dateFin: r.date_fin || r.dateFin || "",
     typeReglement: r.type_reglement || r.typeReglement || "Mensuel",
+    jourEcheance: Number(r.jour_echeance ?? r.jourEcheance ?? 5),
     statut: r.statut || "En cours",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -2296,7 +2298,7 @@ export async function saveContractToDb(
       date_debut: contract.dateDebut,
       date_fin: contract.dateFin,
       type_reglement: contract.typeReglement || "Mensuel",
-      jour_echeance: 5,
+      jour_echeance: contract.jourEcheance ?? 5,
       statut: contract.statut || "En cours",
       created_by_id: contract.createdById || null,
       created_by_nom: contract.createdByNom || null,
@@ -2342,8 +2344,8 @@ export async function savePaymentToDb(
   try {
     const record = {
       agency_id: agencyId,
-      ref: payment.ref || `PAY-${Date.now()}`,
-      quittance_numero: payment.quittanceNumero || `QUI-${Date.now()}`,
+      ref: payment.ref || createDocumentNumber(undefined, "PAY-"),
+      quittance_numero: payment.quittanceNumero || createDocumentNumber(undefined, "QUI-"),
       locataire_id: payment.locataireId,
       bien_id: payment.bienId,
       locataire_nom: payment.locataireNom || null,
@@ -2401,7 +2403,10 @@ export async function savePaymentToDb(
       return { success: true, data: data as unknown as Payment };
     }
   } catch (err: any) {
-    return { success: false, error: err.message || "Impossible." };
+    const error = err?.code === "23505"
+      ? "Paiement bloqué : un paiement réglé ou en attente existe déjà pour ce locataire et cette période."
+      : err.message || "Impossible.";
+    return { success: false, error };
   }
 }
 
@@ -3246,6 +3251,9 @@ export async function fetchAgencyUsers(
       organisation: p.agencies?.name || "",
       createdAt: p.created_at,
       updatedAt: p.updated_at,
+      initiales: p.initiales || (p.prenom && p.nom ? `${p.prenom.trim()[0]}${p.nom.trim()[0]}`.toUpperCase() : undefined),
+      signatureUrl: p.signature_url,
+      fonction: p.fonction,
     }));
   } catch (err) {
     return [];
@@ -3480,7 +3488,7 @@ export async function createAgencyWithAdmin(params: {
           agency_id: agency.id,
           code: "ESPECES",
           libelle: "Espèces",
-          description: "Rà¨glement au comptoir",
+          description: "Règlement au comptoir",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 0,
@@ -3515,8 +3523,8 @@ export async function createAgencyWithAdmin(params: {
         {
           agency_id: agency.id,
           code: "CHEQUE",
-          libelle: "Chà¨que",
-          description: "Dépôt de chà¨que",
+          libelle: "Chèque",
+          description: "Dépôt de chèque",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 48,
@@ -3526,6 +3534,7 @@ export async function createAgencyWithAdmin(params: {
       console.warn("Erreur création payment_methods:", e);
     }
     try {
+      const currentYear = new Date().getFullYear();
       await supabase.from("agency_settings").insert({
         agency_id: agency.id,
         nom_agence: params.agencyName,
@@ -3542,6 +3551,11 @@ export async function createAgencyWithAdmin(params: {
         logo_url: params.agencyLogoUrl || null,
         primary_color: params.agencyPrimaryColor || "#C9A96E",
         website: params.agencyWebsite || null,
+        prefix_facture: `FAC-${currentYear}-`,
+        prefix_quittance: `QUI-${currentYear}-`,
+        prefix_paiement: `PAY-${currentYear}-`,
+        prefix_contrat: `BAIL-${currentYear}-`,
+        prefix_bon_caisse: `BCA-${currentYear}-`,
       });
     } catch (e) {
       console.warn("Erreur création settings:", e);
@@ -3559,7 +3573,7 @@ export async function createAgencyWithAdmin(params: {
 
 export async function toggleAgencyStatus(
   agencyId: string,
-  newStatus: "active" | "suspendu",
+  newStatus: "active" | "suspended",
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) return { success: false, error: "Supabase non configuré." };
   const { error } = await supabase
