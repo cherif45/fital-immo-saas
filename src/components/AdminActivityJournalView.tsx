@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   History,
   Search,
@@ -11,27 +11,28 @@ import {
   Tag,
   FileText,
   Clock,
-  ArrowUpDown
-} from 'lucide-react';
-import { AuditLog } from '../types';
+  ArrowUpDown,
+} from "lucide-react";
+import { AuditLog } from "../types";
 
 interface AdminActivityJournalViewProps {
   auditLogs: AuditLog[];
   onTriggerAuditLog?: (action: string, module: string, details: string) => void;
 }
 
-export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> = ({
-  auditLogs,
-  onTriggerAuditLog,
-}) => {
-  const [search, setSearch] = useState('');
-  const [moduleFilter, setModuleFilter] = useState('ALL');
+export const AdminActivityJournalView: React.FC<
+  AdminActivityJournalViewProps
+> = ({ auditLogs, onTriggerAuditLog }) => {
+  const [search, setSearch] = useState("");
+  const [moduleFilter, setModuleFilter] = useState("ALL");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  const modules = Array.from(new Set(auditLogs.map((l) => l.module).filter(Boolean)));
+  const modules = Array.from(
+    new Set(auditLogs.map((l) => l.module).filter(Boolean)),
+  );
 
   const filteredLogs = auditLogs.filter((log) => {
-    if (moduleFilter !== 'ALL' && log.module !== moduleFilter) return false;
+    if (moduleFilter !== "ALL" && log.module !== moduleFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -46,22 +47,35 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
   });
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Date & Heure', 'Utilisateur', 'Module', 'Action', 'Référence', 'Détails'];
+    const headers = [
+      "ID",
+      "Date & Heure",
+      "Utilisateur",
+      "Module",
+      "Action",
+      "Référence",
+      "Détails",
+    ];
     const rows = filteredLogs.map((l) => [
       l.id,
       `"${l.date}"`,
       `"${l.userNom}"`,
       `"${l.module}"`,
       `"${l.action}"`,
-      `"${l.entityRef || ''}"`,
+      `"${l.entityRef || ""}"`,
       `"${l.details.replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\n");
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `journal_audit_fital_immo_${new Date().toISOString().split('T')[0]}.csv`);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `journal_audit_fital_immo_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -73,16 +87,29 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
 
   const getActionBadgeColor = (action: string) => {
     const act = action.toUpperCase();
-    if (act.includes('SUPPRESSION') || act.includes('ANNULATION') || act.includes('DELETE')) {
-      return 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+    if (
+      act.includes("SUPPRESSION") ||
+      act.includes("ANNULATION") ||
+      act.includes("DELETE")
+    ) {
+      return "bg-rose-500/20 text-rose-300 border-rose-500/30";
     }
-    if (act.includes('CREATION') || act.includes('AJOUT') || act.includes('INSERT') || act.includes('PAIEMENT')) {
-      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+    if (
+      act.includes("CREATION") ||
+      act.includes("AJOUT") ||
+      act.includes("INSERT") ||
+      act.includes("PAIEMENT")
+    ) {
+      return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
     }
-    if (act.includes('CLOTURE') || act.includes('MODIFICATION') || act.includes('UPDATE')) {
-      return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+    if (
+      act.includes("CLOTURE") ||
+      act.includes("MODIFICATION") ||
+      act.includes("UPDATE")
+    ) {
+      return "bg-amber-500/20 text-amber-300 border-amber-500/30";
     }
-    return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+    return "bg-blue-500/20 text-blue-300 border-blue-500/30";
   };
 
   return (
@@ -95,13 +122,16 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white tracking-tight">Journal d'Activité & Audit Système</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                Situation du jour
+              </h1>
               <span className="text-xs bg-[#C9A96E]/20 text-[#E8D5B0] px-2.5 py-0.5 rounded-full font-semibold border border-[#C9A96E]/30">
                 {auditLogs.length} événements
               </span>
             </div>
             <p className="text-xs text-[#A8B4C4] mt-0.5">
-              Historique immuable de toutes les actions, paiements, clôtures, mutations et connexions de la plateforme.
+              Historique immuable de toutes les actions, paiements, clôtures,
+              mutations et connexions de la plateforme.
             </p>
           </div>
         </div>
@@ -129,9 +159,11 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-[#1E2E45] p-1 rounded-xl border border-[#C9A96E]/15 text-xs">
             <button
-              onClick={() => setModuleFilter('ALL')}
+              onClick={() => setModuleFilter("ALL")}
               className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                moduleFilter === 'ALL' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
+                moduleFilter === "ALL"
+                  ? "bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm"
+                  : "text-[#A8B4C4] hover:text-white"
               }`}
             >
               Tous ({auditLogs.length})
@@ -141,7 +173,9 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
                 key={m}
                 onClick={() => setModuleFilter(m)}
                 className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                  moduleFilter === m ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm' : 'text-[#A8B4C4] hover:text-white'
+                  moduleFilter === m
+                    ? "bg-[#C9A96E] text-[#0F1B2D] font-bold shadow-sm"
+                    : "text-[#A8B4C4] hover:text-white"
                 }`}
               >
                 {m}
@@ -208,12 +242,14 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getActionBadgeColor(log.action)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getActionBadgeColor(log.action)}`}
+                      >
                         {log.action}
                       </span>
                     </td>
                     <td className="py-3 px-4 font-mono text-[#E8D5B0] whitespace-nowrap">
-                      {log.entityRef || '—'}
+                      {log.entityRef || "—"}
                     </td>
                     <td className="py-3 px-4 text-[#A8B4C4] max-w-md truncate">
                       {log.details}
@@ -235,40 +271,60 @@ export const AdminActivityJournalView: React.FC<AdminActivityJournalViewProps> =
                 <History className="w-5 h-5 text-[#C9A96E]" />
                 <span>Détails de l'Événement d'Audit</span>
               </div>
-              <button onClick={() => setSelectedLog(null)} className="text-[#A8B4C4] hover:text-white">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="text-[#A8B4C4] hover:text-white"
+              >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="p-3 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/15 space-y-1">
-                <div className="text-[10px] text-[#A8B4C4] uppercase">Action & Module</div>
+                <div className="text-[10px] text-[#A8B4C4] uppercase">
+                  Action & Module
+                </div>
                 <div className="text-sm font-bold text-white">
-                  {selectedLog.action} <span className="text-[#C9A96E]">({selectedLog.module})</span>
+                  {selectedLog.action}{" "}
+                  <span className="text-[#C9A96E]">({selectedLog.module})</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/15">
-                  <div className="text-[10px] text-[#A8B4C4] uppercase">Auteur</div>
-                  <div className="text-white font-semibold">{selectedLog.userNom}</div>
+                  <div className="text-[10px] text-[#A8B4C4] uppercase">
+                    Auteur
+                  </div>
+                  <div className="text-white font-semibold">
+                    {selectedLog.userNom}
+                  </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/15">
-                  <div className="text-[10px] text-[#A8B4C4] uppercase">Date & Heure</div>
+                  <div className="text-[10px] text-[#A8B4C4] uppercase">
+                    Date & Heure
+                  </div>
                   <div className="text-white font-mono">{selectedLog.date}</div>
                 </div>
               </div>
 
               {selectedLog.entityRef && (
                 <div className="p-3 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/15">
-                  <div className="text-[10px] text-[#A8B4C4] uppercase">Référence Concernée</div>
-                  <div className="text-[#E8D5B0] font-mono font-bold">{selectedLog.entityRef}</div>
+                  <div className="text-[10px] text-[#A8B4C4] uppercase">
+                    Référence Concernée
+                  </div>
+                  <div className="text-[#E8D5B0] font-mono font-bold">
+                    {selectedLog.entityRef}
+                  </div>
                 </div>
               )}
 
               <div className="p-3 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/15 space-y-1">
-                <div className="text-[10px] text-[#A8B4C4] uppercase">Détails de l'Opération</div>
-                <p className="text-[#F0EDE8] leading-relaxed whitespace-pre-wrap">{selectedLog.details}</p>
+                <div className="text-[10px] text-[#A8B4C4] uppercase">
+                  Détails de l'Opération
+                </div>
+                <p className="text-[#F0EDE8] leading-relaxed whitespace-pre-wrap">
+                  {selectedLog.details}
+                </p>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   CalendarDays,
   Search,
@@ -17,57 +17,119 @@ import {
   X,
   ArrowRight,
   Download,
-} from 'lucide-react';
-import { ActivityLog, UserAccount } from '../types';
-import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
+} from "lucide-react";
+import { ActivityLog, UserAccount } from "../types";
+import { formatCurrency, formatNumber, formatDate } from "../lib/utils";
 
 interface ActivityLogViewProps {
   activities: ActivityLog[];
   currentUser?: UserAccount;
 }
 
-const ACTIVITY_CONFIG: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
-  PAYMENT: { label: 'Paiement', icon: WalletCards, color: 'text-[#C9A96E]', bgColor: 'bg-[#C9A96E]/20' },
-  CONTRACT: { label: 'Contrat', icon: FileSignature, color: 'text-amber-400', bgColor: 'bg-amber-500/20' },
-  TENANT_CREATED: { label: 'Nouveau Locataire', icon: User, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-  TENANT_EXIT: { label: 'Sortie Locataire', icon: User, color: 'text-rose-400', bgColor: 'bg-rose-500/20' },
-  MAINTENANCE: { label: 'Travaux', icon: Wrench, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
-  INSPECTION: { label: 'État des Lieux', icon: ClipboardList, color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
-  DISBURSEMENT: { label: 'Reversement', icon: TrendingUp, color: 'text-sky-400', bgColor: 'bg-sky-500/20' },
-  CASH_MOVEMENT: { label: 'Mouvement Caisse', icon: Receipt, color: 'text-teal-400', bgColor: 'bg-teal-500/20' },
-  REMINDER: { label: 'Relance', icon: BellRing, color: 'text-indigo-400', bgColor: 'bg-indigo-500/20' },
-  OTHER: { label: 'Autre', icon: Clock, color: 'text-slate-400', bgColor: 'bg-slate-500/20' },
+const ACTIVITY_CONFIG: Record<
+  string,
+  { label: string; icon: any; color: string; bgColor: string }
+> = {
+  PAYMENT: {
+    label: "Paiement",
+    icon: WalletCards,
+    color: "text-[#C9A96E]",
+    bgColor: "bg-[#C9A96E]/20",
+  },
+  CONTRACT: {
+    label: "Contrat",
+    icon: FileSignature,
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/20",
+  },
+  TENANT_CREATED: {
+    label: "Nouveau Locataire",
+    icon: User,
+    color: "text-purple-400",
+    bgColor: "bg-purple-500/20",
+  },
+  TENANT_EXIT: {
+    label: "Sortie Locataire",
+    icon: User,
+    color: "text-rose-400",
+    bgColor: "bg-rose-500/20",
+  },
+  MAINTENANCE: {
+    label: "Travaux",
+    icon: Wrench,
+    color: "text-orange-400",
+    bgColor: "bg-orange-500/20",
+  },
+  INSPECTION: {
+    label: "État des Lieux",
+    icon: ClipboardList,
+    color: "text-cyan-400",
+    bgColor: "bg-cyan-500/20",
+  },
+  DISBURSEMENT: {
+    label: "Reversement",
+    icon: TrendingUp,
+    color: "text-sky-400",
+    bgColor: "bg-sky-500/20",
+  },
+  CASH_MOVEMENT: {
+    label: "Mouvement Caisse",
+    icon: Receipt,
+    color: "text-teal-400",
+    bgColor: "bg-teal-500/20",
+  },
+  REMINDER: {
+    label: "Relance",
+    icon: BellRing,
+    color: "text-indigo-400",
+    bgColor: "bg-indigo-500/20",
+  },
+  OTHER: {
+    label: "Autre",
+    icon: Clock,
+    color: "text-slate-400",
+    bgColor: "bg-slate-500/20",
+  },
 };
 
-export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, currentUser }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [dateRangeMode, setDateRangeMode] = useState<'day' | 'week' | 'month' | 'all'>('day');
-  const [selectedActivity, setSelectedActivity] = useState<ActivityLog | null>(null);
+export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
+  activities,
+  currentUser,
+}) => {
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateRangeMode, setDateRangeMode] = useState<
+    "day" | "week" | "month" | "all"
+  >("day");
+  const [selectedActivity, setSelectedActivity] = useState<ActivityLog | null>(
+    null,
+  );
 
   // ============================================================
   // FILTRAGE PAR DATE
   // ============================================================
   const getDateRange = () => {
-    if (dateRangeMode === 'all') return null;
+    if (dateRangeMode === "all") return null;
     const ref = new Date(selectedDate);
     const start = new Date(ref);
     const end = new Date(ref);
 
-    if (dateRangeMode === 'day') {
+    if (dateRangeMode === "day") {
       // selectedDate → selectedDate
-    } else if (dateRangeMode === 'week') {
+    } else if (dateRangeMode === "week") {
       start.setDate(ref.getDate() - ref.getDay());
       end.setDate(start.getDate() + 6);
-    } else if (dateRangeMode === 'month') {
+    } else if (dateRangeMode === "month") {
       start.setDate(1);
       end.setMonth(ref.getMonth() + 1, 0);
     }
 
     return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
+      start: start.toISOString().split("T")[0],
+      end: end.toISOString().split("T")[0],
     };
   };
 
@@ -75,20 +137,21 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
     // Filtre par date
     const range = getDateRange();
     if (range) {
-      if (a.activityDate < range.start || a.activityDate > range.end) return false;
+      if (a.activityDate < range.start || a.activityDate > range.end)
+        return false;
     }
 
     // Filtre par type
-    if (typeFilter !== 'all' && a.activityType !== typeFilter) return false;
+    if (typeFilter !== "all" && a.activityType !== typeFilter) return false;
 
     // Recherche
     if (search) {
       const q = search.toLowerCase();
       return (
         a.title.toLowerCase().includes(q) ||
-        (a.description || '').toLowerCase().includes(q) ||
-        (a.userNom || '').toLowerCase().includes(q) ||
-        (a.entityRef || '').toLowerCase().includes(q)
+        (a.description || "").toLowerCase().includes(q) ||
+        (a.userNom || "").toLowerCase().includes(q) ||
+        (a.entityRef || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -97,8 +160,9 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
   // Tri par date décroissante + heure
   const sortedActivities = React.useMemo(() => {
     return [...filteredActivities].sort((a, b) => {
-      if (a.activityDate !== b.activityDate) return b.activityDate.localeCompare(a.activityDate);
-      return (b.createdAt || '').localeCompare(a.createdAt || '');
+      if (a.activityDate !== b.activityDate)
+        return b.activityDate.localeCompare(a.activityDate);
+      return (b.createdAt || "").localeCompare(a.createdAt || "");
     });
   }, [filteredActivities]);
 
@@ -118,23 +182,33 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
   // EXPORT CSV
   // ============================================================
   const handleExportCSV = () => {
-    const headers = ['Date', 'Heure', 'Type', 'Titre', 'Description', 'Utilisateur', 'Montant'];
+    const headers = [
+      "Date",
+      "Heure",
+      "Type",
+      "Titre",
+      "Description",
+      "Utilisateur",
+      "Montant",
+    ];
     const rows = sortedActivities.map((a) => [
       a.activityDate,
-      a.activityHour || '',
+      a.activityHour || "",
       ACTIVITY_CONFIG[a.activityType]?.label || a.activityType,
       a.title,
-      a.description || '',
-      a.userNom || '',
+      a.description || "",
+      a.userNom || "",
       a.montant || 0,
     ]);
     const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(',')].concat(rows.map((r) => r.map((c) => `"${c}"`).join(','))).join('\n');
+      "data:text/csv;charset=utf-8," +
+      [headers.join(",")]
+        .concat(rows.map((r) => r.map((c) => `"${c}"`).join(",")))
+        .join("\n");
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `activites_${selectedDate}.csv`);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `activites_${selectedDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -146,7 +220,7 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
   const setQuickDate = (offset: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(d.toISOString().split("T")[0]);
   };
 
   return (
@@ -159,10 +233,11 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
           </div>
           <div>
             <div className="text-base font-bold text-white">
-              Journal des Activités & Recherche par Date
+              situation du jour
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {filteredActivities.length} activité(s) · Total montants : {formatNumber(totalMontant)} FCFA
+              {filteredActivities.length} activité(s) · Total montants :{" "}
+              {formatNumber(totalMontant)} FCFA
             </div>
           </div>
         </div>
@@ -188,9 +263,10 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
             <button
               onClick={() => setQuickDate(0)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                selectedDate === new Date().toISOString().split('T')[0] && dateRangeMode === 'day'
-                  ? 'bg-[#C9A96E] text-[#0F1B2D]'
-                  : 'bg-[#1E2E45] text-[#A8B4C4] hover:text-white'
+                selectedDate === new Date().toISOString().split("T")[0] &&
+                dateRangeMode === "day"
+                  ? "bg-[#C9A96E] text-[#0F1B2D]"
+                  : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
               }`}
             >
               Aujourd'hui
@@ -198,9 +274,11 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
             <button
               onClick={() => setQuickDate(-1)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                selectedDate === new Date(Date.now() - 86400000).toISOString().split('T')[0] && dateRangeMode === 'day'
-                  ? 'bg-[#C9A96E] text-[#0F1B2D]'
-                  : 'bg-[#1E2E45] text-[#A8B4C4] hover:text-white'
+                selectedDate ===
+                  new Date(Date.now() - 86400000).toISOString().split("T")[0] &&
+                dateRangeMode === "day"
+                  ? "bg-[#C9A96E] text-[#0F1B2D]"
+                  : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
               }`}
             >
               Hier
@@ -229,18 +307,18 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
             </label>
             <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20">
               {[
-                { id: 'day' as const, label: 'Jour' },
-                { id: 'week' as const, label: 'Sem.' },
-                { id: 'month' as const, label: 'Mois' },
-                { id: 'all' as const, label: 'Tout' },
+                { id: "day" as const, label: "Jour" },
+                { id: "week" as const, label: "Sem." },
+                { id: "month" as const, label: "Mois" },
+                { id: "all" as const, label: "Tout" },
               ].map((m) => (
                 <button
                   key={m.id}
                   onClick={() => setDateRangeMode(m.id)}
                   className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
                     dateRangeMode === m.id
-                      ? 'bg-[#C9A96E] text-[#0F1B2D]'
-                      : 'text-[#A8B4C4] hover:text-white'
+                      ? "bg-[#C9A96E] text-[#0F1B2D]"
+                      : "text-[#A8B4C4] hover:text-white"
                   }`}
                 >
                   {m.label}
@@ -270,11 +348,11 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
         {/* Filtres par type */}
         <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-white/5">
           <button
-            onClick={() => setTypeFilter('all')}
+            onClick={() => setTypeFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              typeFilter === 'all'
-                ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold'
-                : 'bg-[#1E2E45] text-[#A8B4C4] hover:text-white'
+              typeFilter === "all"
+                ? "bg-[#C9A96E] text-[#0F1B2D] font-bold"
+                : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
             }`}
           >
             Tous ({filteredActivities.length})
@@ -289,12 +367,14 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
                 onClick={() => setTypeFilter(type)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                   typeFilter === type
-                    ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold'
-                    : 'bg-[#1E2E45] text-[#A8B4C4] hover:text-white'
+                    ? "bg-[#C9A96E] text-[#0F1B2D] font-bold"
+                    : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
                 }`}
               >
                 <Icon className="w-3 h-3" />
-                <span>{cfg.label} ({count})</span>
+                <span>
+                  {cfg.label} ({count})
+                </span>
               </button>
             );
           })}
@@ -309,10 +389,12 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
             Chronologie des Activités
           </h2>
           <span className="text-xs text-[#A8B4C4]">
-            {dateRangeMode === 'day' && `Journée du ${formatDate(selectedDate)}`}
-            {dateRangeMode === 'week' && `Semaine du ${formatDate(selectedDate)}`}
-            {dateRangeMode === 'month' && `Mois de ${formatDate(selectedDate)}`}
-            {dateRangeMode === 'all' && 'Toutes les activités'}
+            {dateRangeMode === "day" &&
+              `Journée du ${formatDate(selectedDate)}`}
+            {dateRangeMode === "week" &&
+              `Semaine du ${formatDate(selectedDate)}`}
+            {dateRangeMode === "month" && `Mois de ${formatDate(selectedDate)}`}
+            {dateRangeMode === "all" && "Toutes les activités"}
           </span>
         </div>
 
@@ -320,14 +402,17 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
           {sortedActivities.length === 0 ? (
             <div className="py-16 text-center text-[#6B7C94]">
               <CalendarDays className="w-10 h-10 mx-auto text-[#6B7C94]/50 mb-3" />
-              <p className="text-sm font-semibold text-white">Aucune activité trouvée</p>
+              <p className="text-sm font-semibold text-white">
+                Aucune activité trouvée
+              </p>
               <p className="text-xs text-[#6B7C94] mt-1">
                 Aucune action n'a été enregistrée pour cette période.
               </p>
             </div>
           ) : (
             sortedActivities.map((a) => {
-              const cfg = ACTIVITY_CONFIG[a.activityType] || ACTIVITY_CONFIG.OTHER;
+              const cfg =
+                ACTIVITY_CONFIG[a.activityType] || ACTIVITY_CONFIG.OTHER;
               const Icon = cfg.icon;
               return (
                 <div
@@ -336,7 +421,9 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
                   onClick={() => setSelectedActivity(a)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl ${cfg.bgColor} flex items-center justify-center flex-shrink-0`}>
+                    <div
+                      className={`w-10 h-10 rounded-xl ${cfg.bgColor} flex items-center justify-center flex-shrink-0`}
+                    >
                       <Icon className={`w-5 h-5 ${cfg.color}`} />
                     </div>
 
@@ -344,11 +431,13 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${cfg.bgColor} ${cfg.color} uppercase`}>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${cfg.bgColor} ${cfg.color} uppercase`}
+                            >
                               {cfg.label}
                             </span>
                             <span className="text-xs font-mono text-[#6B7C94]">
-                              {a.activityHour || ''}
+                              {a.activityHour || ""}
                             </span>
                           </div>
                           <div className="text-sm font-bold text-white mt-1">
@@ -375,7 +464,8 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
                         <div className="text-right flex-shrink-0">
                           {a.montant && a.montant > 0 ? (
                             <div className="text-sm font-bold font-mono text-[#C9A96E]">
-                              {formatNumber(a.montant)} <span className="text-[10px]">FCFA</span>
+                              {formatNumber(a.montant)}{" "}
+                              <span className="text-[10px]">FCFA</span>
                             </div>
                           ) : null}
                           <div className="text-[10px] text-[#6B7C94] mt-1">
@@ -399,17 +489,24 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
           <div className="bg-[#162133] border border-[#C9A96E]/40 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
               {(() => {
-                const cfg = ACTIVITY_CONFIG[selectedActivity.activityType] || ACTIVITY_CONFIG.OTHER;
+                const cfg =
+                  ACTIVITY_CONFIG[selectedActivity.activityType] ||
+                  ACTIVITY_CONFIG.OTHER;
                 const Icon = cfg.icon;
                 return (
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-10 h-10 rounded-xl ${cfg.bgColor} flex items-center justify-center`}>
+                    <div
+                      className={`w-10 h-10 rounded-xl ${cfg.bgColor} flex items-center justify-center`}
+                    >
                       <Icon className={`w-5 h-5 ${cfg.color}`} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm">{cfg.label}</h3>
+                      <h3 className="font-bold text-white text-sm">
+                        {cfg.label}
+                      </h3>
                       <p className="text-[10px] text-[#A8B4C4] font-mono">
-                        {formatDate(selectedActivity.activityDate)} {selectedActivity.activityHour}
+                        {formatDate(selectedActivity.activityDate)}{" "}
+                        {selectedActivity.activityHour}
                       </p>
                     </div>
                   </div>
@@ -425,38 +522,57 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ activities, cu
 
             <div className="p-5 space-y-4 text-xs">
               <div>
-                <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">Titre</div>
-                <div className="text-white font-bold">{selectedActivity.title}</div>
+                <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">
+                  Titre
+                </div>
+                <div className="text-white font-bold">
+                  {selectedActivity.title}
+                </div>
               </div>
 
               {selectedActivity.description && (
                 <div>
-                  <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">Description</div>
-                  <div className="text-[#A8B4C4] leading-relaxed">{selectedActivity.description}</div>
+                  <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">
+                    Description
+                  </div>
+                  <div className="text-[#A8B4C4] leading-relaxed">
+                    {selectedActivity.description}
+                  </div>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
                 {selectedActivity.userNom && (
                   <div className="p-3 bg-[#1E2E45]/40 rounded-xl border border-[#C9A96E]/10">
-                    <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">Utilisateur</div>
-                    <div className="text-white font-semibold">{selectedActivity.userNom}</div>
+                    <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">
+                      Utilisateur
+                    </div>
+                    <div className="text-white font-semibold">
+                      {selectedActivity.userNom}
+                    </div>
                   </div>
                 )}
                 {selectedActivity.entityRef && (
                   <div className="p-3 bg-[#1E2E45]/40 rounded-xl border border-[#C9A96E]/10">
-                    <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">Référence</div>
-                    <div className="text-white font-mono">{selectedActivity.entityRef}</div>
-                  </div>
-                )}
-                {selectedActivity.montant !== undefined && selectedActivity.montant > 0 && (
-                  <div className="p-3 bg-[#C9A96E]/10 rounded-xl border border-[#C9A96E]/30 col-span-2">
-                    <div className="text-[10px] text-[#C9A96E] uppercase font-bold mb-1">Montant</div>
-                    <div className="text-[#E8D5B0] font-bold font-mono text-lg">
-                      {formatCurrency(selectedActivity.montant)}
+                    <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">
+                      Référence
+                    </div>
+                    <div className="text-white font-mono">
+                      {selectedActivity.entityRef}
                     </div>
                   </div>
                 )}
+                {selectedActivity.montant !== undefined &&
+                  selectedActivity.montant > 0 && (
+                    <div className="p-3 bg-[#C9A96E]/10 rounded-xl border border-[#C9A96E]/30 col-span-2">
+                      <div className="text-[10px] text-[#C9A96E] uppercase font-bold mb-1">
+                        Montant
+                      </div>
+                      <div className="text-[#E8D5B0] font-bold font-mono text-lg">
+                        {formatCurrency(selectedActivity.montant)}
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
 
