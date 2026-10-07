@@ -1,0 +1,1704 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #F0EDE8;
+    background-color: #0F1B2D;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-sans);
+  }
+}
+
+/* ============================================================
+   SCROLLBARS PERSONNALISÉES
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 27, 45, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: #2A3F5C;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3A5270;
+}
+
+/* ============================================================
+   IMPRESSION — STYLE UNIVERSEL POUR TOUS LES DOCUMENTS
+   Compatible : fiches, quittances, contrats, bulletins, PV, etc.
+   ============================================================ */
+@media print {
+  /* ---------- 1. FOND BLANC SUR TOUTE LA PAGE ---------- */
+  html, body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ---------- 2. CACHER TOUT PAR DÉFAUT ---------- */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* ---------- 3. AFFICHER UNIQUEMENT LES ZONES D'IMPRESSION ---------- */
+  .print-container,
+  .print-container *,
+  .print-area,
+  .print-area *,
+  .printable,
+  .printable * {
+    visibility: visible !important;
+  }
+
+  /* ---------- 4. POSITIONNER LES ZONES D'IMPRESSION EN HAUT ---------- */
+  .print-container,
+  .print-area,
+  .printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 12mm !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    font-size: 12px !important;
+  }
+
+  /* ---------- 5. NEUTRALISER LES MODALES PARENTS ---------- */
+  /* Sortir les modales du mode fixed pour éviter les problèmes de clipping */
+  .fixed,
+  .fixed.inset-0,
+  [class*="fixed"] {
+    position: static !important;
+    overflow: visible !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    z-index: auto !important;
+    inset: auto !important;
+  }
+
+  /* ---------- 6. COULEURS ET BORDURES FORCÉES ---------- */
+  .print-container *,
+  .print-area *,
+  .printable * {
+    color: #000000 !important;
+    background-color: transparent !important;
+    border-color: #CCCCCC !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Tableaux */
+  .print-container table,
+  .print-area table,
+  .printable table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  .print-container th,
+  .print-container td,
+  .print-area th,
+  .print-area td,
+  .printable th,
+  .printable td {
+    border: 1px solid #999999 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+    background: #FFFFFF !important;
+  }
+  .print-container thead,
+  .print-area thead,
+  .printable thead {
+    background: #EEEEEE !important;
+    display: table-header-group !important;
+  }
+  .print-container thead *,
+  .print-area thead *,
+  .printable thead * {
+    background: #EEEEEE !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+  }
+
+  /* Fonds sombres des badges → gris clair */
+  .print-container .bg-\[\#1E2E45\],
+  .print-container .bg-\[\#162133\],
+  .print-container .bg-\[\#0F1B2D\],
+  .print-container .bg-\[\#0A111D\],
+  .print-area .bg-\[\#1E2E45\],
+  .print-area .bg-\[\#162133\],
+  .print-area .bg-\[\#0F1B2D\],
+  .print-area .bg-\[\#0A111D\],
+  .printable .bg-\[\#1E2E45\],
+  .printable .bg-\[\#162133\],
+  .printable .bg-\[\#0F1B2D\],
+  .printable .bg-\[\#0A111D\] {
+    background: #F5F5F5 !important;
+  }
+
+  /* Texte blanc ou coloré → noir */
+  .print-container [class*="text-white"],
+  .print-container [class*="text-slate"],
+  .print-container [class*="text-\\[\\#"],
+  .print-area [class*="text-white"],
+  .print-area [class*="text-slate"],
+  .print-area [class*="text-\\[\\#"],
+  .printable [class*="text-white"],
+  .printable [class*="text-slate"],
+  .printable [class*="text-\\[\\#"] {
+    color: #000000 !important;
+  }
+
+  /* ---------- 7. CACHER LES ÉLÉMENTS NON IMPRIMABLES ---------- */
+  .no-print,
+  .no-print *,
+  nav,
+  aside,
+  .sidebar {
+    display: none !important;
+  }
+
+  /* ⚠️ Ne pas cacher "header" et "button" globalement — certains documents en ont besoin */
+
+  /* ---------- 8. AFFICHER CE QUI DOIT L'ÊTRE ---------- */
+  .print-only {
+    display: block !important;
+  }
+
+  /* ---------- 9. SAUTS DE PAGE ---------- */
+  .print-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+  .print-page {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ---------- 10. TABLEAUX : ÉVITER LES COUPURES ---------- */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* ---------- 11. IMAGES ---------- */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* ---------- 12. SIGNATURES (ne pas couper) ---------- */
+  .signature-block,
+  [class*="signature"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+    /* ---------- 13. PIED DE PAGE RÉPÉTÉ SUR CHAQUE PAGE ---------- */
+  .print-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    visibility: visible !important;
+    display: block !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 8px !important;
+    text-align: center !important;
+    padding: 3mm 10mm 3mm 10mm !important;
+    border-top: 1px solid #CCCCCC !important;
+    z-index: 9999 !important;
+    page-break-after: always !important;
+  }
+
+  .print-footer * {
+    visibility: visible !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  /* Laisser de la place en bas du contenu pour ne pas être masqué par le pied de page */
+  .print-container,
+  .print-area,
+  .printable {
+    padding-bottom: 25mm !important;
+  }
+
+
+  /* ---------- 13. FORMAT A4 ---------- */
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
+
+/* ============================================================
+   STYLES ÉCRAN (non-print) — pour référence
+   ============================================================ */
+.print-container,
+.print-area,
+.printable {
+  /* Rien de spécial à l'écran, juste des marqueurs */
+}
+/* ============================================================
+   SYSTÈME DE THÈMES (Clair / Sombre)
+   ============================================================ */
+:root {
+  /* Thème SOMBRE (défaut actuel) */
+  --bg-body: #111827;
+  --bg-card: #1F2937;
+  --bg-card-hover: #374151;
+  --bg-input: #1F2937;
+  --bg-header: #1F2937;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --accent: #3B82F6;
+  --accent-dark: #2563EB;
+}
+
+.theme-light {
+  /* Thème CLAIR */
+  --bg-body: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
+  --bg-input: #FFFFFF;
+  --bg-header: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border-primary: #E2E8F0;
+  --border-hover: #CBD5E1;
+  --accent: #3B82F6;
+  --accent-dark: #2563EB;
+}
+
+/* Classe utilitaire pour appliquer le thème */
+body {
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Classes utilitaires de thème */
+.theme-bg-body { background-color: var(--bg-body); }
+.theme-bg-card { background-color: var(--bg-card); }
+.theme-bg-card-hover { background-color: var(--bg-card-hover); }
+.theme-bg-input { background-color: var(--bg-input); }
+.theme-bg-header { background-color: var(--bg-header); }
+.theme-text { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-text-muted { color: var(--text-muted); }
+.theme-border { border-color: var(--border-primary); }
+.theme-border-hover { border-color: var(--border-hover); }
+.theme-accent { color: var(--accent); }
+.theme-bg-accent { background-color: var(--accent); }
+/* ============================================================
+   OVERRIDE THÈME CLAIR (force les couleurs Tailwind hard-codées)
+   ============================================================ */
+.theme-light body {
+  background-color: #F8FAFC !important;
+  color: #1A1A1A !important;
+}
+
+/* Fonds sombres → clairs */
+.theme-light .bg-\[\#0F1B2D\] {
+  background-color: #F8FAFC !important;
+}
+.theme-light .bg-\[\#162133\] {
+  background-color: #FFFFFF !important;
+}
+.theme-light .bg-\[\#1E2E45\] {
+  background-color: #F1F5F9 !important;
+}
+.theme-light .bg-\[\#1E2E45\]\/80 {
+  background-color: rgba(240, 240, 235, 0.8) !important;
+}
+.theme-light .bg-\[\#1E2E45\]\/40 {
+  background-color: rgba(240, 240, 235, 0.4) !important;
+}
+
+/* Textes clairs → sombres */
+.theme-light .text-white {
+  color: #1A1A1A !important;
+}
+.theme-light .text-\[\#F0EDE8\] {
+  color: #1A1A1A !important;
+}
+.theme-light .text-\[\#A8B4C4\] {
+  color: #4A5568 !important;
+}
+.theme-light .text-\[\#6B7C94\] {
+  color: #718096 !important;
+}
+
+/* Bordures */
+.theme-light .border-\[\#C9A96E\]\/20 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+.theme-light .border-\[\#C9A96E\]\/30 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+.theme-light .border-\[\#C9A96E\]\/15 {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Input/Select */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  background-color: #FFFFFF !important;
+  color: #1A1A1A !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light input::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Gradients (or) - garde la couleur or mais assombrit le texte */
+.theme-light .from-\[\#C9A96E\] {
+  --tw-gradient-from: #3B82F6 !important;
+}
+.theme-light .to-\[\#A07840\] {
+  --tw-gradient-to: #2563EB !important;
+}
+/* ============================================================
+   OVERRIDE THÈME CLAIR v2 — Couverture COMPLÈTE
+   ============================================================ */
+
+/* Fond général */
+.theme-light,
+.theme-light body,
+.theme-light #root {
+  background-color: #F8FAFC !important;
+  color: #1A1A1A !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR + TOPBAR + CONTAINERS PRINCIPAUX
+   ═══════════════════════════════════════════════════════════ */
+.theme-light aside,
+.theme-light header,
+.theme-light nav,
+.theme-light [class*="sidebar"],
+.theme-light [class*="topbar"] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Tous les fonds sombres en dur */
+.theme-light [class*="bg-[#0F1B2D]"],
+.theme-light [class*="bg-[#0A111D]"],
+.theme-light [class*="bg-[#0a111d]"],
+.theme-light [class*="bg-[#0F1115]"] {
+  background-color: #F8FAFC !important;
+}
+
+.theme-light [class*="bg-[#162133]"],
+.theme-light [class*="bg-[#1A2332]"],
+.theme-light [class*="bg-[#111827]"] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#1E2E45]"],
+.theme-light [class*="bg-[#1e2e45]"],
+.theme-light [class*="bg-[#2A3F5C]"],
+.theme-light [class*="bg-[#2a3f5c]"],
+.theme-light [class*="bg-[#263850]"] {
+  background-color: #F1F5F9 !important;
+}
+
+/* Tous les fonds "slate" et "gray" sombres */
+.theme-light [class*="bg-slate-8"],
+.theme-light [class*="bg-slate-9"],
+.theme-light [class*="bg-gray-8"],
+.theme-light [class*="bg-gray-9"],
+.theme-light [class*="bg-neutral-8"],
+.theme-light [class*="bg-neutral-9"],
+.theme-light [class*="bg-zinc-8"],
+.theme-light [class*="bg-zinc-9"] {
+  background-color: #FFFFFF !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEXTES
+   ═══════════════════════════════════════════════════════════ */
+.theme-light h1,
+.theme-light h2,
+.theme-light h3,
+.theme-light h4,
+.theme-light .text-white,
+.theme-light [class*="text-[#F0EDE8]"],
+.theme-light [class*="text-[#f0ede8]"] {
+  color: #1A1A1A !important;
+}
+
+.theme-light p,
+.theme-light span,
+.theme-light [class*="text-[#A8B4C4]"],
+.theme-light [class*="text-[#a8b4c4]"] {
+  color: #4A5568;
+}
+
+.theme-light [class*="text-[#6B7C94]"],
+.theme-light [class*="text-[#6b7c94]"],
+.theme-light .text-slate-400,
+.theme-light .text-slate-500 {
+  color: #475569 !important;
+}
+
+/* Garde les couleurs dynamiques (statuts, alertes) */
+.theme-light [class*="text-emerald"],
+.theme-light [class*="text-rose"],
+.theme-light [class*="text-amber"],
+.theme-light [class*="text-blue"],
+.theme-light [class*="text-cyan"],
+.theme-light [class*="text-purple"] {
+  /* ne pas toucher aux textes colorés */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BORDURES
+   ═══════════════════════════════════════════════════════════ */
+.theme-light [class*="border-[#C9A96E]"] {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light [class*="border-white/"],
+.theme-light [class*="border-slate-"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUTS / SELECTS / BOUTONS
+   ═══════════════════════════════════════════════════════════ */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  background-color: #FFFFFF !important;
+  color: #1A1A1A !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARTES / MODAUX
+   ═══════════════════════════════════════════════════════════ */
+.theme-light [class*="rounded-xl"],
+.theme-light [class*="rounded-2xl"],
+.theme-light [class*="rounded-3xl"] {
+  /* Pas de changement de fond ici, juste une ombre subtile */
+}
+
+.theme-light .shadow-2xl,
+.theme-light .shadow-xl {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBARS (thème clair)
+   ═══════════════════════════════════════════════════════════ */
+.theme-light ::-webkit-scrollbar-track {
+  background: rgba(200, 200, 200, 0.3);
+}
+.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 110, 0.5);
+}
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 110, 0.7);
+}
+/* ============================================================
+   OVERRIDE THÈME CLAIR — VERSION COMPLÈTE (38 couleurs)
+   ============================================================ */
+
+/* ═══════════════════════════════════════════════════════════
+   FONDS SOMBRES → BEIGE CLAIR / BLANC
+   ═══════════════════════════════════════════════════════════ */
+
+/* Fond principal */
+.theme-light,
+.theme-light body,
+.theme-light #root {
+  background-color: #F8FAFC !important;
+  color: #1A1A1A !important;
+}
+
+/* Fond très sombre (headers de tableaux) */
+.theme-light [class*="bg-[#0A111D]"],
+.theme-light [class*="bg-[#0a111d]"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Fond principal app */
+.theme-light [class*="bg-[#0F1B2D]"],
+.theme-light [class*="bg-[#0f1b2d]"] {
+  background-color: #F8FAFC !important;
+}
+
+/* Cartes principales */
+.theme-light [class*="bg-[#162133]"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Cartes secondaires, inputs, hovers */
+.theme-light [class*="bg-[#1E2E45]"],
+.theme-light [class*="bg-[#1e2e45]"] {
+  background-color: #F1F5F9 !important;
+}
+
+/* Fond très sombre alternatif */
+.theme-light [class*="bg-[#0D1624]"],
+.theme-light [class*="bg-[#111C2E]"],
+.theme-light [class*="bg-[#141E30]"],
+.theme-light [class*="bg-[#1E2C44]"],
+.theme-light [class*="bg-[#16243A]"],
+.theme-light [class*="bg-[#0F172A]"] {
+  background-color: #F1F5F9 !important;
+}
+
+/* Hovers plus clairs */
+.theme-light [class*="bg-[#2A3F5C]"] {
+  background-color: #E2E8F0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEXTES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Textes principaux (blancs) → noirs */
+.theme-light .text-white,
+.theme-light [class*="text-[#F0EDE8]"],
+.theme-light [class*="text-[#f0ede8]"] {
+  color: #1A1A1A !important;
+}
+
+/* Textes secondaires */
+.theme-light [class*="text-[#A8B4C4]"],
+.theme-light [class*="text-[#a8b4c4]"],
+.theme-light [class*="text-[#A0AEC0]"],
+.theme-light [class*="text-[#a0aec0]"] {
+  color: #4A5568 !important;
+}
+
+/* Textes muted */
+.theme-light [class*="text-[#6B7C94]"],
+.theme-light [class*="text-[#6b7c94]"],
+.theme-light [class*="text-[#64748B]"],
+.theme-light [class*="text-[#64748b]"] {
+  color: #718096 !important;
+}
+
+/* Textes dorés */
+.theme-light [class*="text-[#E8D5B0]"],
+.theme-light [class*="text-[#e8d5b0]"] {
+  color: #8B6530 !important;
+}
+
+/* Texte foncé sur boutons or (reste foncé) */
+.theme-light [class*="text-[#0F1B2D]"],
+.theme-light [class*="text-[#0f1b2d]"],
+.theme-light [class*="text-[#0A111D]"],
+.theme-light [class*="text-[#0a111d]"],
+.theme-light [class*="text-[#0F172A]"],
+.theme-light [class*="text-[#1E293B]"] {
+  color: #1A1A1A !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BORDURES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Bordures sombres → claires */
+.theme-light [class*="border-[#2A3447]"],
+.theme-light [class*="border-[#2a3447]"] {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-light [class*="border-[#0F1B2D]"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Bordures dorées (gardent leur couleur mais plus claires) */
+.theme-light [class*="border-[#C9A96E]"],
+.theme-light [class*="border-[#c9a96e]"] {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Bordures dynamiques (gardent leur couleur) */
+.theme-light [class*="border-[#10B981]"],
+.theme-light [class*="border-[#F59E0B]"],
+.theme-light [class*="border-[#EF4444]"] {
+  /* Garde inchangé */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUTS / SELECTS / TEXTAREAS
+   ═══════════════════════════════════════════════════════════ */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  background-color: #FFFFFF !important;
+  color: #1A1A1A !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+.theme-light input:focus,
+.theme-light select:focus,
+.theme-light textarea:focus {
+  border-color: #C9A96E !important;
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBARS (thème clair)
+   ═══════════════════════════════════════════════════════════ */
+.theme-light ::-webkit-scrollbar-track {
+  background: rgba(200, 200, 200, 0.3);
+}
+.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 110, 0.5);
+}
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 110, 0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OMBRES (plus subtiles en thème clair)
+   ═══════════════════════════════════════════════════════════ */
+.theme-light .shadow-2xl {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+}
+.theme-light .shadow-xl {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOUTONS/GRADIENTS OR (gardent leur couleur)
+   ═══════════════════════════════════════════════════════════ */
+.theme-light [class*="from-[#C9A96E]"],
+.theme-light [class*="to-[#A07840]"],
+.theme-light [class*="bg-[#C9A96E]"],
+.theme-light [class*="bg-[#D8BA80]"] {
+  /* Garde inchangé (boutons or) */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATUTS DYNAMIQUES (gardent leurs couleurs)
+   ═══════════════════════════════════════════════════════════ */
+.theme-light [class*="text-[#10B981]"],
+.theme-light [class*="text-[#EF4444]"],
+.theme-light [class*="text-[#F59E0B]"],
+.theme-light [class*="bg-[#10B981]"],
+.theme-light [class*="bg-[#EF4444]"],
+.theme-light [class*="bg-[#F59E0B]"] {
+  /* Garde les couleurs de statut (vert, rouge, orange) */
+}
+/* ============================================================
+   FIX BANNIÈRES SOMBRES EN THÈME CLAIR (Centre de Contrôle)
+   ============================================================ */
+
+/* Bannière du Centre de Contrôle - garde le fond sombre mais force le texte en blanc */
+.theme-light .bg-gradient-to-br,
+.theme-light .bg-gradient-to-r {
+  color: #FFFFFF;
+}
+
+/* Force le texte blanc dans les bannières sombres */
+.theme-light [class*="from-[#0F1B2D]"] h1,
+.theme-light [class*="from-[#0F1B2D]"] h2,
+.theme-light [class*="from-[#0F1B2D]"] p,
+.theme-light [class*="from-[#0F1B2D]"] span,
+.theme-light [class*="from-slate-800"] h1,
+.theme-light [class*="from-slate-800"] h2,
+.theme-light [class*="from-slate-800"] p,
+.theme-light [class*="from-slate-800"] span {
+  color: #FFFFFF !important;
+}
+
+/* Fix spécifique : bannière "Centre de Contrôle & Supervision" */
+.theme-light [class*="rounded-2xl"][class*="bg-gradient"],
+.theme-light [class*="rounded-3xl"][class*="bg-gradient"] {
+  color: #FFFFFF !important;
+}
+
+.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h1,
+.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h2,
+.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h3,
+.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h1,
+.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h2,
+.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h3 {
+  color: #FFFFFF !important;
+}
+
+/* Fix spécifique : "Volume global des données" */
+.theme-light .bg-[#0F1B2D] .text-white,
+.theme-light [class*="bg-[#0F1B2D]"] [class*="text-[#"],
+.theme-light [class*="bg-[#0F1B2D]"] h1,
+.theme-light [class*="bg-[#0F1B2D]"] h2,
+.theme-light [class*="bg-[#0F1B2D]"] h3 {
+  color: #FFFFFF !important;
+}
+
+/* Forcer le texte blanc dans les sections qui gardent un fond sombre */
+.theme-light .bg-\[\#0F1B2D\]\/95,
+.theme-light [class*="bg-[#0F1B2D]"] h1,
+.theme-light [class*="bg-[#0F1B2D]"] h2,
+.theme-light [class*="bg-[#0F1B2D]"] p {
+  color: #FFFFFF !important;
+}
+
+/* Cas particulier : garder les bannières sombres avec texte clair */
+.theme-light [class*="from-[#162133]"],
+.theme-light [class*="from-[#1E2E45]"] {
+  /* Si le dégradé va vers sombre, garde le texte blanc */
+}
+/* ============================================================
+   ACCENTS MÉTIER — 6 palettes professionnelles
+   Ajouté le : chantier Thème Premium
+   But : permettre le changement de couleur d'accent via [data-accent]
+   Les 181 règles ci-dessus ne sont PAS touchées.
+   ============================================================ */
+
+/* 🥇 Or Champagne — DÉFAUT (identité FITAL) */
+:root[data-accent="gold"],
+[data-accent="gold"] {
+  --accent: #C9A96E;
+  --accent-dark: #A07840;
+  --accent-hover: #B8904E;
+  --accent-soft: rgba(201, 169, 110, 0.15);
+  --accent-border: rgba(201, 169, 110, 0.35);
+  --accent-text: #0F1B2D;
+  --accent-glow: rgba(201, 169, 110, 0.25);
+}
+
+/* 💼 Bleu Royal — agences classiques, finance */
+:root[data-accent="blue"],
+[data-accent="blue"] {
+  --accent: #2563EB;
+  --accent-dark: #1D4ED8;
+  --accent-hover: #3B82F6;
+  --accent-soft: rgba(37, 99, 235, 0.15);
+  --accent-border: rgba(37, 99, 235, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(37, 99, 235, 0.25);
+}
+
+/* 🌿 Vert Émeraude — patrimoine, investisseurs */
+:root[data-accent="emerald"],
+[data-accent="emerald"] {
+  --accent: #047857;
+  --accent-dark: #065F46;
+  --accent-hover: #059669;
+  --accent-soft: rgba(4, 120, 87, 0.15);
+  --accent-border: rgba(4, 120, 87, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(4, 120, 87, 0.25);
+}
+
+/* 🍷 Bordeaux — premium, haut de gamme */
+:root[data-accent="bordeaux"],
+[data-accent="bordeaux"] {
+  --accent: #7F1D1D;
+  --accent-dark: #991B1B;
+  --accent-hover: #B91C1C;
+  --accent-soft: rgba(127, 29, 29, 0.15);
+  --accent-border: rgba(127, 29, 29, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(127, 29, 29, 0.25);
+}
+
+/* 🏛️ Bleu Notaire — institutionnel, légal */
+:root[data-accent="navy"],
+[data-accent="navy"] {
+  --accent: #1E3A5F;
+  --accent-dark: #2C4A70;
+  --accent-hover: #2C5282;
+  --accent-soft: rgba(30, 58, 95, 0.15);
+  --accent-border: rgba(30, 58, 95, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(30, 58, 95, 0.25);
+}
+
+/* ⚫ Anthracite — sobre, neutre, expertise */
+:root[data-accent="anthracite"],
+[data-accent="anthracite"] {
+  --accent: #374151;
+  --accent-dark: #4B5563;
+  --accent-hover: #4B5563;
+  --accent-soft: rgba(55, 65, 81, 0.15);
+  --accent-border: rgba(55, 65, 81, 0.35);
+  --accent-text: #FFFFFF;
+  --accent-glow: rgba(55, 65, 81, 0.25);
+}
+
+/* En mode clair, on assombrit légèrement l'accent pour la lisibilité */
+.theme-light[data-accent="gold"]       { --accent: #A07840; }
+.theme-light[data-accent="blue"]       { --accent: #1D4ED8; }
+.theme-light[data-accent="emerald"]    { --accent: #065F46; }
+.theme-light[data-accent="bordeaux"]   { --accent: #991B1B; }
+.theme-light[data-accent="navy"]       { --accent: #1E3A5F; }
+.theme-light[data-accent="anthracite"] { --accent: #1F2937; }
+
+/* Transition fluide lors du changement d'accent (uniquement les propriétés liées) */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fallback : composants qui utilisent var(--accent) changent automatiquement */
+.theme-accent       { color: var(--accent); }
+.theme-bg-accent    { background-color: var(--accent); }
+.theme-border-accent { border-color: var(--accent); }
+
+/* ============================================================
+   FIN — Accents métier
+   ============================================================ */
+
+/* ============================================================
+   MIGRATION AUTOMATIQUE DES ACCENTS
+   Ajouté le : chantier Thème Premium
+   But : forcer l'utilisation de var(--accent) quand l'accent
+         n'est PAS "gold" (défaut). Préserve l'identité FITAL
+         par défaut, migre dynamiquement vers l'accent choisi.
+   Méthode : override Tailwind hardcodé (bg-[#C9A96E], etc.)
+   Sécurité : scopé à [data-accent]:not([data-accent="gold"])
+   ============================================================ */
+
+/* Ne s'applique QUE si l'accent est différent de "gold" */
+[data-accent]:not([data-accent="gold"]) {
+
+  /* ─── FONDS OR → FOND ACCENT ──────────────────────────── */
+  .bg-\[\#C9A96E\]       { background-color: var(--accent) !important; }
+  .bg-\[\#C9A96E\]\/10   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/15   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/20   { background-color: var(--accent-soft) !important; }
+  .bg-\[\#C9A96E\]\/30   { background-color: var(--accent-border) !important; }
+
+  /* ─── TEXTES OR → TEXTE ACCENT ────────────────────────── */
+  .text-\[\#C9A96E\]     { color: var(--accent) !important; }
+  .text-\[\#A07840\]     { color: var(--accent-dark) !important; }
+  .text-\[\#E8D5B0\]     { color: var(--accent) !important; }
+  .text-\[\#E8A84A\]     { color: var(--accent) !important; }
+
+  /* ─── BORDURES OR → BORDURE ACCENT ────────────────────── */
+  .border-\[\#C9A96E\]      { border-color: var(--accent) !important; }
+  .border-\[\#C9A96E\]\/15  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/20  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/30  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/40  { border-color: var(--accent-border) !important; }
+  .border-\[\#C9A96E\]\/50  { border-color: var(--accent) !important; }
+
+  /* ─── GRADIENTS OR → GRADIENT ACCENT ──────────────────── */
+  .from-\[\#C9A96E\]     { --tw-gradient-from: var(--accent) !important; }
+  .to-\[\#A07840\]       { --tw-gradient-to: var(--accent-dark) !important; }
+  .from-\[\#C9A96E\]\/20 { --tw-gradient-from: var(--accent-soft) !important; }
+  .to-\[\#C9A96E\]\/10   { --tw-gradient-to: var(--accent-soft) !important; }
+  .via-\[\#E8A84A\]\/20  { --tw-gradient-via: var(--accent-soft) !important; }
+
+  /* ─── OMBRES OR → OMBRE ACCENT ────────────────────────── */
+  .shadow-\[\#C9A96E\]\/20 { box-shadow: 0 4px 14px 0 var(--accent-glow) !important; }
+  .shadow-\[\#C9A96E\]\/40 { box-shadow: 0 8px 20px 0 var(--accent-glow) !important; }
+
+  /* ─── RING OR → RING ACCENT ───────────────────────────── */
+  .ring-\[\#C9A96E\]     { --tw-ring-color: var(--accent) !important; }
+
+  /* ─── HOVER BORDER OR → HOVER BORDER ACCENT ───────────── */
+  .hover\:border-\[\#C9A96E\]:hover         { border-color: var(--accent) !important; }
+  .hover\:border-\[\#C9A96E\]\/50:hover     { border-color: var(--accent-border) !important; }
+  .hover\:text-\[\#C9A96E\]:hover           { color: var(--accent) !important; }
+  .hover\:bg-\[\#C9A96E\]\/20:hover         { background-color: var(--accent-soft) !important; }
+}
+
+/* ============================================================
+   FIN — Migration automatique des accents
+   Pour DÉSACTIVER la migration : commenter le bloc ci-dessus
+   Pour AJOUTER un composant : ajouter la classe Tailwind exacte
+   ============================================================ */
+
+/* ============================================================
+   FIX - Renforcer le contraste du theme CLAIR
+   ============================================================ */
+.theme-light {
+  --text-secondary: #334155;   /* Plus fonce */
+  --text-muted: #64748B;        /* Plus fonce */
+  --border-primary: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(15, 23, 42, 0.2);
+}
+
+/* Cartes claires : ajouter une ombre subtile pour la separation */
+.theme-light [class*="rounded-2xl"][class*="bg-"],
+.theme-light [class*="rounded-3xl"][class*="bg-"],
+.theme-light [class*="rounded-xl"][class*="bg-"] {
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+}
+
+/* Inputs clairs : bordure visible */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0F172A !important;
+}
+
+.theme-light input:focus,
+.theme-light select:focus,
+.theme-light textarea:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Tableaux clairs : bordures visibles */
+.theme-light table {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light thead tr {
+  background-color: rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Boutons primary en clair : bon contraste */
+.theme-light [class*="from-[#C9A96E]"],
+.theme-light [class*="to-[#A07840]"] {
+  color: #FFFFFF !important;
+}
+
+/* Separateurs visibles */
+.theme-light hr {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* ============================================================
+   FIX FINAL - Theme CLAIR : textes NOIRS partout
+   ============================================================ */
+
+/* Textes principaux en NOIR */
+.theme-light {
+  --text-primary: #000000 !important;
+  --text-secondary: #1F2937 !important;
+  --text-muted: #4B5563 !important;
+}
+
+/* Force le noir sur tous les textes */
+.theme-light body,
+.theme-light #root {
+  color: #000000 !important;
+}
+
+/* Textes blancs -> NOIRS */
+.theme-light .text-white,
+.theme-light [class*="text-white"] {
+  color: #000000 !important;
+}
+
+/* Textes clairs -> NOIRS */
+.theme-light .text-\[\#F0EDE8\],
+.theme-light [class*="text-[#F0EDE8]"],
+.theme-light [class*="text-[#f0ede8]"] {
+  color: #000000 !important;
+}
+
+/* Textes gris clairs -> NOIRS */
+.theme-light .text-\[\#A8B4C4\],
+.theme-light [class*="text-[#A8B4C4]"],
+.theme-light [class*="text-[#a8b4c4]"] {
+  color: #1F2937 !important;
+}
+
+.theme-light .text-\[\#6B7C94\],
+.theme-light [class*="text-[#6B7C94]"] {
+  color: #374151 !important;
+}
+
+/* Slate colors -> plus foncés */
+.theme-light .text-slate-300 { color: #374151 !important; }
+.theme-light .text-slate-400 { color: #4B5563 !important; }
+.theme-light .text-slate-500 { color: #4B5563 !important; }
+.theme-light .text-slate-600 { color: #1F2937 !important; }
+
+/* Neutral colors -> plus foncés */
+.theme-light .text-neutral-500 { color: #4B5563 !important; }
+.theme-light .text-neutral-600 { color: #374151 !important; }
+.theme-light .text-neutral-700 { color: #1F2937 !important; }
+.theme-light .text-neutral-800 { color: #111827 !important; }
+.theme-light .text-neutral-900 { color: #000000 !important; }
+
+/* Inputs : texte NOIR */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  color: #000000 !important;
+}
+
+/* Placeholder : gris moyen visible */
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #6B7280 !important;
+}
+
+/* Labels : noir */
+.theme-light label {
+  color: #000000 !important;
+}
+
+/* Titres : noir */
+.theme-light h1,
+.theme-light h2,
+.theme-light h3,
+.theme-light h4,
+.theme-light h5,
+.theme-light h6 {
+  color: #000000 !important;
+}
+
+/* Paragraphes : noir */
+.theme-light p {
+  color: #1F2937 !important;
+}
+
+/* Tableaux : texte noir */
+.theme-light table th,
+.theme-light table td {
+  color: #000000 !important;
+}
+
+/* Modales : texte noir */
+.theme-light [class*="rounded-2xl"] h1,
+.theme-light [class*="rounded-2xl"] h2,
+.theme-light [class*="rounded-2xl"] h3,
+.theme-light [class*="rounded-3xl"] h1,
+.theme-light [class*="rounded-3xl"] h2,
+.theme-light [class*="rounded-3xl"] h3 {
+  color: #000000 !important;
+}
+
+/* Conserver les couleurs de statut (badges) */
+.theme-light [class*="bg-emerald-"] * { color: inherit !important; }
+.theme-light [class*="bg-rose-"] * { color: inherit !important; }
+.theme-light [class*="bg-amber-"] * { color: inherit !important; }
+.theme-light [class*="bg-blue-"] * { color: inherit !important; }
+.theme-light [class*="bg-purple-"] * { color: inherit !important; }
+
+/* Boutons avec fond coloré : garder le blanc */
+.theme-light button[class*="bg-gradient"] {
+  color: #FFFFFF !important;
+}
+
+.theme-light button[class*="bg-\[\#C9A96E\]"] {
+  color: #FFFFFF !important;
+}
+
+.theme-light button[class*="bg-emerald"],
+.theme-light button[class*="bg-blue"],
+.theme-light button[class*="bg-purple"],
+.theme-light button[class*="bg-rose"] {
+  color: #FFFFFF !important;
+}
+
+/* ============================================================================
+   FIX ULTIME - Theme CLAIR : FORCER tous les text-white en NOIR
+   (Ce bloc doit etre le DERNIER du fichier pour gagner la specificite)
+   ============================================================================ */
+
+/* TOUS les elements qui ont text-white => NOIR */
+.theme-light .text-white,
+.theme-light .text-white *,
+.theme-light [class*="text-white"],
+.theme-light [class*="text-white"] *,
+html.theme-light .text-white,
+html.theme-light [class*="text-white"] {
+  color: #000000 !important;
+}
+
+/* Titres de page - FORCER NOIR */
+.theme-light h1,
+.theme-light h1 *,
+html.theme-light h1,
+html.theme-light h1 * {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.theme-light h2,
+.theme-light h2 *,
+html.theme-light h2,
+html.theme-light h2 * {
+  color: #000000 !important;
+}
+
+.theme-light h3,
+.theme-light h3 *,
+html.theme-light h3,
+html.theme-light h3 * {
+  color: #000000 !important;
+}
+
+.theme-light h4,
+.theme-light h5,
+.theme-light h6 {
+  color: #000000 !important;
+}
+
+/* NAVBAR - Forcer sur tous les elements */
+.theme-light header,
+.theme-light header *,
+html.theme-light header,
+html.theme-light header * {
+  color: #000000 !important;
+}
+
+/* Navbar container specifique */
+.theme-light header.sticky,
+.theme-light .sticky.top-0,
+html.theme-light .sticky.top-0 {
+  background-color: #FFFFFF !important;
+  border-bottom-color: #E2E8F0 !important;
+}
+
+/* Le titre de la navbar (Topbar ligne 257) */
+.theme-light header h1,
+.theme-light header .font-display,
+.theme-light header [class*="tracking-tight"] {
+  color: #000000 !important;
+}
+
+/* Textes clairs hardcodes */
+.theme-light .text-\[\#F0EDE8\],
+.theme-light [class*="text-[#F0EDE8]"],
+.theme-light [class*="text-[#f0ede8]"],
+html.theme-light .text-\[\#F0EDE8\],
+html.theme-light [class*="text-[#F0EDE8]"] {
+  color: #000000 !important;
+}
+
+/* GRADIENT TEXTS : forcer en noir si pas de background */
+.theme-light [class*="bg-clip-text"] {
+  -webkit-text-fill-color: #000000 !important;
+  background: none !important;
+}
+
+/* Titres avec gradient : interdire le gradient sur fond blanc */
+.theme-light .text-transparent {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  background: none !important;
+  background-image: none !important;
+}
+
+/* EXCEPTIONS - Ne pas toucher */
+/* 1. Boutons avec fond sombre/colore : garder blanc */
+.theme-light button[class*="bg-gradient-to-r"]:not([class*="bg-[#1E"]):not([class*="bg-[#0F"]),
+.theme-light button[class*="bg-gradient-to-r"]:not([class*="bg-[#1E"]):not([class*="bg-[#0F"]) * {
+  color: #FFFFFF !important;
+}
+
+/* 2. Badges de statut (Payé, etc.) avec fond colore */
+.theme-light [class*="bg-emerald-500"] *,
+.theme-light [class*="bg-emerald-600"] *,
+.theme-light [class*="bg-rose-500"] *,
+.theme-light [class*="bg-rose-600"] *,
+.theme-light [class*="bg-amber-500"] *,
+.theme-light [class*="bg-blue-500"] *,
+.theme-light [class*="bg-purple-500"] *,
+.theme-light [class*="bg-emerald-100"] *,
+.theme-light [class*="bg-rose-100"] *,
+.theme-light [class*="bg-amber-100"] * {
+  color: inherit !important;
+}
+
+/* 3. Textes colores specifiques (vert, rouge, etc.) : garder leurs couleurs */
+.theme-light .text-emerald-300, .theme-light .text-emerald-400, .theme-light .text-emerald-500, .theme-light .text-emerald-600 { color: #059669 !important; }
+.theme-light .text-rose-300, .theme-light .text-rose-400, .theme-light .text-rose-500, .theme-light .text-rose-600 { color: #DC2626 !important; }
+.theme-light .text-amber-300, .theme-light .text-amber-400, .theme-light .text-amber-500, .theme-light .text-amber-600 { color: #D97706 !important; }
+.theme-light .text-blue-300, .theme-light .text-blue-400, .theme-light .text-blue-500, .theme-light .text-blue-600 { color: #2563EB !important; }
+.theme-light .text-purple-300, .theme-light .text-purple-400, .theme-light .text-purple-500, .theme-light .text-purple-600 { color: #7C3AED !important; }
+.theme-light .text-cyan-300, .theme-light .text-cyan-400, .theme-light .text-cyan-500, .theme-light .text-cyan-600 { color: #0891B2 !important; }
+
+/* 4. Highlight accent : garder la couleur d'accent */
+.theme-light .text-accent,
+.theme-light [class*="text-[#C9A96E]"] {
+  color: var(--accent) !important;
+}
+
+/* ============================================================================
+   FIN FIX
+   ============================================================================ */
+
+/* ============================================================================
+   FIX ULTIME 2 - Theme CLAIR : FORCER tous les FONDS sombres -> CLAIRS
+   ============================================================================ */
+
+/* Toutes les cartes avec bg bleu nuit -> fond BLANC */
+.theme-light [class*="bg-[#0F1B2D]"],
+.theme-light [class*="bg-[#0f1b2d]"],
+.theme-light .bg-\[\#0F1B2D\] {
+  background-color: #F8FAFC !important;
+}
+
+.theme-light [class*="bg-[#162133]"],
+.theme-light [class*="bg-[#162133]/"],
+.theme-light .bg-\[\#162133\] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#1E2E45]"],
+.theme-light [class*="bg-[#1E2E45]/"],
+.theme-light .bg-\[\#1E2E45\] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#0A111D]"],
+.theme-light [class*="bg-[#0a111d]"] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#0F172A]"],
+.theme-light [class*="bg-[#0f172a]"] {
+  background-color: #F8FAFC !important;
+}
+
+.theme-light [class*="bg-[#111827]"],
+.theme-light [class*="bg-[#111827]/"] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#1F2937]"],
+.theme-light [class*="bg-[#1F2937]/"] {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light [class*="bg-[#263850]"] {
+  background-color: #F1F5F9 !important;
+}
+
+.theme-light [class*="bg-[#2A3F5C]"],
+.theme-light [class*="bg-[#2A3F5C]/"] {
+  background-color: #E2E8F0 !important;
+}
+
+/* Overlays et modales */
+.theme-light [class*="bg-black/"],
+.theme-light [class*="bg-black\/"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Fallback : si la classe contient bg-[#...] et n'est pas deja convertie */
+.theme-light [class*="rounded-2xl"][class*="bg-\[\#0"],
+.theme-light [class*="rounded-3xl"][class*="bg-\[\#0"],
+.theme-light [class*="rounded-xl"][class*="bg-\[\#0"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Cartes de stat avec fond semi-transparent : garder les couleurs */
+.theme-light [class*="bg-emerald-500\/"],
+.theme-light [class*="bg-rose-500\/"],
+.theme-light [class*="bg-amber-500\/"],
+.theme-light [class*="bg-blue-500\/"],
+.theme-light [class*="bg-purple-500\/"],
+.theme-light [class*="bg-cyan-500\/"] {
+  /* Ne pas toucher - garder la couleur de statut */
+}
+
+/* Header sticky de la navbar */
+.theme-light [class*="topbar"],
+.theme-light header.sticky {
+  background-color: #FFFFFF !important;
+}
+
+/* Cartes qui utilisent bg-card via variables CSS */
+.theme-light .theme-bg-card {
+  background-color: #FFFFFF !important;
+}
+
+.theme-light .theme-bg-body {
+  background-color: #F8FAFC !important;
+}
+
+/* Input, selects et textareas */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  background-color: #FFFFFF !important;
+}
+/* ============================================================ */
+
+/* 1. Empêcher le scroll horizontal SUR LE BODY uniquement */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 2. Tableaux responsives — scroll interne au lieu de casser la page */
+.table-responsive,
+table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 3. Images et médias */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 4. Cibler UNIQUEMENT les conteneurs flex pour éviter les débordements */
+.flex, .grid {
+  min-width: 0;
+}
+/* ============================================================================
+   FIN FIX FONDS
+   ============================================================================ */
+/* ============================================================ */
+
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* Auto-detection : tout parent direct d'un <table> devient scrollable */
+div:has(> table),
+section:has(> table),
+main:has(> table) {
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tableaux : largeur mini pour forcer le scroll si trop grand */
+table {
+  min-width: 800px;
+}
+
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+
+/* ============================================================ */
+html, body { max-width: 100%; overflow-x: hidden; }
+*:has(> table),
+*:has(> * > table) {
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+[class*="overflow-x-auto"],
+[class*="overflow-auto"] {
+  max-width: 100%;
+  overflow-x: auto !important;
+}
+table {
+  min-width: 800px;
+  max-width: none;
+}
+th, td {
+  white-space: nowrap;
+}
+td:last-child {
+  white-space: normal;
+}
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+.flex, .grid {
+  min-width: 0;
+}
+/* FIN FIX RESPONSIVE ULTRA */
+
+/* ============================================================ */
+/* FIX RESPONSIVE FINAL - Tout-en-un                            */
+/* ============================================================ */
+
+/* 1. PAS de scroll horizontal au niveau page (body, PAS #root) */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 2. #root : laisse passer le contenu */
+#root {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* 3. Enfants FLEX : peuvent se retrecir (fix min-width:auto) */
+.flex > *,
+.flex-1 > *,
+.flex-col > * {
+  min-width: 0;
+}
+
+/* 4. TOUS les wrappers de tableau : scroll horizontal interne */
+div:has(> table),
+div:has(> div > table),
+div:has(> div > div > table),
+[class*="overflow-x-auto"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 5. Les tableaux debordent du wrapper (qui lui scrolle) */
+table {
+  min-width: 800px;
+  max-width: none;
+}
+
+/* 6. Images / medias */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* FIN FIX RESPONSIVE FINAL */
+/* ============================================================ */
+
+/* ============================================================ */
+/* BARRE SCROLL HORIZONTALE SUR LES TABLEAUX                    */
+/* ============================================================ */
+
+/* Tous les wrappers de tableaux = scrollables */
+div:has(> table),
+div:has(> div > table),
+div:has(> div > div > table) {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding-bottom: 12px !important;   /* espace pour la barre */
+}
+
+/* Barre de scroll BIEN VISIBLE et large */
+div:has(> table)::-webkit-scrollbar,
+div:has(> div > table)::-webkit-scrollbar,
+div:has(> div > div > table)::-webkit-scrollbar {
+  height: 14px !important;
+  display: block !important;
+}
+
+div:has(> table)::-webkit-scrollbar-track,
+div:has(> div > table)::-webkit-scrollbar-track,
+div:has(> div > div > table)::-webkit-scrollbar-track {
+  background: rgba(201, 169, 110, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+div:has(> table)::-webkit-scrollbar-thumb,
+div:has(> div > table)::-webkit-scrollbar-thumb,
+div:has(> div > div > table)::-webkit-scrollbar-thumb {
+  background: #C9A96E !important;
+  border-radius: 8px !important;
+  border: 2px solid rgba(15, 27, 45, 0.5) !important;
+}
+
+div:has(> table)::-webkit-scrollbar-thumb:hover,
+div:has(> div > table)::-webkit-scrollbar-thumb:hover {
+  background: #E8D5B0 !important;
+}
+
+/* Firefox */
+div:has(> table),
+div:has(> div > table) {
+  scrollbar-width: thin;
+  scrollbar-color: #C9A96E rgba(201, 169, 110, 0.1);
+}
+
+/* Tableaux : largeur mini pour forcer le scroll */
+table {
+  min-width: 900px;
+}
+
+/* FIN BARRE SCROLL */
+/* ============================================================ */
+
+
+/* ============================================================ */
+/* BARRE SCROLL HORIZONTALE SUR LES TABLEAUX                    */
+/* ============================================================ */
+
+/* Tous les wrappers de tableaux = scrollables */
+div:has(> table),
+div:has(> div > table),
+div:has(> div > div > table) {
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding-bottom: 12px !important;   /* espace pour la barre */
+}
+
+/* Barre de scroll BIEN VISIBLE et large */
+div:has(> table)::-webkit-scrollbar,
+div:has(> div > table)::-webkit-scrollbar,
+div:has(> div > div > table)::-webkit-scrollbar {
+  height: 14px !important;
+  display: block !important;
+}
+
+div:has(> table)::-webkit-scrollbar-track,
+div:has(> div > table)::-webkit-scrollbar-track,
+div:has(> div > div > table)::-webkit-scrollbar-track {
+  background: rgba(201, 169, 110, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+div:has(> table)::-webkit-scrollbar-thumb,
+div:has(> div > table)::-webkit-scrollbar-thumb,
+div:has(> div > div > table)::-webkit-scrollbar-thumb {
+  background: #C9A96E !important;
+  border-radius: 8px !important;
+  border: 2px solid rgba(15, 27, 45, 0.5) !important;
+}
+
+div:has(> table)::-webkit-scrollbar-thumb:hover,
+div:has(> div > table)::-webkit-scrollbar-thumb:hover {
+  background: #E8D5B0 !important;
+}
+
+/* Firefox */
+div:has(> table),
+div:has(> div > table) {
+  scrollbar-width: thin;
+  scrollbar-color: #C9A96E rgba(201, 169, 110, 0.1);
+}
+
+/* Tableaux : largeur mini pour forcer le scroll */
+table {
+  min-width: 900px;
+}
+
+/* FIN BARRE SCROLL */
+/* ============================================================ */
+
+
+/* ============================================================ */
+/* BARRE SCROLL ULTRA VISIBLE - Force partout                  */
+/* ============================================================ */
+
+/* 1. GLOBAL : barre large et bien visible pour TOUT */
+::-webkit-scrollbar {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 46, 69, 0.5) !important;
+  border-radius: 8px !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9A96E !important;
+  border-radius: 8px !important;
+  border: 2px solid rgba(15, 27, 45, 0.8) !important;
+  min-height: 40px !important;
+  min-width: 40px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E8D5B0 !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(30, 46, 69, 0.5) !important;
+}
+
+/* 2. FORCE overflow-x: scroll (pas auto) sur les wrappers de tableaux */
+div:has(> table),
+div:has(> div > table),
+div:has(> div > div > table) {
+  overflow-x: scroll !important;
+  overflow-y: visible !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding-bottom: 6px !important;
+}
+
+/* 3. Barre encore plus visible DANS les wrappers de tableaux */
+div:has(> table)::-webkit-scrollbar,
+div:has(> div > table)::-webkit-scrollbar,
+div:has(> div > div > table)::-webkit-scrollbar {
+  height: 16px !important;
+  display: block !important;
+}
+
+div:has(> table)::-webkit-scrollbar-thumb,
+div:has(> div > table)::-webkit-scrollbar-thumb,
+div:has(> div > div > table)::-webkit-scrollbar-thumb {
+  background: #C9A96E !important;
+  border: 3px solid rgba(15, 27, 45, 0.9) !important;
+  border-radius: 10px !important;
+}
+
+div:has(> table)::-webkit-scrollbar-track,
+div:has(> div > table)::-webkit-scrollbar-track,
+div:has(> div > div > table)::-webkit-scrollbar-track {
+  background: rgba(30, 46, 69, 0.7) !important;
+  border-radius: 10px !important;
+  margin: 0 4px !important;
+}
+
+/* 4. Firefox */
+div:has(> table),
+div:has(> div > table) {
+  scrollbar-width: auto;
+  scrollbar-color: #C9A96E rgba(30, 46, 69, 0.7);
+}
+
+/* FIN BARRE ULTRA VISIBLE */
+/* ============================================================ */

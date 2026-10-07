@@ -18,11 +18,13 @@ app.set("trust proxy", 1);
 // ============================================================
 // SECURITE - Headers HTTP
 // ============================================================
-app.use(helmet({
-  contentSecurityPolicy: false,       // Desactive pour Vite (scripts inline)
-  crossOriginEmbedderPolicy: false,   // Compatibilite avec Vite
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Desactive pour Vite (scripts inline)
+    crossOriginEmbedderPolicy: false, // Compatibilite avec Vite
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 // ============================================================
 // SECURITE - CORS strict (whitelist)
@@ -36,26 +38,28 @@ const ALLOWED_ORIGINS: (string | RegExp)[] = [
   // /\.fital-immo\.com$/,
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Autoriser les requetes sans origin (Postman, curl, same-origin)
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Autoriser les requetes sans origin (Postman, curl, same-origin)
+      if (!origin) return callback(null, true);
 
-    const allowed = ALLOWED_ORIGINS.some(o =>
-      typeof o === "string" ? o === origin : o.test(origin)
-    );
+      const allowed = ALLOWED_ORIGINS.some((o) =>
+        typeof o === "string" ? o === origin : o.test(origin),
+      );
 
-    if (allowed) {
-      callback(null, true);
-    } else {
-      console.warn("[CORS] Origine refusee : " + origin);
-      callback(new Error("CORS refuse : origine non autorisee"), false);
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-}));
+      if (allowed) {
+        callback(null, true);
+      } else {
+        console.warn("[CORS] Origine refusee : " + origin);
+        callback(new Error("CORS refuse : origine non autorisee"), false);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
+);
 
 // ============================================================
 // SECURITE - Body parser limite (anti-DoS)
@@ -67,8 +71,8 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 // SECURITE - Rate limiting global
 // ============================================================
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
-  max: 100,                    // 100 requetes par IP
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requetes par IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Trop de requetes. Reessayez dans 15 minutes." },
@@ -79,8 +83,8 @@ app.use("/api/", globalLimiter);
 // SECURITE - Rate limiting Gemini (tres strict, couteux)
 // ============================================================
 const geminiLimiter = rateLimit({
-  windowMs: 60 * 1000,         // 1 minute
-  max: 10,                     // 10 requetes/min par IP
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requetes/min par IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Trop de requetes IA. Attendez 1 minute." },
@@ -95,50 +99,56 @@ const getGeminiClient = () => {
     apiKey,
     httpOptions: {
       headers: {
-        'User-Agent': 'aistudio-build',
+        "User-Agent": "aistudio-build",
       },
     },
   });
 };
 
-function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  errorMsg: string,
+): Promise<T> {
   let timer: NodeJS.Timeout;
   const timeoutPromise = new Promise<T>((_, reject) => {
     timer = setTimeout(() => reject(new Error(errorMsg)), ms);
   });
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+  return Promise.race([promise, timeoutPromise]).finally(() =>
+    clearTimeout(timer),
+  );
 }
 
 // ============================================================
 // CRON VERCEL - Relances automatiques quotidiennes
 // Appele par vercel.json (crons: 0 9 * * *)
 // ============================================================
-app.all('/api/cron/reminders', async (req, res) => {
+app.all("/api/cron/reminders", async (req, res) => {
   // SECURITE : Verifier le header Authorization si CRON_SECRET est configure
   const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
-  
-  if (process.env.NODE_ENV === 'production' && cronSecret) {
-    if (authHeader !== 'Bearer ' + cronSecret) {
-      return res.status(401).json({ error: 'Non autorise' });
+
+  if (process.env.NODE_ENV === "production" && cronSecret) {
+    if (authHeader !== "Bearer " + cronSecret) {
+      return res.status(401).json({ error: "Non autorise" });
     }
   }
-  
-  console.log('[CRON] Relances automatiques demarrees');
-  
+
+  console.log("[CRON] Relances automatiques demarrees");
+
   try {
     // NOTE : Logique metier a implementer (envoi WhatsApp/SMS via API tierce)
     const result = {
       success: true,
       timestamp: new Date().toISOString(),
-      message: 'Relances automatiques executees',
+      message: "Relances automatiques executees",
     };
-    
-    console.log('[CRON] Termine:', result);
+
+    console.log("[CRON] Termine:", result);
     res.json(result);
   } catch (err) {
-    console.error('[CRON] Erreur:', err);
-    res.status(500).json({ error: 'Erreur cron' });
+    console.error("[CRON] Erreur:", err);
+    res.status(500).json({ error: "Erreur cron" });
   }
 });
 
@@ -169,14 +179,17 @@ async function generateContentWithFallback(ai: GoogleGenAI, config: any) {
       const response = await withTimeout(
         ai.models.generateContent(mergedConfig),
         7000,
-        `Timeout on ${model}`
+        `Timeout on ${model}`,
       );
 
       if (response && response.text) {
         return { response, modelUsed: model };
       }
     } catch (err: any) {
-      console.warn(`[Gemini API] Temporary error on ${model} (status: ${err?.status || err?.code}):`, err?.message || err);
+      console.warn(
+        `[Gemini API] Temporary error on ${model} (status: ${err?.status || err?.code}):`,
+        err?.message || err,
+      );
       lastError = err;
       // Continue to try the next model on 503 (high demand) or other transient API errors
     }
@@ -201,18 +214,20 @@ app.post("/api/gemini/relance", async (req, res) => {
 
   // Fallback template if Gemini key is not configured or during temporary API spikes (503)
   const fallbackTemplate = () => {
-    const formattedAmount = Number(montantDu || 0).toLocaleString('fr-FR') + ' FCFA';
-    const formattedPenalites = Number(penalites || 0).toLocaleString('fr-FR') + ' FCFA';
+    const formattedAmount =
+      Number(montantDu || 0).toLocaleString("fr-FR") + " FCFA";
+    const formattedPenalites =
+      Number(penalites || 0).toLocaleString("fr-FR") + " FCFA";
 
-    if (canal === 'WhatsApp') {
-      if (niveau?.includes('1') || joursRetard <= 5) {
-        return `Bonjour M./Mme *${locataireNom}*,\n\nNous espérons que vous allez bien. Sauf erreur de notre part, nous n'avons pas encore reçu votre règlement de loyer de *${formattedAmount}* pour le bien *${bienNom}* (échéance du ${dateEcheance || '5 du mois'}).\n\nMerci de procéder au versement ou de nous envoyer la preuve de paiement dès que possible. 🏢\n\nCordialement,\n*Service Gestion Locative FITAL-IMMO*`;
-      } else if (niveau?.includes('2') || joursRetard <= 15) {
+    if (canal === "WhatsApp") {
+      if (niveau?.includes("1") || joursRetard <= 5) {
+        return `Bonjour M./Mme *${locataireNom}*,\n\nNous espérons que vous allez bien. Sauf erreur de notre part, nous n'avons pas encore reçu votre règlement de loyer de *${formattedAmount}* pour le bien *${bienNom}* (échéance du ${dateEcheance || "5 du mois"}).\n\nMerci de procéder au versement ou de nous envoyer la preuve de paiement dès que possible. 🏢\n\nCordialement,\n*Service Gestion Locative FITAL-IMMO*`;
+      } else if (niveau?.includes("2") || joursRetard <= 15) {
         return `⚠️ *RAPPEL DE LOYER IMPAYÉ*\n\nBonjour M./Mme *${locataireNom}*,\n\nVotre loyer de *${formattedAmount}* pour *${bienNom}* accuse un retard de *${joursRetard} jours*.\n\nNous vous prions de régulariser votre situation sous 48h afin d'éviter l'application des pénalités de retard prévues au bail.\n\nPour tout virement / Wave / Orange Money, merci de notifier la référence du bien.\n\nService Recouvrement FITAL-IMMO`;
       } else {
         return `🚨 *MISE EN DEMEURE AVANT PROCÉDURE*\n\nÀ l'attention de M./Mme *${locataireNom}*,\n\nMalgré nos précédentes relances, votre loyer reste impayé pour un total de *${formattedAmount}* (+ pénalités de *${formattedPenalites}*), soit *${joursRetard} jours de retard* pour le logement *${bienNom}*.\n\nSans règlement intégral sous 72 heures, votre dossier sera transmis à notre service contentieux / huissier pour résiliation de bail et recouvrement forcé.\n\nDirection Juridique FITAL-IMMO`;
       }
-    } else if (canal === 'SMS') {
+    } else if (canal === "SMS") {
       if (joursRetard <= 5) {
         return `FITAL-IMMO: Bonjour ${locataireNom}, rappel amical pour le loyer de ${bienNom} (${formattedAmount}). Merci de régulariser dès que possible.`;
       } else {
@@ -220,7 +235,7 @@ app.post("/api/gemini/relance", async (req, res) => {
       }
     } else {
       // Email / Lettre
-      return `Objet : ${joursRetard > 15 ? 'MISE EN DEMEURE - ' : '}Rappel de paiement du loyer - ${bienNom}\n\nMadame, Monsieur ${locataireNom},\n\nNous nous permettons de vous contacter concernant le paiement de votre loyer pour le bien situé à ${bienNom}.\n\nÀ ce jour, nous constatons un arriéré de paiement d'un montant total de ${formattedAmount}${penalites ? ` augmenté des pénalités contractuelles de ${formattedPenalites}` : '}, accusant un retard de ${joursRetard} jours.\n\nNous vous invitons à bien vouloir régulariser votre situation dans les plus brefs délais par virement, Wave, Orange Money ou chèque.\n\nSi votre règlement a été effectué entre-temps, veuillez ne pas tenir compte de ce courrier.\n\nRestant à votre entière disposition,\n\nBien cordialement,\nLa Gérance Immobilière FITAL-IMMO`;
+      return `Objet : ${joursRetard > 15 ? "MISE EN DEMEURE - " : ""}Rappel de paiement du loyer - ${bienNom}\n\nMadame, Monsieur ${locataireNom},\n\nNous nous permettons de vous contacter concernant le paiement de votre loyer pour le bien situé à ${bienNom}.\n\nÀ ce jour, nous constatons un arriéré de paiement d'un montant total de ${formattedAmount}${penalites ? ` augmenté des pénalités contractuelles de ${formattedPenalites}` : ""}, accusant un retard de ${joursRetard} jours.\n\nNous vous invitons à bien vouloir régulariser votre situation dans les plus brefs délais par virement, Wave, Orange Money ou chèque.\n\nSi votre règlement a été effectué entre-temps, veuillez ne pas tenir compte de ce courrier.\n\nRestant à votre entière disposition,\n\nBien cordialement,\nLa Gérance Immobilière FITAL-IMMO`;
     }
   };
 
@@ -228,19 +243,19 @@ app.post("/api/gemini/relance", async (req, res) => {
     const ai = getGeminiClient();
 
     if (!ai) {
-      return res.json({ message: fallbackTemplate(), generatedBy: 'template' });
+      return res.json({ message: fallbackTemplate(), generatedBy: "template" });
     }
 
     const prompt = `Génère un message de relance de loyer très professionnel, personnalisé et percutant en français.
 Détails de la situation :
 - Locataire : ${locataireNom}
 - Bien loué : ${bienNom}
-- Propriétaire représenté : ${proprietaireNom || 'Gérance Immobilière FITAL-IMMO'}
-- Montant dû : ${Number(montantDu).toLocaleString('fr-FR')} FCFA
-- Pénalités de retard : ${penalites ? Number(penalites).toLocaleString('fr-FR') + ' FCFA' : 'Aucune pour le moment'}
+- Propriétaire représenté : ${proprietaireNom || "Gérance Immobilière FITAL-IMMO"}
+- Montant dû : ${Number(montantDu).toLocaleString("fr-FR")} FCFA
+- Pénalités de retard : ${penalites ? Number(penalites).toLocaleString("fr-FR") + " FCFA" : "Aucune pour le moment"}
 - Nombre de jours de retard : ${joursRetard} jours
-- Date d'échéance normale : ${dateEcheance || '5 du mois courant'}
-- Niveau de sévérité demandé : ${niveau || 'Adapté au retard'}
+- Date d'échéance normale : ${dateEcheance || "5 du mois courant"}
+- Niveau de sévérité demandé : ${niveau || "Adapté au retard"}
 - Canal de communication ciblé : ${canal} (WhatsApp avec mise en forme markdown/emojis, SMS court 150 caractères, Email formel avec Objet et Corps, ou Lettre recommandée de mise en demeure juridique avec mentions légales).
 
 Règles :
@@ -257,12 +272,16 @@ Règles :
     const generatedText = response.text || fallbackTemplate();
     return res.json({ message: generatedText, generatedBy: modelUsed });
   } catch (error: any) {
-    console.warn("Gemini relance notice (reverting to guaranteed template):", error?.message || error);
+    console.warn(
+      "Gemini relance notice (reverting to guaranteed template):",
+      error?.message || error,
+    );
     // Return the guaranteed fallback template with 200 OK so the user experience never fails
     return res.json({
       message: fallbackTemplate(),
-      generatedBy: 'fallback-template',
-      notice: 'Modèle de relance appliqué (service IA en pic de charge temporaire).'
+      generatedBy: "fallback-template",
+      notice:
+        "Modèle de relance appliqué (service IA en pic de charge temporaire).",
     });
   }
 });
@@ -272,13 +291,17 @@ app.post("/api/gemini/insights", async (req, res) => {
   const { unpaidCount, totalUnpaid, totalCollected, occupancyRate } = req.body;
 
   const fallbackInsights = () => {
-    const defaultAnalysis = `Taux d'occupation de ${occupancyRate || 95}% avec un encaissement actif de ${(totalCollected || 0).toLocaleString('fr-FR')} FCFA. ${unpaidCount || 0} dossiers accusent un retard nécessitant un suivi proactif par relance WhatsApp pour accélérer les règlements avant le 15 du mois.`;
+    const defaultAnalysis = `Taux d'occupation de ${occupancyRate || 95}% avec un encaissement actif de ${(totalCollected || 0).toLocaleString("fr-FR")} FCFA. ${unpaidCount || 0} dossiers accusent un retard nécessitant un suivi proactif par relance WhatsApp pour accélérer les règlements avant le 15 du mois.`;
     const defaultActions = [
       "Envoyer une relance groupée par WhatsApp avec lien de paiement Wave aux locataires ayant moins de 10 jours de retard.",
       "Convoquer ou émettre une mise en demeure formelle pour les dossiers à plus de 20 jours d'arriérés.",
-      "Consolider les règlements encaissés pour la clôture de caisse et l'édition des quittances certifiées."
+      "Consolider les règlements encaissés pour la clôture de caisse et l'édition des quittances certifiées.",
     ];
-    return { analysis: defaultAnalysis, actionPlan: defaultActions, generatedBy: 'heuristic-engine' };
+    return {
+      analysis: defaultAnalysis,
+      actionPlan: defaultActions,
+      generatedBy: "heuristic-engine",
+    };
   };
 
   try {
@@ -290,8 +313,8 @@ app.post("/api/gemini/insights", async (req, res) => {
 
     const prompt = `Tu es un expert en gestion immobilière et optimisation du recouvrement locatif.
 Analyse les métriques actuelles du parc immobilier :
-- Total Loyers Encaissés : ${(totalCollected || 0).toLocaleString('fr-FR')} FCFA
-- Total Impayés & Arriérés : ${(totalUnpaid || 0).toLocaleString('fr-FR')} FCFA
+- Total Loyers Encaissés : ${(totalCollected || 0).toLocaleString("fr-FR")} FCFA
+- Total Impayés & Arriérés : ${(totalUnpaid || 0).toLocaleString("fr-FR")} FCFA
 - Nombre de locataires en retard : ${unpaidCount || 0}
 - Taux d'occupation : ${occupancyRate || 95}%
 
@@ -305,7 +328,7 @@ Fournis une analyse synthétique en français (2-3 phrases) et 3 actions priorit
     });
 
     try {
-      const data = JSON.parse(response.text || '{}');
+      const data = JSON.parse(response.text || "{}");
       if (data && data.analysis && Array.isArray(data.actionPlan)) {
         return res.json({ ...data, generatedBy: modelUsed });
       }
@@ -314,11 +337,13 @@ Fournis une analyse synthétique en français (2-3 phrases) et 3 actions priorit
       return res.json(fallbackInsights());
     }
   } catch (error: any) {
-    console.warn("Gemini insights notice (using heuristic fallback):", error?.message || error);
+    console.warn(
+      "Gemini insights notice (using heuristic fallback):",
+      error?.message || error,
+    );
     return res.json(fallbackInsights());
   }
 });
-
 
 // ============================================================
 // ADAPTATION VERCEL - On garde app.listen UNIQUEMENT en dev local
@@ -327,23 +352,23 @@ Fournis une analyse synthétique en français (2-3 phrases) et 3 actions priorit
 
 async function startServer() {
   // SECURITE : En production, NODE_ENV DOIT etre defini
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
     if (!process.env.NODE_ENV) {
-      console.error('[SECURITE] NODE_ENV non defini en production !');
+      console.error("[SECURITE] NODE_ENV non defini en production !");
       process.exit(1);
     }
   }
 
   // En dev local UNIQUEMENT : Vite middleware + listen
-  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: "spa",
     });
     app.use(vite.middlewares);
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log('Server running on http://localhost:' + PORT);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log("Server running on http://localhost:" + PORT);
     });
   }
   // En production Vercel : on n'ecoute PAS, on exporte app
@@ -351,7 +376,7 @@ async function startServer() {
 
 // En dev local : on demarre le serveur
 // En production Vercel : on exporte app pour que Vercel l'utilise
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
   startServer();
 }
 
