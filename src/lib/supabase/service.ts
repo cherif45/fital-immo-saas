@@ -1,13 +1,40 @@
-import { createClient } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from './client';
-import { UserRole } from '../../types';
+﻿import { createClient } from "@supabase/supabase-js";
 import {
-  Property, Owner, Tenant, LeaseContract, Payment, TenantReminder, Inspection,
-  MaintenanceTicket, OwnerDisbursement, Invoice, CashVoucher, NotificationItem,
-  AuditLog, AgencySettings, UserAccount, PaymentMethodConfig, CashMovement,
-  CashClosing, Agency, Building, Unit, OwnerDeduction, BulletinVersement,
-  ArchiveRecord, ActivityLog, Penalty, OwnerCharge,
-} from '../../types';
+  supabase,
+  isSupabaseConfigured,
+  supabaseUrl,
+  supabaseAnonKey,
+} from "./client";
+import { UserRole } from "../../types";
+import {
+  Property,
+  Owner,
+  Tenant,
+  LeaseContract,
+  Payment,
+  TenantReminder,
+  Inspection,
+  MaintenanceTicket,
+  OwnerDisbursement,
+  Invoice,
+  CashVoucher,
+  NotificationItem,
+  AuditLog,
+  AgencySettings,
+  UserAccount,
+  PaymentMethodConfig,
+  CashMovement,
+  CashClosing,
+  Agency,
+  Building,
+  Unit,
+  OwnerDeduction,
+  BulletinVersement,
+  ArchiveRecord,
+  ActivityLog,
+  Penalty,
+  OwnerCharge,
+} from "../../types";
 
 export interface AppStateData {
   agency: Agency | null;
@@ -40,44 +67,117 @@ export interface AppStateData {
 }
 
 export const defaultSettings: AgencySettings = {
-  nomAgence: 'FITAL-IMMO',
-  slogan: 'Gestion Immobilià¨re, Syndic & Recouvrement',
-  telephone: '+221 33 820 00 00',
-  email: 'contact@fital-immo.sn',
-  adresse: 'Avenue Cheikh Anta Diop, Dakar',
-  ville: 'Dakar',
-  pays: 'Sénégal',
-  ninea: '008920194 2V8',
-  devise: 'FCFA',
+  nomAgence: "FITAL-IMMO",
+  slogan: "Gestion Immobilià¨re, Syndic & Recouvrement",
+  telephone: "+221 33 820 00 00",
+  email: "contact@fital-immo.sn",
+  adresse: "Avenue Cheikh Anta Diop, Dakar",
+  ville: "Dakar",
+  pays: "Sénégal",
+  ninea: "008920194 2V8",
+  devise: "FCFA",
   tauxGeranceDefaut: 10,
   penaliteDefaut: 10,
   tvaTaux: 18,
-  prefixFacture: 'FAC-2026-',
-  prefixQuittance: 'QUI-2026-',
-  prefixPaiement: 'PAY-2026-',
-  prefixContrat: 'BAIL-2026-',
-  prefixBonCaisse: 'BCA-2026-',
-  waveNumero: '+221 76 328 58 29',
-  orangeMoneyCode: '784912',
-  whatsappBusiness: '+221 77 845 20 10',
-  standardTelephone: '+221 33 820 40 50',
+  prefixFacture: "FAC-2026-",
+  prefixQuittance: "QUI-2026-",
+  prefixPaiement: "PAY-2026-",
+  prefixContrat: "BAIL-2026-",
+  prefixBonCaisse: "BCA-2026-",
+  waveNumero: "+221 76 328 58 29",
+  orangeMoneyCode: "784912",
+  whatsappBusiness: "+221 77 845 20 10",
+  standardTelephone: "+221 33 820 40 50",
 };
 
 export const defaultPaymentMethods: PaymentMethodConfig[] = [
-  { id: 'pm-especes', code: 'ESPECES', libelle: 'Espèces (Caisse Agence)', description: 'Rà¨glement au comptoir.', actif: true, parDefaut: true, estParDefaut: true, fraisPourcentage: 0, delaiValidationHeures: 0, instructions: 'Présentez-vous aux guichets.' },
-  { id: 'pm-wave', code: 'WAVE', libelle: 'Wave Mobile Money', description: 'Paiement par QR Code.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 0, numeroCompteOuTelephone: '+221 76 328 58 29', instructions: 'Scannez le QR Code Wave.' },
-  { id: 'pm-orange-money', code: 'ORANGE_MONEY', libelle: 'Orange Money (OM)', description: 'Paiement via USSD #144#.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 1, numeroCompteOuTelephone: '784912', instructions: 'Composez le code marchand.' },
-  { id: 'pm-virement', code: 'VIREMENT', libelle: 'Virement Bancaire', description: 'Virement interbancaire.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 24, banqueNom: 'CBAO Attijariwafa Bank', instructions: 'Effectuez votre virement.' },
-  { id: 'pm-cheque', code: 'CHEQUE', libelle: 'Chà¨que Certifié', description: 'Dépôt de chà¨que.', actif: true, parDefaut: false, estParDefaut: false, fraisPourcentage: 0, delaiValidationHeures: 48, instructions: 'Chà¨que certifié.' },
+  {
+    id: "pm-especes",
+    code: "ESPECES",
+    libelle: "Espèces (Caisse Agence)",
+    description: "Rà¨glement au comptoir.",
+    actif: true,
+    parDefaut: true,
+    estParDefaut: true,
+    fraisPourcentage: 0,
+    delaiValidationHeures: 0,
+    instructions: "Présentez-vous aux guichets.",
+  },
+  {
+    id: "pm-wave",
+    code: "WAVE",
+    libelle: "Wave Mobile Money",
+    description: "Paiement par QR Code.",
+    actif: true,
+    parDefaut: false,
+    estParDefaut: false,
+    fraisPourcentage: 0,
+    delaiValidationHeures: 0,
+    numeroCompteOuTelephone: "+221 76 328 58 29",
+    instructions: "Scannez le QR Code Wave.",
+  },
+  {
+    id: "pm-orange-money",
+    code: "ORANGE_MONEY",
+    libelle: "Orange Money (OM)",
+    description: "Paiement via USSD #144#.",
+    actif: true,
+    parDefaut: false,
+    estParDefaut: false,
+    fraisPourcentage: 0,
+    delaiValidationHeures: 1,
+    numeroCompteOuTelephone: "784912",
+    instructions: "Composez le code marchand.",
+  },
+  {
+    id: "pm-virement",
+    code: "VIREMENT",
+    libelle: "Virement Bancaire",
+    description: "Virement interbancaire.",
+    actif: true,
+    parDefaut: false,
+    estParDefaut: false,
+    fraisPourcentage: 0,
+    delaiValidationHeures: 24,
+    banqueNom: "CBAO Attijariwafa Bank",
+    instructions: "Effectuez votre virement.",
+  },
+  {
+    id: "pm-cheque",
+    code: "CHEQUE",
+    libelle: "Chà¨que Certifié",
+    description: "Dépôt de chà¨que.",
+    actif: true,
+    parDefaut: false,
+    estParDefaut: false,
+    fraisPourcentage: 0,
+    delaiValidationHeures: 48,
+    instructions: "Chà¨que certifié.",
+  },
 ];
 
 export const emptySettings: AgencySettings = {
-  nomAgence: '', slogan: '', telephone: '', email: '', adresse: '', ville: '',
-  pays: 'Sénégal', ninea: '', devise: 'FCFA',
-  tauxGeranceDefaut: 10, penaliteDefaut: 10, tvaTaux: 18,
-  prefixFacture: 'FAC-', prefixQuittance: 'QUI-', prefixPaiement: 'PAY-',
-  prefixContrat: 'BAIL-', prefixBonCaisse: 'BCA-',
-  waveNumero: '', orangeMoneyCode: '', whatsappBusiness: '', standardTelephone: '',
+  nomAgence: "",
+  slogan: "",
+  telephone: "",
+  email: "",
+  adresse: "",
+  ville: "",
+  pays: "Sénégal",
+  ninea: "",
+  devise: "FCFA",
+  tauxGeranceDefaut: 10,
+  penaliteDefaut: 10,
+  tvaTaux: 18,
+  prefixFacture: "FAC-",
+  prefixQuittance: "QUI-",
+  prefixPaiement: "PAY-",
+  prefixContrat: "BAIL-",
+  prefixBonCaisse: "BCA-",
+  waveNumero: "",
+  orangeMoneyCode: "",
+  whatsappBusiness: "",
+  standardTelephone: "",
 };
 
 /**
@@ -85,10 +185,10 @@ export const emptySettings: AgencySettings = {
  * Lit directement depuis localStorage pour etre accessible avant React.
  */
 function getCurrentAgencyIdFromStorage(): string | null {
-  if (typeof window === 'undefined' || !window.localStorage) return null;
+  if (typeof window === "undefined" || !window.localStorage) return null;
   try {
     // Essayer plusieurs cles possibles
-    const candidates = ['fital_immo_current_user', 'fital_immo_user'];
+    const candidates = ["fital_immo_current_user", "fital_immo_user"];
     for (const k of candidates) {
       const raw = localStorage.getItem(k);
       if (raw) {
@@ -109,11 +209,31 @@ function getCurrentAgencyIdFromStorage(): string | null {
 function filterByAgency<T>(key: string, data: T): T {
   // Liste des collections METIER qui doivent etre isolees par agence
   const ISOLATED_KEYS = [
-    'properties', 'buildings', 'units', 'owners', 'tenants', 'contracts',
-    'payments', 'reminders', 'inspections', 'maintenance', 'disbursements',
-    'invoices', 'cash_vouchers', 'notifications', 'audit_logs', 'settings',
-    'payment_methods', 'cash_movements', 'cash_closings', 'owner_deductions',
-    'bulletin_versements', 'archives', 'activity_logs', 'penalties', 'owner_charges'
+    "properties",
+    "buildings",
+    "units",
+    "owners",
+    "tenants",
+    "contracts",
+    "payments",
+    "reminders",
+    "inspections",
+    "maintenance",
+    "disbursements",
+    "invoices",
+    "cash_vouchers",
+    "notifications",
+    "audit_logs",
+    "settings",
+    "payment_methods",
+    "cash_movements",
+    "cash_closings",
+    "owner_deductions",
+    "bulletin_versements",
+    "archives",
+    "activity_logs",
+    "penalties",
+    "owner_charges",
   ];
 
   if (!ISOLATED_KEYS.includes(key)) {
@@ -140,19 +260,19 @@ function filterByAgency<T>(key: string, data: T): T {
     if (filtered.length !== data.length) {
       console.warn(
         `[SECURITY] Collection '${key}' : ` +
-        `${data.length - filtered.length} elements d autres agences ignores ` +
-        `(attendu: ${expectedAgencyId.substring(0, 8)}...)`
+          `${data.length - filtered.length} elements d autres agences ignores ` +
+          `(attendu: ${expectedAgencyId.substring(0, 8)}...)`,
       );
     }
     return filtered as T;
   }
 
   // Pour les objets (settings), verifier l agency_id
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
+  if (data && typeof data === "object" && !Array.isArray(data)) {
     const obj: any = data;
     const itemAgencyId = obj.agencyId || obj.agency_id || obj.id;
     // Si l objet est une agence ET qu il n appartient pas a la bonne -> rejeter
-    if (itemAgencyId && itemAgencyId !== expectedAgencyId && key === 'agency') {
+    if (itemAgencyId && itemAgencyId !== expectedAgencyId && key === "agency") {
       console.warn(`[SECURITY] Agency mismatch pour '${key}'`);
       return null as any;
     }
@@ -162,7 +282,7 @@ function filterByAgency<T>(key: string, data: T): T {
 }
 
 export function loadLocalCollection<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined' || !window.localStorage) return fallback;
+  if (typeof window === "undefined" || !window.localStorage) return fallback;
   try {
     const raw = localStorage.getItem(`fital_immo_${key}`);
     if (raw) {
@@ -176,7 +296,7 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
           }
           return fallback;
         }
-      } else if (parsed && typeof parsed === 'object') {
+      } else if (parsed && typeof parsed === "object") {
         return { ...fallback, ...parsed } as T;
       }
     }
@@ -187,23 +307,32 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
 }
 
 export function persistCollection<T>(key: string, data: T): void {
-  if (typeof window === 'undefined' || !window.localStorage) return;
-  
+  if (typeof window === "undefined" || !window.localStorage) return;
+
   // âš ï¸ Ne PAS persister les tables volumineuses (dépasse le quota localStorage)
-  const BLOCKED_KEYS = ['payments', 'cash_movements', 'owner_charges', 'invoices', 'penalties', 'tenants'];
+  const BLOCKED_KEYS = [
+    "payments",
+    "cash_movements",
+    "owner_charges",
+    "invoices",
+    "penalties",
+    "tenants",
+  ];
   if (BLOCKED_KEYS.includes(key)) {
     return;
   }
-  
+
   try {
     localStorage.setItem(`fital_immo_${key}`, JSON.stringify(data));
   } catch (err) {
-    if (err instanceof Error && err.name === 'QuotaExceededError') {
+    if (err instanceof Error && err.name === "QuotaExceededError") {
       // Nettoyer le cache pour libérer de l'espace
       try {
         Object.keys(localStorage)
-          .filter(k => k.startsWith('fital_immo_') && !k.includes('current_user'))
-          .forEach(k => localStorage.removeItem(k));
+          .filter(
+            (k) => k.startsWith("fital_immo_") && !k.includes("current_user"),
+          )
+          .forEach((k) => localStorage.removeItem(k));
       } catch {}
     }
     console.warn(`[Supabase Service] Impossible de persister ${key}`);
@@ -219,14 +348,14 @@ async function fetchPage(
   agencyId: string,
   page: number = 0,
   pageSize: number = 50,
-  extraFilter?: (q: any) => any
+  extraFilter?: (q: any) => any,
 ): Promise<{ data: any[]; count: number }> {
   const from = page * pageSize;
   const to = from + pageSize - 1;
   let q = supabase!
     .from(table)
-    .select('*')
-    .eq('agency_id', agencyId)
+    .select("*")
+    .eq("agency_id", agencyId)
     .range(from, to);
   if (extraFilter) q = extraFilter(q);
   const { data, error } = await q;
@@ -244,7 +373,7 @@ async function fetchAllRows(
   table: string,
   agencyId: string,
   extraFilter?: (q: any) => any,
-  pageSize: number = 1000
+  pageSize: number = 1000,
 ): Promise<{ data: any[]; error: any }> {
   const allRows: any[] = [];
   let page = 0;
@@ -255,8 +384,8 @@ async function fetchAllRows(
 
     let q = supabase!
       .from(table)
-      .select('*')
-      .eq('agency_id', agencyId)
+      .select("*")
+      .eq("agency_id", agencyId)
       .range(from, to);
 
     if (extraFilter) q = extraFilter(q);
@@ -283,7 +412,9 @@ async function fetchAllRows(
     }
   }
 
-  console.log(`✅ fetchAllRows ${table}: ${allRows.length} lignes chargées (${page + 1} pages)`);
+  console.log(
+    `✅ fetchAllRows ${table}: ${allRows.length} lignes chargées (${page + 1} pages)`,
+  );
   return { data: allRows, error: null };
 }
 // ============================================================
@@ -291,15 +422,19 @@ async function fetchAllRows(
 // ============================================================
 export function mapBuildingFromDb(r: any): Building {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
-    nom: r.nom || 'Immeuble', adresse: r.adresse || '', quartier: r.quartier || '',
-    ville: r.ville || 'Dakar', type: r.type || 'Immeuble',
+    nom: r.nom || "Immeuble",
+    adresse: r.adresse || "",
+    quartier: r.quartier || "",
+    ville: r.ville || "Dakar",
+    type: r.type || "Immeuble",
     nombreEtages: Number(r.nombre_etages ?? r.nombreEtages ?? 0),
-    description: r.description || '',
+    description: r.description || "",
     dateCreation: r.date_creation || r.dateCreation,
-    statut: r.statut || 'Actif',
+    statut: r.statut || "Actif",
     nbUnites: Number(r.nb_unites ?? 0),
     nbUnitesOccupees: Number(r.nb_unites_occupees ?? 0),
     nbUnitesVacantes: Number(r.nb_unites_vacantes ?? 0),
@@ -309,44 +444,58 @@ export function mapBuildingFromDb(r: any): Building {
 
 export function mapUnitFromDb(r: any): Unit {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
-    buildingId: r.building_id || r.buildingId || '',
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    buildingId: r.building_id || r.buildingId || "",
     buildingNom: r.building_nom || r.buildingNom,
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
-    nom: r.nom || 'Espace', type: r.type || 'Appartement',
-    etage: r.etage || '', superficie: Number(r.superficie ?? 0),
+    nom: r.nom || "Espace",
+    type: r.type || "Appartement",
+    etage: r.etage || "",
+    superficie: Number(r.superficie ?? 0),
     nombrePieces: Number(r.nombre_pieces ?? r.nombrePieces ?? 1),
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
-    statut: r.statut || 'Vacant',
+    statut: r.statut || "Vacant",
     locataireActuelId: r.locataire_actuel_id || r.locataireActuelId,
     locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
-    description: r.description || '', equipements: r.equipements || [],
+    description: r.description || "",
+    equipements: r.equipements || [],
     dateCreation: r.created_at || r.dateCreation,
   };
 }
 
 export function mapPropertyFromDb(r: any): Property {
   return {
-    id: r.id, ref: r.ref || `BIEN-${r.id.slice(0, 6)}`,
-    nom: r.nom || 'Bien Immobilier', type: r.type || 'Appartement',
-    adresse: r.adresse || '', quartier: r.quartier || 'Dakar',
-    ville: r.ville || 'Dakar',
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || 'Propriétaire',
+    id: r.id,
+    ref: r.ref || `BIEN-${r.id.slice(0, 6)}`,
+    nom: r.nom || "Bien Immobilier",
+    type: r.type || "Appartement",
+    adresse: r.adresse || "",
+    quartier: r.quartier || "Dakar",
+    ville: r.ville || "Dakar",
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "Propriétaire",
     tauxCommission: Number(r.taux_commission ?? r.tauxCommission ?? 10),
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
     tvaApplicable: Boolean(r.tva_applicable ?? r.tvaApplicable ?? false),
-    statut: r.statut || 'Vacant',
+    statut: r.statut || "Vacant",
     superficie: Number(r.superficie ?? 0),
     nombrePieces: Number(r.nombre_pieces ?? r.nombrePieces ?? 3),
     pieces: Number(r.pieces ?? r.nombre_pieces ?? 3),
-    avatar: r.avatar || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80',
-    equipements: r.equipements || ['Climatisation', 'Compteur Eau & à‰lectricité', 'Sécurité 24/7'],
-    description: r.description || '',
-    dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
+    avatar:
+      r.avatar ||
+      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80",
+    equipements: r.equipements || [
+      "Climatisation",
+      "Compteur Eau & à‰lectricité",
+      "Sécurité 24/7",
+    ],
+    description: r.description || "",
+    dateCreation:
+      r.created_at || r.dateCreation || new Date().toISOString().split("T")[0],
     locataireActuelNom: r.locataire_actuel_nom || r.locataireActuelNom,
     locataireActuelId: r.locataire_actuel_id || r.locataireActuelId,
   };
@@ -354,65 +503,86 @@ export function mapPropertyFromDb(r: any): Property {
 
 export function mapOwnerFromDb(r: any): Owner {
   return {
-    id: r.id, ref: r.ref || `PRO-${r.id.slice(0, 6)}`,
-    nom: r.nom || '', prenom: r.prenom || '', adresse: r.adresse || '',
-    telephone: r.telephone || '', email: r.email || '',
-    banque: r.banque || 'CBAO Attijariwafa',
-    compteBancaire: r.compte_bancaire || r.compteBancaire || '',
-    ninea: r.ninea || '',
+    id: r.id,
+    ref: r.ref || `PRO-${r.id.slice(0, 6)}`,
+    nom: r.nom || "",
+    prenom: r.prenom || "",
+    adresse: r.adresse || "",
+    telephone: r.telephone || "",
+    email: r.email || "",
+    banque: r.banque || "CBAO Attijariwafa",
+    compteBancaire: r.compte_bancaire || r.compteBancaire || "",
+    ninea: r.ninea || "",
     tauxCommission: Number(r.taux_commission ?? r.tauxCommission ?? 10),
-    statut: r.statut || 'Actif',
-    mandatGerance: r.mandat_gerance || r.mandatGerance || `MANDAT-${r.id.slice(0, 6)}`,
-    observations: r.observations || '',
+    statut: r.statut || "Actif",
+    mandatGerance:
+      r.mandat_gerance || r.mandatGerance || `MANDAT-${r.id.slice(0, 6)}`,
+    observations: r.observations || "",
     totalBiens: Number(r.total_biens ?? r.totalBiens ?? 0),
-    totalLoyersMensuels: Number(r.total_loyers_mensuels ?? r.totalLoyersMensuels ?? 0),
-    typePiece: r.type_piece || r.typePiece || 'CNI',
-    cni: r.cni || '',
+    totalLoyersMensuels: Number(
+      r.total_loyers_mensuels ?? r.totalLoyersMensuels ?? 0,
+    ),
+    typePiece: r.type_piece || r.typePiece || "CNI",
+    cni: r.cni || "",
   };
 }
 
 export function mapTenantFromDb(r: any): Tenant {
   return {
-    id: r.id, ref: r.ref || `LOC-${r.id.slice(0, 6)}`,
-    nom: r.nom || '', prenom: r.prenom || '', telephone: r.telephone || '',
-    email: r.email || '', cni: r.cni || '', fonction: r.fonction || '',
-    profession: r.profession || r.fonction || '', employeur: r.employeur || '',
+    id: r.id,
+    ref: r.ref || `LOC-${r.id.slice(0, 6)}`,
+    nom: r.nom || "",
+    prenom: r.prenom || "",
+    telephone: r.telephone || "",
+    email: r.email || "",
+    cni: r.cni || "",
+    fonction: r.fonction || "",
+    profession: r.profession || r.fonction || "",
+    employeur: r.employeur || "",
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
-    statut: r.statut || 'À jour',
+    statut: r.statut || "À jour",
     scoreSolvabilite: Number(r.score_solvabilite ?? r.scoreSolvabilite ?? 85),
-    bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    dateEntree: r.date_entree || r.dateEntree || new Date().toISOString().split('T')[0],
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "",
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
+    dateEntree:
+      r.date_entree || r.dateEntree || new Date().toISOString().split("T")[0],
     dateSortie: r.date_sortie || r.dateSortie,
     loyerMensuel: Number(r.loyer_mensuel ?? r.loyerMensuel ?? 0),
     arrieresCumules: Number(r.arrieres_cumules ?? r.arrieresCumules ?? 0),
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
-    observations: r.observations || '',
+    observations: r.observations || "",
   };
 }
 
 export function mapContractFromDb(r: any): LeaseContract {
   return {
-    id: r.id, ref: r.ref || `BAIL-${r.id.slice(0, 6)}`,
-    typeContrat: r.type_contrat || r.typeContrat || 'Habitation',
-    locataireId: r.locataire_id || r.locataireId || '',
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || '',
+    id: r.id,
+    ref: r.ref || `BAIL-${r.id.slice(0, 6)}`,
+    typeContrat: r.type_contrat || r.typeContrat || "Habitation",
+    locataireId: r.locataire_id || r.locataireId || "",
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "",
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "",
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
-    charges: Number(r.charges ?? 0), tva: Number(r.tva ?? 0),
-    tom: Number(r.tom ?? 0), tlv: Number(r.tlv ?? 0),
+    charges: Number(r.charges ?? 0),
+    tva: Number(r.tva ?? 0),
+    tom: Number(r.tom ?? 0),
+    tlv: Number(r.tlv ?? 0),
     cautionLoyer: Number(r.caution_loyer ?? r.cautionLoyer ?? 0),
     cautionEau: Number(r.caution_eau ?? r.cautionEau ?? 0),
-    cautionElectricite: Number(r.caution_electricite ?? r.cautionElectricite ?? 0),
+    cautionElectricite: Number(
+      r.caution_electricite ?? r.cautionElectricite ?? 0,
+    ),
     cautionMontant: Number(r.caution_montant ?? r.cautionMontant ?? 0),
     cautionMois: Number(r.caution_mois ?? r.cautionMois ?? 2),
     fraisAdhesion: Number(r.frais_adhesion ?? r.fraisAdhesion ?? 0),
-    dateDebut: r.date_debut || r.dateDebut || '',
-    dateFin: r.date_fin || r.dateFin || '',
-    typeReglement: r.type_reglement || r.typeReglement || 'Mensuel',
-    statut: r.statut || 'En cours',
+    dateDebut: r.date_debut || r.dateDebut || "",
+    dateFin: r.date_fin || r.dateFin || "",
+    typeReglement: r.type_reglement || r.typeReglement || "Mensuel",
+    statut: r.statut || "En cours",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -421,35 +591,47 @@ export function mapContractFromDb(r: any): LeaseContract {
 
 export function mapPaymentFromDb(r: any): Payment {
   return {
-    id: r.id, ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
-    quittanceNumero: r.quittance_numero || r.quittanceNumero || `QUI-${r.id.slice(0, 6)}`,
-    locataireId: r.locataire_id || r.locataireId || '',
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || '',
-    periode: r.periode || 'Ce mois',
+    id: r.id,
+    ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
+    quittanceNumero:
+      r.quittance_numero || r.quittanceNumero || `QUI-${r.id.slice(0, 6)}`,
+    locataireId: r.locataire_id || r.locataireId || "",
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "",
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "",
+    periode: r.periode || "Ce mois",
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
-    charges: Number(r.charges ?? 0), tva: Number(r.tva ?? 0),
-    tom: Number(r.tom ?? 0), penalites: Number(r.penalites ?? 0),
+    charges: Number(r.charges ?? 0),
+    tva: Number(r.tva ?? 0),
+    tom: Number(r.tom ?? 0),
+    penalites: Number(r.penalites ?? 0),
     montantTotal: Number(r.montant_total ?? r.montantTotal ?? 0),
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
-    statut: r.statut || 'Payé',
-    modePaiement: r.mode_paiement || r.modePaiement || 'Espèces',
-    moyenPaiementCode: r.moyen_paiement_code || r.moyenPaiementCode || 'ESPECES',
-    verificationStatut: r.verification_statut || r.verificationStatut || 'valide',
-    referenceTransaction: r.reference_transaction || r.referenceTransaction || '',
-    justificatifUrl: r.proof_url || r.justificatifUrl || '',
-    datePaiement: r.date_paiement || r.datePaiement || new Date().toISOString().split('T')[0],
-    dateEcheance: r.date_echeance || r.dateEcheance || '',
-    recuPar: r.recu_par || r.recuPar || 'Service Gérance',
-    observation: r.observation || '',
+    statut: r.statut || "Payé",
+    modePaiement: r.mode_paiement || r.modePaiement || "Espèces",
+    moyenPaiementCode:
+      r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
+    verificationStatut:
+      r.verification_statut || r.verificationStatut || "valide",
+    referenceTransaction:
+      r.reference_transaction || r.referenceTransaction || "",
+    justificatifUrl: r.proof_url || r.justificatifUrl || "",
+    datePaiement:
+      r.date_paiement ||
+      r.datePaiement ||
+      new Date().toISOString().split("T")[0],
+    dateEcheance: r.date_echeance || r.dateEcheance || "",
+    recuPar: r.recu_par || r.recuPar || "Service Gérance",
+    observation: r.observation || "",
     auteurId: r.caissier_id || r.auteurId,
     auteurNom: r.caissier_nom || r.auteurNom,
     dateHeurePaiement: r.created_at || r.dateHeurePaiement,
-    typeRecu: r.type_recu || r.typeRecu || 'QUITTANCE',
-    referencePaiementInitial: r.reference_paiement_initial || r.referencePaiementInitial,
+    typeRecu: r.type_recu || r.typeRecu || "QUITTANCE",
+    referencePaiementInitial:
+      r.reference_paiement_initial || r.referencePaiementInitial,
     montantInitialDu: Number(r.montant_initial_du ?? r.montantInitialDu ?? 0),
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -459,20 +641,23 @@ export function mapPaymentFromDb(r: any): Payment {
 
 export function mapPenaltyFromDb(r: any): Penalty {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
     paymentId: r.payment_id || r.paymentId,
     locataireId: r.locataire_id || r.locataireId,
     locataireNom: r.locataire_nom || r.locataireNom,
-    bienId: r.bien_id || r.bienId, bienNom: r.bien_nom || r.bienNom,
+    bienId: r.bien_id || r.bienId,
+    bienNom: r.bien_nom || r.bienNom,
     periode: r.periode,
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
     tauxPenalite: Number(r.taux_penalite ?? r.tauxPenalite ?? 10),
     montantBase: Number(r.montant_base ?? r.montantBase ?? 0),
     montantPenalite: Number(r.montant_penalite ?? r.montantPenalite ?? 0),
-    statut: r.statut || 'En attente',
-    dateCalcul: r.date_calcul || r.dateCalcul || new Date().toISOString().split('T')[0],
+    statut: r.statut || "En attente",
+    dateCalcul:
+      r.date_calcul || r.dateCalcul || new Date().toISOString().split("T")[0],
     dateApplication: r.date_application || r.dateApplication,
-    notes: r.notes || '',
+    notes: r.notes || "",
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
   };
@@ -480,38 +665,50 @@ export function mapPenaltyFromDb(r: any): Penalty {
 
 export function mapOwnerChargeFromDb(r: any): OwnerCharge {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
     bulletinId: r.bulletin_id || r.bulletinId,
     periode: r.periode,
-    typeCharge: r.type_charge || r.typeCharge || 'AUTRE',
-    libelle: r.libelle || '', montant: Number(r.montant ?? 0),
+    typeCharge: r.type_charge || r.typeCharge || "AUTRE",
+    libelle: r.libelle || "",
+    montant: Number(r.montant ?? 0),
     referenceDocument: r.reference_document || r.referenceDocument,
-    dateCharge: r.date_charge || r.dateCharge || new Date().toISOString().split('T')[0],
-    statut: r.statut || 'Validé', notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
+    dateCharge:
+      r.date_charge || r.dateCharge || new Date().toISOString().split("T")[0],
+    statut: r.statut || "Validé",
+    notes: r.notes || "",
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
   };
 }
 
 export function mapOwnerDeductionFromDb(r: any): OwnerDeduction {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     bulletinRef: r.bulletin_ref || r.bulletinRef,
-    periode: r.periode || 'Ce mois',
-    typeDeduction: r.type_deduction || r.typeDeduction || 'AUTRE',
-    libelle: r.libelle || '', montant: Number(r.montant ?? 0),
+    periode: r.periode || "Ce mois",
+    typeDeduction: r.type_deduction || r.typeDeduction || "AUTRE",
+    libelle: r.libelle || "",
+    montant: Number(r.montant ?? 0),
     referenceDocument: r.reference_document || r.referenceDocument,
-    dateDeduction: r.date_deduction || r.dateDeduction || new Date().toISOString().split('T')[0],
-    notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
+    dateDeduction:
+      r.date_deduction ||
+      r.dateDeduction ||
+      new Date().toISOString().split("T")[0],
+    notes: r.notes || "",
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
   };
 }
 
 export function mapBulletinVersementFromDb(r: any): BulletinVersement {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
     reference: r.reference || `BV-${r.id.slice(0, 6)}`,
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
@@ -519,18 +716,25 @@ export function mapBulletinVersementFromDb(r: any): BulletinVersement {
     tauxCommission: Number(r.taux_commission ?? r.tauxCommission ?? 10),
     totalLoyersBruts: Number(r.total_loyers_bruts ?? r.totalLoyersBruts ?? 0),
     totalCommission: Number(r.total_commission ?? r.totalCommission ?? 0),
-    totalTvaCommission: Number(r.total_tva_commission ?? r.totalTvaCommission ?? 0),
-    totalDecaissements: Number(r.total_decaissements ?? r.totalDecaissements ?? 0),
-    totalEncaissements: Number(r.total_encaissements ?? r.totalEncaissements ?? 0),
+    totalTvaCommission: Number(
+      r.total_tva_commission ?? r.totalTvaCommission ?? 0,
+    ),
+    totalDecaissements: Number(
+      r.total_decaissements ?? r.totalDecaissements ?? 0,
+    ),
+    totalEncaissements: Number(
+      r.total_encaissements ?? r.totalEncaissements ?? 0,
+    ),
     netAReverser: Number(r.net_a_reverser ?? r.netAReverser ?? 0),
     detailsBulletin: r.details_bulletin || r.detailsBulletin || {},
-    statut: r.statut || 'Brouillon',
+    statut: r.statut || "Brouillon",
     dateValidation: r.date_validation || r.dateValidation,
     datePaiement: r.date_paiement || r.datePaiement,
     modeReglement: r.mode_reglement || r.modeReglement,
     referenceVirement: r.reference_virement || r.referenceVirement,
-    notes: r.notes || '',
-    createdAt: r.created_at || r.createdAt, updatedAt: r.updated_at || r.updatedAt,
+    notes: r.notes || "",
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -539,7 +743,8 @@ export function mapBulletinVersementFromDb(r: any): BulletinVersement {
 
 export function mapArchiveFromDb(r: any): ArchiveRecord {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
     entityType: r.entity_type || r.entityType,
     entityId: r.entity_id || r.entityId,
     entityRef: r.entity_ref || r.entityRef,
@@ -553,13 +758,16 @@ export function mapArchiveFromDb(r: any): ArchiveRecord {
 
 export function mapActivityLogFromDb(r: any): ActivityLog {
   return {
-    id: r.id, agencyId: r.agency_id || r.agencyId,
-    userId: r.user_id || r.userId, userNom: r.user_nom || r.userNom,
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    userId: r.user_id || r.userId,
+    userNom: r.user_nom || r.userNom,
     activityType: r.activity_type || r.activityType,
     entityType: r.entity_type || r.entityType,
     entityId: r.entity_id || r.entityId,
     entityRef: r.entity_ref || r.entityRef,
-    title: r.title, description: r.description,
+    title: r.title,
+    description: r.description,
     montant: Number(r.montant ?? 0),
     activityDate: r.activity_date || r.activityDate,
     activityHour: r.activity_hour || r.activityHour,
@@ -570,17 +778,20 @@ export function mapActivityLogFromDb(r: any): ActivityLog {
 
 export function mapCashMovementFromDb(r: any): CashMovement {
   return {
-    id: r.id, reference: r.reference || r.id, type: r.type,
+    id: r.id,
+    reference: r.reference || r.id,
+    type: r.type,
     montant: Number(r.montant || 0),
-    description: r.description || '',
-    libelle: r.description || r.libelle || '',
-    moyenPaiementCode: r.moyen_paiement_code || r.moyenPaiementCode || 'ESPECES',
-    auteurNom: r.user_nom || r.auteurNom || 'Caissier',
+    description: r.description || "",
+    libelle: r.description || r.libelle || "",
+    moyenPaiementCode:
+      r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
+    auteurNom: r.user_nom || r.auteurNom || "Caissier",
     auteurId: r.user_id || r.auteurId,
-    beneficiaire: r.beneficiaire || '',
-    justificatifRef: r.justificatif_ref || r.justificatifRef || '',
+    beneficiaire: r.beneficiaire || "",
+    justificatifRef: r.justificatif_ref || r.justificatifRef || "",
     dateHeure: r.created_at || r.dateHeure || new Date().toISOString(),
-    statut: r.statut || 'Validé',
+    statut: r.statut || "Validé",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -589,36 +800,43 @@ export function mapCashMovementFromDb(r: any): CashMovement {
 
 export function mapCashClosingFromDb(r: any): CashClosing {
   return {
-    id: r.id, reference: r.reference || r.id,
-    dateCloture: r.date_cloture || r.dateCloture || new Date().toISOString().split('T')[0],
-    caissierId: r.caissier_id || r.caissierId || '',
-    caissierNom: r.caissier_nom || r.caissierNom || '',
+    id: r.id,
+    reference: r.reference || r.id,
+    dateCloture:
+      r.date_cloture || r.dateCloture || new Date().toISOString().split("T")[0],
+    caissierId: r.caissier_id || r.caissierId || "",
+    caissierNom: r.caissier_nom || r.caissierNom || "",
     soldeInitial: Number(r.solde_initial ?? r.soldeInitial ?? 0),
-    totalEntreesEspeces: Number(r.total_entrees_especes ?? r.totalEntreesEspeces ?? 0),
-    totalSortiesEspeces: Number(r.total_sorties_especes ?? r.totalSortiesEspeces ?? 0),
+    totalEntreesEspeces: Number(
+      r.total_entrees_especes ?? r.totalEntreesEspeces ?? 0,
+    ),
+    totalSortiesEspeces: Number(
+      r.total_sorties_especes ?? r.totalSortiesEspeces ?? 0,
+    ),
     soldeTheorique: Number(r.solde_theorique ?? r.soldeTheorique ?? 0),
     soldeReel: Number(r.solde_reel ?? r.soldeReel ?? 0),
     ecart: Number(r.ecart ?? 0),
     detailsComptage: r.details_comptage || r.detailsComptage || {},
-    observations: r.observations || '',
-    statut: r.statut || 'Validé par Responsable',
+    observations: r.observations || "",
+    statut: r.statut || "Validé par Responsable",
   };
 }
 
 export function mapInspectionFromDb(r: any): Inspection {
   return {
-    id: r.id, ref: r.ref || `EDL-${r.id.slice(0, 6)}`,
-    bienId: r.bien_id || r.bienId || '',
-    bienNom: r.bien_nom || r.bienNom || 'Bien',
-    locataireId: r.locataire_id || r.locataireId || '',
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    type: r.type || 'Entrée',
-    date: r.date || r.date_inspection || new Date().toISOString().split('T')[0],
-    agentNom: r.agent_nom || r.agentNom || 'Agent de gérance',
-    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || 'Agent de gérance',
-    etatGeneral: r.etat_general || r.etatGeneral || 'Bon état',
-    remarques: r.remarques || r.observations || '',
-    statut: r.statut || 'Validé',
+    id: r.id,
+    ref: r.ref || `EDL-${r.id.slice(0, 6)}`,
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "Bien",
+    locataireId: r.locataire_id || r.locataireId || "",
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    type: r.type || "Entrée",
+    date: r.date || r.date_inspection || new Date().toISOString().split("T")[0],
+    agentNom: r.agent_nom || r.agentNom || "Agent de gérance",
+    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || "Agent de gérance",
+    etatGeneral: r.etat_general || r.etatGeneral || "Bon état",
+    remarques: r.remarques || r.observations || "",
+    statut: r.statut || "Validé",
     signe: Boolean(r.signe ?? true),
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -628,31 +846,35 @@ export function mapInspectionFromDb(r: any): Inspection {
 
 export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
   return {
-    id: r.id, ref: r.ref || `TRV-${r.id.slice(0, 6)}`,
-    bienId: r.bien_id || r.bienId || '',
-    bienNom: r.bien_nom || r.bienNom || 'Bien',
+    id: r.id,
+    ref: r.ref || `TRV-${r.id.slice(0, 6)}`,
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "Bien",
     proprietaireId: r.proprietaire_id || r.proprietaireId,
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom,
     locataireId: r.locataire_id || r.locataireId,
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    titre: r.titre || 'Signalement incident',
-    description: r.description || '',
-    priorite: r.priorite || 'Moyenne',
-    statut: r.statut || 'Signalé',
-    statutReglement: r.statut_reglement || r.statutReglement || 'Non réglé',
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    titre: r.titre || "Signalement incident",
+    description: r.description || "",
+    priorite: r.priorite || "Moyenne",
+    statut: r.statut || "Signalé",
+    statutReglement: r.statut_reglement || r.statutReglement || "Non réglé",
     modeReglement: r.mode_reglement || r.modeReglement,
     dateReglement: r.date_reglement || r.dateReglement,
     factureArtisanRef: r.facture_artisan_ref || r.factureArtisanRef,
     regleParCaisse: Boolean(r.regle_par_caisse ?? r.regleParCaisse ?? false),
     caisseMouvementId: r.caisse_mouvement_id || r.caisseMouvementId,
     observationsReglement: r.observations_reglement || r.observationsReglement,
-    imputableA: r.imputable_a || r.imputableA || 'Propriétaire',
+    imputableA: r.imputable_a || r.imputableA || "Propriétaire",
     coutEstime: Number(r.cout_estime ?? r.coutEstime ?? 0),
     coutReel: Number(r.cout_reel ?? r.coutReel ?? 0),
-    dateSignalement: r.date_signalement || r.dateSignalement || new Date().toISOString().split('T')[0],
+    dateSignalement:
+      r.date_signalement ||
+      r.dateSignalement ||
+      new Date().toISOString().split("T")[0],
     dateIntervention: r.date_intervention || r.dateIntervention,
     dateResolution: r.date_resolution || r.dateResolution,
-    prestataire: r.prestataire || '',
+    prestataire: r.prestataire || "",
     artisanNom: r.artisan_nom || r.artisanNom,
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -662,10 +884,11 @@ export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
 
 export function mapDisbursementFromDb(r: any): OwnerDisbursement {
   return {
-    id: r.id, ref: r.ref || `REV-${r.id.slice(0, 6)}`,
-    proprietaireId: r.proprietaire_id || '',
-    proprietaireNom: r.proprietaire_nom || 'Propriétaire',
-    periode: r.periode || 'Ce mois',
+    id: r.id,
+    ref: r.ref || `REV-${r.id.slice(0, 6)}`,
+    proprietaireId: r.proprietaire_id || "",
+    proprietaireNom: r.proprietaire_nom || "Propriétaire",
+    periode: r.periode || "Ce mois",
     loyersBruts: Number(r.loyers_bruts_recouvres || 0),
     montantBrut: Number(r.loyers_bruts_recouvres || 0),
     tauxCommission: Number(r.taux_commission || 10),
@@ -676,12 +899,12 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     chargesDeduites: Number(r.charges_deduites || 0),
     montantNetPaye: Number(r.net_a_reverser || 0),
     montantNet: Number(r.net_a_reverser || 0),
-    statut: r.statut || 'Effectué',
-    modeReglement: r.mode_reglement || 'Virement',
-    modeReversement: r.mode_reglement || 'Virement',
-    dateReglement: r.date_versement || '',
-    dateReversement: r.date_versement || '',
-    referenceVirement: '',
+    statut: r.statut || "Effectué",
+    modeReglement: r.mode_reglement || "Virement",
+    modeReversement: r.mode_reglement || "Virement",
+    dateReglement: r.date_versement || "",
+    dateReversement: r.date_versement || "",
+    referenceVirement: "",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -691,21 +914,33 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
 export function mapInvoiceFromDb(r: any): Invoice {
   const tot = Number(r.montant_total ?? r.total ?? 0);
   return {
-    id: r.id, ref: r.ref || r.numero || `FAC-${r.id.slice(0, 6)}`,
+    id: r.id,
+    ref: r.ref || r.numero || `FAC-${r.id.slice(0, 6)}`,
     numero: r.numero || `FAC-${r.id.slice(0, 6)}`,
-    type: r.type || 'Frais de dossier',
-    proprietaireId: r.proprietaire_id || r.proprietaireId || '',
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || '',
-    locataireId: r.locataire_id || r.locataireId || '',
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    bienId: r.bien_id || r.bienId || '', bienNom: r.bien_nom || r.bienNom || '',
-    periode: r.periode || 'Ce mois',
-    dateFacture: r.date_facture || r.dateFacture || new Date().toISOString().split('T')[0],
-    dateEmission: r.date_emission || r.dateEmission || new Date().toISOString().split('T')[0],
-    dateEcheance: r.date_echeance || r.dateEcheance || new Date().toISOString().split('T')[0],
+    type: r.type || "Frais de dossier",
+    proprietaireId: r.proprietaire_id || r.proprietaireId || "",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "",
+    locataireId: r.locataire_id || r.locataireId || "",
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom || "",
+    periode: r.periode || "Ce mois",
+    dateFacture:
+      r.date_facture || r.dateFacture || new Date().toISOString().split("T")[0],
+    dateEmission:
+      r.date_emission ||
+      r.dateEmission ||
+      new Date().toISOString().split("T")[0],
+    dateEcheance:
+      r.date_echeance ||
+      r.dateEcheance ||
+      new Date().toISOString().split("T")[0],
     sousTotal: Number(r.sous_total ?? r.sousTotal ?? tot),
-    taxes: Number(r.taxes ?? 0), total: tot, montantTotal: tot,
-    statut: r.statut || 'Émise', lignes: r.lignes || [],
+    taxes: Number(r.taxes ?? 0),
+    total: tot,
+    montantTotal: tot,
+    statut: r.statut || "Émise",
+    lignes: r.lignes || [],
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -714,18 +949,22 @@ export function mapInvoiceFromDb(r: any): Invoice {
 
 export function mapReminderFromDb(r: any): TenantReminder {
   return {
-    id: r.id, locataireId: r.locataire_id || r.locataireId || '',
-    locataireNom: r.locataire_nom || r.locataireNom || '',
-    telephone: r.telephone || '', email: r.email || '',
-    bienNom: r.bien_nom || r.bienNom || 'Bien loué',
+    id: r.id,
+    locataireId: r.locataire_id || r.locataireId || "",
+    locataireNom: r.locataire_nom || r.locataireNom || "",
+    telephone: r.telephone || "",
+    email: r.email || "",
+    bienNom: r.bien_nom || r.bienNom || "Bien loué",
     montantDu: Number(r.montant_du ?? r.montantDu ?? 0),
     penalites: Number(r.penalites ?? 0),
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
-    niveau: r.niveau || 'Niveau 1: Courtois (J+3)',
-    canal: r.canal || 'SMS',
-    typeRelance: r.type_relance || r.typeRelance || 'Courtoise',
-    message: r.message || '', statut: r.statut || 'Envoyé',
-    dateCreation: r.created_at || r.dateCreation || new Date().toISOString().split('T')[0],
+    niveau: r.niveau || "Niveau 1: Courtois (J+3)",
+    canal: r.canal || "SMS",
+    typeRelance: r.type_relance || r.typeRelance || "Courtoise",
+    message: r.message || "",
+    statut: r.statut || "Envoyé",
+    dateCreation:
+      r.created_at || r.dateCreation || new Date().toISOString().split("T")[0],
     dateEnvoi: r.date_envoi || r.dateEnvoi,
   };
 }
@@ -733,257 +972,513 @@ export function mapReminderFromDb(r: any): TenantReminder {
 // ============================================================
 // CHARGEMENT DE L'APPLICATION
 // ============================================================
-export async function loadFullApplicationData(agencyId?: string): Promise<AppStateData> {
-  const localAgency = loadLocalCollection<Agency | null>('agency', null);
-  const localProperties = loadLocalCollection<Property[]>('properties', []);
-  const localBuildings = loadLocalCollection<Building[]>('buildings', []);
-  const localUnits = loadLocalCollection<Unit[]>('units', []);
-  const localOwners = loadLocalCollection<Owner[]>('owners', []);
-  const localTenants = loadLocalCollection<Tenant[]>('tenants', []);
-  const localContracts = loadLocalCollection<LeaseContract[]>('contracts', []);
-  const localPayments = loadLocalCollection<Payment[]>('payments', []);
-  const localReminders = loadLocalCollection<TenantReminder[]>('reminders', []);
-  const localInspections = loadLocalCollection<Inspection[]>('inspections', []);
-  const localMaintenance = loadLocalCollection<MaintenanceTicket[]>('maintenance', []);
-  const localDisbursements = loadLocalCollection<OwnerDisbursement[]>('disbursements', []);
-  const localInvoices = loadLocalCollection<Invoice[]>('invoices', []);
-  const localCashVouchers = loadLocalCollection<CashVoucher[]>('cash_vouchers', []);
-  const localNotifications = loadLocalCollection<NotificationItem[]>('notifications', []);
-  const localAuditLogs = loadLocalCollection<AuditLog[]>('audit_logs', []);
-  const localSettings = loadLocalCollection<AgencySettings>('settings', emptySettings);
-  const localUsers = loadLocalCollection<UserAccount[]>('users', []);
-  const localPaymentMethods = loadLocalCollection<PaymentMethodConfig[]>('payment_methods', []);
-  const localCashMovements = loadLocalCollection<CashMovement[]>('cash_movements', []);
-  const localCashClosings = loadLocalCollection<CashClosing[]>('cash_closings', []);
-  const localOwnerDeductions = loadLocalCollection<OwnerDeduction[]>('owner_deductions', []);
-  const localBulletinVersements = loadLocalCollection<BulletinVersement[]>('bulletin_versements', []);
-  const localArchives = loadLocalCollection<ArchiveRecord[]>('archives', []);
-  const localActivityLogs = loadLocalCollection<ActivityLog[]>('activity_logs', []);
-  const localPenalties = loadLocalCollection<Penalty[]>('penalties', []);
-  const localOwnerCharges = loadLocalCollection<OwnerCharge[]>('owner_charges', []);
+export async function loadFullApplicationData(
+  agencyId?: string,
+): Promise<AppStateData> {
+  const localAgency = loadLocalCollection<Agency | null>("agency", null);
+  const localProperties = loadLocalCollection<Property[]>("properties", []);
+  const localBuildings = loadLocalCollection<Building[]>("buildings", []);
+  const localUnits = loadLocalCollection<Unit[]>("units", []);
+  const localOwners = loadLocalCollection<Owner[]>("owners", []);
+  const localTenants = loadLocalCollection<Tenant[]>("tenants", []);
+  const localContracts = loadLocalCollection<LeaseContract[]>("contracts", []);
+  const localPayments = loadLocalCollection<Payment[]>("payments", []);
+  const localReminders = loadLocalCollection<TenantReminder[]>("reminders", []);
+  const localInspections = loadLocalCollection<Inspection[]>("inspections", []);
+  const localMaintenance = loadLocalCollection<MaintenanceTicket[]>(
+    "maintenance",
+    [],
+  );
+  const localDisbursements = loadLocalCollection<OwnerDisbursement[]>(
+    "disbursements",
+    [],
+  );
+  const localInvoices = loadLocalCollection<Invoice[]>("invoices", []);
+  const localCashVouchers = loadLocalCollection<CashVoucher[]>(
+    "cash_vouchers",
+    [],
+  );
+  const localNotifications = loadLocalCollection<NotificationItem[]>(
+    "notifications",
+    [],
+  );
+  const localAuditLogs = loadLocalCollection<AuditLog[]>("audit_logs", []);
+  const localSettings = loadLocalCollection<AgencySettings>(
+    "settings",
+    emptySettings,
+  );
+  const localUsers = loadLocalCollection<UserAccount[]>("users", []);
+  const localPaymentMethods = loadLocalCollection<PaymentMethodConfig[]>(
+    "payment_methods",
+    [],
+  );
+  const localCashMovements = loadLocalCollection<CashMovement[]>(
+    "cash_movements",
+    [],
+  );
+  const localCashClosings = loadLocalCollection<CashClosing[]>(
+    "cash_closings",
+    [],
+  );
+  const localOwnerDeductions = loadLocalCollection<OwnerDeduction[]>(
+    "owner_deductions",
+    [],
+  );
+  const localBulletinVersements = loadLocalCollection<BulletinVersement[]>(
+    "bulletin_versements",
+    [],
+  );
+  const localArchives = loadLocalCollection<ArchiveRecord[]>("archives", []);
+  const localActivityLogs = loadLocalCollection<ActivityLog[]>(
+    "activity_logs",
+    [],
+  );
+  const localPenalties = loadLocalCollection<Penalty[]>("penalties", []);
+  const localOwnerCharges = loadLocalCollection<OwnerCharge[]>(
+    "owner_charges",
+    [],
+  );
 
   const state: AppStateData = {
-    agency: localAgency, properties: localProperties,
-    buildings: localBuildings, units: localUnits,
-    owners: localOwners, tenants: localTenants, contracts: localContracts,
-    payments: localPayments, reminders: localReminders, inspections: localInspections,
-    maintenance: localMaintenance, disbursements: localDisbursements, invoices: localInvoices,
-    cashVouchers: localCashVouchers, notifications: localNotifications, auditLogs: localAuditLogs,
-    settings: localSettings, users: localUsers, paymentMethods: localPaymentMethods,
-    cashMovements: localCashMovements, cashClosings: localCashClosings,
-    ownerDeductions: localOwnerDeductions, bulletinVersements: localBulletinVersements,
-    archives: localArchives, activityLogs: localActivityLogs,
-    penalties: localPenalties, ownerCharges: localOwnerCharges,
+    agency: localAgency,
+    properties: localProperties,
+    buildings: localBuildings,
+    units: localUnits,
+    owners: localOwners,
+    tenants: localTenants,
+    contracts: localContracts,
+    payments: localPayments,
+    reminders: localReminders,
+    inspections: localInspections,
+    maintenance: localMaintenance,
+    disbursements: localDisbursements,
+    invoices: localInvoices,
+    cashVouchers: localCashVouchers,
+    notifications: localNotifications,
+    auditLogs: localAuditLogs,
+    settings: localSettings,
+    users: localUsers,
+    paymentMethods: localPaymentMethods,
+    cashMovements: localCashMovements,
+    cashClosings: localCashClosings,
+    ownerDeductions: localOwnerDeductions,
+    bulletinVersements: localBulletinVersements,
+    archives: localArchives,
+    activityLogs: localActivityLogs,
+    penalties: localPenalties,
+    ownerCharges: localOwnerCharges,
   };
 
   if (!isSupabaseConfigured || !supabase) return state;
 
   if (!agencyId) {
-    console.warn('âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnée distante chargée.');
+    console.warn(
+      "âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnée distante chargée.",
+    );
     return state;
   }
 
   try {
-    const agencyFilter = (query: any) => query.eq('agency_id', agencyId);
+    const agencyFilter = (query: any) => query.eq("agency_id", agencyId);
 
     const [
-      agencyRes, propsRes, ownersRes, tenantsRes, contractsRes, paymentsRes,
-      cashMovRes, cashCloseRes, maintRes, inspRes, disbRes, invRes, remindRes,
-      auditRes, notifRes, pmRes, settingsRes, usersRes, buildingsRes, unitsRes,
-      deductionsRes, bulletinsRes, archivesRes, activitiesRes,
-      penaltiesRes, ownerChargesRes,
+      agencyRes,
+      propsRes,
+      ownersRes,
+      tenantsRes,
+      contractsRes,
+      paymentsRes,
+      cashMovRes,
+      cashCloseRes,
+      maintRes,
+      inspRes,
+      disbRes,
+      invRes,
+      remindRes,
+      auditRes,
+      notifRes,
+      pmRes,
+      settingsRes,
+      usersRes,
+      buildingsRes,
+      unitsRes,
+      deductionsRes,
+      bulletinsRes,
+      archivesRes,
+      activitiesRes,
+      penaltiesRes,
+      ownerChargesRes,
     ] = await Promise.allSettled([
-      supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle(),
-      agencyFilter(supabase.from('properties').select('*').is('deleted_at', null)),
-      agencyFilter(supabase.from('owners').select('*').is('deleted_at', null)),
+      supabase.from("agencies").select("*").eq("id", agencyId).maybeSingle(),
+      agencyFilter(
+        supabase.from("properties").select("*").is("deleted_at", null),
+      ),
+      agencyFilter(supabase.from("owners").select("*").is("deleted_at", null)),
       // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
-      fetchAllRows('tenants', agencyId, q => q.is('deleted_at', null).order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('contracts').select('*')),
-      Promise.resolve({ data: [], error: null }),  // payments : charge lazy
-      Promise.resolve({ data: [], error: null }),  // cash_movements : charge lazy
-      agencyFilter(supabase.from('cash_closings').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('maintenance_tickets').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('property_inspections').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('disbursements').select('*').order('created_at', { ascending: false })),
-      fetchAllRows('invoices', agencyId, q => q.order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('tenant_reminders').select('*').order('date_creation', { ascending: false })),
-      fetchAllRows('audit_logs', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('notifications', agencyId, q => q.order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('payment_methods_config').select('*')),
-      supabase.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle(),
-      agencyFilter(supabase.from('profiles').select('*')),
-      fetchAllRows('buildings', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('units', agencyId, q => q.order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('owner_deductions').select('*').order('created_at', { ascending: false })),
-      agencyFilter(supabase.from('bulletin_versements').select('*').order('created_at', { ascending: false })),
-      fetchAllRows('archives', agencyId, q => q.order('archived_at', { ascending: false })),
-      fetchAllRows('activity_logs', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('penalties', agencyId, q => q.order('created_at', { ascending: false })),
-      fetchAllRows('owner_charges', agencyId, q => q.order('created_at', { ascending: false })),
+      fetchAllRows("tenants", agencyId, (q) =>
+        q.is("deleted_at", null).order("created_at", { ascending: false }),
+      ),
+      agencyFilter(supabase.from("contracts").select("*")),
+      fetchAllRows("payments", agencyId, (q) =>
+        q.is("deleted_at", null).order("date_paiement", { ascending: false }),
+      ),
+      Promise.resolve({ data: [], error: null }), // cash_movements : charge lazy
+      agencyFilter(
+        supabase
+          .from("cash_closings")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("maintenance_tickets")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("property_inspections")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("disbursements")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("invoices", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("tenant_reminders")
+          .select("*")
+          .order("date_creation", { ascending: false }),
+      ),
+      fetchAllRows("audit_logs", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("notifications", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      agencyFilter(supabase.from("payment_methods_config").select("*")),
+      supabase
+        .from("agency_settings")
+        .select("*")
+        .eq("agency_id", agencyId)
+        .maybeSingle(),
+      agencyFilter(supabase.from("profiles").select("*")),
+      fetchAllRows("buildings", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("units", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("owner_deductions")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      agencyFilter(
+        supabase
+          .from("bulletin_versements")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("archives", agencyId, (q) =>
+        q.order("archived_at", { ascending: false }),
+      ),
+      fetchAllRows("activity_logs", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("penalties", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
+      fetchAllRows("owner_charges", agencyId, (q) =>
+        q.order("created_at", { ascending: false }),
+      ),
     ]);
 
-    if (agencyRes.status === 'fulfilled' && agencyRes.value.data) {
+    if (agencyRes.status === "fulfilled" && agencyRes.value.data) {
       state.agency = agencyRes.value.data as unknown as Agency;
-      persistCollection('agency', state.agency);
+      persistCollection("agency", state.agency);
     }
-    if (propsRes.status === 'fulfilled' && propsRes.value.data && propsRes.value.data.length > 0) {
+    if (
+      propsRes.status === "fulfilled" &&
+      propsRes.value.data &&
+      propsRes.value.data.length > 0
+    ) {
       state.properties = propsRes.value.data.map(mapPropertyFromDb);
-      persistCollection('properties', state.properties);
+      persistCollection("properties", state.properties);
     }
-    if (ownersRes.status === 'fulfilled' && ownersRes.value.data && ownersRes.value.data.length > 0) {
+    if (
+      ownersRes.status === "fulfilled" &&
+      ownersRes.value.data &&
+      ownersRes.value.data.length > 0
+    ) {
       state.owners = ownersRes.value.data.map(mapOwnerFromDb);
-      persistCollection('owners', state.owners);
+      persistCollection("owners", state.owners);
     }
-    if (tenantsRes.status === 'fulfilled' && tenantsRes.value.data && tenantsRes.value.data.length > 0) {
+    if (
+      tenantsRes.status === "fulfilled" &&
+      tenantsRes.value.data &&
+      tenantsRes.value.data.length > 0
+    ) {
       state.tenants = tenantsRes.value.data.map(mapTenantFromDb);
-      persistCollection('tenants', state.tenants);
+      persistCollection("tenants", state.tenants);
     }
-    if (contractsRes.status === 'fulfilled' && contractsRes.value.data && contractsRes.value.data.length > 0) {
+    if (
+      contractsRes.status === "fulfilled" &&
+      contractsRes.value.data &&
+      contractsRes.value.data.length > 0
+    ) {
       state.contracts = contractsRes.value.data.map(mapContractFromDb);
-      persistCollection('contracts', state.contracts);
+      persistCollection("contracts", state.contracts);
     }
-    if (paymentsRes.status === 'fulfilled' && paymentsRes.value.data && paymentsRes.value.data.length > 0) {
+    if (
+      paymentsRes.status === "fulfilled" &&
+      paymentsRes.value.data &&
+      paymentsRes.value.data.length > 0
+    ) {
       state.payments = paymentsRes.value.data.map(mapPaymentFromDb);
-      persistCollection('payments', state.payments);
+      persistCollection("payments", state.payments);
     }
-    if (cashMovRes.status === 'fulfilled' && cashMovRes.value.data && cashMovRes.value.data.length > 0) {
+    if (
+      cashMovRes.status === "fulfilled" &&
+      cashMovRes.value.data &&
+      cashMovRes.value.data.length > 0
+    ) {
       state.cashMovements = cashMovRes.value.data.map(mapCashMovementFromDb);
-      persistCollection('cash_movements', state.cashMovements);
+      persistCollection("cash_movements", state.cashMovements);
     }
-    if (cashCloseRes.status === 'fulfilled' && cashCloseRes.value.data && cashCloseRes.value.data.length > 0) {
+    if (
+      cashCloseRes.status === "fulfilled" &&
+      cashCloseRes.value.data &&
+      cashCloseRes.value.data.length > 0
+    ) {
       state.cashClosings = cashCloseRes.value.data.map(mapCashClosingFromDb);
-      persistCollection('cash_closings', state.cashClosings);
+      persistCollection("cash_closings", state.cashClosings);
     }
-    if (maintRes.status === 'fulfilled' && maintRes.value.data && maintRes.value.data.length > 0) {
+    if (
+      maintRes.status === "fulfilled" &&
+      maintRes.value.data &&
+      maintRes.value.data.length > 0
+    ) {
       state.maintenance = maintRes.value.data.map(mapMaintenanceFromDb);
-      persistCollection('maintenance', state.maintenance);
+      persistCollection("maintenance", state.maintenance);
     }
-    if (inspRes.status === 'fulfilled' && inspRes.value.data && inspRes.value.data.length > 0) {
+    if (
+      inspRes.status === "fulfilled" &&
+      inspRes.value.data &&
+      inspRes.value.data.length > 0
+    ) {
       state.inspections = inspRes.value.data.map(mapInspectionFromDb);
-      persistCollection('inspections', state.inspections);
+      persistCollection("inspections", state.inspections);
     }
-    if (disbRes.status === 'fulfilled' && disbRes.value.data && disbRes.value.data.length > 0) {
+    if (
+      disbRes.status === "fulfilled" &&
+      disbRes.value.data &&
+      disbRes.value.data.length > 0
+    ) {
       state.disbursements = disbRes.value.data.map((d: any) => {
         const mapped = mapDisbursementFromDb(d);
-        if (!mapped.proprietaireNom || mapped.proprietaireNom === 'Propriétaire') {
-          const owner = state.owners.find((o) => o.id === mapped.proprietaireId);
+        if (
+          !mapped.proprietaireNom ||
+          mapped.proprietaireNom === "Propriétaire"
+        ) {
+          const owner = state.owners.find(
+            (o) => o.id === mapped.proprietaireId,
+          );
           if (owner) mapped.proprietaireNom = `${owner.prenom} ${owner.nom}`;
         }
         return mapped;
       });
-      persistCollection('disbursements', state.disbursements);
+      persistCollection("disbursements", state.disbursements);
     }
-    if (invRes.status === 'fulfilled' && invRes.value.data && invRes.value.data.length > 0) {
+    if (
+      invRes.status === "fulfilled" &&
+      invRes.value.data &&
+      invRes.value.data.length > 0
+    ) {
       state.invoices = invRes.value.data.map(mapInvoiceFromDb);
-      persistCollection('invoices', state.invoices);
+      persistCollection("invoices", state.invoices);
     }
-    if (remindRes.status === 'fulfilled' && remindRes.value.data && remindRes.value.data.length > 0) {
+    if (
+      remindRes.status === "fulfilled" &&
+      remindRes.value.data &&
+      remindRes.value.data.length > 0
+    ) {
       state.reminders = remindRes.value.data.map(mapReminderFromDb);
-      persistCollection('reminders', state.reminders);
+      persistCollection("reminders", state.reminders);
     }
-    if (auditRes.status === 'fulfilled' && auditRes.value.data && auditRes.value.data.length > 0) {
+    if (
+      auditRes.status === "fulfilled" &&
+      auditRes.value.data &&
+      auditRes.value.data.length > 0
+    ) {
       state.auditLogs = auditRes.value.data as unknown as AuditLog[];
-      persistCollection('audit_logs', state.auditLogs);
+      persistCollection("audit_logs", state.auditLogs);
     }
-    if (notifRes.status === 'fulfilled' && notifRes.value.data && notifRes.value.data.length > 0) {
-      state.notifications = notifRes.value.data as unknown as NotificationItem[];
-      persistCollection('notifications', state.notifications);
+    if (
+      notifRes.status === "fulfilled" &&
+      notifRes.value.data &&
+      notifRes.value.data.length > 0
+    ) {
+      state.notifications = notifRes.value
+        .data as unknown as NotificationItem[];
+      persistCollection("notifications", state.notifications);
     }
-    if (pmRes.status === 'fulfilled' && pmRes.value.data && pmRes.value.data.length > 0) {
-      state.paymentMethods = pmRes.value.data as unknown as PaymentMethodConfig[];
-      persistCollection('payment_methods', state.paymentMethods);
+    if (
+      pmRes.status === "fulfilled" &&
+      pmRes.value.data &&
+      pmRes.value.data.length > 0
+    ) {
+      state.paymentMethods = pmRes.value
+        .data as unknown as PaymentMethodConfig[];
+      persistCollection("payment_methods", state.paymentMethods);
     }
-    if (buildingsRes.status === 'fulfilled' && buildingsRes.value.data && buildingsRes.value.data.length > 0) {
+    if (
+      buildingsRes.status === "fulfilled" &&
+      buildingsRes.value.data &&
+      buildingsRes.value.data.length > 0
+    ) {
       state.buildings = buildingsRes.value.data.map(mapBuildingFromDb);
-      persistCollection('buildings', state.buildings);
+      persistCollection("buildings", state.buildings);
     }
-    if (unitsRes.status === 'fulfilled' && unitsRes.value.data && unitsRes.value.data.length > 0) {
+    if (
+      unitsRes.status === "fulfilled" &&
+      unitsRes.value.data &&
+      unitsRes.value.data.length > 0
+    ) {
       state.units = unitsRes.value.data.map(mapUnitFromDb);
-      persistCollection('units', state.units);
+      persistCollection("units", state.units);
     }
-    if (deductionsRes.status === 'fulfilled' && deductionsRes.value.data && deductionsRes.value.data.length > 0) {
-      state.ownerDeductions = deductionsRes.value.data.map(mapOwnerDeductionFromDb);
-      persistCollection('owner_deductions', state.ownerDeductions);
+    if (
+      deductionsRes.status === "fulfilled" &&
+      deductionsRes.value.data &&
+      deductionsRes.value.data.length > 0
+    ) {
+      state.ownerDeductions = deductionsRes.value.data.map(
+        mapOwnerDeductionFromDb,
+      );
+      persistCollection("owner_deductions", state.ownerDeductions);
     }
-    if (bulletinsRes.status === 'fulfilled' && bulletinsRes.value.data && bulletinsRes.value.data.length > 0) {
-      state.bulletinVersements = bulletinsRes.value.data.map(mapBulletinVersementFromDb);
-      persistCollection('bulletin_versements', state.bulletinVersements);
+    if (
+      bulletinsRes.status === "fulfilled" &&
+      bulletinsRes.value.data &&
+      bulletinsRes.value.data.length > 0
+    ) {
+      state.bulletinVersements = bulletinsRes.value.data.map(
+        mapBulletinVersementFromDb,
+      );
+      persistCollection("bulletin_versements", state.bulletinVersements);
     }
-    if (archivesRes.status === 'fulfilled' && archivesRes.value.data && archivesRes.value.data.length > 0) {
+    if (
+      archivesRes.status === "fulfilled" &&
+      archivesRes.value.data &&
+      archivesRes.value.data.length > 0
+    ) {
       state.archives = archivesRes.value.data.map(mapArchiveFromDb);
-      persistCollection('archives', state.archives);
+      persistCollection("archives", state.archives);
     }
-    if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data && activitiesRes.value.data.length > 0) {
+    if (
+      activitiesRes.status === "fulfilled" &&
+      activitiesRes.value.data &&
+      activitiesRes.value.data.length > 0
+    ) {
       state.activityLogs = activitiesRes.value.data.map(mapActivityLogFromDb);
-      persistCollection('activity_logs', state.activityLogs);
+      persistCollection("activity_logs", state.activityLogs);
     }
-    if (penaltiesRes.status === 'fulfilled' && penaltiesRes.value.data && penaltiesRes.value.data.length > 0) {
+    if (
+      penaltiesRes.status === "fulfilled" &&
+      penaltiesRes.value.data &&
+      penaltiesRes.value.data.length > 0
+    ) {
       state.penalties = penaltiesRes.value.data.map(mapPenaltyFromDb);
-      persistCollection('penalties', state.penalties);
+      persistCollection("penalties", state.penalties);
     }
-    if (ownerChargesRes.status === 'fulfilled' && ownerChargesRes.value.data && ownerChargesRes.value.data.length > 0) {
+    if (
+      ownerChargesRes.status === "fulfilled" &&
+      ownerChargesRes.value.data &&
+      ownerChargesRes.value.data.length > 0
+    ) {
       state.ownerCharges = ownerChargesRes.value.data.map(mapOwnerChargeFromDb);
-      persistCollection('owner_charges', state.ownerCharges);
+      persistCollection("owner_charges", state.ownerCharges);
     }
 
-    if (settingsRes.status === 'fulfilled' && settingsRes.value.data) {
+    if (settingsRes.status === "fulfilled" && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
-        nomAgence: dbSettings.nom_agence || '',
-        slogan: dbSettings.slogan || '',
-        telephone: dbSettings.telephone || '',
-        email: dbSettings.email || '',
-        adresse: dbSettings.adresse || '',
-        ville: dbSettings.ville || '',
-        pays: dbSettings.pays || 'Sénégal',
-        ninea: dbSettings.ninea || '',
-        devise: dbSettings.devise || 'FCFA',
+        nomAgence: dbSettings.nom_agence || "",
+        slogan: dbSettings.slogan || "",
+        telephone: dbSettings.telephone || "",
+        email: dbSettings.email || "",
+        adresse: dbSettings.adresse || "",
+        ville: dbSettings.ville || "",
+        pays: dbSettings.pays || "Sénégal",
+        ninea: dbSettings.ninea || "",
+        devise: dbSettings.devise || "FCFA",
         tauxGeranceDefaut: Number(dbSettings.taux_gerance_defaut ?? 10),
         penaliteDefaut: Number(dbSettings.penalite_defaut ?? 10),
         tvaTaux: Number(dbSettings.tva_taux ?? 18),
-        prefixFacture: dbSettings.prefix_facture || 'FAC-',
-        prefixQuittance: dbSettings.prefix_quittance || 'QUI-',
-        prefixPaiement: dbSettings.prefix_paiement || 'PAY-',
-        prefixContrat: dbSettings.prefix_contrat || 'BAIL-',
-        prefixBonCaisse: dbSettings.prefix_bon_caisse || 'BCA-',
-        waveNumero: dbSettings.wave_numero || '',
-        orangeMoneyCode: dbSettings.orange_money_code || '',
-        whatsappBusiness: dbSettings.whatsapp_business || '',
-        standardTelephone: dbSettings.standard_telephone || '',
-        logoUrl: dbSettings.logo_url || '',
-        siteWeb: dbSettings.site_web || '',
-        waveApiKey: dbSettings.wave_api_key || '',
-        waveWebhookSecret: dbSettings.wave_webhook_secret || '',
+        prefixFacture: dbSettings.prefix_facture || "FAC-",
+        prefixQuittance: dbSettings.prefix_quittance || "QUI-",
+        prefixPaiement: dbSettings.prefix_paiement || "PAY-",
+        prefixContrat: dbSettings.prefix_contrat || "BAIL-",
+        prefixBonCaisse: dbSettings.prefix_bon_caisse || "BCA-",
+        waveNumero: dbSettings.wave_numero || "",
+        orangeMoneyCode: dbSettings.orange_money_code || "",
+        whatsappBusiness: dbSettings.whatsapp_business || "",
+        standardTelephone: dbSettings.standard_telephone || "",
+        logoUrl: dbSettings.logo_url || "",
+        siteWeb: dbSettings.site_web || "",
+        waveApiKey: dbSettings.wave_api_key || "",
+        waveWebhookSecret: dbSettings.wave_webhook_secret || "",
         waveEnabled: dbSettings.wave_enabled || false,
-        orangeMoneyApiKey: dbSettings.orange_money_api_key || '',
-        orangeMoneyMerchantId: dbSettings.orange_money_merchant_id || '',
+        orangeMoneyApiKey: dbSettings.orange_money_api_key || "",
+        orangeMoneyMerchantId: dbSettings.orange_money_merchant_id || "",
         orangeMoneyEnabled: dbSettings.orange_money_enabled || false,
-        paydunyaMasterKey: dbSettings.paydunya_master_key || '',
-        paydunyaPrivateKey: dbSettings.paydunya_private_key || '',
-        paydunyaPublicKey: dbSettings.paydunya_public_key || '',
-        paydunyaToken: dbSettings.paydunya_token || '',
-        paydunyaMode: dbSettings.paydunya_mode || 'test',
+        paydunyaMasterKey: dbSettings.paydunya_master_key || "",
+        paydunyaPrivateKey: dbSettings.paydunya_private_key || "",
+        paydunyaPublicKey: dbSettings.paydunya_public_key || "",
+        paydunyaToken: dbSettings.paydunya_token || "",
+        paydunyaMode: dbSettings.paydunya_mode || "test",
         paydunyaEnabled: dbSettings.paydunya_enabled || false,
         paymentsEnabled: dbSettings.payments_enabled || false,
-        paymentsProvider: dbSettings.payments_provider || 'NONE',
+        paymentsProvider: dbSettings.payments_provider || "NONE",
       };
-      persistCollection('settings', state.settings);
+      persistCollection("settings", state.settings);
     }
 
-    if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
+    if (
+      usersRes.status === "fulfilled" &&
+      usersRes.value.data &&
+      usersRes.value.data.length > 0
+    ) {
       state.users = usersRes.value.data.map((p: any) => ({
-        id: p.id, agencyId: p.agency_id, email: p.email, nom: p.nom, prenom: p.prenom,
-        telephone: p.telephone, role: p.role, statut: p.statut,
-        permissions: p.permissions || [], avatar: p.avatar_url,
-        proprietaireId: p.proprietaire_id, locataireId: p.locataire_id,
+        id: p.id,
+        agencyId: p.agency_id,
+        email: p.email,
+        nom: p.nom,
+        prenom: p.prenom,
+        telephone: p.telephone,
+        role: p.role,
+        statut: p.statut,
+        permissions: p.permissions || [],
+        avatar: p.avatar_url,
+        proprietaireId: p.proprietaire_id,
+        locataireId: p.locataire_id,
         derniereConnexion: p.derniere_connexion,
-        organisation: state.agency?.name || '',
-        createdAt: p.created_at, updatedAt: p.updated_at,
+        organisation: state.agency?.name || "",
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
       }));
-      persistCollection('users', state.users);
+      persistCollection("users", state.users);
     }
   } catch (err) {
-    console.error('Erreur synchronisation Supabase:', err);
+    console.error("Erreur synchronisation Supabase:", err);
   }
 
   return state;
@@ -993,265 +1488,456 @@ export async function loadFullApplicationData(agencyId?: string): Promise<AppSta
 // SUITE DU FICHIER (identique à  ton original)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-export async function fetchUserProfile(userId: string): Promise<UserAccount | null> {
+export async function fetchUserProfile(
+  userId: string,
+): Promise<UserAccount | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (error || !profile) { console.warn('Profil non trouvé:', error); return null; }
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !profile) {
+      console.warn("Profil non trouvé:", error);
+      return null;
+    }
     let agencyData = null;
     if (profile.agency_id) {
-      const { data: agency } = await supabase.from('agencies').select('name, slug, logo_url').eq('id', profile.agency_id).maybeSingle();
+      const { data: agency } = await supabase
+        .from("agencies")
+        .select("name, slug, logo_url")
+        .eq("id", profile.agency_id)
+        .maybeSingle();
       agencyData = agency;
     }
     return {
-      id: profile.id, agencyId: profile.agency_id, email: profile.email,
-      nom: profile.nom, prenom: profile.prenom, telephone: profile.telephone,
-      role: profile.role, statut: profile.statut, permissions: profile.permissions || [],
-      avatar: profile.avatar_url, proprietaireId: profile.proprietaire_id,
-      locataireId: profile.locataire_id, derniereConnexion: profile.derniere_connexion,
-      organisation: agencyData?.name || '', createdAt: profile.created_at, updatedAt: profile.updated_at,
+      id: profile.id,
+      agencyId: profile.agency_id,
+      email: profile.email,
+      nom: profile.nom,
+      prenom: profile.prenom,
+      telephone: profile.telephone,
+      role: profile.role,
+      statut: profile.statut,
+      permissions: profile.permissions || [],
+      avatar: profile.avatar_url,
+      proprietaireId: profile.proprietaire_id,
+      locataireId: profile.locataire_id,
+      derniereConnexion: profile.derniere_connexion,
+      organisation: agencyData?.name || "",
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
     };
-  } catch (e) { console.error('Erreur fetchUserProfile:', e); return null; }
+  } catch (e) {
+    console.error("Erreur fetchUserProfile:", e);
+    return null;
+  }
 }
 
-export async function logSystemAudit(log: Partial<AuditLog>, agencyId?: string): Promise<void> {
+export async function logSystemAudit(
+  log: Partial<AuditLog>,
+  agencyId?: string,
+): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return;
-  
-  const userNom = log.userNom || log.utilisateur || 'Système';
-  const module = log.module || log.entite || 'SYSTÈME';
-  const entityType = log.entityType || log.entite || 'GENERAL';
-  const entityRef = log.entityRef || log.entiteId || 'N/A';
-  const details = log.details || '';
-  const action = log.action || 'ACTION';
-  
-  const today = new Date().toISOString().split('T')[0];
+
+  const userNom = log.userNom || log.utilisateur || "Système";
+  const module = log.module || log.entite || "SYSTÈME";
+  const entityType = log.entityType || log.entite || "GENERAL";
+  const entityRef = log.entityRef || log.entiteId || "N/A";
+  const details = log.details || "";
+  const action = log.action || "ACTION";
+
+  const today = new Date().toISOString().split("T")[0];
   const now = new Date().toISOString();
-  
+
   // 1. Ecrire dans audit_logs
   try {
-    await supabase.from('audit_logs').insert([{
-      agency_id: agencyId,
-      user_nom: userNom,
-      action: action,
-      module: module,
-      entity_type: entityType,
-      entity_ref: entityRef,
-      details: details,
-    }]);
-  } catch (e) { console.warn('Erreur insertion audit_logs:', e); }
-  
+    await supabase.from("audit_logs").insert([
+      {
+        agency_id: agencyId,
+        user_nom: userNom,
+        action: action,
+        module: module,
+        entity_type: entityType,
+        entity_ref: entityRef,
+        details: details,
+      },
+    ]);
+  } catch (e) {
+    console.warn("Erreur insertion audit_logs:", e);
+  }
+
   // 2. Ecrire dans activity_logs (pour le Journal d'Activite)
   try {
     // Mapper l'action vers un activity_type
     const getActivityType = (act: string): string => {
-      if (act.includes('PAYMENT') || act.includes('Paiement')) return 'PAYMENT';
-      if (act.includes('TENANT_CREATED') || act.includes('Nouveau locataire')) return 'TENANT_CREATED';
-      if (act.includes('TENANT_EXIT') || act.includes('Sortie')) return 'TENANT_EXIT';
-      if (act.includes('CONTRACT') || act.includes('Contrat')) return 'CONTRACT';
-      if (act.includes('MAINTENANCE') || act.includes('Travaux')) return 'MAINTENANCE';
-      if (act.includes('INSPECTION') || act.includes('Etat des lieux')) return 'INSPECTION';
-      if (act.includes('DISBURSEMENT') || act.includes('Reversement')) return 'DISBURSEMENT';
-      if (act.includes('CASH') || act.includes('Caisse')) return 'CASH_MOVEMENT';
-      if (act.includes('REMINDER') || act.includes('Relance')) return 'REMINDER';
-      return 'OTHER';
+      if (act.includes("PAYMENT") || act.includes("Paiement")) return "PAYMENT";
+      if (act.includes("TENANT_CREATED") || act.includes("Nouveau locataire"))
+        return "TENANT_CREATED";
+      if (act.includes("TENANT_EXIT") || act.includes("Sortie"))
+        return "TENANT_EXIT";
+      if (act.includes("CONTRACT") || act.includes("Contrat"))
+        return "CONTRACT";
+      if (act.includes("MAINTENANCE") || act.includes("Travaux"))
+        return "MAINTENANCE";
+      if (act.includes("INSPECTION") || act.includes("Etat des lieux"))
+        return "INSPECTION";
+      if (act.includes("DISBURSEMENT") || act.includes("Reversement"))
+        return "DISBURSEMENT";
+      if (act.includes("CASH") || act.includes("Caisse"))
+        return "CASH_MOVEMENT";
+      if (act.includes("REMINDER") || act.includes("Relance"))
+        return "REMINDER";
+      return "OTHER";
     };
-    
-    await supabase.from('activity_logs').insert([{
-      agency_id: agencyId,
-      user_nom: userNom,
-      activity_type: getActivityType(action),
-      entity_type: entityType,
-      entity_ref: entityRef,
-      title: action,
-      description: details,
-      activity_date: today,
-      activity_hour: now.split('T')[1].substring(0, 8),
-    }]);
-  } catch (e) { console.warn('Erreur insertion activity_logs:', e); }
+
+    await supabase.from("activity_logs").insert([
+      {
+        agency_id: agencyId,
+        user_nom: userNom,
+        activity_type: getActivityType(action),
+        entity_type: entityType,
+        entity_ref: entityRef,
+        title: action,
+        description: details,
+        activity_date: today,
+        activity_hour: now.split("T")[1].substring(0, 8),
+      },
+    ]);
+  } catch (e) {
+    console.warn("Erreur insertion activity_logs:", e);
+  }
 }
 
-async function recordExists(table: string, id: string, agencyId: string): Promise<boolean> {
-  const { data } = await supabase!.from(table).select('id').eq('id', id).eq('agency_id', agencyId).maybeSingle();
+async function recordExists(
+  table: string,
+  id: string,
+  agencyId: string,
+): Promise<boolean> {
+  const { data } = await supabase!
+    .from(table)
+    .select("id")
+    .eq("id", id)
+    .eq("agency_id", agencyId)
+    .maybeSingle();
   return !!data;
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : BUILDINGS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveBuildingToDb(building: Partial<Building>, agencyId: string): Promise<{ success: boolean; data?: Building; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: building as Building };
+export async function saveBuildingToDb(
+  building: Partial<Building>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Building; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: building as Building };
   try {
     const record = {
-      agency_id: agencyId, proprietaire_id: building.proprietaireId,
-      nom: building.nom, adresse: building.adresse || '',
-      quartier: building.quartier || '', ville: building.ville || 'Dakar',
-      type: building.type || 'Immeuble', nombre_etages: building.nombreEtages || 0,
-      description: building.description || '', statut: building.statut || 'Actif',
+      agency_id: agencyId,
+      proprietaire_id: building.proprietaireId,
+      nom: building.nom,
+      adresse: building.adresse || "",
+      quartier: building.quartier || "",
+      ville: building.ville || "Dakar",
+      type: building.type || "Immeuble",
+      nombre_etages: building.nombreEtages || 0,
+      description: building.description || "",
+      statut: building.statut || "Actif",
       updated_at: new Date().toISOString(),
     };
-    const exists = building.id ? await recordExists('buildings', building.id, agencyId) : false;
+    const exists = building.id
+      ? await recordExists("buildings", building.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('buildings').update(record).eq('id', building.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("buildings")
+        .update(record)
+        .eq("id", building.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapBuildingFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('buildings').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("buildings")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapBuildingFromDb(data) };
     }
-  } catch (err: any) { console.error('Erreur immeuble:', err); return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    console.error("Erreur immeuble:", err);
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
-export async function deleteBuildingFromDb(buildingId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteBuildingFromDb(
+  buildingId: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('buildings').delete().eq('id', buildingId);
+    const { error } = await supabase
+      .from("buildings")
+      .delete()
+      .eq("id", buildingId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : UNITS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveUnitToDb(unit: Partial<Unit>, agencyId: string): Promise<{ success: boolean; data?: Unit; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: unit as Unit };
+export async function saveUnitToDb(
+  unit: Partial<Unit>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Unit; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: unit as Unit };
   try {
     const record: any = {
-      agency_id: agencyId, building_id: unit.buildingId || null,
-      proprietaire_id: unit.proprietaireId || null, nom: unit.nom || 'Espace',
-      type: unit.type || 'Appartement', etage: unit.etage || '',
-      superficie: unit.superficie || 0, nombre_pieces: unit.nombrePieces || 1,
-      loyer_base: unit.loyerBase || 0, charges: unit.charges || 0,
-      statut: unit.statut || 'Vacant', locataire_actuel_id: unit.locataireActuelId || null,
-      description: unit.description || '', equipements: unit.equipements || [],
+      agency_id: agencyId,
+      building_id: unit.buildingId || null,
+      proprietaire_id: unit.proprietaireId || null,
+      nom: unit.nom || "Espace",
+      type: unit.type || "Appartement",
+      etage: unit.etage || "",
+      superficie: unit.superficie || 0,
+      nombre_pieces: unit.nombrePieces || 1,
+      loyer_base: unit.loyerBase || 0,
+      charges: unit.charges || 0,
+      statut: unit.statut || "Vacant",
+      locataire_actuel_id: unit.locataireActuelId || null,
+      description: unit.description || "",
+      equipements: unit.equipements || [],
       updated_at: new Date().toISOString(),
     };
     if (unit.id) record.id = unit.id;
-    const { data, error } = await supabase.from('units').upsert(record, { onConflict: 'id' }).select().single();
+    const { data, error } = await supabase
+      .from("units")
+      .upsert(record, { onConflict: "id" })
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapUnitFromDb(data) };
-  } catch (err: any) { console.error('Erreur saveUnitToDb:', err); return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    console.error("Erreur saveUnitToDb:", err);
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
-export async function deleteUnitFromDb(unitId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteUnitFromDb(
+  unitId: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('units').delete().eq('id', unitId);
+    const { error } = await supabase.from("units").delete().eq("id", unitId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PENALTIES
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function savePenaltyToDb(penalty: Partial<Penalty>, agencyId: string): Promise<{ success: boolean; data?: Penalty; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: penalty as Penalty };
+export async function savePenaltyToDb(
+  penalty: Partial<Penalty>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Penalty; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: penalty as Penalty };
   try {
     const record = {
-      agency_id: agencyId, payment_id: penalty.paymentId || null,
-      locataire_id: penalty.locataireId, locataire_nom: penalty.locataireNom || null,
-      bien_id: penalty.bienId || null, bien_nom: penalty.bienNom || null,
-      periode: penalty.periode, jours_retard: penalty.joursRetard || 0,
-      taux_penalite: penalty.tauxPenalite || 10, montant_base: penalty.montantBase || 0,
-      montant_penalite: penalty.montantPenalite || 0, statut: penalty.statut || 'En attente',
-      date_calcul: penalty.dateCalcul || new Date().toISOString().split('T')[0],
-      date_application: penalty.dateApplication || null, notes: penalty.notes || '',
+      agency_id: agencyId,
+      payment_id: penalty.paymentId || null,
+      locataire_id: penalty.locataireId,
+      locataire_nom: penalty.locataireNom || null,
+      bien_id: penalty.bienId || null,
+      bien_nom: penalty.bienNom || null,
+      periode: penalty.periode,
+      jours_retard: penalty.joursRetard || 0,
+      taux_penalite: penalty.tauxPenalite || 10,
+      montant_base: penalty.montantBase || 0,
+      montant_penalite: penalty.montantPenalite || 0,
+      statut: penalty.statut || "En attente",
+      date_calcul: penalty.dateCalcul || new Date().toISOString().split("T")[0],
+      date_application: penalty.dateApplication || null,
+      notes: penalty.notes || "",
       updated_at: new Date().toISOString(),
     };
-    const { data, error } = await supabase.from('penalties').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("penalties")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapPenaltyFromDb(data) };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function deletePenaltyFromDb(penaltyId: string): Promise<{ success: boolean; error?: string }> {
+export async function deletePenaltyFromDb(
+  penaltyId: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('penalties').delete().eq('id', penaltyId);
+    const { error } = await supabase
+      .from("penalties")
+      .delete()
+      .eq("id", penaltyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : OWNER CHARGES
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveOwnerChargeToDb(charge: Partial<OwnerCharge>, agencyId: string): Promise<{ success: boolean; data?: OwnerCharge; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: charge as OwnerCharge };
+export async function saveOwnerChargeToDb(
+  charge: Partial<OwnerCharge>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: OwnerCharge; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: charge as OwnerCharge };
   try {
     const record = {
-      agency_id: agencyId, proprietaire_id: charge.proprietaireId,
+      agency_id: agencyId,
+      proprietaire_id: charge.proprietaireId,
       proprietaire_nom: charge.proprietaireNom || null,
-      bulletin_id: charge.bulletinId || null, periode: charge.periode,
-      type_charge: charge.typeCharge || 'AUTRE', libelle: charge.libelle,
-      montant: charge.montant || 0, reference_document: charge.referenceDocument || null,
-      date_charge: charge.dateCharge || new Date().toISOString().split('T')[0],
-      statut: charge.statut || 'Validé', notes: charge.notes || '',
+      bulletin_id: charge.bulletinId || null,
+      periode: charge.periode,
+      type_charge: charge.typeCharge || "AUTRE",
+      libelle: charge.libelle,
+      montant: charge.montant || 0,
+      reference_document: charge.referenceDocument || null,
+      date_charge: charge.dateCharge || new Date().toISOString().split("T")[0],
+      statut: charge.statut || "Validé",
+      notes: charge.notes || "",
       updated_at: new Date().toISOString(),
     };
-    const { data, error } = await supabase.from('owner_charges').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("owner_charges")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapOwnerChargeFromDb(data) };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function deleteOwnerChargeFromDb(chargeId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteOwnerChargeFromDb(
+  chargeId: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('owner_charges').delete().eq('id', chargeId);
+    const { error } = await supabase
+      .from("owner_charges")
+      .delete()
+      .eq("id", chargeId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : OWNER DEDUCTIONS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveOwnerDeductionToDb(deduction: Partial<OwnerDeduction>, agencyId: string): Promise<{ success: boolean; data?: OwnerDeduction; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: deduction as OwnerDeduction };
+export async function saveOwnerDeductionToDb(
+  deduction: Partial<OwnerDeduction>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: OwnerDeduction; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: deduction as OwnerDeduction };
   try {
     const record = {
-      agency_id: agencyId, proprietaire_id: deduction.proprietaireId,
-      bulletin_ref: deduction.bulletinRef || null, periode: deduction.periode,
-      type_deduction: deduction.typeDeduction || 'AUTRE', libelle: deduction.libelle,
-      montant: deduction.montant || 0, reference_document: deduction.referenceDocument || null,
-      date_deduction: deduction.dateDeduction || new Date().toISOString().split('T')[0],
-      notes: deduction.notes || '', updated_at: new Date().toISOString(),
+      agency_id: agencyId,
+      proprietaire_id: deduction.proprietaireId,
+      bulletin_ref: deduction.bulletinRef || null,
+      periode: deduction.periode,
+      type_deduction: deduction.typeDeduction || "AUTRE",
+      libelle: deduction.libelle,
+      montant: deduction.montant || 0,
+      reference_document: deduction.referenceDocument || null,
+      date_deduction:
+        deduction.dateDeduction || new Date().toISOString().split("T")[0],
+      notes: deduction.notes || "",
+      updated_at: new Date().toISOString(),
     };
-    const exists = deduction.id ? await recordExists('owner_deductions', deduction.id, agencyId) : false;
+    const exists = deduction.id
+      ? await recordExists("owner_deductions", deduction.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('owner_deductions').update(record).eq('id', deduction.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("owner_deductions")
+        .update(record)
+        .eq("id", deduction.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapOwnerDeductionFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('owner_deductions').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("owner_deductions")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapOwnerDeductionFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
-export async function deleteOwnerDeductionFromDb(deductionId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteOwnerDeductionFromDb(
+  deductionId: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('owner_deductions').delete().eq('id', deductionId);
+    const { error } = await supabase
+      .from("owner_deductions")
+      .delete()
+      .eq("id", deductionId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : BULLETIN VERSEMENTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersement>, agencyId: string): Promise<{ success: boolean; data?: BulletinVersement; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: bulletin as BulletinVersement };
+export async function saveBulletinVersementToDb(
+  bulletin: Partial<BulletinVersement>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: BulletinVersement; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: bulletin as BulletinVersement };
   try {
     const record = {
-      agency_id: agencyId, reference: bulletin.reference,
-      proprietaire_id: bulletin.proprietaireId, proprietaire_nom: bulletin.proprietaireNom || null,
-      periode: bulletin.periode, taux_commission: bulletin.tauxCommission || 10,
+      agency_id: agencyId,
+      reference: bulletin.reference,
+      proprietaire_id: bulletin.proprietaireId,
+      proprietaire_nom: bulletin.proprietaireNom || null,
+      periode: bulletin.periode,
+      taux_commission: bulletin.tauxCommission || 10,
       total_loyers_bruts: bulletin.totalLoyersBruts || 0,
       total_commission: bulletin.totalCommission || 0,
       total_tva_commission: bulletin.totalTvaCommission || 0,
@@ -1259,361 +1945,627 @@ export async function saveBulletinVersementToDb(bulletin: Partial<BulletinVersem
       total_encaissements: bulletin.totalEncaissements || 0,
       net_a_reverser: bulletin.netAReverser || 0,
       details_bulletin: bulletin.detailsBulletin || {},
-      statut: bulletin.statut || 'Brouillon',
+      statut: bulletin.statut || "Brouillon",
       date_validation: bulletin.dateValidation || null,
       date_paiement: bulletin.datePaiement || null,
       mode_reglement: bulletin.modeReglement || null,
       reference_virement: bulletin.referenceVirement || null,
-      notes: bulletin.notes || '',
+      notes: bulletin.notes || "",
       created_by_id: bulletin.createdById || null,
       created_by_nom: bulletin.createdByNom || null,
       created_by_role: bulletin.createdByRole || null,
       updated_at: new Date().toISOString(),
     };
-    const exists = bulletin.id ? await recordExists('bulletin_versements', bulletin.id, agencyId) : false;
+    const exists = bulletin.id
+      ? await recordExists("bulletin_versements", bulletin.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('bulletin_versements').update(record).eq('id', bulletin.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("bulletin_versements")
+        .update(record)
+        .eq("id", bulletin.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapBulletinVersementFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('bulletin_versements').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("bulletin_versements")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapBulletinVersementFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : ARCHIVES
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveArchiveToDb(archive: Partial<ArchiveRecord>, agencyId: string): Promise<{ success: boolean; data?: ArchiveRecord; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: archive as ArchiveRecord };
+export async function saveArchiveToDb(
+  archive: Partial<ArchiveRecord>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: ArchiveRecord; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: archive as ArchiveRecord };
   try {
     const record = {
-      agency_id: agencyId, entity_type: archive.entityType,
-      entity_id: archive.entityId, entity_ref: archive.entityRef || null,
-      entity_nom: archive.entityNom || null, data: archive.data || {},
-      archived_by: archive.archivedBy || null, reason: archive.reason || null,
+      agency_id: agencyId,
+      entity_type: archive.entityType,
+      entity_id: archive.entityId,
+      entity_ref: archive.entityRef || null,
+      entity_nom: archive.entityNom || null,
+      data: archive.data || {},
+      archived_by: archive.archivedBy || null,
+      reason: archive.reason || null,
     };
-    const { data, error } = await supabase.from('archives').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("archives")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapArchiveFromDb(data) };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function fetchArchivesFromDb(agencyId: string, entityType?: string): Promise<ArchiveRecord[]> {
+export async function fetchArchivesFromDb(
+  agencyId: string,
+  entityType?: string,
+): Promise<ArchiveRecord[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    let query = supabase.from('archives').select('*').eq('agency_id', agencyId);
-    if (entityType) query = query.eq('entity_type', entityType);
-    const { data, error } = await query.order('archived_at', { ascending: false }).limit(500);
+    let query = supabase.from("archives").select("*").eq("agency_id", agencyId);
+    if (entityType) query = query.eq("entity_type", entityType);
+    const { data, error } = await query
+      .order("archived_at", { ascending: false })
+      .limit(500);
     if (error) throw error;
     return (data || []).map(mapArchiveFromDb);
-  } catch (err: any) { return []; }
+  } catch (err: any) {
+    return [];
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : ACTIVITY LOGS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveActivityLogToDb(activity: Partial<ActivityLog>, agencyId: string): Promise<{ success: boolean; data?: ActivityLog; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: activity as ActivityLog };
+export async function saveActivityLogToDb(
+  activity: Partial<ActivityLog>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: ActivityLog; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: activity as ActivityLog };
   try {
     const record = {
-      agency_id: agencyId, user_id: activity.userId || null,
-      user_nom: activity.userNom || null, activity_type: activity.activityType,
-      entity_type: activity.entityType || null, entity_id: activity.entityId || null,
-      entity_ref: activity.entityRef || null, title: activity.title,
-      description: activity.description || null, montant: activity.montant || null,
-      activity_date: activity.activityDate || new Date().toISOString().split('T')[0],
-      activity_hour: activity.activityHour || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      agency_id: agencyId,
+      user_id: activity.userId || null,
+      user_nom: activity.userNom || null,
+      activity_type: activity.activityType,
+      entity_type: activity.entityType || null,
+      entity_id: activity.entityId || null,
+      entity_ref: activity.entityRef || null,
+      title: activity.title,
+      description: activity.description || null,
+      montant: activity.montant || null,
+      activity_date:
+        activity.activityDate || new Date().toISOString().split("T")[0],
+      activity_hour:
+        activity.activityHour ||
+        new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       metadata: activity.metadata || {},
     };
-    const { data, error } = await supabase.from('activity_logs').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapActivityLogFromDb(data) };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function fetchActivitiesByDate(agencyId: string, date: string): Promise<ActivityLog[]> {
+export async function fetchActivitiesByDate(
+  agencyId: string,
+  date: string,
+): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    const { data, error } = await supabase.from('activity_logs').select('*').eq('agency_id', agencyId).eq('activity_date', date).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .eq("activity_date", date)
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
-  } catch (err: any) { return []; }
+  } catch (err: any) {
+    return [];
+  }
 }
 
-export async function fetchActivitiesByEntity(agencyId: string, entityId: string): Promise<ActivityLog[]> {
+export async function fetchActivitiesByEntity(
+  agencyId: string,
+  entityId: string,
+): Promise<ActivityLog[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    const { data, error } = await supabase.from('activity_logs').select('*').eq('agency_id', agencyId).eq('entity_id', entityId).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .eq("entity_id", entityId)
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return (data || []).map(mapActivityLogFromDb);
-  } catch (err: any) { return []; }
+  } catch (err: any) {
+    return [];
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PROPERTIES
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function savePropertyToDb(property: Partial<Property>, agencyId: string): Promise<{ success: boolean; data?: Property; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: property as Property };
+export async function savePropertyToDb(
+  property: Partial<Property>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Property; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: property as Property };
   try {
     const record: any = {
-      agency_id: agencyId, ref: property.ref || `BIEN-${Date.now()}`,
-      nom: property.nom, type: property.type, adresse: property.adresse,
-      quartier: property.quartier || 'Dakar', ville: property.ville || 'Dakar',
-      proprietaire_id: property.proprietaireId, loyer_base: property.loyerBase,
-      charges: property.charges || 0, tva_applicable: property.tvaApplicable || false,
-      statut: property.statut || 'Vacant', superficie: property.superficie || 0,
-      nombre_pieces: property.nombrePieces || 3, description: property.description || '',
+      agency_id: agencyId,
+      ref: property.ref || `BIEN-${Date.now()}`,
+      nom: property.nom,
+      type: property.type,
+      adresse: property.adresse,
+      quartier: property.quartier || "Dakar",
+      ville: property.ville || "Dakar",
+      proprietaire_id: property.proprietaireId,
+      loyer_base: property.loyerBase,
+      charges: property.charges || 0,
+      tva_applicable: property.tvaApplicable || false,
+      statut: property.statut || "Vacant",
+      superficie: property.superficie || 0,
+      nombre_pieces: property.nombrePieces || 3,
+      description: property.description || "",
       locataire_actuel_id: property.locataireActuelId || null,
       updated_at: new Date().toISOString(),
     };
     if (property.id) record.id = property.id;
-    const { data, error } = await supabase.from('properties').upsert(record, { onConflict: 'id' }).select().single();
+    const { data, error } = await supabase
+      .from("properties")
+      .upsert(record, { onConflict: "id" })
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapPropertyFromDb(data) };
-  } catch (err: any) { console.error('Erreur savePropertyToDb:', err); return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    console.error("Erreur savePropertyToDb:", err);
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : OWNERS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveOwnerToDb(owner: Partial<Owner>, agencyId: string): Promise<{ success: boolean; data?: Owner; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: owner as Owner };
+export async function saveOwnerToDb(
+  owner: Partial<Owner>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Owner; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: owner as Owner };
   try {
     const record = {
-      agency_id: agencyId, ref: owner.ref || `PRO-${Date.now()}`,
-      nom: owner.nom, prenom: owner.prenom, telephone: owner.telephone,
+      agency_id: agencyId,
+      ref: owner.ref || `PRO-${Date.now()}`,
+      nom: owner.nom,
+      prenom: owner.prenom,
+      telephone: owner.telephone,
       email: owner.email || `owner-${Date.now()}@fital-immo.com`,
-      adresse: owner.adresse || 'Dakar, Sénégal',
-      banque: owner.banque || 'CBAO Attijariwafa',
-      compte_bancaire: owner.compteBancaire || '',
+      adresse: owner.adresse || "Dakar, Sénégal",
+      banque: owner.banque || "CBAO Attijariwafa",
+      compte_bancaire: owner.compteBancaire || "",
       mandat_gerance: owner.mandatGerance || `MANDAT-${Date.now()}`,
       taux_commission: owner.tauxCommission ?? 10,
-      statut: owner.statut || 'Actif', observations: owner.observations || '',
-      type_piece: owner.typePiece || 'CNI', cni: owner.cni || '',
+      statut: owner.statut || "Actif",
+      observations: owner.observations || "",
+      type_piece: owner.typePiece || "CNI",
+      cni: owner.cni || "",
     };
-    const exists = owner.id ? await recordExists('owners', owner.id, agencyId) : false;
+    const exists = owner.id
+      ? await recordExists("owners", owner.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('owners').update(record).eq('id', owner.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("owners")
+        .update(record)
+        .eq("id", owner.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Owner };
     } else {
-      const { data, error } = await supabase.from('owners').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("owners")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Owner };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : TENANTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveTenantToDb(tenant: Partial<Tenant>, agencyId: string): Promise<{ success: boolean; data?: Tenant; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: tenant as Tenant };
+export async function saveTenantToDb(
+  tenant: Partial<Tenant>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Tenant; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: tenant as Tenant };
   try {
     const record = {
-      agency_id: agencyId, ref: tenant.ref || `LOC-${Date.now()}`,
-      nom: tenant.nom, prenom: tenant.prenom, telephone: tenant.telephone,
-      email: tenant.email, cni: tenant.cni || '', fonction: tenant.fonction || '',
-      employeur: tenant.employeur || '', revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || 'À jour', score_solvabilite: tenant.scoreSolvabilite || 85,
-      bien_id: tenant.bienId || null, proprietaire_id: tenant.proprietaireId || null,
-      date_entree: tenant.dateEntree || new Date().toISOString().split('T')[0],
+      agency_id: agencyId,
+      ref: tenant.ref || `LOC-${Date.now()}`,
+      nom: tenant.nom,
+      prenom: tenant.prenom,
+      telephone: tenant.telephone,
+      email: tenant.email,
+      cni: tenant.cni || "",
+      fonction: tenant.fonction || "",
+      employeur: tenant.employeur || "",
+      revenu_mensuel: tenant.revenuMensuel || 0,
+      statut: tenant.statut || "À jour",
+      score_solvabilite: tenant.scoreSolvabilite || 85,
+      bien_id: tenant.bienId || null,
+      proprietaire_id: tenant.proprietaireId || null,
+      date_entree: tenant.dateEntree || new Date().toISOString().split("T")[0],
       date_sortie: tenant.dateSortie || null,
       loyer_mensuel: tenant.loyerMensuel || 0,
       arrieres_cumules: tenant.arrieresCumules || 0,
-      jours_retard: tenant.joursRetard || 0, observations: tenant.observations || '',
+      jours_retard: tenant.joursRetard || 0,
+      observations: tenant.observations || "",
     };
-    const exists = tenant.id ? await recordExists('tenants', tenant.id, agencyId) : false;
+    const exists = tenant.id
+      ? await recordExists("tenants", tenant.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('tenants').update(record).eq('id', tenant.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("tenants")
+        .update(record)
+        .eq("id", tenant.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Tenant };
     } else {
-      const { data, error } = await supabase.from('tenants').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("tenants")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Tenant };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : CONTRACTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveContractToDb(contract: Partial<LeaseContract>, agencyId: string): Promise<{ success: boolean; data?: LeaseContract; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: contract as LeaseContract };
+export async function saveContractToDb(
+  contract: Partial<LeaseContract>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: LeaseContract; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: contract as LeaseContract };
   try {
     const record = {
-      agency_id: agencyId, ref: contract.ref || `BAIL-${Date.now()}`,
-      type_contrat: contract.typeContrat || 'Habitation',
-      locataire_id: contract.locataireId, bien_id: contract.bienId,
-      proprietaire_id: contract.proprietaireId, loyer_base: contract.loyerBase,
-      charges: contract.charges || 0, caution_loyer: contract.cautionLoyer || 0,
-      caution_eau: contract.cautionEau || 0, caution_electricite: contract.cautionElectricite || 0,
-      frais_adhesion: contract.fraisAdhesion || 0, date_debut: contract.dateDebut,
-      date_fin: contract.dateFin, type_reglement: contract.typeReglement || 'Mensuel',
-      jour_echeance: 5, statut: contract.statut || 'En cours',
+      agency_id: agencyId,
+      ref: contract.ref || `BAIL-${Date.now()}`,
+      type_contrat: contract.typeContrat || "Habitation",
+      locataire_id: contract.locataireId,
+      bien_id: contract.bienId,
+      proprietaire_id: contract.proprietaireId,
+      loyer_base: contract.loyerBase,
+      charges: contract.charges || 0,
+      caution_loyer: contract.cautionLoyer || 0,
+      caution_eau: contract.cautionEau || 0,
+      caution_electricite: contract.cautionElectricite || 0,
+      frais_adhesion: contract.fraisAdhesion || 0,
+      date_debut: contract.dateDebut,
+      date_fin: contract.dateFin,
+      type_reglement: contract.typeReglement || "Mensuel",
+      jour_echeance: 5,
+      statut: contract.statut || "En cours",
       created_by_id: contract.createdById || null,
       created_by_nom: contract.createdByNom || null,
       created_by_role: contract.createdByRole || null,
     };
-    const exists = contract.id ? await recordExists('contracts', contract.id, agencyId) : false;
+    const exists = contract.id
+      ? await recordExists("contracts", contract.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('contracts').update(record).eq('id', contract.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("contracts")
+        .update(record)
+        .eq("id", contract.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as LeaseContract };
     } else {
-      const { data, error } = await supabase.from('contracts').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("contracts")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as LeaseContract };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : PAYMENTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function savePaymentToDb(payment: Partial<Payment>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: Payment; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: payment as Payment };
+export async function savePaymentToDb(
+  payment: Partial<Payment>,
+  agencyId: string,
+  authorId?: string,
+): Promise<{ success: boolean; data?: Payment; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: payment as Payment };
   try {
     const record = {
-      agency_id: agencyId, ref: payment.ref || `PAY-${Date.now()}`,
+      agency_id: agencyId,
+      ref: payment.ref || `PAY-${Date.now()}`,
       quittance_numero: payment.quittanceNumero || `QUI-${Date.now()}`,
-      locataire_id: payment.locataireId, bien_id: payment.bienId,
-      locataire_nom: payment.locataireNom || null, bien_nom: payment.bienNom || null,
-      proprietaire_id: payment.proprietaireId, periode: payment.periode,
-      loyer_base: payment.loyerBase, charges: payment.charges || 0,
-      tva: payment.tva || 0, tom: payment.tom || 0, penalites: payment.penalites || 0,
-      montant_total: payment.montantTotal, montant_paye: payment.montantPaye,
-      montant_restant: payment.montantRestant || 0, statut: payment.statut || 'Payé',
+      locataire_id: payment.locataireId,
+      bien_id: payment.bienId,
+      locataire_nom: payment.locataireNom || null,
+      bien_nom: payment.bienNom || null,
+      proprietaire_id: payment.proprietaireId,
+      periode: payment.periode,
+      loyer_base: payment.loyerBase,
+      charges: payment.charges || 0,
+      tva: payment.tva || 0,
+      tom: payment.tom || 0,
+      penalites: payment.penalites || 0,
+      montant_total: payment.montantTotal,
+      montant_paye: payment.montantPaye,
+      montant_restant: payment.montantRestant || 0,
+      statut: payment.statut || "Payé",
       mode_paiement: payment.modePaiement,
-      moyen_paiement_code: payment.moyenPaiementCode || 'ESPECES',
-      verification_statut: payment.verificationStatut || 'valide',
+      moyen_paiement_code: payment.moyenPaiementCode || "ESPECES",
+      verification_statut: payment.verificationStatut || "valide",
       reference_transaction: payment.referenceTransaction || null,
       proof_url: payment.justificatifUrl || null,
-      date_paiement: payment.datePaiement || new Date().toISOString().split('T')[0],
-      date_echeance: payment.dateEcheance || new Date().toISOString().split('T')[0],
-      recu_par: payment.recuPar || 'Service Gérance',
-      caissier_id: authorId || null, observation: payment.observation || '',
+      date_paiement:
+        payment.datePaiement || new Date().toISOString().split("T")[0],
+      date_echeance:
+        payment.dateEcheance || new Date().toISOString().split("T")[0],
+      recu_par: payment.recuPar || "Service Gérance",
+      caissier_id: authorId || null,
+      observation: payment.observation || "",
       created_by_id: payment.createdById || null,
       created_by_nom: payment.createdByNom || null,
       created_by_role: payment.createdByRole || null,
-      type_recu: payment.typeRecu || 'QUITTANCE',
+      type_recu: payment.typeRecu || "QUITTANCE",
       reference_paiement_initial: payment.referencePaiementInitial || null,
       montant_initial_du: payment.montantInitialDu || 0,
     };
-    const exists = payment.id ? await recordExists('payments', payment.id, agencyId) : false;
+    const exists = payment.id
+      ? await recordExists("payments", payment.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('payments').update(record).eq('id', payment.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("payments")
+        .update(record)
+        .eq("id", payment.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Payment };
     } else {
-      const { data, error } = await supabase.from('payments').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("payments")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: data as unknown as Payment };
     }
-  } catch (err: any) { return { success: false, error: err.message || 'Impossible.' }; }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Impossible." };
+  }
 }
 
-export async function validatePendingPaymentInDb(paymentId: string, agencyId: string, validatedBy: string): Promise<{ success: boolean; error?: string }> {
+export async function validatePendingPaymentInDb(
+  paymentId: string,
+  agencyId: string,
+  validatedBy: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('payments').update({
-      statut: 'Payé', verification_statut: 'valide', validated_by: validatedBy,
-      updated_at: new Date().toISOString(),
-    }).eq('id', paymentId).eq('agency_id', agencyId);
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        statut: "Payé",
+        verification_statut: "valide",
+        validated_by: validatedBy,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", paymentId)
+      .eq("agency_id", agencyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function rejectPendingPaymentInDb(paymentId: string, agencyId: string, motif?: string): Promise<{ success: boolean; error?: string }> {
+export async function rejectPendingPaymentInDb(
+  paymentId: string,
+  agencyId: string,
+  motif?: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('payments').update({
-      statut: 'Impayé', verification_statut: 'rejete',
-      observation: motif || 'Paiement rejeté',
-      updated_at: new Date().toISOString(),
-    }).eq('id', paymentId).eq('agency_id', agencyId);
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        statut: "Impayé",
+        verification_statut: "rejete",
+        observation: motif || "Paiement rejeté",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", paymentId)
+      .eq("agency_id", agencyId);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : CASH
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveCashMovementToDb(movement: Partial<CashMovement>, agencyId: string, authorId?: string): Promise<{ success: boolean; data?: CashMovement; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: movement as CashMovement };
+export async function saveCashMovementToDb(
+  movement: Partial<CashMovement>,
+  agencyId: string,
+  authorId?: string,
+): Promise<{ success: boolean; data?: CashMovement; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: movement as CashMovement };
   try {
     const record = {
       agency_id: agencyId,
-      reference: movement.id?.startsWith('csh-') ? movement.id : `CSH-${Date.now()}`,
-      type: movement.type, montant: movement.montant,
-      description: movement.libelle || 'Mouvement de caisse',
-      moyen_paiement_code: movement.moyenPaiementCode || 'ESPECES',
-      user_id: authorId || null, user_nom: movement.auteurNom || 'Caissier',
+      reference: movement.id?.startsWith("csh-")
+        ? movement.id
+        : `CSH-${Date.now()}`,
+      type: movement.type,
+      montant: movement.montant,
+      description: movement.libelle || "Mouvement de caisse",
+      moyen_paiement_code: movement.moyenPaiementCode || "ESPECES",
+      user_id: authorId || null,
+      user_nom: movement.auteurNom || "Caissier",
       beneficiaire: movement.beneficiaire || null,
-      justificatif_ref: movement.justificatifRef || null, statut: 'Validé',
+      justificatif_ref: movement.justificatifRef || null,
+      statut: "Validé",
       created_by_id: movement.createdById || null,
       created_by_nom: movement.createdByNom || null,
       created_by_role: movement.createdByRole || null,
     };
-    const { data, error } = await supabase.from('cash_movements').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("cash_movements")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashMovement };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function saveCashClosingToDb(closing: Partial<CashClosing>, agencyId: string, caissierId: string, caissierNom: string): Promise<{ success: boolean; data?: CashClosing; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: closing as CashClosing };
+export async function saveCashClosingToDb(
+  closing: Partial<CashClosing>,
+  agencyId: string,
+  caissierId: string,
+  caissierNom: string,
+): Promise<{ success: boolean; data?: CashClosing; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: closing as CashClosing };
   try {
     const record = {
-      agency_id: agencyId, reference: `CLO-${Date.now()}`,
-      date_cloture: closing.dateCloture || new Date().toISOString().split('T')[0],
-      caissier_id: caissierId, caissier_nom: caissierNom,
+      agency_id: agencyId,
+      reference: `CLO-${Date.now()}`,
+      date_cloture:
+        closing.dateCloture || new Date().toISOString().split("T")[0],
+      caissier_id: caissierId,
+      caissier_nom: caissierNom,
       solde_initial: closing.soldeInitial || 0,
       total_entrees_especes: closing.totalEntreesEspeces || 0,
       total_sorties_especes: closing.totalSortiesEspeces || 0,
       solde_theorique: closing.soldeTheorique || 0,
-      solde_reel: closing.soldeReel || 0, ecart: closing.ecart || 0,
+      solde_reel: closing.soldeReel || 0,
+      ecart: closing.ecart || 0,
       details_comptage: closing.detailsComptage || {},
-      observations: closing.observations || '',
-      statut: closing.statut || 'Validé par Responsable',
+      observations: closing.observations || "",
+      statut: closing.statut || "Validé par Responsable",
     };
-    const { data, error } = await supabase.from('cash_closings').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("cash_closings")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: data as unknown as CashClosing };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : MAINTENANCE
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, agencyId: string): Promise<{ success: boolean; data?: MaintenanceTicket; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: ticket as MaintenanceTicket };
+export async function saveMaintenanceToDb(
+  ticket: Partial<MaintenanceTicket>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: MaintenanceTicket; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: ticket as MaintenanceTicket };
   try {
     const record: any = {
-      agency_id: agencyId, bien_id: ticket.bienId, bien_nom: ticket.bienNom,
+      agency_id: agencyId,
+      bien_id: ticket.bienId,
+      bien_nom: ticket.bienNom,
       proprietaire_id: ticket.proprietaireId || null,
       proprietaire_nom: ticket.proprietaireNom || null,
       locataire_id: ticket.locataireId || null,
-      locataire_nom: ticket.locataireNom || '',
-      titre: ticket.titre || 'Signalement incident',
-      description: ticket.description || '',
-      priorite: ticket.priorite || 'Moyenne', statut: ticket.statut || 'Signalé',
-      statut_reglement: ticket.statutReglement || 'Non réglé',
+      locataire_nom: ticket.locataireNom || "",
+      titre: ticket.titre || "Signalement incident",
+      description: ticket.description || "",
+      priorite: ticket.priorite || "Moyenne",
+      statut: ticket.statut || "Signalé",
+      statut_reglement: ticket.statutReglement || "Non réglé",
       mode_reglement: ticket.modeReglement || null,
       date_reglement: ticket.dateReglement || null,
       facture_artisan_ref: ticket.factureArtisanRef || null,
       regle_par_caisse: ticket.regleParCaisse || false,
       caisse_mouvement_id: ticket.caisseMouvementId || null,
       observations_reglement: ticket.observationsReglement || null,
-      imputable_a: ticket.imputableA || 'Propriétaire',
-      cout_estime: ticket.coutEstime || 0, cout_reel: ticket.coutReel || 0,
-      date_signalement: ticket.dateSignalement || new Date().toISOString().split('T')[0],
+      imputable_a: ticket.imputableA || "Propriétaire",
+      cout_estime: ticket.coutEstime || 0,
+      cout_reel: ticket.coutReel || 0,
+      date_signalement:
+        ticket.dateSignalement || new Date().toISOString().split("T")[0],
       date_intervention: ticket.dateIntervention || null,
       date_resolution: ticket.dateResolution || null,
       prestataire: ticket.prestataire || null,
@@ -1624,160 +2576,261 @@ export async function saveMaintenanceToDb(ticket: Partial<MaintenanceTicket>, ag
       updated_at: new Date().toISOString(),
     };
     if (ticket.ref) record.ref = ticket.ref;
-    const exists = ticket.id ? await recordExists('maintenance_tickets', ticket.id, agencyId) : false;
+    const exists = ticket.id
+      ? await recordExists("maintenance_tickets", ticket.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('maintenance_tickets').update(record).eq('id', ticket.id).select().single();
+      const { data, error } = await supabase
+        .from("maintenance_tickets")
+        .update(record)
+        .eq("id", ticket.id)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapMaintenanceFromDb(data) };
     } else {
       if (!record.ref) record.ref = `TRV-${Date.now().toString().slice(-6)}`;
-      const { data, error } = await supabase.from('maintenance_tickets').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("maintenance_tickets")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapMaintenanceFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : INSPECTIONS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveInspectionToDb(insp: Partial<Inspection>, agencyId: string): Promise<{ success: boolean; data?: Inspection; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: insp as Inspection };
+export async function saveInspectionToDb(
+  insp: Partial<Inspection>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Inspection; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: insp as Inspection };
   try {
     const record = {
-      agency_id: agencyId, ref: insp.ref || `EDL-${Date.now()}`,
-      bien_id: insp.bienId, locataire_id: insp.locataireId,
-      type: insp.type || 'Entrée',
-      date_inspection: insp.date || new Date().toISOString().split('T')[0],
+      agency_id: agencyId,
+      ref: insp.ref || `EDL-${Date.now()}`,
+      bien_id: insp.bienId,
+      locataire_id: insp.locataireId,
+      type: insp.type || "Entrée",
+      date_inspection: insp.date || new Date().toISOString().split("T")[0],
       clefs_remises: 3,
-      agent_nom: insp.agentNom || insp.inspecteurNom || 'Agent FITAL-IMMO',
+      agent_nom: insp.agentNom || insp.inspecteurNom || "Agent FITAL-IMMO",
       elements: insp.elements || [],
       total_degats: insp.coutDegradations || 0,
       retenue_caution: insp.retenueCaution || 0,
       montant_restitue_caution: insp.montantRestitueCaution || 0,
-      statut: insp.statut || 'Validé',
-      commentaires_generaux: insp.commentairesGeneraux || insp.remarques || '',
+      statut: insp.statut || "Validé",
+      commentaires_generaux: insp.commentairesGeneraux || insp.remarques || "",
       created_by_id: insp.createdById || null,
       created_by_nom: insp.createdByNom || null,
       created_by_role: insp.createdByRole || null,
     };
-    const exists = insp.id ? await recordExists('property_inspections', insp.id, agencyId) : false;
+    const exists = insp.id
+      ? await recordExists("property_inspections", insp.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('property_inspections').update(record).eq('id', insp.id).select().single();
+      const { data, error } = await supabase
+        .from("property_inspections")
+        .update(record)
+        .eq("id", insp.id)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapInspectionFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('property_inspections').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("property_inspections")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapInspectionFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : DISBURSEMENTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveDisbursementToDb(disb: Partial<OwnerDisbursement>, agencyId: string): Promise<{ success: boolean; data?: OwnerDisbursement; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: disb as OwnerDisbursement };
+export async function saveDisbursementToDb(
+  disb: Partial<OwnerDisbursement>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: OwnerDisbursement; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: disb as OwnerDisbursement };
   try {
     const record = {
-      agency_id: agencyId, ref: disb.ref || `REV-${Date.now()}`,
+      agency_id: agencyId,
+      ref: disb.ref || `REV-${Date.now()}`,
       proprietaire_id: disb.proprietaireId,
       proprietaire_nom: disb.proprietaireNom || null,
-      periode: disb.periode || 'Ce mois',
+      periode: disb.periode || "Ce mois",
       loyers_bruts_recouvres: disb.loyersBruts || disb.montantBrut || 0,
       taux_commission: disb.tauxCommission || 10,
       montant_commission: disb.commissionAgence || 0,
       tva_commission: disb.retenueTVA || disb.tvaCommission || 0,
       charges_deduites: disb.depensesDeduites || 0,
       net_a_reverser: disb.montantNetPaye || disb.montantNet || 0,
-      mode_reglement: disb.modeReglement || disb.modeReversement || 'Virement',
-      date_versement: disb.dateReglement || disb.dateReversement || new Date().toISOString().split('T')[0],
-      statut: disb.statut || 'Effectué',
+      mode_reglement: disb.modeReglement || disb.modeReversement || "Virement",
+      date_versement:
+        disb.dateReglement ||
+        disb.dateReversement ||
+        new Date().toISOString().split("T")[0],
+      statut: disb.statut || "Effectué",
       created_by_id: disb.createdById || null,
       created_by_nom: disb.createdByNom || null,
       created_by_role: disb.createdByRole || null,
     };
-    const exists = disb.id ? await recordExists('disbursements', disb.id, agencyId) : false;
+    const exists = disb.id
+      ? await recordExists("disbursements", disb.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('disbursements').update(record).eq('id', disb.id).eq('agency_id', agencyId).select().single();
+      const { data, error } = await supabase
+        .from("disbursements")
+        .update(record)
+        .eq("id", disb.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapDisbursementFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('disbursements').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("disbursements")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapDisbursementFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : INVOICES
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveInvoiceToDb(inv: Partial<Invoice>, agencyId: string): Promise<{ success: boolean; data?: Invoice; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: inv as Invoice };
+export async function saveInvoiceToDb(
+  inv: Partial<Invoice>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: Invoice; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: inv as Invoice };
   try {
     const record = {
-      agency_id: agencyId, ref: inv.ref || inv.numero || `FAC-${Date.now()}`,
-      type: inv.type || 'Frais de dossier',
+      agency_id: agencyId,
+      ref: inv.ref || inv.numero || `FAC-${Date.now()}`,
+      type: inv.type || "Frais de dossier",
       proprietaire_id: inv.proprietaireId || null,
       proprietaire_nom: inv.proprietaireNom || null,
       locataire_id: inv.locataireId || null,
       locataire_nom: inv.locataireNom || null,
-      bien_id: inv.bienId || null, bien_nom: inv.bienNom || null,
-      date_facture: inv.dateFacture || new Date().toISOString().split('T')[0],
-      date_echeance: inv.dateEcheance || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      bien_id: inv.bienId || null,
+      bien_nom: inv.bienNom || null,
+      date_facture: inv.dateFacture || new Date().toISOString().split("T")[0],
+      date_echeance:
+        inv.dateEcheance ||
+        new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
       sous_total: inv.sousTotal || inv.montantTotal || 0,
-      taxes: inv.taxes || 0, total: inv.total || inv.montantTotal || 0,
-      statut: inv.statut || 'Émise', lignes: inv.lignes || [],
+      taxes: inv.taxes || 0,
+      total: inv.total || inv.montantTotal || 0,
+      statut: inv.statut || "Émise",
+      lignes: inv.lignes || [],
       created_by_id: inv.createdById || null,
       created_by_nom: inv.createdByNom || null,
       created_by_role: inv.createdByRole || null,
     };
-    const exists = inv.id ? await recordExists('invoices', inv.id, agencyId) : false;
+    const exists = inv.id
+      ? await recordExists("invoices", inv.id, agencyId)
+      : false;
     if (exists) {
-      const { data, error } = await supabase.from('invoices').update(record).eq('id', inv.id).select().single();
+      const { data, error } = await supabase
+        .from("invoices")
+        .update(record)
+        .eq("id", inv.id)
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapInvoiceFromDb(data) };
     } else {
-      const { data, error } = await supabase.from('invoices').insert([record]).select().single();
+      const { data, error } = await supabase
+        .from("invoices")
+        .insert([record])
+        .select()
+        .single();
       if (error) throw error;
       return { success: true, data: mapInvoiceFromDb(data) };
     }
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : REMINDERS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveReminderToDb(rem: Partial<TenantReminder>, agencyId: string): Promise<{ success: boolean; data?: TenantReminder; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: true, data: rem as TenantReminder };
+export async function saveReminderToDb(
+  rem: Partial<TenantReminder>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: TenantReminder; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: rem as TenantReminder };
   try {
     const record = {
-      agency_id: agencyId, locataire_id: rem.locataireId,
-      locataire_nom: rem.locataireNom, telephone: rem.telephone,
-      montant_du: rem.montantDu, jours_retard: rem.joursRetard,
-      date_envoi: rem.dateEnvoi, canal: rem.canal,
-      niveau: rem.niveau || 'Niveau 1', message: rem.message, statut: rem.statut,
+      agency_id: agencyId,
+      locataire_id: rem.locataireId,
+      locataire_nom: rem.locataireNom,
+      telephone: rem.telephone,
+      montant_du: rem.montantDu,
+      jours_retard: rem.joursRetard,
+      date_envoi: rem.dateEnvoi,
+      canal: rem.canal,
+      niveau: rem.niveau || "Niveau 1",
+      message: rem.message,
+      statut: rem.statut,
     };
-    const { data, error } = await supabase.from('tenant_reminders').insert([record]).select().single();
+    const { data, error } = await supabase
+      .from("tenant_reminders")
+      .insert([record])
+      .select()
+      .single();
     if (error) throw error;
     return { success: true, data: mapReminderFromDb(data) };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CRUD : SETTINGS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function saveSettingsToDb(settings: AgencySettings, agencyId?: string): Promise<{ success: boolean; error?: string }> {
+export async function saveSettingsToDb(
+  settings: AgencySettings,
+  agencyId?: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return { success: true };
   try {
     const record = {
-      agency_id: agencyId, nom_agence: settings.nomAgence,
-      slogan: settings.slogan, telephone: settings.telephone,
-      email: settings.email, adresse: settings.adresse,
-      ville: settings.ville, pays: settings.pays,
-      ninea: settings.ninea, devise: settings.devise,
+      agency_id: agencyId,
+      nom_agence: settings.nomAgence,
+      slogan: settings.slogan,
+      telephone: settings.telephone,
+      email: settings.email,
+      adresse: settings.adresse,
+      ville: settings.ville,
+      pays: settings.pays,
+      ninea: settings.ninea,
+      devise: settings.devise,
       taux_gerance_defaut: settings.tauxGeranceDefaut,
       penalite_defaut: settings.penaliteDefaut,
       tva_taux: settings.tvaTaux,
@@ -1803,103 +2856,146 @@ export async function saveSettingsToDb(settings: AgencySettings, agencyId?: stri
       paydunya_private_key: settings.paydunyaPrivateKey || null,
       paydunya_public_key: settings.paydunyaPublicKey || null,
       paydunya_token: settings.paydunyaToken || null,
-      paydunya_mode: settings.paydunyaMode || 'test',
+      paydunya_mode: settings.paydunyaMode || "test",
       paydunya_enabled: settings.paydunyaEnabled || false,
       payments_enabled: settings.paymentsEnabled || false,
-      payments_provider: settings.paymentsProvider || 'NONE',
+      payments_provider: settings.paymentsProvider || "NONE",
       updated_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from('agency_settings').upsert(record, { onConflict: 'agency_id' });
+    const { error } = await supabase
+      .from("agency_settings")
+      .upsert(record, { onConflict: "agency_id" });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function savePaymentMethodToDb(method: PaymentMethodConfig, agencyId?: string): Promise<{ success: boolean; error?: string }> {
+export async function savePaymentMethodToDb(
+  method: PaymentMethodConfig,
+  agencyId?: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from('payment_methods_config').upsert({ agency_id: agencyId || null, ...method });
+    const { error } = await supabase
+      .from("payment_methods_config")
+      .upsert({ agency_id: agencyId || null, ...method });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
-export async function saveUserToDb(user: UserAccount, agencyId?: string): Promise<{ success: boolean; error?: string }> {
+export async function saveUserToDb(
+  user: UserAccount,
+  agencyId?: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
-  if (!user.id || user.id.startsWith('user-') || user.id.startsWith('usr-')) {
-    return { success: false, error: 'Compte local uniquement.' };
+  if (!user.id || user.id.startsWith("user-") || user.id.startsWith("usr-")) {
+    return { success: false, error: "Compte local uniquement." };
   }
   try {
-    const { error } = await supabase.from('profiles').upsert({
-      id: user.id, agency_id: agencyId || user.agencyId || null,
-      email: user.email, nom: user.nom, prenom: user.prenom,
-      telephone: user.telephone, role: user.role, statut: user.statut,
-      permissions: user.permissions, avatar_url: user.avatar,
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      agency_id: agencyId || user.agencyId || null,
+      email: user.email,
+      nom: user.nom,
+      prenom: user.prenom,
+      telephone: user.telephone,
+      role: user.role,
+      statut: user.statut,
+      permissions: user.permissions,
+      avatar_url: user.avatar,
       proprietaire_id: user.proprietaireId || null,
       locataire_id: user.locataireId || null,
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // STORAGE
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function uploadFileToSupabaseStorage(
-  bucket: 'agency-logos' | 'property-images' | 'documents' | 'payment-proofs' | 'avatars',
-  filePath: string, file: File
+  bucket:
+    | "agency-logos"
+    | "property-images"
+    | "documents"
+    | "payment-proofs"
+    | "avatars",
+  filePath: string,
+  file: File,
 ): Promise<{ success: boolean; url?: string; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase Storage non configuré.' };
+  if (!isSupabaseConfigured || !supabase)
+    return { success: false, error: "Supabase Storage non configuré." };
   try {
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, { cacheControl: '3600', upsert: true });
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, { cacheControl: "3600", upsert: true });
     if (error) throw error;
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    const { data: publicUrlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
     return { success: true, url: publicUrlData.publicUrl };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // AUTH
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function changeUserPassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
+export async function changeUserPassword(
+  newPassword: string,
+): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 export async function signOutSession(): Promise<void> {
   // 1. Deconnexion Supabase
   if (isSupabaseConfigured && supabase) {
-    try { await supabase.auth.signOut(); } catch (err) { console.error('Erreur signOut:', err); }
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Erreur signOut:", err);
+    }
   }
 
   // 2. Purger TOUT le localStorage (isolation des agences)
   try {
     // Supprimer TOUTES les cles fital_immo_*
     Object.keys(localStorage)
-      .filter(k => k.startsWith('fital_immo_'))
-      .forEach(k => localStorage.removeItem(k));
+      .filter((k) => k.startsWith("fital_immo_"))
+      .forEach((k) => localStorage.removeItem(k));
 
     // Supprimer les cles specifiques
-    localStorage.removeItem('fital_immo_session');
-    localStorage.removeItem('fital_immo_user');
-    localStorage.removeItem('fital_immo_current_user');
-    localStorage.removeItem('fital_immo_settings');
-    localStorage.removeItem('fital_immo_agency');
+    localStorage.removeItem("fital_immo_session");
+    localStorage.removeItem("fital_immo_user");
+    localStorage.removeItem("fital_immo_current_user");
+    localStorage.removeItem("fital_immo_settings");
+    localStorage.removeItem("fital_immo_agency");
   } catch (err) {
-    console.warn('Erreur purge localStorage:', err);
+    console.warn("Erreur purge localStorage:", err);
   }
 
   // 3. Purger sessionStorage
   try {
     sessionStorage.clear();
   } catch (err) {
-    console.warn('Erreur purge sessionStorage:', err);
+    console.warn("Erreur purge sessionStorage:", err);
   }
 }
 
@@ -1907,20 +3003,32 @@ export async function getAuthSession() {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
     const { data, error } = await supabase.auth.getSession();
-    if (error) { console.warn('Erreur getSession:', error); return null; }
+    if (error) {
+      console.warn("Erreur getSession:", error);
+      return null;
+    }
     return data.session;
-  } catch (err) { console.warn('Erreur session:', err); return null; }
+  } catch (err) {
+    console.warn("Erreur session:", err);
+    return null;
+  }
 }
 
 export async function softDeleteRecord(
-  table: 'properties' | 'owners' | 'tenants' | 'contracts' | 'invoices', id: string
+  table: "properties" | "owners" | "tenants" | "contracts" | "invoices",
+  id: string,
 ): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase.from(table).update({ statut: 'Archivé' }).eq('id', id);
+    const { error } = await supabase
+      .from(table)
+      .update({ statut: "Archivé" })
+      .eq("id", id);
     if (error) throw error;
     return { success: true };
-  } catch (err: any) { return { success: false, error: err.message }; }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1929,46 +3037,90 @@ export async function softDeleteRecord(
 export async function getOrCreateDefaultAgency(): Promise<Agency | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const { data: existing } = await supabase.from('agencies').select('*').eq('slug', 'fital-immo').maybeSingle();
-    if (existing) { persistCollection('agency', existing as unknown as Agency); return existing as unknown as Agency; }
-    const { data: created, error: insertError } = await supabase.from('agencies').insert([{
-      name: defaultSettings.nomAgence, slug: 'fital-immo',
-      email: defaultSettings.email, phone: defaultSettings.telephone,
-      address: defaultSettings.adresse, city: defaultSettings.ville,
-      country: defaultSettings.pays, ninea: defaultSettings.ninea, status: 'active',
-    }]).select().single();
+    const { data: existing } = await supabase
+      .from("agencies")
+      .select("*")
+      .eq("slug", "fital-immo")
+      .maybeSingle();
+    if (existing) {
+      persistCollection("agency", existing as unknown as Agency);
+      return existing as unknown as Agency;
+    }
+    const { data: created, error: insertError } = await supabase
+      .from("agencies")
+      .insert([
+        {
+          name: defaultSettings.nomAgence,
+          slug: "fital-immo",
+          email: defaultSettings.email,
+          phone: defaultSettings.telephone,
+          address: defaultSettings.adresse,
+          city: defaultSettings.ville,
+          country: defaultSettings.pays,
+          ninea: defaultSettings.ninea,
+          status: "active",
+        },
+      ])
+      .select()
+      .single();
     if (insertError) {
-      const { data: retry } = await supabase.from('agencies').select('*').limit(1).maybeSingle();
-      if (retry) { persistCollection('agency', retry as unknown as Agency); return retry as unknown as Agency; }
+      const { data: retry } = await supabase
+        .from("agencies")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      if (retry) {
+        persistCollection("agency", retry as unknown as Agency);
+        return retry as unknown as Agency;
+      }
       return null;
     }
-    persistCollection('agency', created as unknown as Agency);
+    persistCollection("agency", created as unknown as Agency);
     return created as unknown as Agency;
-  } catch (err) { return null; }
+  } catch (err) {
+    return null;
+  }
 }
 
 export async function bootstrapAdminProfile(
-  authUserId: string, email: string,
-  overrides?: Partial<Pick<UserAccount, 'nom' | 'prenom' | 'telephone' | 'role'>>
+  authUserId: string,
+  email: string,
+  overrides?: Partial<
+    Pick<UserAccount, "nom" | "prenom" | "telephone" | "role">
+  >,
 ): Promise<UserAccount | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   const agency = await getOrCreateDefaultAgency();
   if (!agency) return null;
   const profileRecord = {
-    id: authUserId, agency_id: agency.id, email: email.trim().toLowerCase(),
-    nom: overrides?.nom || 'ADMINISTRATEUR', prenom: overrides?.prenom || 'FITAL',
+    id: authUserId,
+    agency_id: agency.id,
+    email: email.trim().toLowerCase(),
+    nom: overrides?.nom || "ADMINISTRATEUR",
+    prenom: overrides?.prenom || "FITAL",
     telephone: overrides?.telephone || defaultSettings.telephone,
-    role: (overrides?.role || 'ADMIN') as UserRole,
-    statut: 'actif' as const, permissions: ['*'],
+    role: (overrides?.role || "ADMIN") as UserRole,
+    statut: "actif" as const,
+    permissions: ["*"],
   };
-  const { error } = await supabase.from('profiles').insert([profileRecord]);
-  if (error) { console.warn('bootstrapAdminProfile:', error); return null; }
+  const { error } = await supabase.from("profiles").insert([profileRecord]);
+  if (error) {
+    console.warn("bootstrapAdminProfile:", error);
+    return null;
+  }
   return {
-    id: authUserId, agencyId: agency.id, email: profileRecord.email,
-    nom: profileRecord.nom, prenom: profileRecord.prenom,
-    telephone: profileRecord.telephone, role: profileRecord.role,
-    statut: 'actif', permissions: ['*'], organisation: agency.name,
-    createdAt: new Date().toISOString(), derniereConnexion: ' l\'instant',
+    id: authUserId,
+    agencyId: agency.id,
+    email: profileRecord.email,
+    nom: profileRecord.nom,
+    prenom: profileRecord.prenom,
+    telephone: profileRecord.telephone,
+    role: profileRecord.role,
+    statut: "actif",
+    permissions: ["*"],
+    organisation: agency.name,
+    createdAt: new Date().toISOString(),
+    derniereConnexion: " l'instant",
   };
 }
 
@@ -1976,84 +3128,142 @@ export async function bootstrapAdminProfile(
 // CREATE USER
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export interface CreateUserAccountParams {
-  email: string; password: string; nom: string; prenom: string;
-  telephone: string; role: UserRole; agencyId: string;
-  permissions?: string[]; proprietaireId?: string; locataireId?: string;
-  organisation?: string; avatar?: string;
+  email: string;
+  password: string;
+  nom: string;
+  prenom: string;
+  telephone: string;
+  role: UserRole;
+  agencyId: string;
+  permissions?: string[];
+  proprietaireId?: string;
+  locataireId?: string;
+  organisation?: string;
+  avatar?: string;
 }
 
 export async function createUserAccountInSupabase(
-  params: CreateUserAccountParams
+  params: CreateUserAccountParams,
 ): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !supabaseUrl || !supabaseAnonKey) {
-    return { success: false, error: 'Supabase non configuré.' };
+    return { success: false, error: "Supabase non configuré." };
   }
   const cleanEmail = params.email.trim().toLowerCase();
   const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   });
   try {
-    const { data: signUpData, error: signUpError } = await ephemeralClient.auth.signUp({
-      email: cleanEmail, password: params.password,
-      options: { data: { nom: params.nom, prenom: params.prenom, role: params.role } },
-    });
+    const { data: signUpData, error: signUpError } =
+      await ephemeralClient.auth.signUp({
+        email: cleanEmail,
+        password: params.password,
+        options: {
+          data: { nom: params.nom, prenom: params.prenom, role: params.role },
+        },
+      });
     if (signUpError) {
-      if (signUpError.message?.toLowerCase().includes('already registered')) {
-        return { success: false, error: 'Cet email est déjà  enregistré.' };
+      if (signUpError.message?.toLowerCase().includes("already registered")) {
+        return { success: false, error: "Cet email est déjà  enregistré." };
       }
       return { success: false, error: signUpError.message };
     }
     const authUser = signUpData.user;
-    if (!authUser?.id) return { success: false, error: 'Confirmation email requise.' };
-    const { error: profileError } = await supabase.from('profiles').insert([{
-      id: authUser.id, agency_id: params.agencyId, email: cleanEmail,
-      nom: params.nom.toUpperCase(), prenom: params.prenom,
-      telephone: params.telephone, role: params.role, statut: 'actif',
-      permissions: params.permissions || [],
-      proprietaire_id: params.proprietaireId || null,
-      locataire_id: params.locataireId || null,
-      avatar_url: params.avatar || null,
-    }]);
-    if (profileError) return { success: false, error: `Profil refusé : ${profileError.message}.` };
+    if (!authUser?.id)
+      return { success: false, error: "Confirmation email requise." };
+    const { error: profileError } = await supabase.from("profiles").insert([
+      {
+        id: authUser.id,
+        agency_id: params.agencyId,
+        email: cleanEmail,
+        nom: params.nom.toUpperCase(),
+        prenom: params.prenom,
+        telephone: params.telephone,
+        role: params.role,
+        statut: "actif",
+        permissions: params.permissions || [],
+        proprietaire_id: params.proprietaireId || null,
+        locataire_id: params.locataireId || null,
+        avatar_url: params.avatar || null,
+      },
+    ]);
+    if (profileError)
+      return {
+        success: false,
+        error: `Profil refusé : ${profileError.message}.`,
+      };
     const userAccount: UserAccount = {
-      id: authUser.id, agencyId: params.agencyId, email: cleanEmail,
-      nom: params.nom.toUpperCase(), prenom: params.prenom,
-      telephone: params.telephone, role: params.role, statut: 'actif',
+      id: authUser.id,
+      agencyId: params.agencyId,
+      email: cleanEmail,
+      nom: params.nom.toUpperCase(),
+      prenom: params.prenom,
+      telephone: params.telephone,
+      role: params.role,
+      statut: "actif",
       permissions: params.permissions || [],
-      proprietaireId: params.proprietaireId, locataireId: params.locataireId,
-      organisation: params.organisation || '', avatar: params.avatar,
-      createdAt: new Date().toISOString(), derniereConnexion: 'Jamais connecté',
+      proprietaireId: params.proprietaireId,
+      locataireId: params.locataireId,
+      organisation: params.organisation || "",
+      avatar: params.avatar,
+      createdAt: new Date().toISOString(),
+      derniereConnexion: "Jamais connecté",
     };
     return { success: true, user: userAccount };
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Erreur inconnue.' };
+    return { success: false, error: err?.message || "Erreur inconnue." };
   }
 }
 
-export async function fetchAgencyUsers(agencyId?: string): Promise<UserAccount[]> {
+export async function fetchAgencyUsers(
+  agencyId?: string,
+): Promise<UserAccount[]> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return [];
   try {
-    const { data, error } = await supabase.from('profiles').select('*, agencies:agencies(name)').eq('agency_id', agencyId).order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*, agencies:agencies(name)")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false });
     if (error || !data) return [];
     return data.map((p: any) => ({
-      id: p.id, agencyId: p.agency_id, email: p.email,
-      nom: p.nom, prenom: p.prenom, telephone: p.telephone,
-      role: p.role, statut: p.statut, permissions: p.permissions || [],
-      avatar: p.avatar_url, proprietaireId: p.proprietaire_id, locataireId: p.locataire_id,
+      id: p.id,
+      agencyId: p.agency_id,
+      email: p.email,
+      nom: p.nom,
+      prenom: p.prenom,
+      telephone: p.telephone,
+      role: p.role,
+      statut: p.statut,
+      permissions: p.permissions || [],
+      avatar: p.avatar_url,
+      proprietaireId: p.proprietaire_id,
+      locataireId: p.locataire_id,
       derniereConnexion: p.derniere_connexion,
-      organisation: p.agencies?.name || '',
-      createdAt: p.created_at, updatedAt: p.updated_at,
+      organisation: p.agencies?.name || "",
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
     }));
-  } catch (err) { return []; }
+  } catch (err) {
+    return [];
+  }
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // RESTAURATION
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-export async function restoreAllData(backup: any): Promise<{ success: boolean; count?: number; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase non configuré.' };
+export async function restoreAllData(
+  backup: any,
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  if (!supabase) return { success: false, error: "Supabase non configuré." };
   try {
-    const agencyId = backup?.agencies?.[0]?.id || backup?.users?.[0]?.agencyId || 'a592861a-68b0-4469-94ee-751f1f2863b7';
+    const agencyId =
+      backup?.agencies?.[0]?.id ||
+      backup?.users?.[0]?.agencyId ||
+      "a592861a-68b0-4469-94ee-751f1f2863b7";
     let totalCount = 0;
     const upsertTable = async (tableName: string, data: any[]) => {
       if (!data || data.length === 0) return;
@@ -2062,37 +3272,56 @@ export async function restoreAllData(backup: any): Promise<{ success: boolean; c
         agency_id: item.agency_id || item.agencyId || agencyId,
         updated_at: new Date().toISOString(),
       }));
-      const { error } = await supabase.from(tableName).upsert(cleaned, { onConflict: 'id' });
+      const { error } = await supabase
+        .from(tableName)
+        .upsert(cleaned, { onConflict: "id" });
       if (error) throw new Error(`${tableName} : ${error.message}`);
       totalCount += cleaned.length;
     };
-    if (backup.users) await upsertTable('profiles', backup.users);
-    if (backup.owners) await upsertTable('owners', backup.owners);
-    if (backup.buildings) await upsertTable('buildings', backup.buildings);
-    if (backup.units) await upsertTable('units', backup.units);
-    if (backup.properties) await upsertTable('properties', backup.properties);
-    if (backup.tenants) await upsertTable('tenants', backup.tenants);
-    if (backup.contracts) await upsertTable('contracts', backup.contracts);
-    if (backup.payments) await upsertTable('payments', backup.payments);
-    if (backup.invoices) await upsertTable('invoices', backup.invoices);
-    if (backup.bulletins) await upsertTable('bulletin_versements', backup.bulletins);
-    if (backup.ownerDeductions) await upsertTable('owner_deductions', backup.ownerDeductions);
-    if (backup.ownerCharges) await upsertTable('owner_charges', backup.ownerCharges);
-    if (backup.disbursements) await upsertTable('disbursements', backup.disbursements);
-    if (backup.cashMovements) await upsertTable('cash_movements', backup.cashMovements);
-    if (backup.cashClosings) await upsertTable('cash_closings', backup.cashClosings);
-    if (backup.inspections) await upsertTable('property_inspections', backup.inspections);
-    if (backup.maintenance) await upsertTable('maintenance_tickets', backup.maintenance);
-    if (backup.reminders) await upsertTable('tenant_reminders', backup.reminders);
-    if (backup.penalties) await upsertTable('penalties', backup.penalties);
-    if (backup.notifications) await upsertTable('notifications', backup.notifications);
-    if (backup.archives) await upsertTable('archives', backup.archives);
-    if (backup.activityLogs) await upsertTable('activity_logs', backup.activityLogs);
-    if (backup.auditLogs) await upsertTable('audit_logs', backup.auditLogs);
-    if (backup.paymentMethods) await upsertTable('payment_methods_config', backup.paymentMethods);
+    if (backup.users) await upsertTable("profiles", backup.users);
+    if (backup.owners) await upsertTable("owners", backup.owners);
+    if (backup.buildings) await upsertTable("buildings", backup.buildings);
+    if (backup.units) await upsertTable("units", backup.units);
+    if (backup.properties) await upsertTable("properties", backup.properties);
+    if (backup.tenants) await upsertTable("tenants", backup.tenants);
+    if (backup.contracts) await upsertTable("contracts", backup.contracts);
+    if (backup.payments) await upsertTable("payments", backup.payments);
+    if (backup.invoices) await upsertTable("invoices", backup.invoices);
+    if (backup.bulletins)
+      await upsertTable("bulletin_versements", backup.bulletins);
+    if (backup.ownerDeductions)
+      await upsertTable("owner_deductions", backup.ownerDeductions);
+    if (backup.ownerCharges)
+      await upsertTable("owner_charges", backup.ownerCharges);
+    if (backup.disbursements)
+      await upsertTable("disbursements", backup.disbursements);
+    if (backup.cashMovements)
+      await upsertTable("cash_movements", backup.cashMovements);
+    if (backup.cashClosings)
+      await upsertTable("cash_closings", backup.cashClosings);
+    if (backup.inspections)
+      await upsertTable("property_inspections", backup.inspections);
+    if (backup.maintenance)
+      await upsertTable("maintenance_tickets", backup.maintenance);
+    if (backup.reminders)
+      await upsertTable("tenant_reminders", backup.reminders);
+    if (backup.penalties) await upsertTable("penalties", backup.penalties);
+    if (backup.notifications)
+      await upsertTable("notifications", backup.notifications);
+    if (backup.archives) await upsertTable("archives", backup.archives);
+    if (backup.activityLogs)
+      await upsertTable("activity_logs", backup.activityLogs);
+    if (backup.auditLogs) await upsertTable("audit_logs", backup.auditLogs);
+    if (backup.paymentMethods)
+      await upsertTable("payment_methods_config", backup.paymentMethods);
     if (backup.settings) {
-      const { error } = await supabase.from('agency_settings').upsert({ ...backup.settings, agency_id: agencyId }, { onConflict: 'agency_id' });
-      if (error) console.warn('settings :', error.message);
+      const { error } = await supabase
+        .from("agency_settings")
+        .upsert(
+          { ...backup.settings, agency_id: agencyId },
+          { onConflict: "agency_id" },
+        );
+      if (error) console.warn("settings :", error.message);
       else totalCount += 1;
     }
     return { success: true, count: totalCount };
@@ -2106,133 +3335,271 @@ export async function restoreAllData(backup: any): Promise<{ success: boolean; c
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function fetchAllAgencies(): Promise<any[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from('agencies').select('*').order('created_at', { ascending: false });
-  if (error) { console.warn('fetchAllAgencies:', error.message); return []; }
+  const { data, error } = await supabase
+    .from("agencies")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("fetchAllAgencies:", error.message);
+    return [];
+  }
   return data || [];
 }
 
 export async function fetchAllUsers(): Promise<any[]> {
   if (!supabase) return [];
-  const { data: profiles, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-  if (pErr || !profiles) { console.warn('fetchAllUsers profiles:', pErr?.message); return []; }
-  const { data: agencies } = await supabase.from('agencies').select('id, name, slug, status');
+  const { data: profiles, error: pErr } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (pErr || !profiles) {
+    console.warn("fetchAllUsers profiles:", pErr?.message);
+    return [];
+  }
+  const { data: agencies } = await supabase
+    .from("agencies")
+    .select("id, name, slug, status");
   const agencyMap = new Map((agencies || []).map((a: any) => [a.id, a]));
-  return profiles.map((p: any) => ({ ...p, agencies: agencyMap.get(p.agency_id) || null }));
+  return profiles.map((p: any) => ({
+    ...p,
+    agencies: agencyMap.get(p.agency_id) || null,
+  }));
 }
 
 export async function createAgencyWithAdmin(params: {
-  agencyName: string; agencySlug: string; agencyEmail: string; agencyPhone: string;
-  agencyCity: string; agencyAddress?: string; agencyLogoUrl?: string;
-  agencyPrimaryColor?: string; agencyWebsite?: string; agencyNinea?: string;
-  agencyRc?: string; agencyBankName?: string; agencyBankAccount?: string;
-  adminEmail: string; adminPassword: string; adminNom: string;
-  adminPrenom: string; adminTelephone: string;
+  agencyName: string;
+  agencySlug: string;
+  agencyEmail: string;
+  agencyPhone: string;
+  agencyCity: string;
+  agencyAddress?: string;
+  agencyLogoUrl?: string;
+  agencyPrimaryColor?: string;
+  agencyWebsite?: string;
+  agencyNinea?: string;
+  agencyRc?: string;
+  agencyBankName?: string;
+  agencyBankAccount?: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminNom: string;
+  adminPrenom: string;
+  adminTelephone: string;
   adminRole?: string; // ADMIN (defaut) ou SUPER_ADMIN_SAAS
 }): Promise<{ success: boolean; agencyId?: string; error?: string }> {
   let agencyId: string | null = null;
   try {
-    const { data: agency, error: agencyError } = await supabase.from('agencies').insert({
-      name: params.agencyName, slug: params.agencySlug,
-      email: params.agencyEmail, phone: params.agencyPhone,
-      city: params.agencyCity, address: params.agencyAddress || '',
-      logo_url: params.agencyLogoUrl || null,
-      primary_color: params.agencyPrimaryColor || '#C9A96E',
-      website: params.agencyWebsite || null,
-      ninea: params.agencyNinea || null, rc: params.agencyRc || null,
-      bank_name: params.agencyBankName || null,
-      bank_account: params.agencyBankAccount || null,
-      plan: 'BASIC',
-      subscription_start: new Date().toISOString().split('T')[0],
-      subscription_end: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-      status: 'active',
-    }).select().single();
+    const { data: agency, error: agencyError } = await supabase
+      .from("agencies")
+      .insert({
+        name: params.agencyName,
+        slug: params.agencySlug,
+        email: params.agencyEmail,
+        phone: params.agencyPhone,
+        city: params.agencyCity,
+        address: params.agencyAddress || "",
+        logo_url: params.agencyLogoUrl || null,
+        primary_color: params.agencyPrimaryColor || "#C9A96E",
+        website: params.agencyWebsite || null,
+        ninea: params.agencyNinea || null,
+        rc: params.agencyRc || null,
+        bank_name: params.agencyBankName || null,
+        bank_account: params.agencyBankAccount || null,
+        plan: "BASIC",
+        subscription_start: new Date().toISOString().split("T")[0],
+        subscription_end: new Date(Date.now() + 14 * 86400000)
+          .toISOString()
+          .split("T")[0],
+        status: "active",
+      })
+      .select()
+      .single();
     if (agencyError || !agency) {
-      return { success: false, error: 'Erreur création agence : ' + (agencyError?.message || 'inconnue') };
+      return {
+        success: false,
+        error:
+          "Erreur création agence : " + (agencyError?.message || "inconnue"),
+      };
     }
     agencyId = agency.id;
     const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
-    const { data: authData, error: authError } = await ephemeralClient.auth.signUp({
-      email: params.adminEmail.trim().toLowerCase(),
-      password: params.adminPassword,
-      options: { data: { nom: params.adminNom, prenom: params.adminPrenom, role: params.adminRole || 'ADMIN', agency_id: agency.id } },
-    });
+    const { data: authData, error: authError } =
+      await ephemeralClient.auth.signUp({
+        email: params.adminEmail.trim().toLowerCase(),
+        password: params.adminPassword,
+        options: {
+          data: {
+            nom: params.adminNom,
+            prenom: params.adminPrenom,
+            role: params.adminRole || "ADMIN",
+            agency_id: agency.id,
+          },
+        },
+      });
     if (authError) {
-      await supabase.from('agencies').delete().eq('id', agency.id);
-      return { success: false, error: 'Erreur création compte : ' + authError.message };
+      await supabase.from("agencies").delete().eq("id", agency.id);
+      return {
+        success: false,
+        error: "Erreur création compte : " + authError.message,
+      };
     }
     if (!authData?.user?.id) {
-      await supabase.from('agencies').delete().eq('id', agency.id);
-      return { success: false, error: 'Compte Auth non créé. Vérifiez "Enable email signups".' };
+      await supabase.from("agencies").delete().eq("id", agency.id);
+      return {
+        success: false,
+        error: 'Compte Auth non créé. Vérifiez "Enable email signups".',
+      };
     }
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id, agency_id: agency.id,
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: authData.user.id,
+      agency_id: agency.id,
       email: params.adminEmail.trim().toLowerCase(),
-      nom: params.adminNom.toUpperCase(), prenom: params.adminPrenom,
-      telephone: params.adminTelephone, role: params.adminRole || 'ADMIN',
-      statut: 'actif', permissions: ['*'],
+      nom: params.adminNom.toUpperCase(),
+      prenom: params.adminPrenom,
+      telephone: params.adminTelephone,
+      role: params.adminRole || "ADMIN",
+      statut: "actif",
+      permissions: ["*"],
     });
     if (profileError) {
-      await supabase.from('agencies').delete().eq('id', agency.id);
-      return { success: false, error: 'Erreur création profil : ' + profileError.message };
+      await supabase.from("agencies").delete().eq("id", agency.id);
+      return {
+        success: false,
+        error: "Erreur création profil : " + profileError.message,
+      };
     }
     try {
-      await supabase.from('payment_methods_config').insert([
-        { agency_id: agency.id, code: 'ESPECES', libelle: 'Espèces', description: 'Rà¨glement au comptoir', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
-        { agency_id: agency.id, code: 'WAVE', libelle: 'Wave', description: 'Paiement Wave', actif: true, frais_pourcentage: 0, delai_validation_heures: 0 },
-        { agency_id: agency.id, code: 'ORANGE_MONEY', libelle: 'Orange Money', description: 'Paiement OM', actif: true, frais_pourcentage: 0, delai_validation_heures: 1 },
-        { agency_id: agency.id, code: 'VIREMENT', libelle: 'Virement', description: 'Virement bancaire', actif: true, frais_pourcentage: 0, delai_validation_heures: 24 },
-        { agency_id: agency.id, code: 'CHEQUE', libelle: 'Chà¨que', description: 'Dépôt de chà¨que', actif: true, frais_pourcentage: 0, delai_validation_heures: 48 },
+      await supabase.from("payment_methods_config").insert([
+        {
+          agency_id: agency.id,
+          code: "ESPECES",
+          libelle: "Espèces",
+          description: "Rà¨glement au comptoir",
+          actif: true,
+          frais_pourcentage: 0,
+          delai_validation_heures: 0,
+        },
+        {
+          agency_id: agency.id,
+          code: "WAVE",
+          libelle: "Wave",
+          description: "Paiement Wave",
+          actif: true,
+          frais_pourcentage: 0,
+          delai_validation_heures: 0,
+        },
+        {
+          agency_id: agency.id,
+          code: "ORANGE_MONEY",
+          libelle: "Orange Money",
+          description: "Paiement OM",
+          actif: true,
+          frais_pourcentage: 0,
+          delai_validation_heures: 1,
+        },
+        {
+          agency_id: agency.id,
+          code: "VIREMENT",
+          libelle: "Virement",
+          description: "Virement bancaire",
+          actif: true,
+          frais_pourcentage: 0,
+          delai_validation_heures: 24,
+        },
+        {
+          agency_id: agency.id,
+          code: "CHEQUE",
+          libelle: "Chà¨que",
+          description: "Dépôt de chà¨que",
+          actif: true,
+          frais_pourcentage: 0,
+          delai_validation_heures: 48,
+        },
       ]);
-    } catch (e) { console.warn('Erreur création payment_methods:', e); }
+    } catch (e) {
+      console.warn("Erreur création payment_methods:", e);
+    }
     try {
-      await supabase.from('agency_settings').insert({
-        agency_id: agency.id, nom_agence: params.agencyName,
-        telephone: params.agencyPhone, email: params.agencyEmail,
-        adresse: params.agencyAddress || '', ville: params.agencyCity,
-        pays: 'Sénégal', devise: 'FCFA', ninea: params.agencyNinea || null,
-        taux_gerance_defaut: 10, penalite_defaut: 10, tva_taux: 18,
+      await supabase.from("agency_settings").insert({
+        agency_id: agency.id,
+        nom_agence: params.agencyName,
+        telephone: params.agencyPhone,
+        email: params.agencyEmail,
+        adresse: params.agencyAddress || "",
+        ville: params.agencyCity,
+        pays: "Sénégal",
+        devise: "FCFA",
+        ninea: params.agencyNinea || null,
+        taux_gerance_defaut: 10,
+        penalite_defaut: 10,
+        tva_taux: 18,
         logo_url: params.agencyLogoUrl || null,
-        primary_color: params.agencyPrimaryColor || '#C9A96E',
+        primary_color: params.agencyPrimaryColor || "#C9A96E",
         website: params.agencyWebsite || null,
       });
-    } catch (e) { console.warn('Erreur création settings:', e); }
+    } catch (e) {
+      console.warn("Erreur création settings:", e);
+    }
     return { success: true, agencyId: agency.id };
   } catch (err: any) {
     if (agencyId) {
       try {
-      await supabase.from('agencies').delete().eq('id', agencyId);
-    } catch {}
+        await supabase.from("agencies").delete().eq("id", agencyId);
+      } catch {}
     }
     return { success: false, error: err.message };
   }
 }
 
-export async function toggleAgencyStatus(agencyId: string, newStatus: 'active' | 'suspendu'): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase non configuré.' };
-  const { error } = await supabase.from('agencies').update({ status: newStatus }).eq('id', agencyId);
+export async function toggleAgencyStatus(
+  agencyId: string,
+  newStatus: "active" | "suspendu",
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: "Supabase non configuré." };
+  const { error } = await supabase
+    .from("agencies")
+    .update({ status: newStatus })
+    .eq("id", agencyId);
   if (error) return { success: false, error: error.message };
   return { success: true };
 }
 
 export async function fetchGlobalStats(): Promise<{
-  totalAgencies: number; totalUsers: number; totalBuildings: number;
-  totalUnits: number; totalTenants: number; totalProperties: number;
+  totalAgencies: number;
+  totalUsers: number;
+  totalBuildings: number;
+  totalUnits: number;
+  totalTenants: number;
+  totalProperties: number;
   totalPayments: number;
 }> {
   if (!supabase) {
-    return { totalAgencies: 0, totalUsers: 0, totalBuildings: 0, totalUnits: 0, totalTenants: 0, totalProperties: 0, totalPayments: 0 };
+    return {
+      totalAgencies: 0,
+      totalUsers: 0,
+      totalBuildings: 0,
+      totalUnits: 0,
+      totalTenants: 0,
+      totalProperties: 0,
+      totalPayments: 0,
+    };
   }
-  const [agencies, users, buildings, units, tenants, properties, payments] = await Promise.all([
-    supabase.from('agencies').select('id', { count: 'exact', head: true }),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }),
-    supabase.from('buildings').select('id', { count: 'exact', head: true }),
-    supabase.from('units').select('id', { count: 'exact', head: true }),
-    supabase.from('tenants').select('id', { count: 'exact', head: true }),
-    supabase.from('properties').select('id', { count: 'exact', head: true }),
-    supabase.from('payments').select('id', { count: 'exact', head: true }),
-  ]);
+  const [agencies, users, buildings, units, tenants, properties, payments] =
+    await Promise.all([
+      supabase.from("agencies").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("buildings").select("id", { count: "exact", head: true }),
+      supabase.from("units").select("id", { count: "exact", head: true }),
+      supabase.from("tenants").select("id", { count: "exact", head: true }),
+      supabase.from("properties").select("id", { count: "exact", head: true }),
+      supabase.from("payments").select("id", { count: "exact", head: true }),
+    ]);
   return {
     totalAgencies: agencies.count || 0,
     totalUsers: users.count || 0,
@@ -2244,27 +3611,42 @@ export async function fetchGlobalStats(): Promise<{
   };
 }
 
-
 // ============================================================
 // COMPTEURS Rà‰ELS (requàªtes HEAD ultra-rapides)
 // ============================================================
-export async function fetchRealCounts(agencyId: string): Promise<Record<string, number>> {
+export async function fetchRealCounts(
+  agencyId: string,
+): Promise<Record<string, number>> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return {};
   const tables = [
-    'tenants', 'payments', 'cash_movements', 'invoices',
-    'penalties', 'owner_charges', 'contracts', 'properties',
-    'owners', 'buildings', 'units', 'bulletin_versements',
-    'disbursements', 'property_inspections', 'maintenance_tickets'
+    "tenants",
+    "payments",
+    "cash_movements",
+    "invoices",
+    "penalties",
+    "owner_charges",
+    "contracts",
+    "properties",
+    "owners",
+    "buildings",
+    "units",
+    "bulletin_versements",
+    "disbursements",
+    "property_inspections",
+    "maintenance_tickets",
   ];
   const results = await Promise.allSettled(
-    tables.map(t =>
-      supabase!.from(t).select('id', { count: 'exact', head: true }).eq('agency_id', agencyId)
-    )
+    tables.map((t) =>
+      supabase!
+        .from(t)
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId),
+    ),
   );
   const counts: Record<string, number> = {};
   tables.forEach((t, i) => {
     const r = results[i];
-    counts[t] = (r.status === 'fulfilled' && r.value.count) ? r.value.count : 0;
+    counts[t] = r.status === "fulfilled" && r.value.count ? r.value.count : 0;
   });
   return counts;
 }
@@ -2297,18 +3679,24 @@ export interface AgencyStats {
   total_sorties: number;
 }
 
-export async function fetchAgencyStats(agencyId: string): Promise<AgencyStats | null> {
+export async function fetchAgencyStats(
+  agencyId: string,
+): Promise<AgencyStats | null> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return null;
   try {
-    const { data, error } = await supabase.rpc('get_agency_stats', { p_agency_id: agencyId });
-    if (error) { console.warn('fetchAgencyStats error:', error); return null; }
+    const { data, error } = await supabase.rpc("get_agency_stats", {
+      p_agency_id: agencyId,
+    });
+    if (error) {
+      console.warn("fetchAgencyStats error:", error);
+      return null;
+    }
     return data as AgencyStats;
   } catch (err) {
-    console.warn('fetchAgencyStats exception:', err);
+    console.warn("fetchAgencyStats exception:", err);
     return null;
   }
 }
-
 
 // ============================================================
 // RPC : Statistiques agrégées côté serveur (super rapide)
@@ -2330,19 +3718,21 @@ export interface AgencyStats {
   cash_balance: number;
 }
 
-export async function getAgencyStats(agencyId: string): Promise<AgencyStats | null> {
+export async function getAgencyStats(
+  agencyId: string,
+): Promise<AgencyStats | null> {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase.rpc('get_agency_stats', {
+    const { data, error } = await supabase.rpc("get_agency_stats", {
       p_agency_id: agencyId,
     });
     if (error) {
-      console.warn('getAgencyStats:', error);
+      console.warn("getAgencyStats:", error);
       return null;
     }
     return data as AgencyStats;
   } catch (e) {
-    console.warn('getAgencyStats exception:', e);
+    console.warn("getAgencyStats exception:", e);
     return null;
   }
 }
@@ -2361,25 +3751,25 @@ export async function paginateTable<T = any>(
   tableName: string,
   agencyId: string,
   page: number = 0,
-  pageSize: number = 50
+  pageSize: number = 50,
 ): Promise<PaginatedResult<T>> {
   if (!supabase) {
     return { total: 0, page: 0, page_size: pageSize, data: [] };
   }
   try {
-    const { data, error } = await supabase.rpc('paginate_table', {
+    const { data, error } = await supabase.rpc("paginate_table", {
       p_table_name: tableName,
       p_agency_id: agencyId,
       p_page: page,
       p_page_size: pageSize,
     });
     if (error) {
-      console.warn('paginateTable:', error);
+      console.warn("paginateTable:", error);
       return { total: 0, page, page_size: pageSize, data: [] };
     }
     return data as PaginatedResult<T>;
   } catch (e) {
-    console.warn('paginateTable exception:', e);
+    console.warn("paginateTable exception:", e);
     return { total: 0, page, page_size: pageSize, data: [] };
   }
 }
@@ -2397,44 +3787,54 @@ export interface OwnerBulletinData {
 
 export async function getOwnerBulletinData(
   agencyId: string,
-  ownerId: string
+  ownerId: string,
 ): Promise<OwnerBulletinData> {
-  const empty: OwnerBulletinData = { payments: [], properties: [], buildings: [], units: [], tenants: [] };
+  const empty: OwnerBulletinData = {
+    payments: [],
+    properties: [],
+    buildings: [],
+    units: [],
+    tenants: [],
+  };
   if (!supabase || !agencyId || !ownerId) return empty;
   try {
-    const { data, error } = await supabase.rpc('get_owner_bulletin_data', {
+    const { data, error } = await supabase.rpc("get_owner_bulletin_data", {
       p_agency_id: agencyId,
       p_owner_id: ownerId,
     });
     if (error) {
-      console.warn('getOwnerBulletinData:', error);
+      console.warn("getOwnerBulletinData:", error);
       return empty;
     }
-    console.log('🔍 getOwnerBulletinData raw:', data);
-    
+    console.log("🔍 getOwnerBulletinData raw:", data);
+
     // Supabase peut retourner le JSON de plusieurs façons :
     // 1. Direct : { payments: [...], properties: [...] }
     // 2. Array [ { get_owner_bulletin_data: {...} } ]
     // 3. String JSON à parser
     let payload: any = data;
-    
+
     // Cas 1 : tableau
     if (Array.isArray(payload) && payload.length > 0) {
       payload = payload[0];
     }
     // Cas 2 : clé get_owner_bulletin_data
-    if (payload && typeof payload === 'object' && payload.get_owner_bulletin_data) {
+    if (
+      payload &&
+      typeof payload === "object" &&
+      payload.get_owner_bulletin_data
+    ) {
       payload = payload.get_owner_bulletin_data;
     }
     // Cas 3 : string JSON
-    if (typeof payload === 'string') {
+    if (typeof payload === "string") {
       try {
         payload = JSON.parse(payload);
       } catch {}
     }
-    
-    console.log('🔍 payload parsed:', payload);
-    
+
+    console.log("🔍 payload parsed:", payload);
+
     return {
       payments: Array.isArray(payload?.payments) ? payload.payments : [],
       properties: Array.isArray(payload?.properties) ? payload.properties : [],
@@ -2443,7 +3843,7 @@ export async function getOwnerBulletinData(
       tenants: Array.isArray(payload?.tenants) ? payload.tenants : [],
     };
   } catch (e) {
-    console.warn('getOwnerBulletinData exception:', e);
+    console.warn("getOwnerBulletinData exception:", e);
     return empty;
   }
 }
@@ -2452,7 +3852,7 @@ export async function getOwnerBulletinData(
 // RPC : Activité quotidienne (calendrier Dashboard)
 // ============================================================
 export interface DailyActivity {
-  jour: string;                 // '2021-01-01 00:00:00+00'
+  jour: string; // '2021-01-01 00:00:00+00'
   encaissements: number;
   nb_paiements: number;
   decaissements: number;
@@ -2464,22 +3864,22 @@ export interface DailyActivity {
 export async function getDailyActivity(
   agencyId: string,
   year: number,
-  month: number
+  month: number,
 ): Promise<DailyActivity[]> {
   if (!supabase || !agencyId) return [];
   try {
-    const { data, error } = await supabase.rpc('get_daily_activity', {
+    const { data, error } = await supabase.rpc("get_daily_activity", {
       p_agency_id: agencyId,
       p_year: year,
       p_month: month,
     });
     if (error) {
-      console.warn('getDailyActivity:', error);
+      console.warn("getDailyActivity:", error);
       return [];
     }
     return (data as DailyActivity[]) || [];
   } catch (e) {
-    console.warn('getDailyActivity exception:', e);
+    console.warn("getDailyActivity exception:", e);
     return [];
   }
 }
@@ -2493,44 +3893,53 @@ export async function getDailyActivity(
  * Wrapper qui log automatiquement chaque action CRUD
  * Utilisation : logAndRun('OWNER_CREATED', 'Propriétaires', 'Création', () => saveOwnerToDb(...))
  */
-async function logAndRun<T extends { success: boolean; data?: any; error?: string }>(
+async function logAndRun<
+  T extends { success: boolean; data?: any; error?: string },
+>(
   action: string,
   module: string,
   description: string,
   agencyId: string,
   fn: () => Promise<T>,
   entityRef?: string,
-  montant?: number
+  montant?: number,
 ): Promise<T> {
   const result = await fn();
-  
+
   if (result.success && agencyId) {
     try {
-      const { data: { user } } = await supabase!.auth.getUser();
-      const userNom = user?.email || 'Système';
-      
-      await supabase!.from('activity_logs').insert([{
-        agency_id: agencyId,
-        user_id: user?.id || null,
-        user_nom: userNom,
-        activity_type: action,
-        entity_type: module.toUpperCase(),
-        entity_id: result.data?.id || null,
-        entity_ref: entityRef || result.data?.ref || null,
-        title: `${module} : ${action}`,
-        description,
-        montant: montant || null,
-        activity_date: new Date().toISOString().split('T')[0],
-        activity_hour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        metadata: { source: 'AUTO_LOG_WRAPPER' },
-      }]);
-      
+      const {
+        data: { user },
+      } = await supabase!.auth.getUser();
+      const userNom = user?.email || "Système";
+
+      await supabase!.from("activity_logs").insert([
+        {
+          agency_id: agencyId,
+          user_id: user?.id || null,
+          user_nom: userNom,
+          activity_type: action,
+          entity_type: module.toUpperCase(),
+          entity_id: result.data?.id || null,
+          entity_ref: entityRef || result.data?.ref || null,
+          title: `${module} : ${action}`,
+          description,
+          montant: montant || null,
+          activity_date: new Date().toISOString().split("T")[0],
+          activity_hour: new Date().toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          metadata: { source: "AUTO_LOG_WRAPPER" },
+        },
+      ]);
+
       console.log(`📝 Log: ${action} - ${description}`);
     } catch (e) {
-      console.warn('AUTO-LOG failed:', e);
+      console.warn("AUTO-LOG failed:", e);
     }
   }
-  
+
   return result;
 }
 
@@ -2540,91 +3949,99 @@ async function logAndRun<T extends { success: boolean; data?: any; error?: strin
 
 export async function saveOwnerToDbWithLog(owner: any, agencyId: string) {
   return logAndRun(
-    'OWNER_CREATED',
-    'Propriétaires',
-    `Nouveau propriétaire : ${owner.prenom || ''} ${owner.nom || ''}`.trim(),
+    "OWNER_CREATED",
+    "Propriétaires",
+    `Nouveau propriétaire : ${owner.prenom || ""} ${owner.nom || ""}`.trim(),
     agencyId,
     () => saveOwnerToDb(owner, agencyId),
-    owner.ref
+    owner.ref,
   );
 }
 
 export async function saveTenantToDbWithLog(tenant: any, agencyId: string) {
   return logAndRun(
-    'TENANT_CREATED',
-    'Locataires',
-    `Nouveau locataire : ${tenant.prenom || ''} ${tenant.nom || ''}`.trim(),
+    "TENANT_CREATED",
+    "Locataires",
+    `Nouveau locataire : ${tenant.prenom || ""} ${tenant.nom || ""}`.trim(),
     agencyId,
     () => saveTenantToDb(tenant, agencyId),
-    tenant.ref
+    tenant.ref,
   );
 }
 
 export async function savePropertyToDbWithLog(property: any, agencyId: string) {
   return logAndRun(
-    'PROPERTY_CREATED',
-    'Biens',
-    `Nouveau bien : ${property.nom || ''}`.trim(),
+    "PROPERTY_CREATED",
+    "Biens",
+    `Nouveau bien : ${property.nom || ""}`.trim(),
     agencyId,
     () => savePropertyToDb(property, agencyId),
-    property.ref
+    property.ref,
   );
 }
 
 export async function saveContractToDbWithLog(contract: any, agencyId: string) {
   return logAndRun(
-    'CONTRACT_CREATED',
-    'Contrats',
-    `Nouveau contrat : ${contract.ref || ''}`.trim(),
+    "CONTRACT_CREATED",
+    "Contrats",
+    `Nouveau contrat : ${contract.ref || ""}`.trim(),
     agencyId,
     () => saveContractToDb(contract, agencyId),
-    contract.ref
+    contract.ref,
   );
 }
 
-export async function savePaymentToDbWithLog(payment: any, agencyId: string, authorId?: string) {
+export async function savePaymentToDbWithLog(
+  payment: any,
+  agencyId: string,
+  authorId?: string,
+) {
   return logAndRun(
-    'PAYMENT_ENCAISSE',
-    'Paiements',
-    `Encaissement : ${payment.locataireNom || ''} - ${payment.periode || ''} - ${payment.montantPaye || 0} FCFA`.trim(),
+    "PAYMENT_ENCAISSE",
+    "Paiements",
+    `Encaissement : ${payment.locataireNom || ""} - ${payment.periode || ""} - ${payment.montantPaye || 0} FCFA`.trim(),
     agencyId,
     () => savePaymentToDb(payment, agencyId, authorId),
     payment.ref,
-    payment.montantPaye
+    payment.montantPaye,
   );
 }
 
 export async function saveBuildingToDbWithLog(building: any, agencyId: string) {
   return logAndRun(
-    'BUILDING_CREATED',
-    'Immeubles',
-    `Nouvel immeuble : ${building.nom || ''}`.trim(),
+    "BUILDING_CREATED",
+    "Immeubles",
+    `Nouvel immeuble : ${building.nom || ""}`.trim(),
     agencyId,
     () => saveBuildingToDb(building, agencyId),
-    building.ref
+    building.ref,
   );
 }
 
 export async function saveUnitToDbWithLog(unit: any, agencyId: string) {
   return logAndRun(
-    'UNIT_CREATED',
-    'Espaces',
-    `Nouvel espace : ${unit.nom || ''}`.trim(),
+    "UNIT_CREATED",
+    "Espaces",
+    `Nouvel espace : ${unit.nom || ""}`.trim(),
     agencyId,
     () => saveUnitToDb(unit, agencyId),
-    unit.nom
+    unit.nom,
   );
 }
 
-export async function saveCashMovementToDbWithLog(movement: any, agencyId: string, authorId?: string) {
+export async function saveCashMovementToDbWithLog(
+  movement: any,
+  agencyId: string,
+  authorId?: string,
+) {
   return logAndRun(
-    'CASH_MOVEMENT',
-    'Caisse',
-    `Mouvement : ${movement.libelle || movement.description || ''} - ${movement.montant || 0} FCFA`.trim(),
+    "CASH_MOVEMENT",
+    "Caisse",
+    `Mouvement : ${movement.libelle || movement.description || ""} - ${movement.montant || 0} FCFA`.trim(),
     agencyId,
     () => saveCashMovementToDb(movement, agencyId, authorId),
     movement.reference,
-    movement.montant
+    movement.montant,
   );
 }
 
@@ -2643,36 +4060,55 @@ export async function getAgencyDetails(agencyId: string): Promise<any> {
   if (!supabase) return null;
   try {
     // 1. Recuperer l'agence
-    const agencyRes = await supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle();
-    
+    const agencyRes = await supabase
+      .from("agencies")
+      .select("*")
+      .eq("id", agencyId)
+      .maybeSingle();
+
     // 2. Utiliser count: 'exact', head: true pour eviter la limite de 1000
-    const [
-      usersCountRes,
-      adminsCountRes,
-      tenantsCountRes,
-      paymentsCountRes,
-    ] = await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).in('role', ['ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN_SAAS']),
-      supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
-      supabase.from('payments').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
-    ]);
+    const [usersCountRes, adminsCountRes, tenantsCountRes, paymentsCountRes] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("agency_id", agencyId),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("agency_id", agencyId)
+          .in("role", ["ADMIN", "SUPER_ADMIN", "SUPER_ADMIN_SAAS"]),
+        supabase
+          .from("tenants")
+          .select("id", { count: "exact", head: true })
+          .eq("agency_id", agencyId),
+        supabase
+          .from("payments")
+          .select("id", { count: "exact", head: true })
+          .eq("agency_id", agencyId),
+      ]);
 
     // 3. Utiliser RPC pour le total encaisse (evite la limite de 1000)
     let totalPaiements = 0;
     try {
-      const rpcRes = await supabase.rpc('get_agency_stats', { p_agency_id: agencyId });
+      const rpcRes = await supabase.rpc("get_agency_stats", {
+        p_agency_id: agencyId,
+      });
       if (rpcRes.data && rpcRes.data.payments_total) {
         totalPaiements = Number(rpcRes.data.payments_total) || 0;
       }
     } catch {
       // Fallback : charger les paiements (limite 5000)
       const paymentsSumRes = await supabase
-        .from('payments')
-        .select('montant_paye')
-        .eq('agency_id', agencyId)
+        .from("payments")
+        .select("montant_paye")
+        .eq("agency_id", agencyId)
         .limit(5000);
-      totalPaiements = paymentsSumRes.data?.reduce((sum: number, p: any) => sum + (Number(p.montant_paye) || 0), 0) || 0;
+      totalPaiements =
+        paymentsSumRes.data?.reduce(
+          (sum: number, p: any) => sum + (Number(p.montant_paye) || 0),
+          0,
+        ) || 0;
     }
 
     return {
@@ -2686,7 +4122,7 @@ export async function getAgencyDetails(agencyId: string): Promise<any> {
       },
     };
   } catch (err) {
-    console.error('getAgencyDetails:', err);
+    console.error("getAgencyDetails:", err);
     return null;
   }
 }
@@ -2704,14 +4140,14 @@ export async function updateAgency(
     address?: string;
     country?: string;
     slug?: string;
-  }
+  },
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase non configure' };
+  if (!supabase) return { success: false, error: "Supabase non configure" };
   try {
     const { error } = await supabase
-      .from('agencies')
+      .from("agencies")
       .update({ ...data, updated_at: new Date().toISOString() })
-      .eq('id', agencyId);
+      .eq("id", agencyId);
 
     if (error) return { success: false, error: error.message };
     return { success: true };
@@ -2723,16 +4159,18 @@ export async function updateAgency(
 /**
  * Reinitialise le mot de passe d'un utilisateur (via API admin)
  */
-export async function resetUserPassword(userId: string): Promise<{ success: boolean; error?: string; email?: string }> {
+export async function resetUserPassword(
+  userId: string,
+): Promise<{ success: boolean; error?: string; email?: string }> {
   try {
-    const res = await fetch('/api/admin/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/admin/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
-      return { success: false, error: data.error || 'Erreur reset password' };
+      return { success: false, error: data.error || "Erreur reset password" };
     }
     return { success: true, email: data.email };
   } catch (err: any) {
@@ -2747,15 +4185,15 @@ export async function getUserDetails(userId: string): Promise<any> {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*, agencies(name, slug)')
-      .eq('id', userId)
+      .from("profiles")
+      .select("*, agencies(name, slug)")
+      .eq("id", userId)
       .maybeSingle();
 
     if (error) return null;
     return data;
   } catch (err) {
-    console.error('getUserDetails:', err);
+    console.error("getUserDetails:", err);
     return null;
   }
 }
@@ -2764,16 +4202,18 @@ export async function getUserDetails(userId: string): Promise<any> {
  * Archive une agence (soft delete)
  * L'agence disparait de la liste mais ses donnees restent intactes
  */
-export async function archiveAgency(agencyId: string): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase non configure' };
+export async function archiveAgency(
+  agencyId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: "Supabase non configure" };
   try {
     const { error } = await supabase
-      .from('agencies')
-      .update({ 
-        status: 'archived',
+      .from("agencies")
+      .update({
+        status: "archived",
         updated_at: new Date().toISOString(),
       })
-      .eq('id', agencyId);
+      .eq("id", agencyId);
 
     if (error) return { success: false, error: error.message };
     return { success: true };
@@ -2785,16 +4225,18 @@ export async function archiveAgency(agencyId: string): Promise<{ success: boolea
 /**
  * Restaure une agence archivee
  */
-export async function restoreAgency(agencyId: string): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: 'Supabase non configure' };
+export async function restoreAgency(
+  agencyId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: "Supabase non configure" };
   try {
     const { error } = await supabase
-      .from('agencies')
-      .update({ 
-        status: 'active',
+      .from("agencies")
+      .update({
+        status: "active",
         updated_at: new Date().toISOString(),
       })
-      .eq('id', agencyId);
+      .eq("id", agencyId);
 
     if (error) return { success: false, error: error.message };
     return { success: true };
