@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Building2,
   Plus,
@@ -11,9 +11,9 @@ import {
   Layers,
   Home,
   X,
-} from 'lucide-react';
-import { Building, Unit, Owner, UserAccount } from '../types';
-import { formatCurrency, formatNumber } from '../lib/utils';
+} from "lucide-react";
+import { Building, Unit, Owner, UserAccount } from "../types";
+import { formatCurrency, formatNumber } from "../lib/utils";
 
 interface BuildingsViewProps {
   buildings: Building[];
@@ -36,29 +36,34 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   onDeleteBuilding,
   onSelectBuilding,
 }) => {
-  const [search, setSearch] = useState('');
-  const [selectedBuildingForDetails, setSelectedBuildingForDetails] = useState<Building | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedBuildingForDetails, setSelectedBuildingForDetails] =
+    useState<Building | null>(null);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [isNewBuildingModalOpen, setIsNewBuildingModalOpen] = useState(false);
 
   // Form state
-  const [nom, setNom] = useState('');
-  const [adresse, setAdresse] = useState('');
-  const [quartier, setQuartier] = useState('');
-  const [ville, setVille] = useState('Dakar');
-  const [type, setType] = useState<'Immeuble' | 'Villa' | 'Résidence' | 'Cité' | 'Duplex' | 'Autre'>('Immeuble');
+  const [nom, setNom] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [quartier, setQuartier] = useState("");
+  const [ville, setVille] = useState("Dakar");
+  const [type, setType] = useState<
+    "Immeuble" | "Villa" | "Résidence" | "Cité" | "Duplex" | "Autre"
+  >("Immeuble");
   const [nombreEtages, setNombreEtages] = useState(0);
-  const [proprietaireId, setProprietaireId] = useState(owners[0]?.id || '');
-  const [description, setDescription] = useState('');
+  const [proprietaireId, setProprietaireId] = useState(owners[0]?.id || "");
+  const [description, setDescription] = useState("");
 
   // 🔒 Permissions
-  const role = currentUser?.role || 'ADMIN';
-  const canManage = ['SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE'].includes(role);
+  const role = currentUser?.role || "ADMIN";
+  const canManage = ["SUPER_ADMIN", "ADMIN", "GESTIONNAIRE"].includes(role);
 
   // Filter buildings by role
   let displayableBuildings = buildings;
-  if (role === 'PROPRIETAIRE' && currentUser?.proprietaireId) {
-    displayableBuildings = buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId);
+  if (role === "PROPRIETAIRE" && currentUser?.proprietaireId) {
+    displayableBuildings = buildings.filter(
+      (b) => b.proprietaireId === currentUser.proprietaireId,
+    );
   }
 
   const filteredBuildings = displayableBuildings.filter((b) => {
@@ -66,8 +71,8 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       const q = search.toLowerCase();
       return (
         b.nom.toLowerCase().includes(q) ||
-        (b.adresse || '').toLowerCase().includes(q) ||
-        (b.quartier || '').toLowerCase().includes(q)
+        (b.adresse || "").toLowerCase().includes(q) ||
+        (b.quartier || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -76,18 +81,18 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   // Stats pour chaque immeuble
   const getBuildingStats = (buildingId: string) => {
     const buildingUnits = units.filter((u) => u.buildingId === buildingId);
-    const occupes = buildingUnits.filter((u) => u.statut === 'Occupé').length;
-    const vacants = buildingUnits.filter((u) => u.statut === 'Vacant').length;
+    const occupes = buildingUnits.filter((u) => u.statut === "Occupé").length;
+    const vacants = buildingUnits.filter((u) => u.statut === "Vacant").length;
     const totalLoyer = buildingUnits.reduce((sum, u) => sum + u.loyerBase, 0);
     return { total: buildingUnits.length, occupes, vacants, totalLoyer };
   };
 
   const getOwnerName = (ownerId: string): string => {
     const owner = owners.find((o) => o.id === ownerId);
-    return owner ? `${owner.prenom} ${owner.nom}` : 'Bailleur non référencé';
+    return owner ? `${owner.prenom} ${owner.nom}` : "Bailleur non référencé";
   };
 
-    const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
 
@@ -96,14 +101,14 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       (b) =>
         b.proprietaireId === proprietaireId &&
         b.nom.trim().toLowerCase() === nom.trim().toLowerCase() &&
-        b.id !== editingBuilding?.id
+        b.id !== editingBuilding?.id,
     );
 
     if (immeubleExistant) {
       alert(
         `⚠️ IMMEUBLE EN DOUBLE DÉTECTÉ\n\n` +
-        `Un immeuble nommé "${nom}" existe déjà pour ce propriétaire.\n\n` +
-        `Utilisez un nom différent ou modifiez l'immeuble existant.`
+          `Un immeuble nommé "${nom}" existe déjà pour ce propriétaire.\n\n` +
+          `Utilisez un nom différent ou modifiez l'immeuble existant.`,
       );
       return;
     }
@@ -118,8 +123,8 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       type,
       nombreEtages: Number(nombreEtages) || 0,
       description,
-      statut: 'Actif',
-      dateCreation: new Date().toISOString().split('T')[0],
+      statut: "Vacant",
+      dateCreation: new Date().toISOString().split("T")[0],
     };
 
     if (editingBuilding) {
@@ -130,29 +135,33 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     }
 
     // Reset
-    setNom('');
-    setAdresse('');
-    setQuartier('');
-    setDescription('');
+    setNom("");
+    setAdresse("");
+    setQuartier("");
+    setDescription("");
     setIsNewBuildingModalOpen(false);
   };
 
   const handleOpenEdit = (building: Building) => {
     setEditingBuilding(building);
     setNom(building.nom);
-    setAdresse(building.adresse || '');
-    setQuartier(building.quartier || '');
-    setVille(building.ville || 'Dakar');
+    setAdresse(building.adresse || "");
+    setQuartier(building.quartier || "");
+    setVille(building.ville || "Dakar");
     setType(building.type);
     setNombreEtages(building.nombreEtages);
     setProprietaireId(building.proprietaireId);
-    setDescription(building.description || '');
+    setDescription(building.description || "");
     setIsNewBuildingModalOpen(true);
   };
 
   const handleDelete = (building: Building) => {
     if (!canManage) return;
-    if (window.confirm(`Supprimer l'immeuble "${building.nom}" ? Toutes ses unités seront également supprimées.`)) {
+    if (
+      window.confirm(
+        `Supprimer l'immeuble "${building.nom}" ? Toutes ses unités seront également supprimées.`,
+      )
+    ) {
       onDeleteBuilding(building.id);
     }
   };
@@ -168,14 +177,15 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
           <div>
             <div className="text-base font-bold text-white flex items-center gap-2">
               Immeubles & Résidences
-              {role === 'PROPRIETAIRE' && (
+              {role === "PROPRIETAIRE" && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   Mes Immeubles
                 </span>
               )}
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {filteredBuildings.length} immeuble(s) · {units.length} espace(s) louable(s)
+              {filteredBuildings.length} immeuble(s) · {units.length} espace(s)
+              louable(s)
             </div>
           </div>
         </div>
@@ -185,10 +195,10 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
             <button
               onClick={() => {
                 setEditingBuilding(null);
-                setNom('');
-                setAdresse('');
-                setQuartier('');
-                setDescription('');
+                setNom("");
+                setAdresse("");
+                setQuartier("");
+                setDescription("");
                 setIsNewBuildingModalOpen(true);
               }}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
@@ -252,35 +262,47 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                   <div className="space-y-1.5 text-xs text-[#A8B4C4] my-3">
                     <div className="flex items-center gap-1.5 truncate">
                       <MapPin className="w-3.5 h-3.5 text-[#6B7C94] flex-shrink-0" />
-                      <span>{b.adresse || '—'}, {b.quartier || '—'}</span>
+                      <span>
+                        {b.adresse || "—"}, {b.quartier || "—"}
+                      </span>
                     </div>
                   </div>
 
                   <div className="p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/10 space-y-1.5 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-[#6B7C94]">Propriétaire :</span>
-                      <span className="font-semibold text-white truncate max-w-[140px]">{ownerName}</span>
+                      <span className="font-semibold text-white truncate max-w-[140px]">
+                        {ownerName}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center pt-1.5 border-t border-[#C9A96E]/10">
                       <span className="text-[#6B7C94] flex items-center gap-1">
                         <Layers className="w-3 h-3" /> Espaces :
                       </span>
-                      <span className="font-semibold text-white">{stats.total}</span>
+                      <span className="font-semibold text-white">
+                        {stats.total}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-emerald-400">Occupés :</span>
-                      <span className="font-semibold text-emerald-300">{stats.occupes}</span>
+                      <span className="font-semibold text-emerald-300">
+                        {stats.occupes}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sky-400">Vacants :</span>
-                      <span className="font-semibold text-sky-300">{stats.vacants}</span>
+                      <span className="font-semibold text-sky-300">
+                        {stats.vacants}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-[#C9A96E]/15 flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-[#6B7C94] uppercase">Loyer mensuel total</div>
+                    <div className="text-[10px] text-[#6B7C94] uppercase">
+                      Loyer mensuel total
+                    </div>
                     <div className="text-sm font-bold text-[#C9A96E] font-mono">
                       {formatCurrency(stats.totalLoyer)}
                     </div>
@@ -331,10 +353,15 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
             <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
               <div className="flex items-center gap-2 text-white font-bold text-sm">
                 <Building2 className="w-5 h-5 text-[#C9A96E]" />
-                <span>{editingBuilding ? 'Modifier l\'Immeuble' : 'Nouvel Immeuble'}</span>
+                <span>
+                  {editingBuilding ? "Modifier l'Immeuble" : "Nouvel Immeuble"}
+                </span>
               </div>
               <button
-                onClick={() => { setIsNewBuildingModalOpen(false); setEditingBuilding(null); }}
+                onClick={() => {
+                  setIsNewBuildingModalOpen(false);
+                  setEditingBuilding(null);
+                }}
                 className="text-[#A8B4C4] hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -436,7 +463,10 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
               <div className="pt-4 border-t border-[#C9A96E]/15 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => { setIsNewBuildingModalOpen(false); setEditingBuilding(null); }}
+                  onClick={() => {
+                    setIsNewBuildingModalOpen(false);
+                    setEditingBuilding(null);
+                  }}
                   className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C] cursor-pointer"
                 >
                   Annuler
@@ -445,7 +475,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all cursor-pointer"
                 >
-                  {editingBuilding ? 'Enregistrer' : 'Créer l\'Immeuble'}
+                  {editingBuilding ? "Enregistrer" : "Créer l'Immeuble"}
                 </button>
               </div>
             </form>

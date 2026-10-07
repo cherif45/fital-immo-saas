@@ -1622,4 +1622,153 @@ html.theme-light [class*="text-[#F0EDE8]"] {
 /* ============================================================================
    FIN DU FICHIER
    ============================================================================ */
+/* ============================================================ */
+/* FIX BULLETIN - Pagination naturelle + Centré + Compact      */
+/* ============================================================ */
 
+@media print {
+  body:has(.bulletin-print-modal) .bulletin-print-modal.fixed.inset-0 {
+    display: block !important;
+    width: 190mm !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container {
+    display: block !important;
+    width: 190mm !important;
+    max-width: 190mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  .bulletin-print-container .bulletin-flow-content,
+  .bulletin-print-container .bulletin-settlement {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .bulletin-print-container .bulletin-settlement {
+    margin-top: 4mm !important;
+    padding-top: 4mm !important;
+  }
+
+  .bulletin-print-container .bulletin-signatures {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 8mm !important;
+    margin-bottom: 8mm !important;
+  }
+
+  /* 1. Centrer le contenu */
+  .print-container {
+    max-width: 200mm !important;
+    margin: 0 auto !important;
+    padding: 3mm !important;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* 2. Réduire les espacements entre blocs */
+  .print-container > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  .print-container > * + * {
+    margin-top: 1.5mm !important;
+  }
+
+  /* 3. Tableaux compacts */
+  .print-container table {
+    font-size: 8px !important;
+    margin-bottom: 1.5mm !important;
+  }
+  .print-container th,
+  .print-container td {
+    padding: 1.5px 3px !important;
+    line-height: 1.15 !important;
+  }
+
+  /* 4. Titres compacts */
+  .print-container h1 {
+    font-size: 13px !important;
+    margin: 1mm 0 !important;
+  }
+  .print-container h2 {
+    font-size: 11px !important;
+    margin: 1mm 0 !important;
+  }
+  .print-container h3 {
+    font-size: 10px !important;
+    margin: 1mm 0 !important;
+  }
+
+  /* 5. Le NET À REVERSER reste petit */
+  .print-container .text-2xl {
+    font-size: 14px !important;
+  }
+  .print-container .text-sm {
+    font-size: 9px !important;
+  }
+  .print-container .text-xs {
+    font-size: 8px !important;
+  }
+
+  /* 6. Réduire les paddings */
+  .print-container .p-8 {
+    padding: 4mm !important;
+  }
+  .print-container .p-4 {
+    padding: 2mm !important;
+  }
+  .print-container .p-3 {
+    padding: 1.5mm !important;
+  }
+  .print-container .p-2 {
+    padding: 1mm !important;
+  }
+  .print-container .mb-5 {
+    margin-bottom: 1.5mm !important;
+  }
+  .print-container .mb-6 {
+    margin-bottom: 2mm !important;
+  }
+  .print-container .mb-4 {
+    margin-bottom: 1.5mm !important;
+  }
+  .print-container .mt-4 {
+    margin-top: 1.5mm !important;
+  }
+  .print-container .mt-6 {
+    margin-top: 2mm !important;
+  }
+  .print-container .pt-4 {
+    padding-top: 1.5mm !important;
+  }
+
+  /* 7. Signatures ne se coupent pas */
+  .print-container .grid-cols-2 {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 8. Supprimer espaces résiduels */
+  body::after,
+  #root::after,
+  .print-container::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* 9. Format A4 */
+  @page {
+    size: A4 portrait;
+    margin: 6mm;
+  }
+}

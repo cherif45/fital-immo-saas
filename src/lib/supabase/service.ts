@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -1638,6 +1638,7 @@ export async function saveBuildingToDb(
   try {
     const record = {
       agency_id: agencyId,
+      ref: building.ref || `IMM-${Date.now()}`, // ← AJOUT (obligatoire)
       proprietaire_id: building.proprietaireId,
       nom: building.nom,
       adresse: building.adresse || "",
@@ -1646,7 +1647,7 @@ export async function saveBuildingToDb(
       type: building.type || "Immeuble",
       nombre_etages: building.nombreEtages || 0,
       description: building.description || "",
-      statut: building.statut || "Actif",
+      statut: building.statut || "Vacant",
       updated_at: new Date().toISOString(),
     };
     const exists = building.id
@@ -2345,7 +2346,8 @@ export async function savePaymentToDb(
     const record = {
       agency_id: agencyId,
       ref: payment.ref || createDocumentNumber(undefined, "PAY-"),
-      quittance_numero: payment.quittanceNumero || createDocumentNumber(undefined, "QUI-"),
+      quittance_numero:
+        payment.quittanceNumero || createDocumentNumber(undefined, "QUI-"),
       locataire_id: payment.locataireId,
       bien_id: payment.bienId,
       locataire_nom: payment.locataireNom || null,
@@ -2403,9 +2405,10 @@ export async function savePaymentToDb(
       return { success: true, data: data as unknown as Payment };
     }
   } catch (err: any) {
-    const error = err?.code === "23505"
-      ? "Paiement bloqué : un paiement réglé ou en attente existe déjà pour ce locataire et cette période."
-      : err.message || "Impossible.";
+    const error =
+      err?.code === "23505"
+        ? "Paiement bloqué : un paiement réglé ou en attente existe déjà pour ce locataire et cette période."
+        : err.message || "Impossible.";
     return { success: false, error };
   }
 }
@@ -3230,7 +3233,7 @@ export async function fetchAgencyUsers(
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*, agencies:agencies(name)")
+      .select("*")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error || !data) return [];
@@ -3251,7 +3254,11 @@ export async function fetchAgencyUsers(
       organisation: p.agencies?.name || "",
       createdAt: p.created_at,
       updatedAt: p.updated_at,
-      initiales: p.initiales || (p.prenom && p.nom ? `${p.prenom.trim()[0]}${p.nom.trim()[0]}`.toUpperCase() : undefined),
+      initiales:
+        p.initiales ||
+        (p.prenom && p.nom
+          ? `${p.prenom.trim()[0]}${p.nom.trim()[0]}`.toUpperCase()
+          : undefined),
       signatureUrl: p.signature_url,
       fonction: p.fonction,
     }));
