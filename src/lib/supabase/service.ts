@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+ï»¿import { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -69,12 +69,12 @@ export interface AppStateData {
 
 export const defaultSettings: AgencySettings = {
   nomAgence: "FITAL-IMMO",
-  slogan: "Gestion Immobilià¨re, Syndic & Recouvrement",
+  slogan: "Gestion Immobiliï¿½ï¿½re, Syndic & Recouvrement",
   telephone: "+221 33 820 00 00",
   email: "contact@fital-immo.sn",
   adresse: "Avenue Cheikh Anta Diop, Dakar",
   ville: "Dakar",
-  pays: "Sénégal",
+  pays: "Sï¿½nï¿½gal",
   ninea: "008920194 2V8",
   devise: "FCFA",
   tauxGeranceDefaut: 10,
@@ -95,14 +95,14 @@ export const defaultPaymentMethods: PaymentMethodConfig[] = [
   {
     id: "pm-especes",
     code: "ESPECES",
-    libelle: "Espèces (Caisse Agence)",
-    description: "Rà¨glement au comptoir.",
+    libelle: "Espï¿½ces (Caisse Agence)",
+    description: "Rï¿½ï¿½glement au comptoir.",
     actif: true,
     parDefaut: true,
     estParDefaut: true,
     fraisPourcentage: 0,
     delaiValidationHeures: 0,
-    instructions: "Présentez-vous aux guichets.",
+    instructions: "Prï¿½sentez-vous aux guichets.",
   },
   {
     id: "pm-wave",
@@ -146,14 +146,14 @@ export const defaultPaymentMethods: PaymentMethodConfig[] = [
   {
     id: "pm-cheque",
     code: "CHEQUE",
-    libelle: "Chà¨que Certifié",
-    description: "Dépôt de chà¨que.",
+    libelle: "Chï¿½ï¿½que Certifiï¿½",
+    description: "Dï¿½pï¿½t de chï¿½ï¿½que.",
     actif: true,
     parDefaut: false,
     estParDefaut: false,
     fraisPourcentage: 0,
     delaiValidationHeures: 48,
-    instructions: "Chà¨que certifié.",
+    instructions: "Chï¿½ï¿½que certifiï¿½.",
   },
 ];
 
@@ -164,7 +164,7 @@ export const emptySettings: AgencySettings = {
   email: "",
   adresse: "",
   ville: "",
-  pays: "Sénégal",
+  pays: "Sï¿½nï¿½gal",
   ninea: "",
   devise: "FCFA",
   tauxGeranceDefaut: 10,
@@ -310,7 +310,7 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
 export function persistCollection<T>(key: string, data: T): void {
   if (typeof window === "undefined" || !window.localStorage) return;
 
-  // âš ï¸ Ne PAS persister les tables volumineuses (dépasse le quota localStorage)
+  // âš ï¸ Ne PAS persister les tables volumineuses (dï¿½passe le quota localStorage)
   const BLOCKED_KEYS = [
     "payments",
     "cash_movements",
@@ -327,7 +327,7 @@ export function persistCollection<T>(key: string, data: T): void {
     localStorage.setItem(`fital_immo_${key}`, JSON.stringify(data));
   } catch (err) {
     if (err instanceof Error && err.name === "QuotaExceededError") {
-      // Nettoyer le cache pour libérer de l'espace
+      // Nettoyer le cache pour libï¿½rer de l'espace
       try {
         Object.keys(localStorage)
           .filter(
@@ -342,7 +342,7 @@ export function persistCollection<T>(key: string, data: T): void {
 
 // ============================================================
 // HELPER : PAGINATION AUTOMATIQUE
-// Contourne la limite Supabase de 1000 lignes par requàªte
+// Contourne la limite Supabase de 1000 lignes par requï¿½ï¿½te
 // ============================================================
 async function fetchPage(
   table: string,
@@ -367,8 +367,8 @@ async function fetchPage(
   return { data: data || [], count: data?.length || 0 };
 }
 // ============================================================
-// HELPER : RÉCUPÉRATION COMPLÈTE D'UNE TABLE (pagination auto)
-// Récupère TOUTES les lignes sans être bloqué à 1000
+// HELPER : Rï¿½CUPï¿½RATION COMPLï¿½TE D'UNE TABLE (pagination auto)
+// Rï¿½cupï¿½re TOUTES les lignes sans ï¿½tre bloquï¿½ ï¿½ 1000
 // ============================================================
 async function fetchAllRows(
   table: string,
@@ -401,7 +401,7 @@ async function fetchAllRows(
 
     allRows.push(...data);
 
-    // Si on a reçu moins que pageSize, c'est la dernière page
+    // Si on a reï¿½u moins que pageSize, c'est la derniï¿½re page
     if (data.length < pageSize) break;
 
     page++;
@@ -414,7 +414,7 @@ async function fetchAllRows(
   }
 
   console.log(
-    `? fetchAllRows ${table}: ${allRows.length} lignes chargées (${page + 1} pages)`,
+    `? fetchAllRows ${table}: ${allRows.length} lignes chargï¿½es (${page + 1} pages)`,
   );
   return { data: allRows, error: null };
 }
@@ -477,7 +477,7 @@ export function mapPropertyFromDb(r: any): Property {
     quartier: r.quartier || "Dakar",
     ville: r.ville || "Dakar",
     proprietaireId: r.proprietaire_id || r.proprietaireId || "",
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "Propriétaire",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "Propriï¿½taire",
     tauxCommission: Number(r.taux_commission ?? r.tauxCommission ?? 10),
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
@@ -491,8 +491,8 @@ export function mapPropertyFromDb(r: any): Property {
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80",
     equipements: r.equipements || [
       "Climatisation",
-      "Compteur Eau & à‰lectricité",
-      "Sécurité 24/7",
+      "Compteur Eau & ï¿½ï¿½lectricitï¿½",
+      "Sï¿½curitï¿½ 24/7",
     ],
     description: r.description || "",
     dateCreation:
@@ -541,7 +541,7 @@ export function mapTenantFromDb(r: any): Tenant {
     profession: r.profession || r.fonction || "",
     employeur: r.employeur || "",
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
-    statut: r.statut || "À jour",
+    statut: r.statut || "ï¿½ jour",
     scoreSolvabilite: Number(r.score_solvabilite ?? r.scoreSolvabilite ?? 85),
     bienId: r.bien_id || r.bienId || "",
     bienNom: r.bien_nom || r.bienNom || "",
@@ -612,8 +612,8 @@ export function mapPaymentFromDb(r: any): Payment {
     montantTotal: Number(r.montant_total ?? r.montantTotal ?? 0),
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
-    statut: r.statut || "Payé",
-    modePaiement: r.mode_paiement || r.modePaiement || "Espèces",
+    statut: r.statut || "Payï¿½",
+    modePaiement: r.mode_paiement || r.modePaiement || "Espï¿½ces",
     moyenPaiementCode:
       r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
     verificationStatut:
@@ -626,7 +626,7 @@ export function mapPaymentFromDb(r: any): Payment {
       r.datePaiement ||
       new Date().toISOString().split("T")[0],
     dateEcheance: r.date_echeance || r.dateEcheance || "",
-    recuPar: r.recu_par || r.recuPar || "Service Gérance",
+    recuPar: r.recu_par || r.recuPar || "Service Gï¿½rance",
     observation: r.observation || "",
     auteurId: r.caissier_id || r.auteurId,
     auteurNom: r.caissier_nom || r.auteurNom,
@@ -679,7 +679,7 @@ export function mapOwnerChargeFromDb(r: any): OwnerCharge {
     referenceDocument: r.reference_document || r.referenceDocument,
     dateCharge:
       r.date_charge || r.dateCharge || new Date().toISOString().split("T")[0],
-    statut: r.statut || "Validé",
+    statut: r.statut || "Validï¿½",
     notes: r.notes || "",
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
@@ -793,7 +793,7 @@ export function mapCashMovementFromDb(r: any): CashMovement {
     beneficiaire: r.beneficiaire || "",
     justificatifRef: r.justificatif_ref || r.justificatifRef || "",
     dateHeure: r.created_at || r.dateHeure || new Date().toISOString(),
-    statut: r.statut || "Validé",
+    statut: r.statut || "Validï¿½",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -820,7 +820,7 @@ export function mapCashClosingFromDb(r: any): CashClosing {
     ecart: Number(r.ecart ?? 0),
     detailsComptage: r.details_comptage || r.detailsComptage || {},
     observations: r.observations || "",
-    statut: r.statut || "Validé par Responsable",
+    statut: r.statut || "Validï¿½ par Responsable",
   };
 }
 
@@ -832,13 +832,13 @@ export function mapInspectionFromDb(r: any): Inspection {
     bienNom: r.bien_nom || r.bienNom || "Bien",
     locataireId: r.locataire_id || r.locataireId || "",
     locataireNom: r.locataire_nom || r.locataireNom || "",
-    type: r.type || "Entrée",
+    type: r.type || "Entrï¿½e",
     date: r.date || r.date_inspection || new Date().toISOString().split("T")[0],
-    agentNom: r.agent_nom || r.agentNom || "Agent de gérance",
-    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || "Agent de gérance",
-    etatGeneral: r.etat_general || r.etatGeneral || "Bon état",
+    agentNom: r.agent_nom || r.agentNom || "Agent de gï¿½rance",
+    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || "Agent de gï¿½rance",
+    etatGeneral: r.etat_general || r.etatGeneral || "Bon ï¿½tat",
     remarques: r.remarques || r.observations || "",
-    statut: r.statut || "Validé",
+    statut: r.statut || "Validï¿½",
     signe: Boolean(r.signe ?? true),
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -859,15 +859,15 @@ export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
     titre: r.titre || "Signalement incident",
     description: r.description || "",
     priorite: r.priorite || "Moyenne",
-    statut: r.statut || "Signalé",
-    statutReglement: r.statut_reglement || r.statutReglement || "Non réglé",
+    statut: r.statut || "Signalï¿½",
+    statutReglement: r.statut_reglement || r.statutReglement || "Non rï¿½glï¿½",
     modeReglement: r.mode_reglement || r.modeReglement,
     dateReglement: r.date_reglement || r.dateReglement,
     factureArtisanRef: r.facture_artisan_ref || r.factureArtisanRef,
     regleParCaisse: Boolean(r.regle_par_caisse ?? r.regleParCaisse ?? false),
     caisseMouvementId: r.caisse_mouvement_id || r.caisseMouvementId,
     observationsReglement: r.observations_reglement || r.observationsReglement,
-    imputableA: r.imputable_a || r.imputableA || "Propriétaire",
+    imputableA: r.imputable_a || r.imputableA || "Propriï¿½taire",
     coutEstime: Number(r.cout_estime ?? r.coutEstime ?? 0),
     coutReel: Number(r.cout_reel ?? r.coutReel ?? 0),
     dateSignalement:
@@ -889,7 +889,7 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     id: r.id,
     ref: r.ref || `REV-${r.id.slice(0, 6)}`,
     proprietaireId: r.proprietaire_id || "",
-    proprietaireNom: r.proprietaire_nom || "Propriétaire",
+    proprietaireNom: r.proprietaire_nom || "Propriï¿½taire",
     periode: r.periode || "Ce mois",
     loyersBruts: Number(r.loyers_bruts_recouvres || 0),
     montantBrut: Number(r.loyers_bruts_recouvres || 0),
@@ -901,7 +901,7 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     chargesDeduites: Number(r.charges_deduites || 0),
     montantNetPaye: Number(r.net_a_reverser || 0),
     montantNet: Number(r.net_a_reverser || 0),
-    statut: r.statut || "Effectué",
+    statut: r.statut || "Effectuï¿½",
     modeReglement: r.mode_reglement || "Virement",
     modeReversement: r.mode_reglement || "Virement",
     dateReglement: r.date_versement || "",
@@ -941,7 +941,7 @@ export function mapInvoiceFromDb(r: any): Invoice {
     taxes: Number(r.taxes ?? 0),
     total: tot,
     montantTotal: tot,
-    statut: r.statut || "Émise",
+    statut: r.statut || "ï¿½mise",
     lignes: r.lignes || [],
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -956,7 +956,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     locataireNom: r.locataire_nom || r.locataireNom || "",
     telephone: r.telephone || "",
     email: r.email || "",
-    bienNom: r.bien_nom || r.bienNom || "Bien loué",
+    bienNom: r.bien_nom || r.bienNom || "Bien louï¿½",
     montantDu: Number(r.montant_du ?? r.montantDu ?? 0),
     penalites: Number(r.penalites ?? 0),
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
@@ -964,7 +964,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     canal: r.canal || "SMS",
     typeRelance: r.type_relance || r.typeRelance || "Courtoise",
     message: r.message || "",
-    statut: r.statut || "Envoyé",
+    statut: r.statut || "Envoyï¿½",
     dateCreation:
       r.created_at || r.dateCreation || new Date().toISOString().split("T")[0],
     dateEnvoi: r.date_envoi || r.dateEnvoi,
@@ -1075,7 +1075,7 @@ export async function loadFullApplicationData(
 
   if (!agencyId) {
     console.warn(
-      "âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnée distante chargée.",
+      "âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnï¿½e distante chargï¿½e.",
     );
     return state;
   }
@@ -1121,9 +1121,7 @@ export async function loadFullApplicationData(
         q.is("deleted_at", null).order("created_at", { ascending: false }),
       ),
       agencyFilter(supabase.from("contracts").select("*")),
-      fetchAllRows("payments", agencyId, (q) =>
-        q.is("deleted_at", null).order("date_paiement", { ascending: false }),
-      ),
+      Promise.resolve({ data: [], error: null }), // payments : charge lazy
       Promise.resolve({ data: [], error: null }), // cash_movements : charge lazy
       agencyFilter(
         supabase
@@ -1198,9 +1196,7 @@ export async function loadFullApplicationData(
       fetchAllRows("penalties", agencyId, (q) =>
         q.order("created_at", { ascending: false }),
       ),
-      fetchAllRows("owner_charges", agencyId, (q) =>
-        q.order("created_at", { ascending: false }),
-      ),
+      Promise.resolve({ data: [], error: null }), // owner_charges : charge lazy
     ]);
 
     if (agencyRes.status === "fulfilled" && agencyRes.value.data) {
@@ -1288,7 +1284,7 @@ export async function loadFullApplicationData(
         const mapped = mapDisbursementFromDb(d);
         if (
           !mapped.proprietaireNom ||
-          mapped.proprietaireNom === "Propriétaire"
+          mapped.proprietaireNom === "Propriï¿½taire"
         ) {
           const owner = state.owners.find(
             (o) => o.id === mapped.proprietaireId,
@@ -1419,7 +1415,7 @@ export async function loadFullApplicationData(
         email: dbSettings.email || "",
         adresse: dbSettings.adresse || "",
         ville: dbSettings.ville || "",
-        pays: dbSettings.pays || "Sénégal",
+        pays: dbSettings.pays || "Sï¿½nï¿½gal",
         ninea: dbSettings.ninea || "",
         devise: dbSettings.devise || "FCFA",
         tauxGeranceDefaut: Number(dbSettings.taux_gerance_defaut ?? 10),
@@ -1479,7 +1475,7 @@ export async function loadFullApplicationData(
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// SUITE DU FICHIER (identique à  ton original)
+// SUITE DU FICHIER (identique ï¿½ï¿½ ton original)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 export async function fetchUserProfile(
@@ -1493,7 +1489,7 @@ export async function fetchUserProfile(
       .eq("id", userId)
       .maybeSingle();
     if (error || !profile) {
-      console.warn("Profil non trouvé:", error);
+      console.warn("Profil non trouvï¿½:", error);
       return null;
     }
     let agencyData = null;
@@ -1535,8 +1531,8 @@ export async function logSystemAudit(
 ): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return;
 
-  const userNom = log.userNom || log.utilisateur || "Système";
-  const module = log.module || log.entite || "SYSTÈME";
+  const userNom = log.userNom || log.utilisateur || "Systï¿½me";
+  const module = log.module || log.entite || "SYSTï¿½ME";
   const entityType = log.entityType || log.entite || "GENERAL";
   const entityRef = log.entityRef || log.entiteId || "N/A";
   const details = log.details || "";
@@ -1817,7 +1813,7 @@ export async function saveOwnerChargeToDb(
       montant: charge.montant || 0,
       reference_document: charge.referenceDocument || null,
       date_charge: charge.dateCharge || new Date().toISOString().split("T")[0],
-      statut: charge.statut || "Validé",
+      statut: charge.statut || "Validï¿½",
       notes: charge.notes || "",
       updated_at: new Date().toISOString(),
     };
@@ -2169,7 +2165,7 @@ export async function saveOwnerToDb(
       prenom: owner.prenom,
       telephone: owner.telephone,
       email: owner.email || `owner-${Date.now()}@fital-immo.com`,
-      adresse: owner.adresse || "Dakar, Sénégal",
+      adresse: owner.adresse || "Dakar, Sï¿½nï¿½gal",
       banque: owner.banque || "CBAO Attijariwafa",
       compte_bancaire: owner.compteBancaire || "",
       mandat_gerance: owner.mandatGerance || `MANDAT-${Date.now()}`,
@@ -2227,7 +2223,7 @@ export async function saveTenantToDb(
       fonction: tenant.fonction || "",
       employeur: tenant.employeur || "",
       revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || "À jour",
+      statut: tenant.statut || "ï¿½ jour",
       score_solvabilite: tenant.scoreSolvabilite || 85,
       bien_id: tenant.bienId || null,
       proprietaire_id: tenant.proprietaireId || null,
@@ -2354,7 +2350,7 @@ export async function savePaymentToDb(
       montant_total: payment.montantTotal,
       montant_paye: payment.montantPaye,
       montant_restant: payment.montantRestant || 0,
-      statut: payment.statut || "Payé",
+      statut: payment.statut || "Payï¿½",
       mode_paiement: payment.modePaiement,
       moyen_paiement_code: payment.moyenPaiementCode || "ESPECES",
       verification_statut: payment.verificationStatut || "valide",
@@ -2364,7 +2360,7 @@ export async function savePaymentToDb(
         payment.datePaiement || new Date().toISOString().split("T")[0],
       date_echeance:
         payment.dateEcheance || new Date().toISOString().split("T")[0],
-      recu_par: payment.recuPar || "Service Gérance",
+      recu_par: payment.recuPar || "Service Gï¿½rance",
       caissier_id: authorId || null,
       observation: payment.observation || "",
       created_by_id: payment.createdById || null,
@@ -2399,7 +2395,7 @@ export async function savePaymentToDb(
   } catch (err: any) {
     const error =
       err?.code === "23505"
-        ? "Paiement bloqué : un paiement réglé ou en attente existe déjà pour ce locataire et cette période."
+        ? "Paiement bloquï¿½ : un paiement rï¿½glï¿½ ou en attente existe dï¿½jï¿½ pour ce locataire et cette pï¿½riode."
         : err.message || "Impossible.";
     return { success: false, error };
   }
@@ -2415,7 +2411,7 @@ export async function validatePendingPaymentInDb(
     const { error } = await supabase
       .from("payments")
       .update({
-        statut: "Payé",
+        statut: "Payï¿½",
         verification_statut: "valide",
         validated_by: validatedBy,
         updated_at: new Date().toISOString(),
@@ -2439,9 +2435,9 @@ export async function rejectPendingPaymentInDb(
     const { error } = await supabase
       .from("payments")
       .update({
-        statut: "Impayé",
+        statut: "Impayï¿½",
         verification_statut: "rejete",
-        observation: motif || "Paiement rejeté",
+        observation: motif || "Paiement rejetï¿½",
         updated_at: new Date().toISOString(),
       })
       .eq("id", paymentId)
@@ -2477,7 +2473,7 @@ export async function saveCashMovementToDb(
       user_nom: movement.auteurNom || "Caissier",
       beneficiaire: movement.beneficiaire || null,
       justificatif_ref: movement.justificatifRef || null,
-      statut: "Validé",
+      statut: "Validï¿½",
       created_by_id: movement.createdById || null,
       created_by_nom: movement.createdByNom || null,
       created_by_role: movement.createdByRole || null,
@@ -2518,7 +2514,7 @@ export async function saveCashClosingToDb(
       ecart: closing.ecart || 0,
       details_comptage: closing.detailsComptage || {},
       observations: closing.observations || "",
-      statut: closing.statut || "Validé par Responsable",
+      statut: closing.statut || "Validï¿½ par Responsable",
     };
     const { data, error } = await supabase
       .from("cash_closings")
@@ -2553,15 +2549,15 @@ export async function saveMaintenanceToDb(
       titre: ticket.titre || "Signalement incident",
       description: ticket.description || "",
       priorite: ticket.priorite || "Moyenne",
-      statut: ticket.statut || "Signalé",
-      statut_reglement: ticket.statutReglement || "Non réglé",
+      statut: ticket.statut || "Signalï¿½",
+      statut_reglement: ticket.statutReglement || "Non rï¿½glï¿½",
       mode_reglement: ticket.modeReglement || null,
       date_reglement: ticket.dateReglement || null,
       facture_artisan_ref: ticket.factureArtisanRef || null,
       regle_par_caisse: ticket.regleParCaisse || false,
       caisse_mouvement_id: ticket.caisseMouvementId || null,
       observations_reglement: ticket.observationsReglement || null,
-      imputable_a: ticket.imputableA || "Propriétaire",
+      imputable_a: ticket.imputableA || "Propriï¿½taire",
       cout_estime: ticket.coutEstime || 0,
       cout_reel: ticket.coutReel || 0,
       date_signalement:
@@ -2618,7 +2614,7 @@ export async function saveInspectionToDb(
       ref: insp.ref || `EDL-${Date.now()}`,
       bien_id: insp.bienId,
       locataire_id: insp.locataireId,
-      type: insp.type || "Entrée",
+      type: insp.type || "Entrï¿½e",
       date_inspection: insp.date || new Date().toISOString().split("T")[0],
       clefs_remises: 3,
       agent_nom: insp.agentNom || insp.inspecteurNom || "Agent FITAL-IMMO",
@@ -2626,7 +2622,7 @@ export async function saveInspectionToDb(
       total_degats: insp.coutDegradations || 0,
       retenue_caution: insp.retenueCaution || 0,
       montant_restitue_caution: insp.montantRestitueCaution || 0,
-      statut: insp.statut || "Validé",
+      statut: insp.statut || "Validï¿½",
       commentaires_generaux: insp.commentairesGeneraux || insp.remarques || "",
       created_by_id: insp.createdById || null,
       created_by_nom: insp.createdByNom || null,
@@ -2685,7 +2681,7 @@ export async function saveDisbursementToDb(
         disb.dateReglement ||
         disb.dateReversement ||
         new Date().toISOString().split("T")[0],
-      statut: disb.statut || "Effectué",
+      statut: disb.statut || "Effectuï¿½",
       created_by_id: disb.createdById || null,
       created_by_nom: disb.createdByNom || null,
       created_by_role: disb.createdByRole || null,
@@ -2744,7 +2740,7 @@ export async function saveInvoiceToDb(
       sous_total: inv.sousTotal || inv.montantTotal || 0,
       taxes: inv.taxes || 0,
       total: inv.total || inv.montantTotal || 0,
-      statut: inv.statut || "Émise",
+      statut: inv.statut || "ï¿½mise",
       lignes: inv.lignes || [],
       created_by_id: inv.createdById || null,
       created_by_nom: inv.createdByNom || null,
@@ -2925,7 +2921,7 @@ export async function uploadFileToSupabaseStorage(
   file: File,
 ): Promise<{ success: boolean; url?: string; error?: string }> {
   if (!isSupabaseConfigured || !supabase)
-    return { success: false, error: "Supabase Storage non configuré." };
+    return { success: false, error: "Supabase Storage non configurï¿½." };
   try {
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -3014,7 +3010,7 @@ export async function softDeleteRecord(
   try {
     const { error } = await supabase
       .from(table)
-      .update({ statut: "Archivé" })
+      .update({ statut: "Archivï¿½" })
       .eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -3138,7 +3134,7 @@ export async function createUserAccountInSupabase(
   params: CreateUserAccountParams,
 ): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !supabaseUrl || !supabaseAnonKey) {
-    return { success: false, error: "Supabase non configuré." };
+    return { success: false, error: "Supabase non configurï¿½." };
   }
   const cleanEmail = params.email.trim().toLowerCase();
   const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -3159,7 +3155,7 @@ export async function createUserAccountInSupabase(
       });
     if (signUpError) {
       if (signUpError.message?.toLowerCase().includes("already registered")) {
-        return { success: false, error: "Cet email est déjà  enregistré." };
+        return { success: false, error: "Cet email est dï¿½jï¿½ï¿½ enregistrï¿½." };
       }
       return { success: false, error: signUpError.message };
     }
@@ -3185,7 +3181,7 @@ export async function createUserAccountInSupabase(
     if (profileError)
       return {
         success: false,
-        error: `Profil refusé : ${profileError.message}.`,
+        error: `Profil refusï¿½ : ${profileError.message}.`,
       };
     const userAccount: UserAccount = {
       id: authUser.id,
@@ -3202,7 +3198,7 @@ export async function createUserAccountInSupabase(
       organisation: params.organisation || "",
       avatar: params.avatar,
       createdAt: new Date().toISOString(),
-      derniereConnexion: "Jamais connecté",
+      derniereConnexion: "Jamais connectï¿½",
     };
     return { success: true, user: userAccount };
   } catch (err: any) {
@@ -3257,7 +3253,7 @@ export async function fetchAgencyUsers(
 export async function restoreAllData(
   backup: any,
 ): Promise<{ success: boolean; count?: number; error?: string }> {
-  if (!supabase) return { success: false, error: "Supabase non configuré." };
+  if (!supabase) return { success: false, error: "Supabase non configurï¿½." };
   try {
     const agencyId =
       backup?.agencies?.[0]?.id ||
@@ -3417,7 +3413,7 @@ export async function createAgencyWithAdmin(params: {
       return {
         success: false,
         error:
-          "Erreur création agence : " + (agencyError?.message || "inconnue"),
+          "Erreur crï¿½ation agence : " + (agencyError?.message || "inconnue"),
       };
     }
     agencyId = agency.id;
@@ -3445,14 +3441,14 @@ export async function createAgencyWithAdmin(params: {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: "Erreur création compte : " + authError.message,
+        error: "Erreur crï¿½ation compte : " + authError.message,
       };
     }
     if (!authData?.user?.id) {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: 'Compte Auth non créé. Vérifiez "Enable email signups".',
+        error: 'Compte Auth non crï¿½ï¿½. Vï¿½rifiez "Enable email signups".',
       };
     }
     const { error: profileError } = await supabase.from("profiles").insert({
@@ -3470,7 +3466,7 @@ export async function createAgencyWithAdmin(params: {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: "Erreur création profil : " + profileError.message,
+        error: "Erreur crï¿½ation profil : " + profileError.message,
       };
     }
     try {
@@ -3478,8 +3474,8 @@ export async function createAgencyWithAdmin(params: {
         {
           agency_id: agency.id,
           code: "ESPECES",
-          libelle: "Espèces",
-          description: "Règlement au comptoir",
+          libelle: "Espï¿½ces",
+          description: "Rï¿½glement au comptoir",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 0,
@@ -3514,15 +3510,15 @@ export async function createAgencyWithAdmin(params: {
         {
           agency_id: agency.id,
           code: "CHEQUE",
-          libelle: "Chèque",
-          description: "Dépôt de chèque",
+          libelle: "Chï¿½que",
+          description: "Dï¿½pï¿½t de chï¿½que",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 48,
         },
       ]);
     } catch (e) {
-      console.warn("Erreur création payment_methods:", e);
+      console.warn("Erreur crï¿½ation payment_methods:", e);
     }
     try {
       const currentYear = new Date().getFullYear();
@@ -3533,7 +3529,7 @@ export async function createAgencyWithAdmin(params: {
         email: params.agencyEmail,
         adresse: params.agencyAddress || "",
         ville: params.agencyCity,
-        pays: "Sénégal",
+        pays: "Sï¿½nï¿½gal",
         devise: "FCFA",
         ninea: params.agencyNinea || null,
         taux_gerance_defaut: 10,
@@ -3549,7 +3545,7 @@ export async function createAgencyWithAdmin(params: {
         prefix_bon_caisse: `BCA-${currentYear}-`,
       });
     } catch (e) {
-      console.warn("Erreur création settings:", e);
+      console.warn("Erreur crï¿½ation settings:", e);
     }
     return { success: true, agencyId: agency.id };
   } catch (err: any) {
@@ -3566,7 +3562,7 @@ export async function toggleAgencyStatus(
   agencyId: string,
   newStatus: "active" | "suspended",
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: "Supabase non configuré." };
+  if (!supabase) return { success: false, error: "Supabase non configurï¿½." };
   const { error } = await supabase
     .from("agencies")
     .update({ status: newStatus })
@@ -3617,7 +3613,7 @@ export async function fetchGlobalStats(): Promise<{
 }
 
 // ============================================================
-// COMPTEURS Rà‰ELS (requàªtes HEAD ultra-rapides)
+// COMPTEURS Rï¿½ï¿½ELS (requï¿½ï¿½tes HEAD ultra-rapides)
 // ============================================================
 export async function fetchRealCounts(
   agencyId: string,
@@ -3657,7 +3653,7 @@ export async function fetchRealCounts(
 }
 
 // ============================================================
-// STATS VIA VUE MATà‰RIALISà‰E (1 requàªte, ultra-rapide)
+// STATS VIA VUE MATï¿½ï¿½RIALISï¿½ï¿½E (1 requï¿½ï¿½te, ultra-rapide)
 // ============================================================
 export interface AgencyStats {
   agency_id: string;
@@ -3704,8 +3700,8 @@ export async function fetchAgencyStats(
 }
 
 // ============================================================
-// RPC : Statistiques agrégées côté serveur (super rapide)
-// Remplace le comptage/calcul côté client
+// RPC : Statistiques agrï¿½gï¿½es cï¿½tï¿½ serveur (super rapide)
+// Remplace le comptage/calcul cï¿½tï¿½ client
 // ============================================================
 export interface AgencyStats {
   total_owners: number;
@@ -3743,7 +3739,7 @@ export async function getAgencyStats(
 }
 
 // ============================================================
-// RPC : Pagination générique serveur-side
+// RPC : Pagination gï¿½nï¿½rique serveur-side
 // ============================================================
 export interface PaginatedResult<T> {
   total: number;
@@ -3780,7 +3776,7 @@ export async function paginateTable<T = any>(
 }
 
 // ============================================================
-// RPC : Données complètes du bulletin propriétaire
+// RPC : Donnï¿½es complï¿½tes du bulletin propriï¿½taire
 // ============================================================
 export interface OwnerBulletinData {
   payments: any[];
@@ -3813,17 +3809,17 @@ export async function getOwnerBulletinData(
     }
     console.log("?? getOwnerBulletinData raw:", data);
 
-    // Supabase peut retourner le JSON de plusieurs façons :
+    // Supabase peut retourner le JSON de plusieurs faï¿½ons :
     // 1. Direct : { payments: [...], properties: [...] }
     // 2. Array [ { get_owner_bulletin_data: {...} } ]
-    // 3. String JSON à parser
+    // 3. String JSON ï¿½ parser
     let payload: any = data;
 
     // Cas 1 : tableau
     if (Array.isArray(payload) && payload.length > 0) {
       payload = payload[0];
     }
-    // Cas 2 : clé get_owner_bulletin_data
+    // Cas 2 : clï¿½ get_owner_bulletin_data
     if (
       payload &&
       typeof payload === "object" &&
@@ -3854,7 +3850,7 @@ export async function getOwnerBulletinData(
 }
 
 // ============================================================
-// RPC : Activité quotidienne (calendrier Dashboard)
+// RPC : Activitï¿½ quotidienne (calendrier Dashboard)
 // ============================================================
 export interface DailyActivity {
   jour: string; // '2021-01-01 00:00:00+00'
@@ -3890,13 +3886,13 @@ export async function getDailyActivity(
 }
 
 // ============================================================
-// AUTO-LOG WRAPPER — Log automatique de toutes les actions
-// Ajouté le 04/10/2026
+// AUTO-LOG WRAPPER ï¿½ Log automatique de toutes les actions
+// Ajoutï¿½ le 04/10/2026
 // ============================================================
 
 /**
  * Wrapper qui log automatiquement chaque action CRUD
- * Utilisation : logAndRun('OWNER_CREATED', 'Propriétaires', 'Création', () => saveOwnerToDb(...))
+ * Utilisation : logAndRun('OWNER_CREATED', 'Propriï¿½taires', 'Crï¿½ation', () => saveOwnerToDb(...))
  */
 async function logAndRun<
   T extends { success: boolean; data?: any; error?: string },
@@ -3916,7 +3912,7 @@ async function logAndRun<
       const {
         data: { user },
       } = await supabase!.auth.getUser();
-      const userNom = user?.email || "Système";
+      const userNom = user?.email || "Systï¿½me";
 
       await supabase!.from("activity_logs").insert([
         {
@@ -3949,14 +3945,14 @@ async function logAndRun<
 }
 
 // ============================================================
-// WRAPPERS PUBLICS — À utiliser dans App.tsx
+// WRAPPERS PUBLICS ï¿½ ï¿½ utiliser dans App.tsx
 // ============================================================
 
 export async function saveOwnerToDbWithLog(owner: any, agencyId: string) {
   return logAndRun(
     "OWNER_CREATED",
-    "Propriétaires",
-    `Nouveau propriétaire : ${owner.prenom || ""} ${owner.nom || ""}`.trim(),
+    "Propriï¿½taires",
+    `Nouveau propriï¿½taire : ${owner.prenom || ""} ${owner.nom || ""}`.trim(),
     agencyId,
     () => saveOwnerToDb(owner, agencyId),
     owner.ref,
