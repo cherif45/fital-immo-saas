@@ -40,7 +40,6 @@ import {
   LazyOwnerChargesView,
   LazyDocumentsView,
   LazyReportsView,
-  LazySettingsView,
   LazyAgencySettingsView,
   LazyArchiveView,
   LazyActivityLogView,

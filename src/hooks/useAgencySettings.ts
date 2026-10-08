@@ -83,16 +83,8 @@ export function useAgencySettings(agencyId?: string) {
           orangeMoneyCode: data.orange_money_code,
           whatsappBusiness: data.whatsapp_business,
           standardTelephone: data.standard_telephone,
-          waveApiKey: data.wave_api_key || '',
-          waveWebhookSecret: data.wave_webhook_secret || '',
           waveEnabled: data.wave_enabled ?? false,
-          orangeMoneyApiKey: data.orange_money_api_key || '',
-          orangeMoneyMerchantId: data.orange_money_merchant_id || '',
           orangeMoneyEnabled: data.orange_money_enabled ?? false,
-          paydunyaMasterKey: data.paydunya_master_key || '',
-          paydunyaPrivateKey: data.paydunya_private_key || '',
-          paydunyaPublicKey: data.paydunya_public_key || '',
-          paydunyaToken: data.paydunya_token || '',
           paydunyaMode: data.paydunya_mode || 'test',
           paydunyaEnabled: data.paydunya_enabled ?? false,
           paymentsEnabled: data.payments_enabled ?? false,
@@ -181,16 +173,8 @@ export function useAgencySettings(agencyId?: string) {
         if (patch.orangeMoneyCode !== undefined) dbPatch.orange_money_code = patch.orangeMoneyCode;
         if (patch.whatsappBusiness !== undefined) dbPatch.whatsapp_business = patch.whatsappBusiness;
         if (patch.standardTelephone !== undefined) dbPatch.standard_telephone = patch.standardTelephone;
-        if (patch.waveApiKey !== undefined) dbPatch.wave_api_key = patch.waveApiKey;
-        if (patch.waveWebhookSecret !== undefined) dbPatch.wave_webhook_secret = patch.waveWebhookSecret;
         if (patch.waveEnabled !== undefined) dbPatch.wave_enabled = patch.waveEnabled;
-        if (patch.orangeMoneyApiKey !== undefined) dbPatch.orange_money_api_key = patch.orangeMoneyApiKey;
-        if (patch.orangeMoneyMerchantId !== undefined) dbPatch.orange_money_merchant_id = patch.orangeMoneyMerchantId;
         if (patch.orangeMoneyEnabled !== undefined) dbPatch.orange_money_enabled = patch.orangeMoneyEnabled;
-        if (patch.paydunyaMasterKey !== undefined) dbPatch.paydunya_master_key = patch.paydunyaMasterKey;
-        if (patch.paydunyaPrivateKey !== undefined) dbPatch.paydunya_private_key = patch.paydunyaPrivateKey;
-        if (patch.paydunyaPublicKey !== undefined) dbPatch.paydunya_public_key = patch.paydunyaPublicKey;
-        if (patch.paydunyaToken !== undefined) dbPatch.paydunya_token = patch.paydunyaToken;
         if (patch.paydunyaMode !== undefined) dbPatch.paydunya_mode = patch.paydunyaMode;
         if (patch.paydunyaEnabled !== undefined) dbPatch.paydunya_enabled = patch.paydunyaEnabled;
         if (patch.paymentsEnabled !== undefined) dbPatch.payments_enabled = patch.paymentsEnabled;

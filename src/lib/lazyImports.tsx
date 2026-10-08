@@ -32,7 +32,6 @@ export const LazyPenaltiesView = lazy(() => import('../components/PenaltiesView'
 export const LazyOwnerChargesView = lazy(() => import('../components/OwnerChargesView').then(m => ({ default: m.OwnerChargesView })));
 export const LazyDocumentsView = lazy(() => import('../components/DocumentsView').then(m => ({ default: m.DocumentsView })));
 export const LazyReportsView = lazy(() => import('../components/ReportsView').then(m => ({ default: m.ReportsView })));
-export const LazySettingsView = lazy(() => import('../components/SettingsView').then(m => ({ default: m.SettingsView })));
 export const LazyAgencySettingsView = lazy(() => import('../components/AgencySettingsView').then(m => ({ default: m.AgencySettingsView })));
 export const LazyArchiveView = lazy(() => import('../components/ArchiveView').then(m => ({ default: m.ArchiveView })));
 export const LazyActivityLogView = lazy(() => import('../components/ActivityLogView').then(m => ({ default: m.ActivityLogView })));

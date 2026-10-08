@@ -1,4 +1,4 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -69,12 +69,12 @@ export interface AppStateData {
 
 export const defaultSettings: AgencySettings = {
   nomAgence: "FITAL-IMMO",
-  slogan: "Gestion Immobilià¨re, Syndic & Recouvrement",
+  slogan: "Gestion Immobili�re, Syndic & Recouvrement",
   telephone: "+221 33 820 00 00",
   email: "contact@fital-immo.sn",
   adresse: "Avenue Cheikh Anta Diop, Dakar",
   ville: "Dakar",
-  pays: "Sénégal",
+  pays: "S�n�gal",
   ninea: "008920194 2V8",
   devise: "FCFA",
   tauxGeranceDefaut: 10,
@@ -95,14 +95,14 @@ export const defaultPaymentMethods: PaymentMethodConfig[] = [
   {
     id: "pm-especes",
     code: "ESPECES",
-    libelle: "Espèces (Caisse Agence)",
-    description: "Rà¨glement au comptoir.",
+    libelle: "Esp�ces (Caisse Agence)",
+    description: "R�glement au comptoir.",
     actif: true,
     parDefaut: true,
     estParDefaut: true,
     fraisPourcentage: 0,
     delaiValidationHeures: 0,
-    instructions: "Présentez-vous aux guichets.",
+    instructions: "Pr�sentez-vous aux guichets.",
   },
   {
     id: "pm-wave",
@@ -146,14 +146,14 @@ export const defaultPaymentMethods: PaymentMethodConfig[] = [
   {
     id: "pm-cheque",
     code: "CHEQUE",
-    libelle: "Chà¨que Certifié",
-    description: "Dépôt de chà¨que.",
+    libelle: "Ch�que Certifi�",
+    description: "D�p�t de ch�que.",
     actif: true,
     parDefaut: false,
     estParDefaut: false,
     fraisPourcentage: 0,
     delaiValidationHeures: 48,
-    instructions: "Chà¨que certifié.",
+    instructions: "Ch�que certifi�.",
   },
 ];
 
@@ -164,7 +164,7 @@ export const emptySettings: AgencySettings = {
   email: "",
   adresse: "",
   ville: "",
-  pays: "Sénégal",
+  pays: "S�n�gal",
   ninea: "",
   devise: "FCFA",
   tauxGeranceDefaut: 10,
@@ -310,7 +310,7 @@ export function loadLocalCollection<T>(key: string, fallback: T): T {
 export function persistCollection<T>(key: string, data: T): void {
   if (typeof window === "undefined" || !window.localStorage) return;
 
-  // âš ï¸ Ne PAS persister les tables volumineuses (dépasse le quota localStorage)
+  // ⚠️ Ne PAS persister les tables volumineuses (d�passe le quota localStorage)
   const BLOCKED_KEYS = [
     "payments",
     "cash_movements",
@@ -327,7 +327,7 @@ export function persistCollection<T>(key: string, data: T): void {
     localStorage.setItem(`fital_immo_${key}`, JSON.stringify(data));
   } catch (err) {
     if (err instanceof Error && err.name === "QuotaExceededError") {
-      // Nettoyer le cache pour libérer de l'espace
+      // Nettoyer le cache pour lib�rer de l'espace
       try {
         Object.keys(localStorage)
           .filter(
@@ -342,7 +342,7 @@ export function persistCollection<T>(key: string, data: T): void {
 
 // ============================================================
 // HELPER : PAGINATION AUTOMATIQUE
-// Contourne la limite Supabase de 1000 lignes par requàªte
+// Contourne la limite Supabase de 1000 lignes par requ�te
 // ============================================================
 async function fetchPage(
   table: string,
@@ -367,8 +367,8 @@ async function fetchPage(
   return { data: data || [], count: data?.length || 0 };
 }
 // ============================================================
-// HELPER : RÉCUPÉRATION COMPLÈTE D'UNE TABLE (pagination auto)
-// Récupère TOUTES les lignes sans être bloqué à 1000
+// HELPER : R�CUP�RATION COMPL�TE D'UNE TABLE (pagination auto)
+// R�cup�re TOUTES les lignes sans �tre bloqu� � 1000
 // ============================================================
 async function fetchAllRows(
   table: string,
@@ -401,7 +401,7 @@ async function fetchAllRows(
 
     allRows.push(...data);
 
-    // Si on a reçu moins que pageSize, c'est la dernière page
+    // Si on a re�u moins que pageSize, c'est la derni�re page
     if (data.length < pageSize) break;
 
     page++;
@@ -414,7 +414,7 @@ async function fetchAllRows(
   }
 
   console.log(
-    `✅ fetchAllRows ${table}: ${allRows.length} lignes chargées (${page + 1} pages)`,
+    `? fetchAllRows ${table}: ${allRows.length} lignes charg�es (${page + 1} pages)`,
   );
   return { data: allRows, error: null };
 }
@@ -477,7 +477,7 @@ export function mapPropertyFromDb(r: any): Property {
     quartier: r.quartier || "Dakar",
     ville: r.ville || "Dakar",
     proprietaireId: r.proprietaire_id || r.proprietaireId || "",
-    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "Propriétaire",
+    proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "Propri�taire",
     tauxCommission: Number(r.taux_commission ?? r.tauxCommission ?? 10),
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
@@ -491,8 +491,8 @@ export function mapPropertyFromDb(r: any): Property {
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80",
     equipements: r.equipements || [
       "Climatisation",
-      "Compteur Eau & à‰lectricité",
-      "Sécurité 24/7",
+      "Compteur Eau & ��lectricit�",
+      "S�curit� 24/7",
     ],
     description: r.description || "",
     dateCreation:
@@ -541,7 +541,7 @@ export function mapTenantFromDb(r: any): Tenant {
     profession: r.profession || r.fonction || "",
     employeur: r.employeur || "",
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
-    statut: r.statut || "À jour",
+    statut: r.statut || "� jour",
     scoreSolvabilite: Number(r.score_solvabilite ?? r.scoreSolvabilite ?? 85),
     bienId: r.bien_id || r.bienId || "",
     bienNom: r.bien_nom || r.bienNom || "",
@@ -612,8 +612,8 @@ export function mapPaymentFromDb(r: any): Payment {
     montantTotal: Number(r.montant_total ?? r.montantTotal ?? 0),
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
-    statut: r.statut || "Payé",
-    modePaiement: r.mode_paiement || r.modePaiement || "Espèces",
+    statut: r.statut || "Pay�",
+    modePaiement: r.mode_paiement || r.modePaiement || "Esp�ces",
     moyenPaiementCode:
       r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
     verificationStatut:
@@ -626,7 +626,7 @@ export function mapPaymentFromDb(r: any): Payment {
       r.datePaiement ||
       new Date().toISOString().split("T")[0],
     dateEcheance: r.date_echeance || r.dateEcheance || "",
-    recuPar: r.recu_par || r.recuPar || "Service Gérance",
+    recuPar: r.recu_par || r.recuPar || "Service G�rance",
     observation: r.observation || "",
     auteurId: r.caissier_id || r.auteurId,
     auteurNom: r.caissier_nom || r.auteurNom,
@@ -679,7 +679,7 @@ export function mapOwnerChargeFromDb(r: any): OwnerCharge {
     referenceDocument: r.reference_document || r.referenceDocument,
     dateCharge:
       r.date_charge || r.dateCharge || new Date().toISOString().split("T")[0],
-    statut: r.statut || "Validé",
+    statut: r.statut || "Valid�",
     notes: r.notes || "",
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
@@ -793,7 +793,7 @@ export function mapCashMovementFromDb(r: any): CashMovement {
     beneficiaire: r.beneficiaire || "",
     justificatifRef: r.justificatif_ref || r.justificatifRef || "",
     dateHeure: r.created_at || r.dateHeure || new Date().toISOString(),
-    statut: r.statut || "Validé",
+    statut: r.statut || "Valid�",
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -820,7 +820,7 @@ export function mapCashClosingFromDb(r: any): CashClosing {
     ecart: Number(r.ecart ?? 0),
     detailsComptage: r.details_comptage || r.detailsComptage || {},
     observations: r.observations || "",
-    statut: r.statut || "Validé par Responsable",
+    statut: r.statut || "Valid� par Responsable",
   };
 }
 
@@ -832,13 +832,13 @@ export function mapInspectionFromDb(r: any): Inspection {
     bienNom: r.bien_nom || r.bienNom || "Bien",
     locataireId: r.locataire_id || r.locataireId || "",
     locataireNom: r.locataire_nom || r.locataireNom || "",
-    type: r.type || "Entrée",
+    type: r.type || "Entr�e",
     date: r.date || r.date_inspection || new Date().toISOString().split("T")[0],
-    agentNom: r.agent_nom || r.agentNom || "Agent de gérance",
-    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || "Agent de gérance",
-    etatGeneral: r.etat_general || r.etatGeneral || "Bon état",
+    agentNom: r.agent_nom || r.agentNom || "Agent de g�rance",
+    inspecteurNom: r.inspecteur_nom || r.inspecteurNom || "Agent de g�rance",
+    etatGeneral: r.etat_general || r.etatGeneral || "Bon �tat",
     remarques: r.remarques || r.observations || "",
-    statut: r.statut || "Validé",
+    statut: r.statut || "Valid�",
     signe: Boolean(r.signe ?? true),
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -859,15 +859,15 @@ export function mapMaintenanceFromDb(r: any): MaintenanceTicket {
     titre: r.titre || "Signalement incident",
     description: r.description || "",
     priorite: r.priorite || "Moyenne",
-    statut: r.statut || "Signalé",
-    statutReglement: r.statut_reglement || r.statutReglement || "Non réglé",
+    statut: r.statut || "Signal�",
+    statutReglement: r.statut_reglement || r.statutReglement || "Non r�gl�",
     modeReglement: r.mode_reglement || r.modeReglement,
     dateReglement: r.date_reglement || r.dateReglement,
     factureArtisanRef: r.facture_artisan_ref || r.factureArtisanRef,
     regleParCaisse: Boolean(r.regle_par_caisse ?? r.regleParCaisse ?? false),
     caisseMouvementId: r.caisse_mouvement_id || r.caisseMouvementId,
     observationsReglement: r.observations_reglement || r.observationsReglement,
-    imputableA: r.imputable_a || r.imputableA || "Propriétaire",
+    imputableA: r.imputable_a || r.imputableA || "Propri�taire",
     coutEstime: Number(r.cout_estime ?? r.coutEstime ?? 0),
     coutReel: Number(r.cout_reel ?? r.coutReel ?? 0),
     dateSignalement:
@@ -889,7 +889,7 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     id: r.id,
     ref: r.ref || `REV-${r.id.slice(0, 6)}`,
     proprietaireId: r.proprietaire_id || "",
-    proprietaireNom: r.proprietaire_nom || "Propriétaire",
+    proprietaireNom: r.proprietaire_nom || "Propri�taire",
     periode: r.periode || "Ce mois",
     loyersBruts: Number(r.loyers_bruts_recouvres || 0),
     montantBrut: Number(r.loyers_bruts_recouvres || 0),
@@ -901,7 +901,7 @@ export function mapDisbursementFromDb(r: any): OwnerDisbursement {
     chargesDeduites: Number(r.charges_deduites || 0),
     montantNetPaye: Number(r.net_a_reverser || 0),
     montantNet: Number(r.net_a_reverser || 0),
-    statut: r.statut || "Effectué",
+    statut: r.statut || "Effectu�",
     modeReglement: r.mode_reglement || "Virement",
     modeReversement: r.mode_reglement || "Virement",
     dateReglement: r.date_versement || "",
@@ -941,7 +941,7 @@ export function mapInvoiceFromDb(r: any): Invoice {
     taxes: Number(r.taxes ?? 0),
     total: tot,
     montantTotal: tot,
-    statut: r.statut || "Émise",
+    statut: r.statut || "�mise",
     lignes: r.lignes || [],
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
@@ -956,7 +956,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     locataireNom: r.locataire_nom || r.locataireNom || "",
     telephone: r.telephone || "",
     email: r.email || "",
-    bienNom: r.bien_nom || r.bienNom || "Bien loué",
+    bienNom: r.bien_nom || r.bienNom || "Bien lou�",
     montantDu: Number(r.montant_du ?? r.montantDu ?? 0),
     penalites: Number(r.penalites ?? 0),
     joursRetard: Number(r.jours_retard ?? r.joursRetard ?? 0),
@@ -964,7 +964,7 @@ export function mapReminderFromDb(r: any): TenantReminder {
     canal: r.canal || "SMS",
     typeRelance: r.type_relance || r.typeRelance || "Courtoise",
     message: r.message || "",
-    statut: r.statut || "Envoyé",
+    statut: r.statut || "Envoy�",
     dateCreation:
       r.created_at || r.dateCreation || new Date().toISOString().split("T")[0],
     dateEnvoi: r.date_envoi || r.dateEnvoi,
@@ -1075,7 +1075,7 @@ export async function loadFullApplicationData(
 
   if (!agencyId) {
     console.warn(
-      "âš ï¸ loadFullApplicationData : agencyId manquant â†’ aucune donnée distante chargée.",
+      "⚠️ loadFullApplicationData : agencyId manquant → aucune donn�e distante charg�e.",
     );
     return state;
   }
@@ -1116,7 +1116,7 @@ export async function loadFullApplicationData(
         supabase.from("properties").select("*").is("deleted_at", null),
       ),
       agencyFilter(supabase.from("owners").select("*").is("deleted_at", null)),
-      // â•â•â•â•â• PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES â•â•â•â•â•
+      // ═════ PAGINATION AUTOMATIQUE POUR LES GROSSES TABLES ═════
       fetchAllRows("tenants", agencyId, (q) =>
         q.is("deleted_at", null).order("created_at", { ascending: false }),
       ),
@@ -1288,7 +1288,7 @@ export async function loadFullApplicationData(
         const mapped = mapDisbursementFromDb(d);
         if (
           !mapped.proprietaireNom ||
-          mapped.proprietaireNom === "Propriétaire"
+          mapped.proprietaireNom === "Propri�taire"
         ) {
           const owner = state.owners.find(
             (o) => o.id === mapped.proprietaireId,
@@ -1419,7 +1419,7 @@ export async function loadFullApplicationData(
         email: dbSettings.email || "",
         adresse: dbSettings.adresse || "",
         ville: dbSettings.ville || "",
-        pays: dbSettings.pays || "Sénégal",
+        pays: dbSettings.pays || "S�n�gal",
         ninea: dbSettings.ninea || "",
         devise: dbSettings.devise || "FCFA",
         tauxGeranceDefaut: Number(dbSettings.taux_gerance_defaut ?? 10),
@@ -1436,16 +1436,8 @@ export async function loadFullApplicationData(
         standardTelephone: dbSettings.standard_telephone || "",
         logoUrl: dbSettings.logo_url || "",
         siteWeb: dbSettings.site_web || "",
-        waveApiKey: dbSettings.wave_api_key || "",
-        waveWebhookSecret: dbSettings.wave_webhook_secret || "",
         waveEnabled: dbSettings.wave_enabled || false,
-        orangeMoneyApiKey: dbSettings.orange_money_api_key || "",
-        orangeMoneyMerchantId: dbSettings.orange_money_merchant_id || "",
         orangeMoneyEnabled: dbSettings.orange_money_enabled || false,
-        paydunyaMasterKey: dbSettings.paydunya_master_key || "",
-        paydunyaPrivateKey: dbSettings.paydunya_private_key || "",
-        paydunyaPublicKey: dbSettings.paydunya_public_key || "",
-        paydunyaToken: dbSettings.paydunya_token || "",
         paydunyaMode: dbSettings.paydunya_mode || "test",
         paydunyaEnabled: dbSettings.paydunya_enabled || false,
         paymentsEnabled: dbSettings.payments_enabled || false,
@@ -1486,9 +1478,9 @@ export async function loadFullApplicationData(
   return state;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// SUITE DU FICHIER (identique à  ton original)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
+// SUITE DU FICHIER (identique � ton original)
+// ═══════════════════════════════════════════════════════════
 
 export async function fetchUserProfile(
   userId: string,
@@ -1501,7 +1493,7 @@ export async function fetchUserProfile(
       .eq("id", userId)
       .maybeSingle();
     if (error || !profile) {
-      console.warn("Profil non trouvé:", error);
+      console.warn("Profil non trouv�:", error);
       return null;
     }
     let agencyData = null;
@@ -1543,8 +1535,8 @@ export async function logSystemAudit(
 ): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) return;
 
-  const userNom = log.userNom || log.utilisateur || "Système";
-  const module = log.module || log.entite || "SYSTÈME";
+  const userNom = log.userNom || log.utilisateur || "Syst�me";
+  const module = log.module || log.entite || "SYST�ME";
   const entityType = log.entityType || log.entite || "GENERAL";
   const entityRef = log.entityRef || log.entiteId || "N/A";
   const details = log.details || "";
@@ -1626,9 +1618,9 @@ async function recordExists(
   return !!data;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : BUILDINGS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveBuildingToDb(
   building: Partial<Building>,
   agencyId: string,
@@ -1638,7 +1630,7 @@ export async function saveBuildingToDb(
   try {
     const record = {
       agency_id: agencyId,
-      ref: building.ref || `IMM-${Date.now()}`, // ← AJOUT (obligatoire)
+      ref: building.ref || `IMM-${Date.now()}`, // ? AJOUT (obligatoire)
       proprietaire_id: building.proprietaireId,
       nom: building.nom,
       adresse: building.adresse || "",
@@ -1694,9 +1686,9 @@ export async function deleteBuildingFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : UNITS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveUnitToDb(
   unit: Partial<Unit>,
   agencyId: string,
@@ -1748,9 +1740,9 @@ export async function deleteUnitFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : PENALTIES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function savePenaltyToDb(
   penalty: Partial<Penalty>,
   agencyId: string,
@@ -1804,9 +1796,9 @@ export async function deletePenaltyFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : OWNER CHARGES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveOwnerChargeToDb(
   charge: Partial<OwnerCharge>,
   agencyId: string,
@@ -1825,7 +1817,7 @@ export async function saveOwnerChargeToDb(
       montant: charge.montant || 0,
       reference_document: charge.referenceDocument || null,
       date_charge: charge.dateCharge || new Date().toISOString().split("T")[0],
-      statut: charge.statut || "Validé",
+      statut: charge.statut || "Valid�",
       notes: charge.notes || "",
       updated_at: new Date().toISOString(),
     };
@@ -1857,9 +1849,9 @@ export async function deleteOwnerChargeFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : OWNER DEDUCTIONS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveOwnerDeductionToDb(
   deduction: Partial<OwnerDeduction>,
   agencyId: string,
@@ -1924,9 +1916,9 @@ export async function deleteOwnerDeductionFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : BULLETIN VERSEMENTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveBulletinVersementToDb(
   bulletin: Partial<BulletinVersement>,
   agencyId: string,
@@ -1986,9 +1978,9 @@ export async function saveBulletinVersementToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : ARCHIVES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveArchiveToDb(
   archive: Partial<ArchiveRecord>,
   agencyId: string,
@@ -2036,9 +2028,9 @@ export async function fetchArchivesFromDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : ACTIVITY LOGS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveActivityLogToDb(
   activity: Partial<ActivityLog>,
   agencyId: string,
@@ -2117,9 +2109,9 @@ export async function fetchActivitiesByEntity(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : PROPERTIES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function savePropertyToDb(
   property: Partial<Property>,
   agencyId: string,
@@ -2160,9 +2152,9 @@ export async function savePropertyToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : OWNERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveOwnerToDb(
   owner: Partial<Owner>,
   agencyId: string,
@@ -2177,7 +2169,7 @@ export async function saveOwnerToDb(
       prenom: owner.prenom,
       telephone: owner.telephone,
       email: owner.email || `owner-${Date.now()}@fital-immo.com`,
-      adresse: owner.adresse || "Dakar, Sénégal",
+      adresse: owner.adresse || "Dakar, S�n�gal",
       banque: owner.banque || "CBAO Attijariwafa",
       compte_bancaire: owner.compteBancaire || "",
       mandat_gerance: owner.mandatGerance || `MANDAT-${Date.now()}`,
@@ -2214,9 +2206,9 @@ export async function saveOwnerToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : TENANTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveTenantToDb(
   tenant: Partial<Tenant>,
   agencyId: string,
@@ -2235,7 +2227,7 @@ export async function saveTenantToDb(
       fonction: tenant.fonction || "",
       employeur: tenant.employeur || "",
       revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || "À jour",
+      statut: tenant.statut || "� jour",
       score_solvabilite: tenant.scoreSolvabilite || 85,
       bien_id: tenant.bienId || null,
       proprietaire_id: tenant.proprietaireId || null,
@@ -2273,9 +2265,9 @@ export async function saveTenantToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : CONTRACTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveContractToDb(
   contract: Partial<LeaseContract>,
   agencyId: string,
@@ -2332,9 +2324,9 @@ export async function saveContractToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : PAYMENTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function savePaymentToDb(
   payment: Partial<Payment>,
   agencyId: string,
@@ -2362,7 +2354,7 @@ export async function savePaymentToDb(
       montant_total: payment.montantTotal,
       montant_paye: payment.montantPaye,
       montant_restant: payment.montantRestant || 0,
-      statut: payment.statut || "Payé",
+      statut: payment.statut || "Pay�",
       mode_paiement: payment.modePaiement,
       moyen_paiement_code: payment.moyenPaiementCode || "ESPECES",
       verification_statut: payment.verificationStatut || "valide",
@@ -2372,7 +2364,7 @@ export async function savePaymentToDb(
         payment.datePaiement || new Date().toISOString().split("T")[0],
       date_echeance:
         payment.dateEcheance || new Date().toISOString().split("T")[0],
-      recu_par: payment.recuPar || "Service Gérance",
+      recu_par: payment.recuPar || "Service G�rance",
       caissier_id: authorId || null,
       observation: payment.observation || "",
       created_by_id: payment.createdById || null,
@@ -2407,7 +2399,7 @@ export async function savePaymentToDb(
   } catch (err: any) {
     const error =
       err?.code === "23505"
-        ? "Paiement bloqué : un paiement réglé ou en attente existe déjà pour ce locataire et cette période."
+        ? "Paiement bloqu� : un paiement r�gl� ou en attente existe d�j� pour ce locataire et cette p�riode."
         : err.message || "Impossible.";
     return { success: false, error };
   }
@@ -2423,7 +2415,7 @@ export async function validatePendingPaymentInDb(
     const { error } = await supabase
       .from("payments")
       .update({
-        statut: "Payé",
+        statut: "Pay�",
         verification_statut: "valide",
         validated_by: validatedBy,
         updated_at: new Date().toISOString(),
@@ -2447,9 +2439,9 @@ export async function rejectPendingPaymentInDb(
     const { error } = await supabase
       .from("payments")
       .update({
-        statut: "Impayé",
+        statut: "Impay�",
         verification_statut: "rejete",
-        observation: motif || "Paiement rejeté",
+        observation: motif || "Paiement rejet�",
         updated_at: new Date().toISOString(),
       })
       .eq("id", paymentId)
@@ -2461,9 +2453,9 @@ export async function rejectPendingPaymentInDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : CASH
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveCashMovementToDb(
   movement: Partial<CashMovement>,
   agencyId: string,
@@ -2485,7 +2477,7 @@ export async function saveCashMovementToDb(
       user_nom: movement.auteurNom || "Caissier",
       beneficiaire: movement.beneficiaire || null,
       justificatif_ref: movement.justificatifRef || null,
-      statut: "Validé",
+      statut: "Valid�",
       created_by_id: movement.createdById || null,
       created_by_nom: movement.createdByNom || null,
       created_by_role: movement.createdByRole || null,
@@ -2526,7 +2518,7 @@ export async function saveCashClosingToDb(
       ecart: closing.ecart || 0,
       details_comptage: closing.detailsComptage || {},
       observations: closing.observations || "",
-      statut: closing.statut || "Validé par Responsable",
+      statut: closing.statut || "Valid� par Responsable",
     };
     const { data, error } = await supabase
       .from("cash_closings")
@@ -2540,9 +2532,9 @@ export async function saveCashClosingToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : MAINTENANCE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveMaintenanceToDb(
   ticket: Partial<MaintenanceTicket>,
   agencyId: string,
@@ -2561,15 +2553,15 @@ export async function saveMaintenanceToDb(
       titre: ticket.titre || "Signalement incident",
       description: ticket.description || "",
       priorite: ticket.priorite || "Moyenne",
-      statut: ticket.statut || "Signalé",
-      statut_reglement: ticket.statutReglement || "Non réglé",
+      statut: ticket.statut || "Signal�",
+      statut_reglement: ticket.statutReglement || "Non r�gl�",
       mode_reglement: ticket.modeReglement || null,
       date_reglement: ticket.dateReglement || null,
       facture_artisan_ref: ticket.factureArtisanRef || null,
       regle_par_caisse: ticket.regleParCaisse || false,
       caisse_mouvement_id: ticket.caisseMouvementId || null,
       observations_reglement: ticket.observationsReglement || null,
-      imputable_a: ticket.imputableA || "Propriétaire",
+      imputable_a: ticket.imputableA || "Propri�taire",
       cout_estime: ticket.coutEstime || 0,
       cout_reel: ticket.coutReel || 0,
       date_signalement:
@@ -2611,9 +2603,9 @@ export async function saveMaintenanceToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : INSPECTIONS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveInspectionToDb(
   insp: Partial<Inspection>,
   agencyId: string,
@@ -2626,7 +2618,7 @@ export async function saveInspectionToDb(
       ref: insp.ref || `EDL-${Date.now()}`,
       bien_id: insp.bienId,
       locataire_id: insp.locataireId,
-      type: insp.type || "Entrée",
+      type: insp.type || "Entr�e",
       date_inspection: insp.date || new Date().toISOString().split("T")[0],
       clefs_remises: 3,
       agent_nom: insp.agentNom || insp.inspecteurNom || "Agent FITAL-IMMO",
@@ -2634,7 +2626,7 @@ export async function saveInspectionToDb(
       total_degats: insp.coutDegradations || 0,
       retenue_caution: insp.retenueCaution || 0,
       montant_restitue_caution: insp.montantRestitueCaution || 0,
-      statut: insp.statut || "Validé",
+      statut: insp.statut || "Valid�",
       commentaires_generaux: insp.commentairesGeneraux || insp.remarques || "",
       created_by_id: insp.createdById || null,
       created_by_nom: insp.createdByNom || null,
@@ -2666,9 +2658,9 @@ export async function saveInspectionToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : DISBURSEMENTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveDisbursementToDb(
   disb: Partial<OwnerDisbursement>,
   agencyId: string,
@@ -2693,7 +2685,7 @@ export async function saveDisbursementToDb(
         disb.dateReglement ||
         disb.dateReversement ||
         new Date().toISOString().split("T")[0],
-      statut: disb.statut || "Effectué",
+      statut: disb.statut || "Effectu�",
       created_by_id: disb.createdById || null,
       created_by_nom: disb.createdByNom || null,
       created_by_role: disb.createdByRole || null,
@@ -2725,9 +2717,9 @@ export async function saveDisbursementToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : INVOICES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveInvoiceToDb(
   inv: Partial<Invoice>,
   agencyId: string,
@@ -2752,7 +2744,7 @@ export async function saveInvoiceToDb(
       sous_total: inv.sousTotal || inv.montantTotal || 0,
       taxes: inv.taxes || 0,
       total: inv.total || inv.montantTotal || 0,
-      statut: inv.statut || "Émise",
+      statut: inv.statut || "�mise",
       lignes: inv.lignes || [],
       created_by_id: inv.createdById || null,
       created_by_nom: inv.createdByNom || null,
@@ -2784,9 +2776,9 @@ export async function saveInvoiceToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : REMINDERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveReminderToDb(
   rem: Partial<TenantReminder>,
   agencyId: string,
@@ -2819,9 +2811,9 @@ export async function saveReminderToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CRUD : SETTINGS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function saveSettingsToDb(
   settings: AgencySettings,
   agencyId?: string,
@@ -2854,16 +2846,8 @@ export async function saveSettingsToDb(
       logo_url: settings.logoUrl || null,
       primary_color: settings.primaryColor || null,
       website: settings.website || null,
-      wave_api_key: settings.waveApiKey || null,
-      wave_webhook_secret: settings.waveWebhookSecret || null,
       wave_enabled: settings.waveEnabled || false,
-      orange_money_api_key: settings.orangeMoneyApiKey || null,
-      orange_money_merchant_id: settings.orangeMoneyMerchantId || null,
       orange_money_enabled: settings.orangeMoneyEnabled || false,
-      paydunya_master_key: settings.paydunyaMasterKey || null,
-      paydunya_private_key: settings.paydunyaPrivateKey || null,
-      paydunya_public_key: settings.paydunyaPublicKey || null,
-      paydunya_token: settings.paydunyaToken || null,
       paydunya_mode: settings.paydunyaMode || "test",
       paydunya_enabled: settings.paydunyaEnabled || false,
       payments_enabled: settings.paymentsEnabled || false,
@@ -2927,9 +2911,9 @@ export async function saveUserToDb(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // STORAGE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function uploadFileToSupabaseStorage(
   bucket:
     | "agency-logos"
@@ -2941,7 +2925,7 @@ export async function uploadFileToSupabaseStorage(
   file: File,
 ): Promise<{ success: boolean; url?: string; error?: string }> {
   if (!isSupabaseConfigured || !supabase)
-    return { success: false, error: "Supabase Storage non configuré." };
+    return { success: false, error: "Supabase Storage non configur�." };
   try {
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -2956,9 +2940,9 @@ export async function uploadFileToSupabaseStorage(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // AUTH
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function changeUserPassword(
   newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
@@ -3030,7 +3014,7 @@ export async function softDeleteRecord(
   try {
     const { error } = await supabase
       .from(table)
-      .update({ statut: "Archivé" })
+      .update({ statut: "Archiv�" })
       .eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -3039,9 +3023,9 @@ export async function softDeleteRecord(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // AGENCES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function getOrCreateDefaultAgency(): Promise<Agency | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
@@ -3132,9 +3116,9 @@ export async function bootstrapAdminProfile(
   };
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // CREATE USER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export interface CreateUserAccountParams {
   email: string;
   password: string;
@@ -3154,7 +3138,7 @@ export async function createUserAccountInSupabase(
   params: CreateUserAccountParams,
 ): Promise<{ success: boolean; user?: UserAccount; error?: string }> {
   if (!isSupabaseConfigured || !supabase || !supabaseUrl || !supabaseAnonKey) {
-    return { success: false, error: "Supabase non configuré." };
+    return { success: false, error: "Supabase non configur�." };
   }
   const cleanEmail = params.email.trim().toLowerCase();
   const ephemeralClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -3175,7 +3159,7 @@ export async function createUserAccountInSupabase(
       });
     if (signUpError) {
       if (signUpError.message?.toLowerCase().includes("already registered")) {
-        return { success: false, error: "Cet email est déjà  enregistré." };
+        return { success: false, error: "Cet email est d�j� enregistr�." };
       }
       return { success: false, error: signUpError.message };
     }
@@ -3201,7 +3185,7 @@ export async function createUserAccountInSupabase(
     if (profileError)
       return {
         success: false,
-        error: `Profil refusé : ${profileError.message}.`,
+        error: `Profil refus� : ${profileError.message}.`,
       };
     const userAccount: UserAccount = {
       id: authUser.id,
@@ -3218,7 +3202,7 @@ export async function createUserAccountInSupabase(
       organisation: params.organisation || "",
       avatar: params.avatar,
       createdAt: new Date().toISOString(),
-      derniereConnexion: "Jamais connecté",
+      derniereConnexion: "Jamais connect�",
     };
     return { success: true, user: userAccount };
   } catch (err: any) {
@@ -3267,13 +3251,13 @@ export async function fetchAgencyUsers(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // RESTAURATION
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function restoreAllData(
   backup: any,
 ): Promise<{ success: boolean; count?: number; error?: string }> {
-  if (!supabase) return { success: false, error: "Supabase non configuré." };
+  if (!supabase) return { success: false, error: "Supabase non configur�." };
   try {
     const agencyId =
       backup?.agencies?.[0]?.id ||
@@ -3345,9 +3329,9 @@ export async function restoreAllData(
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 // SUPER-ADMIN SAAS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════
 export async function fetchAllAgencies(): Promise<any[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -3433,7 +3417,7 @@ export async function createAgencyWithAdmin(params: {
       return {
         success: false,
         error:
-          "Erreur création agence : " + (agencyError?.message || "inconnue"),
+          "Erreur cr�ation agence : " + (agencyError?.message || "inconnue"),
       };
     }
     agencyId = agency.id;
@@ -3461,14 +3445,14 @@ export async function createAgencyWithAdmin(params: {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: "Erreur création compte : " + authError.message,
+        error: "Erreur cr�ation compte : " + authError.message,
       };
     }
     if (!authData?.user?.id) {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: 'Compte Auth non créé. Vérifiez "Enable email signups".',
+        error: 'Compte Auth non cr��. V�rifiez "Enable email signups".',
       };
     }
     const { error: profileError } = await supabase.from("profiles").insert({
@@ -3486,7 +3470,7 @@ export async function createAgencyWithAdmin(params: {
       await supabase.from("agencies").delete().eq("id", agency.id);
       return {
         success: false,
-        error: "Erreur création profil : " + profileError.message,
+        error: "Erreur cr�ation profil : " + profileError.message,
       };
     }
     try {
@@ -3494,8 +3478,8 @@ export async function createAgencyWithAdmin(params: {
         {
           agency_id: agency.id,
           code: "ESPECES",
-          libelle: "Espèces",
-          description: "Règlement au comptoir",
+          libelle: "Esp�ces",
+          description: "R�glement au comptoir",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 0,
@@ -3530,15 +3514,15 @@ export async function createAgencyWithAdmin(params: {
         {
           agency_id: agency.id,
           code: "CHEQUE",
-          libelle: "Chèque",
-          description: "Dépôt de chèque",
+          libelle: "Ch�que",
+          description: "D�p�t de ch�que",
           actif: true,
           frais_pourcentage: 0,
           delai_validation_heures: 48,
         },
       ]);
     } catch (e) {
-      console.warn("Erreur création payment_methods:", e);
+      console.warn("Erreur cr�ation payment_methods:", e);
     }
     try {
       const currentYear = new Date().getFullYear();
@@ -3549,7 +3533,7 @@ export async function createAgencyWithAdmin(params: {
         email: params.agencyEmail,
         adresse: params.agencyAddress || "",
         ville: params.agencyCity,
-        pays: "Sénégal",
+        pays: "S�n�gal",
         devise: "FCFA",
         ninea: params.agencyNinea || null,
         taux_gerance_defaut: 10,
@@ -3565,7 +3549,7 @@ export async function createAgencyWithAdmin(params: {
         prefix_bon_caisse: `BCA-${currentYear}-`,
       });
     } catch (e) {
-      console.warn("Erreur création settings:", e);
+      console.warn("Erreur cr�ation settings:", e);
     }
     return { success: true, agencyId: agency.id };
   } catch (err: any) {
@@ -3582,7 +3566,7 @@ export async function toggleAgencyStatus(
   agencyId: string,
   newStatus: "active" | "suspended",
 ): Promise<{ success: boolean; error?: string }> {
-  if (!supabase) return { success: false, error: "Supabase non configuré." };
+  if (!supabase) return { success: false, error: "Supabase non configur�." };
   const { error } = await supabase
     .from("agencies")
     .update({ status: newStatus })
@@ -3633,7 +3617,7 @@ export async function fetchGlobalStats(): Promise<{
 }
 
 // ============================================================
-// COMPTEURS Rà‰ELS (requàªtes HEAD ultra-rapides)
+// COMPTEURS R��ELS (requ�tes HEAD ultra-rapides)
 // ============================================================
 export async function fetchRealCounts(
   agencyId: string,
@@ -3673,7 +3657,7 @@ export async function fetchRealCounts(
 }
 
 // ============================================================
-// STATS VIA VUE MATà‰RIALISà‰E (1 requàªte, ultra-rapide)
+// STATS VIA VUE MAT��RIALIS��E (1 requ�te, ultra-rapide)
 // ============================================================
 export interface AgencyStats {
   agency_id: string;
@@ -3720,8 +3704,8 @@ export async function fetchAgencyStats(
 }
 
 // ============================================================
-// RPC : Statistiques agrégées côté serveur (super rapide)
-// Remplace le comptage/calcul côté client
+// RPC : Statistiques agr�g�es c�t� serveur (super rapide)
+// Remplace le comptage/calcul c�t� client
 // ============================================================
 export interface AgencyStats {
   total_owners: number;
@@ -3759,7 +3743,7 @@ export async function getAgencyStats(
 }
 
 // ============================================================
-// RPC : Pagination générique serveur-side
+// RPC : Pagination g�n�rique serveur-side
 // ============================================================
 export interface PaginatedResult<T> {
   total: number;
@@ -3796,7 +3780,7 @@ export async function paginateTable<T = any>(
 }
 
 // ============================================================
-// RPC : Données complètes du bulletin propriétaire
+// RPC : Donn�es compl�tes du bulletin propri�taire
 // ============================================================
 export interface OwnerBulletinData {
   payments: any[];
@@ -3827,19 +3811,19 @@ export async function getOwnerBulletinData(
       console.warn("getOwnerBulletinData:", error);
       return empty;
     }
-    console.log("🔍 getOwnerBulletinData raw:", data);
+    console.log("?? getOwnerBulletinData raw:", data);
 
-    // Supabase peut retourner le JSON de plusieurs façons :
+    // Supabase peut retourner le JSON de plusieurs fa�ons :
     // 1. Direct : { payments: [...], properties: [...] }
     // 2. Array [ { get_owner_bulletin_data: {...} } ]
-    // 3. String JSON à parser
+    // 3. String JSON � parser
     let payload: any = data;
 
     // Cas 1 : tableau
     if (Array.isArray(payload) && payload.length > 0) {
       payload = payload[0];
     }
-    // Cas 2 : clé get_owner_bulletin_data
+    // Cas 2 : cl� get_owner_bulletin_data
     if (
       payload &&
       typeof payload === "object" &&
@@ -3854,7 +3838,7 @@ export async function getOwnerBulletinData(
       } catch {}
     }
 
-    console.log("🔍 payload parsed:", payload);
+    console.log("?? payload parsed:", payload);
 
     return {
       payments: Array.isArray(payload?.payments) ? payload.payments : [],
@@ -3870,7 +3854,7 @@ export async function getOwnerBulletinData(
 }
 
 // ============================================================
-// RPC : Activité quotidienne (calendrier Dashboard)
+// RPC : Activit� quotidienne (calendrier Dashboard)
 // ============================================================
 export interface DailyActivity {
   jour: string; // '2021-01-01 00:00:00+00'
@@ -3906,13 +3890,13 @@ export async function getDailyActivity(
 }
 
 // ============================================================
-// AUTO-LOG WRAPPER — Log automatique de toutes les actions
-// Ajouté le 04/10/2026
+// AUTO-LOG WRAPPER � Log automatique de toutes les actions
+// Ajout� le 04/10/2026
 // ============================================================
 
 /**
  * Wrapper qui log automatiquement chaque action CRUD
- * Utilisation : logAndRun('OWNER_CREATED', 'Propriétaires', 'Création', () => saveOwnerToDb(...))
+ * Utilisation : logAndRun('OWNER_CREATED', 'Propri�taires', 'Cr�ation', () => saveOwnerToDb(...))
  */
 async function logAndRun<
   T extends { success: boolean; data?: any; error?: string },
@@ -3932,7 +3916,7 @@ async function logAndRun<
       const {
         data: { user },
       } = await supabase!.auth.getUser();
-      const userNom = user?.email || "Système";
+      const userNom = user?.email || "Syst�me";
 
       await supabase!.from("activity_logs").insert([
         {
@@ -3955,7 +3939,7 @@ async function logAndRun<
         },
       ]);
 
-      console.log(`📝 Log: ${action} - ${description}`);
+      console.log(`?? Log: ${action} - ${description}`);
     } catch (e) {
       console.warn("AUTO-LOG failed:", e);
     }
@@ -3965,14 +3949,14 @@ async function logAndRun<
 }
 
 // ============================================================
-// WRAPPERS PUBLICS — À utiliser dans App.tsx
+// WRAPPERS PUBLICS � � utiliser dans App.tsx
 // ============================================================
 
 export async function saveOwnerToDbWithLog(owner: any, agencyId: string) {
   return logAndRun(
     "OWNER_CREATED",
-    "Propriétaires",
-    `Nouveau propriétaire : ${owner.prenom || ""} ${owner.nom || ""}`.trim(),
+    "Propri�taires",
+    `Nouveau propri�taire : ${owner.prenom || ""} ${owner.nom || ""}`.trim(),
     agencyId,
     () => saveOwnerToDb(owner, agencyId),
     owner.ref,

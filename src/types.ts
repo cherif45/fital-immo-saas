@@ -1,18 +1,18 @@
 // ============================================================
-// TYPES GLOBAUX "” FITAL-IMMO
+// TYPES GLOBAUX — FITAL-IMMO
 // ============================================================
 
-export type UserRole = 
-  | 'SUPER_ADMIN_SAAS'   // ðŸ†• Propriétaire du SaaS (moi)
-  | 'SUPER_ADMIN'         // Admin d'une agence (FITAL-IMMO)
-  | 'ADMIN'
-  | 'CAISSIER'
-  | 'GESTIONNAIRE'
-  | 'PROPRIETAIRE'
-  | 'LOCATAIRE'
-  | 'AGENT';
+export type UserRole =
+  | "SUPER_ADMIN_SAAS"
+  | "SUPER_ADMIN"
+  | "ADMIN"
+  | "CAISSIER"
+  | "GESTIONNAIRE"
+  | "PROPRIETAIRE"
+  | "LOCATAIRE"
+  | "AGENT";
 
-export type UserAccountStatus = 'actif' | 'suspendu' | 'desactive';
+export type UserAccountStatus = "actif" | "suspendu" | "desactive";
 
 export interface UserAccount {
   id: string;
@@ -32,7 +32,6 @@ export interface UserAccount {
   createdAt?: string;
   updatedAt?: string;
   derniereConnexion?: string;
-
   signatureUrl?: string;
   fonction?: string;
   initiales?: string;
@@ -63,36 +62,35 @@ export interface Agency {
 }
 
 export type ActiveTab =
-  | 'dashboard'
-  | 'buildings'
-  | 'units'
-  | 'properties'
-  | 'tenants'
-  | 'owners'
-  | 'contracts'
-  | 'inspections'
-  | 'maintenance'
-  | 'payments'
-  | 'recovery'
-  | 'reminders'
-  | 'invoices'
-  | 'finance'
-  | 'reports'
-  | 'documents'
-  | 'settings'
-  | 'caisse'
-  | 'pending-payments'
-  | 'payment-methods'
-  | 'payment-reports'
-  | 'admin-control'
-  | 'admin-users'
-  | 'admin-journal'
-  | 'archives'
-  | 'activity-logs'
-  | 'penalties'
-  | 'audit'
-  | 'saas-admin';   // ðŸ†• Super-Admin SaaS
-
+  | "dashboard"
+  | "buildings"
+  | "units"
+  | "properties"
+  | "tenants"
+  | "owners"
+  | "contracts"
+  | "inspections"
+  | "maintenance"
+  | "payments"
+  | "recovery"
+  | "reminders"
+  | "invoices"
+  | "finance"
+  | "reports"
+  | "documents"
+  | "settings"
+  | "caisse"
+  | "pending-payments"
+  | "payment-methods"
+  | "payment-reports"
+  | "admin-control"
+  | "admin-users"
+  | "admin-journal"
+  | "archives"
+  | "activity-logs"
+  | "penalties"
+  | "audit"
+  | "saas-admin";
 
 // ============================================================
 // SIGNATURE / TRAÇABILITÉ
@@ -114,13 +112,13 @@ export interface Owner {
   adresse?: string;
   telephone: string;
   email?: string;
-  typePiece?: string;   // ðŸ†• CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
-  cni?: string;  
+  typePiece?: string;
+  cni?: string;
   banque?: string;
   compteBancaire?: string;
   ninea?: string;
   tauxCommission?: number;
-  statut?: 'Actif' | 'Inactif' | 'Archivé';
+  statut?: "Actif" | "Inactif" | "Archivé";
   mandatGerance?: string;
   dateMandat?: string;
   observations?: string;
@@ -131,12 +129,18 @@ export interface Owner {
 // ============================================================
 // IMMEUBLES
 // ============================================================
-export type BuildingType = 'Immeuble' | 'Villa' | 'Résidence' | 'Cité' | 'Duplex' | 'Autre';
-export type BuildingStatus = 'Actif' | 'Inactif' | 'En travaux';
+export type BuildingType =
+  | "Immeuble"
+  | "Villa"
+  | "Résidence"
+  | "Cité"
+  | "Duplex"
+  | "Autre";
+export type BuildingStatus = "Actif" | "Inactif" | "En travaux";
 
 export interface Building {
   id: string;
-  ref?: string;   // ðŸ†• Numéro d'immeuble (ex: 564)
+  ref?: string;
   agencyId?: string;
   proprietaireId: string;
   proprietaireNom?: string;
@@ -159,25 +163,25 @@ export interface Building {
 // ============================================================
 // ESPACES LOUABLES
 // ============================================================
-export type UnitType = 
-  | 'Studio'
-  | 'Chambre simple'
-  | 'Chambre + Salle de bain'
-  | 'Chambre + Cuisine + SDB'
-  | 'Chambre + Salon + Cuisine + SDB'
-  | '1 Chambre + Salon'
-  | '2 Chambres + Salon'
-  | '3 Chambres + Salon'
-  | '4 Chambres + Salon'
-  | 'Appartement'
-  | 'Duplex'
-  | 'Magasin'
-  | 'Bureau'
-  | 'Terrasse'
-  | 'Entrepôt'
-  | 'Autre';
+export type UnitType =
+  | "Studio"
+  | "Chambre simple"
+  | "Chambre + Salle de bain"
+  | "Chambre + Cuisine + SDB"
+  | "Chambre + Salon + Cuisine + SDB"
+  | "1 Chambre + Salon"
+  | "2 Chambres + Salon"
+  | "3 Chambres + Salon"
+  | "4 Chambres + Salon"
+  | "Appartement"
+  | "Duplex"
+  | "Magasin"
+  | "Bureau"
+  | "Terrasse"
+  | "Entrepôt"
+  | "Autre";
 
-export type UnitStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige';
+export type UnitStatus = "Occupé" | "Vacant" | "Maintenance" | "En litige";
 
 export interface Unit {
   id: string;
@@ -205,25 +209,30 @@ export interface Unit {
 // ============================================================
 // BIENS
 // ============================================================
-export type PropertyType = 
-  | 'Studio'
-  | 'Chambre simple'
-  | 'Chambre + Salle de bain'
-  | '1 Chambre + Salon'
-  | '2 Chambres + Salon'
-  | '3 Chambres + Salon'
-  | '4 Chambres + Salon'
-  | 'Duplex'
-  | 'Villa'
-  | 'Villa duplex'
-  | 'Appartement'
-  | 'Magasin'
-  | 'Bureau'
-  | 'Entrepôt'
-  | 'Terrain'
-  | 'Immeuble';
+export type PropertyType =
+  | "Studio"
+  | "Chambre simple"
+  | "Chambre + Salle de bain"
+  | "1 Chambre + Salon"
+  | "2 Chambres + Salon"
+  | "3 Chambres + Salon"
+  | "4 Chambres + Salon"
+  | "Duplex"
+  | "Villa"
+  | "Villa duplex"
+  | "Appartement"
+  | "Magasin"
+  | "Bureau"
+  | "Entrepôt"
+  | "Terrain"
+  | "Immeuble";
 
-export type PropertyStatus = 'Occupé' | 'Vacant' | 'Maintenance' | 'En litige' | 'Archivé';
+export type PropertyStatus =
+  | "Occupé"
+  | "Vacant"
+  | "Maintenance"
+  | "En litige"
+  | "Archivé";
 
 export interface Property {
   id: string;
@@ -248,14 +257,14 @@ export interface Property {
   description?: string;
   dateCreation?: string;
   locataireActuelNom?: string;
-  locataireActuelId?: string; // ðŸ†• AJOUTÉ
+  locataireActuelId?: string;
   loyerTotal?: number;
 }
 
 // ============================================================
 // LOCATAIRES
 // ============================================================
-export type TenantStatus = 'À jour' | 'Retard' | 'Impayé' | 'Parti';
+export type TenantStatus = "À jour" | "Retard" | "Impayé" | "Parti";
 
 export interface Tenant {
   id: string;
@@ -265,7 +274,7 @@ export interface Tenant {
   telephone: string;
   email?: string;
   cni?: string;
-  typePiece?: string;   // ðŸ†• CNI | PASSEPORT | CARTE_CONSULAIRE | AUTRE
+  typePiece?: string;
   fonction?: string;
   profession?: string;
   employeur?: string;
@@ -289,12 +298,16 @@ export interface Tenant {
 // ============================================================
 // CONTRATS
 // ============================================================
-export type ContractStatus = 'En cours' | 'Terminé' | 'Résilié' | 'Archivé';
+export type ContractStatus = "En cours" | "Terminé" | "Résilié" | "Archivé";
 
 export interface LeaseContract extends AuditSignature {
   id: string;
   ref: string;
-  typeContrat: 'Habitation' | 'Commercial' | 'Professionnel' | 'Bail d\'habitation';
+  typeContrat:
+    | "Habitation"
+    | "Commercial"
+    | "Professionnel"
+    | "Bail d'habitation";
   locataireId: string;
   locataireNom: string;
   bienId: string;
@@ -333,11 +346,24 @@ export interface LeaseContract extends AuditSignature {
 // ============================================================
 // PAIEMENTS
 // ============================================================
-export type PaymentStatus = 'Payé' | 'Impayé' | 'Partiel' | 'En attente';
-export type ReceiptType = 'QUITTANCE' | 'RECU_ACOMPTE' | 'QUITTANCE_SOLDE';
-export type PaymentMethod = 'Espèces' | 'Virement' | 'Chèque' | 'Mobile Money' | 'Wave' | 'Orange Money';
-export type PaymentMethodCode = 'ESPECES' | 'WAVE' | 'ORANGE_MONEY' | 'VIREMENT' | 'CHEQUE' | 'FREE_MONEY' | 'AUTRE';
-export type VerificationStatus = 'valide' | 'en_attente' | 'rejete';
+export type PaymentStatus = "Payé" | "Impayé" | "Partiel" | "En attente";
+export type ReceiptType = "QUITTANCE" | "RECU_ACOMPTE" | "QUITTANCE_SOLDE";
+export type PaymentMethod =
+  | "Espèces"
+  | "Virement"
+  | "Chèque"
+  | "Mobile Money"
+  | "Wave"
+  | "Orange Money";
+export type PaymentMethodCode =
+  | "ESPECES"
+  | "WAVE"
+  | "ORANGE_MONEY"
+  | "VIREMENT"
+  | "CHEQUE"
+  | "FREE_MONEY"
+  | "AUTRE";
+export type VerificationStatus = "valide" | "en_attente" | "rejete";
 
 export interface Payment extends AuditSignature {
   numeroTelephoneEmetteur?: string;
@@ -388,7 +414,7 @@ export interface Payment extends AuditSignature {
 // ============================================================
 // PÉNALITÉS
 // ============================================================
-export type PenaltyStatus = 'En attente' | 'Appliquée' | 'Annulée' | 'Payée';
+export type PenaltyStatus = "En attente" | "Appliquée" | "Annulée" | "Payée";
 
 export interface Penalty {
   id: string;
@@ -414,8 +440,14 @@ export interface Penalty {
 // ============================================================
 // CHARGES PROPRIÉTAIRE
 // ============================================================
-export type OwnerChargeType = 'FACTURE' | 'PRET' | 'CREDIT' | 'REQUISITION' | 'TRAVAUX' | 'AUTRE';
-export type OwnerChargeStatus = 'Validé' | 'En attente' | 'Annulé';
+export type OwnerChargeType =
+  | "FACTURE"
+  | "PRET"
+  | "CREDIT"
+  | "REQUISITION"
+  | "TRAVAUX"
+  | "AUTRE";
+export type OwnerChargeStatus = "Validé" | "En attente" | "Annulé";
 
 export interface OwnerCharge {
   id: string;
@@ -438,7 +470,12 @@ export interface OwnerCharge {
 // ============================================================
 // DÉDUCTIONS PROPRIÉTAIRE
 // ============================================================
-export type DeductionType = 'FACTURE' | 'PRET' | 'CREDIT' | 'REQUISITION' | 'AUTRE';
+export type DeductionType =
+  | "FACTURE"
+  | "PRET"
+  | "CREDIT"
+  | "REQUISITION"
+  | "AUTRE";
 
 export interface OwnerDeduction {
   id: string;
@@ -459,7 +496,7 @@ export interface OwnerDeduction {
 // ============================================================
 // BULLETIN DE VERSEMENT
 // ============================================================
-export type BulletinStatus = 'Brouillon' | 'Validé' | 'Payé' | 'Archivé';
+export type BulletinStatus = "Brouillon" | "Validé" | "Payé" | "Archivé";
 
 export interface BulletinVersement extends AuditSignature {
   id: string;
@@ -517,8 +554,8 @@ export interface OwnerDisbursement extends AuditSignature {
 // ============================================================
 // INSPECTIONS
 // ============================================================
-export type InspectionType = 'Entrée' | 'Sortie' | 'Périodique';
-export type InspectionStatus = 'Brouillon' | 'Validé' | 'Signé' | 'Archivé';
+export type InspectionType = "Entrée" | "Sortie" | "Périodique";
+export type InspectionStatus = "Brouillon" | "Validé" | "Signé" | "Archivé";
 
 export interface InspectionElement {
   coutReparationEstime?: number;
@@ -527,7 +564,7 @@ export interface InspectionElement {
   id?: string;
   piece?: string;
   element?: string;
-  etat: 'Bon' | 'Moyen' | 'Mauvais' | 'Neuf';
+  etat: "Bon" | "Moyen" | "Mauvais" | "Neuf";
   observation?: string;
   coutDegradation?: number;
 }
@@ -558,10 +595,19 @@ export interface Inspection extends AuditSignature {
 // ============================================================
 // MAINTENANCE
 // ============================================================
-export type MaintenanceStatus = 'Signalé' | 'En attente' | 'Planifié' | 'En cours' | 'Traité et Réglé' | 'Terminé';
-export type MaintenancePriority = 'Faible' | 'Moyenne' | 'Haute' | 'Urgente';
-export type MaintenanceImputation = 'Propriétaire' | 'Locataire' | 'Agence';
-export type MaintenancePaymentStatus = 'Non réglé' | 'Réglé' | 'Partiellement réglé';
+export type MaintenanceStatus =
+  | "Signalé"
+  | "En attente"
+  | "Planifié"
+  | "En cours"
+  | "Traité et Réglé"
+  | "Terminé";
+export type MaintenancePriority = "Faible" | "Moyenne" | "Haute" | "Urgente";
+export type MaintenanceImputation = "Propriétaire" | "Locataire" | "Agence";
+export type MaintenancePaymentStatus =
+  | "Non réglé"
+  | "Réglé"
+  | "Partiellement réglé";
 
 export interface MaintenanceTicket extends AuditSignature {
   technicienNom?: string;
@@ -597,12 +643,14 @@ export interface MaintenanceTicket extends AuditSignature {
 // ============================================================
 // RAPPELS
 // ============================================================
-export type ReminderLevel = 
-  | 'Niveau 1: Courtois (J+3)' | 'Niveau 2: Modéré (J+10)'
-  | 'Niveau 3: Ferme & Pénalités (J+15)' | 'Niveau 4: Mise en demeure juridique (J+25)';
+export type ReminderLevel =
+  | "Niveau 1: Courtois (J+3)"
+  | "Niveau 2: Modéré (J+10)"
+  | "Niveau 3: Ferme & Pénalités (J+15)"
+  | "Niveau 4: Mise en demeure juridique (J+25)";
 
-export type ReminderChannel = 'SMS' | 'WhatsApp' | 'Email' | 'Courrier';
-export type ReminderStatus = 'En attente' | 'Envoyé' | 'Lu' | 'Échec';
+export type ReminderChannel = "SMS" | "WhatsApp" | "Email" | "Courrier";
+export type ReminderStatus = "En attente" | "Envoyé" | "Lu" | "Échec";
 
 export interface TenantReminder {
   id: string;
@@ -626,7 +674,7 @@ export interface TenantReminder {
 // ============================================================
 // FACTURES
 // ============================================================
-export type InvoiceStatus = 'Émise' | 'Payée' | 'Annulée' | 'En retard';
+export type InvoiceStatus = "Émise" | "Payée" | "Annulée" | "En retard";
 
 export interface InvoiceLine {
   id: string;
@@ -663,8 +711,17 @@ export interface Invoice extends AuditSignature {
 // ============================================================
 // CAISSE
 // ============================================================
-export type CashMovementType = 'ENTREE' | 'SORTIE' | 'ENCAISSEMENT' | 'DECAISSEMENT';
-export type CashMovementCategory = 'ENCAISSEMENT_LOYER' | 'DEPENSE_MENUE' | 'AVANCE_PROPRIETAIRE' | 'APPORT_FOND' | 'AUTRE';
+export type CashMovementType =
+  | "ENTREE"
+  | "SORTIE"
+  | "ENCAISSEMENT"
+  | "DECAISSEMENT";
+export type CashMovementCategory =
+  | "ENCAISSEMENT_LOYER"
+  | "DEPENSE_MENUE"
+  | "AVANCE_PROPRIETAIRE"
+  | "APPORT_FOND"
+  | "AUTRE";
 
 export interface CashMovement extends AuditSignature {
   id: string;
@@ -794,22 +851,18 @@ export interface AgencySettings {
   whatsappBusiness?: string;
   standardTelephone?: string;
 
-  // ðŸ†• Informations gérant (peut changer dans le temps)
   gerantNom?: string;
   gerantTitre?: string;
   gerantSignatureUrl?: string;
 
-  // ðŸ†• Slogans personnalisables
   slogan1?: string;
   slogan2?: string;
 
-  // ðŸ†• Documents personnalisés (URLs Supabase Storage)
   logoUrl?: string;
   cachetUrl?: string;
   enteteUrl?: string;
   piedPageUrl?: string;
 
-  // ðŸ†• Informations légales
   rcNumero?: string;
   nineaNumero?: string;
   boitePostale?: string;
@@ -818,27 +871,30 @@ export interface AgencySettings {
   website?: string;
   agencyId?: string;
 
-  // ðŸ†• Paiements - Wave
+  // Paiements - Wave
   waveApiKey?: string;
   waveWebhookSecret?: string;
   waveEnabled?: boolean;
+  waveConfigured?: boolean;
 
-  // ðŸ†• Paiements - Orange Money
+  // Paiements - Orange Money
   orangeMoneyApiKey?: string;
   orangeMoneyMerchantId?: string;
   orangeMoneyEnabled?: boolean;
+  orangeMoneyConfigured?: boolean;
 
-  // ðŸ†• Paiements - PayDunya
+  // Paiements - PayDunya
   paydunyaMasterKey?: string;
   paydunyaPrivateKey?: string;
   paydunyaPublicKey?: string;
   paydunyaToken?: string;
-  paydunyaMode?: 'test' | 'prod';
+  paydunyaMode?: "test" | "prod";
   paydunyaEnabled?: boolean;
+  paydunyaConfigured?: boolean;
 
-  // ðŸ†• Statut global paiements
+  // Statut global paiements
   paymentsEnabled?: boolean;
-  paymentsProvider?: 'WAVE' | 'ORANGE_MONEY' | 'PAYDUNYA' | 'MULTIPLE' | 'NONE';
+  paymentsProvider?: "WAVE" | "ORANGE_MONEY" | "PAYDUNYA" | "MULTIPLE" | "NONE";
 }
 
 // ============================================================
@@ -867,7 +923,18 @@ export interface PaymentMethodConfig {
 export interface ArchiveRecord {
   id: string;
   agencyId: string;
-  entityType: 'tenant' | 'owner' | 'property' | 'building' | 'unit' | 'contract' | 'payment' | 'inspection' | 'maintenance' | 'invoice' | 'bulletin';
+  entityType:
+    | "tenant"
+    | "owner"
+    | "property"
+    | "building"
+    | "unit"
+    | "contract"
+    | "payment"
+    | "inspection"
+    | "maintenance"
+    | "invoice"
+    | "bulletin";
   entityId: string;
   entityRef?: string;
   entityNom?: string;
@@ -885,7 +952,17 @@ export interface ActivityLog {
   agencyId: string;
   userId?: string;
   userNom?: string;
-  activityType: 'PAYMENT' | 'CONTRACT' | 'TENANT_CREATED' | 'TENANT_EXIT' | 'MAINTENANCE' | 'INSPECTION' | 'DISBURSEMENT' | 'CASH_MOVEMENT' | 'REMINDER' | 'OTHER';
+  activityType:
+    | "PAYMENT"
+    | "CONTRACT"
+    | "TENANT_CREATED"
+    | "TENANT_EXIT"
+    | "MAINTENANCE"
+    | "INSPECTION"
+    | "DISBURSEMENT"
+    | "CASH_MOVEMENT"
+    | "REMINDER"
+    | "OTHER";
   entityType?: string;
   entityId?: string;
   entityRef?: string;
@@ -931,14 +1008,21 @@ export interface AppStateData {
   ownerCharges?: OwnerCharge[];
 }
 
-
 // ============================================================
-// SIGNATURES UTILISATEUR (traçabilité)
+// SIGNATURES UTILISATEUR
 // ============================================================
 export interface DocumentSignature {
   id: string;
   agencyId: string;
-  documentType: 'payment' | 'invoice' | 'contract' | 'mandate' | 'receipt' | 'bulletin' | 'slip' | 'other';
+  documentType:
+    | "payment"
+    | "invoice"
+    | "contract"
+    | "mandate"
+    | "receipt"
+    | "bulletin"
+    | "slip"
+    | "other";
   documentId: string;
   userId: string;
   userNom?: string;
@@ -949,7 +1033,7 @@ export interface DocumentSignature {
 }
 
 // ============================================================
-// TYPES COMPLÉMENTAIRES (importés par plusieurs composants)
+// TYPES COMPLÉMENTAIRES
 // ============================================================
 export interface PropertyInspection {
   type?: string;
