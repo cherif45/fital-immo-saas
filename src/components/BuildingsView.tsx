@@ -123,7 +123,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       type,
       nombreEtages: Number(nombreEtages) || 0,
       description,
-      statut: "Vacant",
+      statut: "Actif",
       dateCreation: new Date().toISOString().split("T")[0],
     };
 
