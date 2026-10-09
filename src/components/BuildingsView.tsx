@@ -48,10 +48,18 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   const [quartier, setQuartier] = useState("");
   const [ville, setVille] = useState("Dakar");
   const [type, setType] = useState<
-    "Immeuble" | "Villa" | "Résidence" | "Cité" | "Duplex" | "Autre"
+    | "Immeuble"
+    | "Villa"
+    | "Résidence"
+    | "Cité"
+    | "Duplex"
+    | "Autre"
+    | "__custom__"
   >("Immeuble");
+  const [customType, setCustomType] = useState<string>("");
   const [nombreEtages, setNombreEtages] = useState(0);
   const [proprietaireId, setProprietaireId] = useState(owners[0]?.id || "");
+  const [ownerSearch, setOwnerSearch] = useState<string>("");
   const [description, setDescription] = useState("");
 
   // 🔒 Permissions
@@ -113,14 +121,17 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       return;
     }
 
+    const effectiveType: any =
+      type === "__custom__" && customType.trim() ? customType.trim() : type;
     const newBuilding: Building = {
       id: crypto.randomUUID(),
       proprietaireId,
+      proprietaireNom: getOwnerName(proprietaireId),
       nom,
       adresse,
       quartier,
       ville,
-      type,
+      type: effectiveType,
       nombreEtages: Number(nombreEtages) || 0,
       description,
       statut: "Actif",
@@ -138,6 +149,8 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     setNom("");
     setAdresse("");
     setQuartier("");
+    setCustomType("");
+    setOwnerSearch("");
     setDescription("");
     setIsNewBuildingModalOpen(false);
   };
@@ -399,7 +412,17 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                     <option value="Cité">Cité</option>
                     <option value="Duplex">Duplex</option>
                     <option value="Autre">Autre</option>
+                    <option value="__custom__">✨ Personnalisé...</option>
                   </select>
+                  {type === "__custom__" && (
+                    <input
+                      type="text"
+                      value={customType}
+                      onChange={(e) => setCustomType(e.target.value)}
+                      placeholder="Entrez le type personnalisé..."
+                      className="w-full mt-2 p-2.5 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/40 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -419,17 +442,35 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Propriétaire *
                 </label>
+                <input
+                  type="text"
+                  value={ownerSearch}
+                  onChange={(e) => setOwnerSearch(e.target.value)}
+                  placeholder="🔍 Rechercher un propriétaire..."
+                  className="w-full mb-2 p-2 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/30 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
+                />
                 <select
                   value={proprietaireId}
                   onChange={(e) => setProprietaireId(e.target.value)}
                   required
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                 >
-                  {owners.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.prenom} {o.nom}
-                    </option>
-                  ))}
+                  {owners
+                    .filter((o) => {
+                      if (!ownerSearch.trim()) return true;
+                      const q = ownerSearch.toLowerCase().trim();
+                      return (
+                        `${o.prenom} ${o.nom}`.toLowerCase().includes(q) ||
+                        (o.telephone || "").includes(q) ||
+                        (o.email || "").toLowerCase().includes(q) ||
+                        (o.mandatGerance || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.prenom} {o.nom}
+                      </option>
+                    ))}
                 </select>
               </div>
 

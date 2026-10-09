@@ -86,6 +86,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [selectedTenantId, setSelectedTenantId] = useState<string>(
     initialTenantForPayment?.id || "",
   );
+  const [tenantSearch, setTenantSearch] = useState<string>("");
   const [selectedPaymentForMobileMoney, setSelectedPaymentForMobileMoney] =
     useState<Payment | null>(null);
   const [settlingPayment, setSettlingPayment] = useState<Payment | null>(null);
@@ -927,6 +928,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   1. Sélectionner le Locataire & Bien
                 </label>
+                <input
+                  type="text"
+                  value={tenantSearch}
+                  onChange={(e) => setTenantSearch(e.target.value)}
+                  placeholder="🔍 Rechercher locataire par nom, téléphone ou bien..."
+                  className="w-full mb-2 p-2 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/30 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
+                />
                 <select
                   value={selectedTenantId}
                   onChange={(e) => setSelectedTenantId(e.target.value)}
@@ -934,12 +942,25 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                 >
                   <option value="">-- Choisir un locataire --</option>
-                  {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nom} {t.prenom} — {t.bienNom} (Loyer :{" "}
-                      {formatNumber(t.loyerMensuel)} FCFA)
-                    </option>
-                  ))}
+                  {tenants
+                    .filter((t) => {
+                      if (!tenantSearch.trim()) return true;
+                      const q = tenantSearch.toLowerCase().trim();
+                      return (
+                        `${t.nom} ${t.prenom}`.toLowerCase().includes(q) ||
+                        `${t.prenom} ${t.nom}`.toLowerCase().includes(q) ||
+                        (t.telephone || "").includes(q) ||
+                        (t.email || "").toLowerCase().includes(q) ||
+                        (t.bienNom || "").toLowerCase().includes(q) ||
+                        (t.cni || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.nom} {t.prenom} — {t.bienNom} (Loyer :{" "}
+                        {formatNumber(t.loyerMensuel)} FCFA)
+                      </option>
+                    ))}
                 </select>
               </div>
 

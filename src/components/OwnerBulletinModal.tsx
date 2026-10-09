@@ -747,15 +747,15 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           </div>
 
           {/* TABLEAU 1 : Immeuble (bandeau) */}
-          {ownerBuildings.length > 0 && (
+          {(ownerBuildings.length > 0 || ownerProperties.length > 0) && (
             <table className="w-full text-[8px] border-collapse mb-2">
               <thead>
                 <tr className="bg-neutral-300">
                   <th className="p-1 border border-neutral-800 text-left font-bold">
-                    Ref_Imm.
+                    Ref_Bien
                   </th>
                   <th className="p-1 border border-neutral-800 text-left font-bold">
-                    Nom_Immeuble
+                    Nom du Bien
                   </th>
                   <th className="p-1 border border-neutral-800 text-left font-bold w-[35px]">
                     Type
@@ -781,7 +781,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                       {b.nom}
                     </td>
                     <td className="p-1 border border-neutral-800">
-                      {b.type || "R+4"}
+                      {b.type || "Immeuble"}
                     </td>
                     <td className="p-1 border border-neutral-800">
                       {b.adresse || b.quartier || "—"}
@@ -790,7 +790,29 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                       {owner.prenom} {owner.nom}
                     </td>
                     <td className="p-1 border border-neutral-800 text-center font-mono">
-                      {tauxCommission}
+                      {tauxCommission}%
+                    </td>
+                  </tr>
+                ))}
+                {ownerProperties.map((p) => (
+                  <tr key={p.id} className="bg-yellow-50">
+                    <td className="p-1 border border-neutral-800 font-mono font-bold">
+                      {getRefCourte(p.ref)}
+                    </td>
+                    <td className="p-1 border border-neutral-800 font-bold">
+                      {p.nom}
+                    </td>
+                    <td className="p-1 border border-neutral-800">
+                      {p.type || "Bien"}
+                    </td>
+                    <td className="p-1 border border-neutral-800">
+                      {p.adresse || p.quartier || "—"}
+                    </td>
+                    <td className="p-1 border border-neutral-800 uppercase font-semibold">
+                      {owner.prenom} {owner.nom}
+                    </td>
+                    <td className="p-1 border border-neutral-800 text-center font-mono">
+                      {tauxCommission}%
                     </td>
                   </tr>
                 ))}

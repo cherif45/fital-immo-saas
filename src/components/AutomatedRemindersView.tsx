@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   BellRing,
   Sparkles,
@@ -19,18 +19,27 @@ import {
   ShieldAlert,
   PhoneCall,
   Smartphone,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   Tenant,
   Property,
   TenantReminder,
   ReminderLevel,
   ReminderChannel,
-} from '../types';
-import { formatCurrency, formatNumber, formatDate, copyToClipboard } from '../lib/utils';
-import { triggerPhoneCall, triggerSMS, triggerWhatsApp } from '../lib/comms/commsHelper';
-import { generateWavePaymentLink } from '../lib/payments/mobileMoney';
-import { PaymentReminderLetterModal } from './PaymentReminderLetterModal';
+} from "../types";
+import {
+  formatCurrency,
+  formatNumber,
+  formatDate,
+  copyToClipboard,
+} from "../lib/utils";
+import {
+  triggerPhoneCall,
+  triggerSMS,
+  triggerWhatsApp,
+} from "../lib/comms/commsHelper";
+import { generateWavePaymentLink } from "../lib/payments/mobileMoney";
+import { PaymentReminderLetterModal } from "./PaymentReminderLetterModal";
 
 interface AutomatedRemindersViewProps {
   tenants: Tenant[];
@@ -50,29 +59,39 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
 }) => {
   // Normaliser une période pour comparaison
   const normalizePeriode = (p: string): string => {
-    if (!p) return '';
+    if (!p) return "";
     const clean = p.toLowerCase().trim();
     const moisMap: Record<string, string> = {
-      'janv': 'janvier', 'jan': 'janvier',
-      'févr': 'février', 'fev': 'février', 'fév': 'février', 'fevr': 'février',
-      'avr': 'avril',
-      'juil': 'juillet',
-      'août': 'août', 'aout': 'août',
-      'sept': 'septembre', 'sep': 'septembre',
-      'oct': 'octobre',
-      'nov': 'novembre',
-      'déc': 'décembre', 'dec': 'décembre',
+      janv: "janvier",
+      jan: "janvier",
+      févr: "février",
+      fev: "février",
+      fév: "février",
+      fevr: "février",
+      avr: "avril",
+      juil: "juillet",
+      août: "août",
+      aout: "août",
+      sept: "septembre",
+      sep: "septembre",
+      oct: "octobre",
+      nov: "novembre",
+      déc: "décembre",
+      dec: "décembre",
     };
     let result = clean;
     Object.entries(moisMap).forEach(([abbr, full]) => {
       if (result.startsWith(abbr)) result = result.replace(abbr, full);
     });
-    result = result.replace(/([a-zéû]+)(\d{4})/, '$1 $2');
+    result = result.replace(/([a-zéû]+)(\d{4})/, "$1 $2");
     return result;
   };
 
   const moisActuel = normalizePeriode(
-    new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toLowerCase().trim()
+    new Date()
+      .toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+      .toLowerCase()
+      .trim(),
   );
 
   // Overdue = locataires actifs qui n'ont PAS payé le mois en cours (à 100%)
@@ -81,101 +100,126 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
     const paiementsMois = payments.filter(
       (p: any) =>
         p.locataireId === t.id &&
-        normalizePeriode(p.periode || '') === moisActuel
+        (p.statut === "Payé" || p.statut === "Partiel") &&
+        normalizePeriode(p.periode || "") === moisActuel,
     );
     if (paiementsMois.length === 0) return true; // rien payé → à relancer
-    const totalPaye = paiementsMois.reduce((sum: number, p: any) => sum + (p.montantPaye || 0), 0);
-    const totalDu = paiementsMois[0].montantTotal || t.loyerMensuel || 0;
+    const totalPaye = paiementsMois.reduce(
+      (sum: number, p: any) => sum + (Number(p.montantPaye) || 0),
+      0,
+    );
+    const firstPayment = paiementsMois[0];
+    const totalDu =
+      (firstPayment && Number(firstPayment.montantTotal) > 0
+        ? Number(firstPayment.montantTotal)
+        : 0) ||
+      Number(t.loyerMensuel) ||
+      0;
     return totalPaye < totalDu; // paiement partiel → à relancer
   });
   const [selectedTenantId, setSelectedTenantId] = useState<string>(
-    overdueTenants[0]?.id || tenants[0]?.id || ''
+    overdueTenants[0]?.id || tenants[0]?.id || "",
   );
-  const [selectedChannel, setSelectedChannel] = useState<ReminderChannel>('WhatsApp');
-  const [selectedLevel, setSelectedLevel] = useState<ReminderLevel>('Niveau 1: Courtois (J+3)');
-  const [customMessage, setCustomMessage] = useState<string>('');
+  const [selectedChannel, setSelectedChannel] =
+    useState<ReminderChannel>("WhatsApp");
+  const [selectedLevel, setSelectedLevel] = useState<ReminderLevel>(
+    "Niveau 1: Courtois (J+3)",
+  );
+  const [customMessage, setCustomMessage] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
-    const [isLetterModalOpen, setIsLetterModalOpen] = useState<boolean>(false);
+  const [isLetterModalOpen, setIsLetterModalOpen] = useState<boolean>(false);
 
-  const activeTenant = tenants.find((t) => t.id === selectedTenantId) || overdueTenants[0];
+  const activeTenant =
+    tenants.find((t) => t.id === selectedTenantId) || overdueTenants[0];
   const activeProperty = properties.find((p) => p.id === activeTenant?.bienId);
 
   // Auto determine appropriate severity level based on days of delay
   const getSuggestedLevel = (days: number): ReminderLevel => {
-    if (days <= 5) return 'Niveau 1: Courtois (J+3)';
-    if (days <= 12) return 'Niveau 2: Modéré (J+10)';
-    if (days <= 20) return 'Niveau 3: Ferme & Pénalités (J+15)';
-    return 'Niveau 4: Mise en demeure juridique (J+25)';
+    if (days <= 5) return "Niveau 1: Courtois (J+3)";
+    if (days <= 12) return "Niveau 2: Modéré (J+10)";
+    if (days <= 20) return "Niveau 3: Ferme & Pénalités (J+15)";
+    return "Niveau 4: Mise en demeure juridique (J+25)";
   };
 
   // Generate Message using backend Gemini API route
   const handleGenerateMessage = async (
-  tenant?: Tenant,
-  level?: ReminderLevel,
-  channel?: ReminderChannel
-) => {
-  const t = tenant || activeTenant;
-  if (!t) return;
+    tenant?: Tenant,
+    level?: ReminderLevel,
+    channel?: ReminderChannel,
+  ) => {
+    const t = tenant || activeTenant;
+    if (!t) return;
 
-  const p = properties.find((prop) => prop.id === t.bienId);
-  const targetLevel = level || selectedLevel;
-  const targetChannel = channel || selectedChannel;
+    const p = properties.find((prop) => prop.id === t.bienId);
+    const targetLevel = level || selectedLevel;
+    const targetChannel = channel || selectedChannel;
 
-  setIsGenerating(true);
-  try {
-    const res = await fetch('/api/gemini/relance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        locataireNom: `${t.prenom} ${t.nom}`,
-        bienNom: p?.nom || t.bienNom,
-        montantDu: t.arrieresCumules || t.loyerMensuel,
-        joursRetard: t.joursRetard || 7,
-        niveau: targetLevel,
-        canal: targetChannel,
-        dateEcheance: '5 du mois courant',
-        penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
-      }),
-    });
-    const data = await res.json();
-    if (data && data.message) {
-      setCustomMessage(data.message);
-    } else {
-      // Fallback : utiliser le message selon le NIVEAU
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/gemini/relance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locataireNom: `${t.prenom} ${t.nom}`,
+          bienNom: p?.nom || t.bienNom,
+          montantDu: t.arrieresCumules || t.loyerMensuel,
+          joursRetard: t.joursRetard || 7,
+          niveau: targetLevel,
+          canal: targetChannel,
+          dateEcheance: "5 du mois courant",
+          penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
+        }),
+      });
+      const data = await res.json();
+      if (data && data.message) {
+        setCustomMessage(data.message);
+      } else {
+        // Fallback : utiliser le message selon le NIVEAU
+        setCustomMessage(buildFallbackMessage(t, p, targetLevel));
+      }
+    } catch (err) {
+      console.warn("Fallback local (Gemini indisponible):", err);
       setCustomMessage(buildFallbackMessage(t, p, targetLevel));
+    } finally {
+      setIsGenerating(false);
     }
-  } catch (err) {
-    console.warn('Fallback local (Gemini indisponible):', err);
-    setCustomMessage(buildFallbackMessage(t, p, targetLevel));
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  };
 
-// 🆕 FONCTION DE FALLBACK PAR NIVEAU
-const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: ReminderLevel): string => {
-  const nom = `${t.prenom} ${t.nom}`;
-  const bien = p?.nom || t.bienNom || 'FITAL-IMMO';
-  const montant = (t.arrieresCumules || t.loyerMensuel).toLocaleString('fr-FR');
-  const jours = t.joursRetard || 7;
-  const penalites = jours > 10 ? Math.round((t.arrieresCumules || t.loyerMensuel) * 0.1).toLocaleString('fr-FR') : '0';
+  // 🆕 FONCTION DE FALLBACK PAR NIVEAU
+  const buildFallbackMessage = (
+    t: Tenant,
+    p: Property | undefined,
+    level: ReminderLevel,
+  ): string => {
+    const nom = `${t.prenom} ${t.nom}`;
+    const bien = p?.nom || t.bienNom || "FITAL-IMMO";
+    const montant = (t.arrieresCumules || t.loyerMensuel).toLocaleString(
+      "fr-FR",
+    );
+    const jours = t.joursRetard || 7;
+    const penalites =
+      jours > 10
+        ? Math.round(
+            (t.arrieresCumules || t.loyerMensuel) * 0.1,
+          ).toLocaleString("fr-FR")
+        : "0";
 
-  switch (level) {
-    case 'Niveau 1: Courtois (J+3)':
-      return `Bonjour *${nom}* 👋\n\nNous espérons que vous allez bien.\n\nUn petit rappel amical : le loyer de *${bien}* d'un montant de *${montant} FCFA* n'a pas encore été enregistré ce mois-ci.\n\nPeut-être un simple oubli ? Vous pouvez régler par Wave, Orange Money ou au guichet.\n\nMerci pour votre confiance.\n*Service Gestion Locative FITAL-IMMO*`;
+    switch (level) {
+      case "Niveau 1: Courtois (J+3)":
+        return `Bonjour *${nom}* 👋\n\nNous espérons que vous allez bien.\n\nUn petit rappel amical : le loyer de *${bien}* d'un montant de *${montant} FCFA* n'a pas encore été enregistré ce mois-ci.\n\nPeut-être un simple oubli ? Vous pouvez régler par Wave, Orange Money ou au guichet.\n\nMerci pour votre confiance.\n*Service Gestion Locative FITAL-IMMO*`;
 
-    case 'Niveau 2: Modéré (J+10)':
-      return `Bonjour *${nom}*,\n\nNous revenons vers vous concernant le loyer de *${bien}*.\n\n⚠️ À ce jour, un montant de *${montant} FCFA* reste dû (${jours} jours de retard).\n\nMerci de bien vouloir régulariser votre situation dans les plus brefs délais pour éviter l'application de pénalités.\n\nVous pouvez payer par Wave, Orange Money ou directement au guichet.\n\n*Service Recouvrement FITAL-IMMO*`;
+      case "Niveau 2: Modéré (J+10)":
+        return `Bonjour *${nom}*,\n\nNous revenons vers vous concernant le loyer de *${bien}*.\n\n⚠️ À ce jour, un montant de *${montant} FCFA* reste dû (${jours} jours de retard).\n\nMerci de bien vouloir régulariser votre situation dans les plus brefs délais pour éviter l'application de pénalités.\n\nVous pouvez payer par Wave, Orange Money ou directement au guichet.\n\n*Service Recouvrement FITAL-IMMO*`;
 
-    case 'Niveau 3: Ferme & Pénalités (J+15)':
-      return `Bonjour *${nom}*,\n\n🚨 RAPPEL IMPORTANT\n\nLe loyer de *${bien}* n'a toujours pas été réglé. Montant dû : *${montant} FCFA* + pénalités de retard : *${penalites} FCFA* (${jours} jours).\n\nConformément aux conditions du bail, des pénalités de retard de 10% sont applicables.\n\nMerci de régler sous 48h pour éviter toute procédure supplémentaire.\n\nContacts : 33 825 59 67 / 77 551 16 70\n*Service Recouvrement FITAL-IMMO*`;
+      case "Niveau 3: Ferme & Pénalités (J+15)":
+        return `Bonjour *${nom}*,\n\n🚨 RAPPEL IMPORTANT\n\nLe loyer de *${bien}* n'a toujours pas été réglé. Montant dû : *${montant} FCFA* + pénalités de retard : *${penalites} FCFA* (${jours} jours).\n\nConformément aux conditions du bail, des pénalités de retard de 10% sont applicables.\n\nMerci de régler sous 48h pour éviter toute procédure supplémentaire.\n\nContacts : 33 825 59 67 / 77 551 16 70\n*Service Recouvrement FITAL-IMMO*`;
 
-    case 'Niveau 4: Mise en demeure juridique (J+25)':
-      return `Bonjour *${nom}*,\n\n⚠️ MISE EN DEMEURE\n\nMalgré nos précédents rappels, le loyer de *${bien}* reste impayé. Montant total dû : *${montant} FCFA* + pénalités : *${penalites} FCFA* (${jours} jours de retard).\n\nCette situation nous oblige à engager une procédure de recouvrement juridique conformément à l'article 5 du contrat de bail.\n\nNous vous demandons de régulariser votre situation dans un délai de *8 jours* à compter de la réception de ce message, faute de quoi nous serons contraints de saisir les autorités compétentes.\n\nUne lettre de mise en demeure officielle vous sera également adressée par courrier.\n\n*Service Juridique FITAL-IMMO*`;
-  }
-};
+      case "Niveau 4: Mise en demeure juridique (J+25)":
+        return `Bonjour *${nom}*,\n\n⚠️ MISE EN DEMEURE\n\nMalgré nos précédents rappels, le loyer de *${bien}* reste impayé. Montant total dû : *${montant} FCFA* + pénalités : *${penalites} FCFA* (${jours} jours de retard).\n\nCette situation nous oblige à engager une procédure de recouvrement juridique conformément à l'article 5 du contrat de bail.\n\nNous vous demandons de régulariser votre situation dans un délai de *8 jours* à compter de la réception de ce message, faute de quoi nous serons contraints de saisir les autorités compétentes.\n\nUne lettre de mise en demeure officielle vous sera également adressée par courrier.\n\n*Service Juridique FITAL-IMMO*`;
+    }
+  };
 
   // Initial message load when active tenant changes
   React.useEffect(() => {
@@ -197,9 +241,9 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
   // Open direct WhatsApp URL
   const handleSendWhatsApp = () => {
     if (!activeTenant) return;
-    const phoneClean = activeTenant.telephone.replace(/[^0-9]/g, '');
+    const phoneClean = activeTenant.telephone.replace(/[^0-9]/g, "");
     const encoded = encodeURIComponent(customMessage);
-    window.open(`https://wa.me/${phoneClean}?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/${phoneClean}?text=${encoded}`, "_blank");
 
     // Register reminder to history
     onAddReminder({
@@ -210,20 +254,28 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
       email: activeTenant.email,
       bienNom: activeTenant.bienNom,
       montantDu: activeTenant.arrieresCumules || activeTenant.loyerMensuel,
-      penalites: activeTenant.joursRetard > 10 ? Math.round(activeTenant.loyerMensuel * 0.1) : 0,
+      penalites:
+        activeTenant.joursRetard > 10
+          ? Math.round(activeTenant.loyerMensuel * 0.1)
+          : 0,
       joursRetard: activeTenant.joursRetard,
       niveau: selectedLevel,
-      canal: 'WhatsApp',
+      canal: "WhatsApp",
       message: customMessage,
-      statut: 'Envoyé',
-      dateCreation: new Date().toISOString().split('T')[0],
-      dateEnvoi: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      statut: "Envoyé",
+      dateCreation: new Date().toISOString().split("T")[0],
+      dateEnvoi: new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     });
   };
 
   // Bulk automated relances preparation
   const handleBulkReminders = async () => {
-    setBulkProgress('Génération des relances personnalisées pour tous les locataires en retard...');
+    setBulkProgress(
+      "Génération des relances personnalisées pour tous les locataires en retard...",
+    );
     for (const t of overdueTenants) {
       const level = getSuggestedLevel(t.joursRetard);
       onAddReminder({
@@ -237,16 +289,21 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
         penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
         joursRetard: t.joursRetard,
         niveau: level,
-        canal: 'WhatsApp',
-        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(t.arrieresCumules || t.loyerMensuel).toLocaleString('fr-FR')} FCFA (${t.joursRetard}j de retard). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
-        statut: 'Envoyé',
-        dateCreation: new Date().toISOString().split('T')[0],
-        dateEnvoi: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        canal: "WhatsApp",
+        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(t.arrieresCumules || t.loyerMensuel).toLocaleString("fr-FR")} FCFA (${t.joursRetard}j de retard). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
+        statut: "Envoyé",
+        dateCreation: new Date().toISOString().split("T")[0],
+        dateEnvoi: new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       });
     }
     setTimeout(() => {
       setBulkProgress(null);
-      alert(`✅ Relances groupées préparées et enregistrées avec succès pour ${overdueTenants.length} locataires.`);
+      alert(
+        `✅ Relances groupées préparées et enregistrées avec succès pour ${overdueTenants.length} locataires.`,
+      );
     }, 1200);
   };
 
@@ -266,7 +323,8 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
               </span>
             </div>
             <p className="text-xs text-[#A8B4C4] mt-0.5">
-              Génération automatique de relances calibrées (WhatsApp, SMS, Email & Mise en demeure juridique)
+              Génération automatique de relances calibrées (WhatsApp, SMS, Email
+              & Mise en demeure juridique)
             </p>
           </div>
         </div>
@@ -277,7 +335,11 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
           className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <Sparkles className="w-4 h-4" />
-          <span>{bulkProgress ? 'Traitement en cours...' : `Relancer tous les impayés (${overdueTenants.length})`}</span>
+          <span>
+            {bulkProgress
+              ? "Traitement en cours..."
+              : `Relancer tous les impayés (${overdueTenants.length})`}
+          </span>
         </button>
       </div>
 
@@ -303,26 +365,29 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                     onClick={() => setSelectedTenantId(t.id)}
                     className={`w-full p-3 rounded-xl text-left transition-all border flex items-center justify-between gap-3 ${
                       isSelected
-                        ? 'bg-gradient-to-r from-[#C9A96E]/20 to-[#C9A96E]/5 border-[#C9A96E] text-white shadow-md'
-                        : 'bg-[#1E2E45]/40 border-[#C9A96E]/10 hover:border-[#C9A96E]/30 text-[#A8B4C4]'
+                        ? "bg-gradient-to-r from-[#C9A96E]/20 to-[#C9A96E]/5 border-[#C9A96E] text-white shadow-md"
+                        : "bg-[#1E2E45]/40 border-[#C9A96E]/10 hover:border-[#C9A96E]/30 text-[#A8B4C4]"
                     }`}
                   >
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-white truncate">
                         {t.prenom} {t.nom}
                       </div>
-                      <div className="text-[11px] text-[#A8B4C4] truncate">{t.bienNom}</div>
+                      <div className="text-[11px] text-[#A8B4C4] truncate">
+                        {t.bienNom}
+                      </div>
                       <div className="text-[10px] text-rose-400 font-semibold mt-0.5">
-                        {formatCurrency(t.arrieresCumules || t.loyerMensuel)} · {t.joursRetard}j de retard
+                        {formatCurrency(t.arrieresCumules || t.loyerMensuel)} ·{" "}
+                        {t.joursRetard}j de retard
                       </div>
                     </div>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                         t.joursRetard > 20
-                          ? 'bg-rose-500/20 text-rose-300'
+                          ? "bg-rose-500/20 text-rose-300"
                           : t.joursRetard > 10
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-sky-500/20 text-sky-300'
+                            ? "bg-amber-500/20 text-amber-300"
+                            : "bg-sky-500/20 text-sky-300"
                       }`}
                     >
                       J+{t.joursRetard}
@@ -341,33 +406,60 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
               </label>
               <div className="space-y-1.5">
                 {[
-                  { level: 'Niveau 1: Courtois (J+3)' as ReminderLevel, desc: 'Rappel amical de bienveillance', color: 'text-sky-300' },
-                  { level: 'Niveau 2: Modéré (J+10)' as ReminderLevel, desc: 'Rappel formel avant pénalités', color: 'text-amber-300' },
-                  { level: 'Niveau 3: Ferme & Pénalités (J+15)' as ReminderLevel, desc: 'Application pénalité 10% + délai 48h', color: 'text-orange-400' },
-                  { level: 'Niveau 4: Mise en demeure juridique (J+25)' as ReminderLevel, desc: 'Sommation légale avant huissier', color: 'text-rose-400' },
+                  {
+                    level: "Niveau 1: Courtois (J+3)" as ReminderLevel,
+                    desc: "Rappel amical de bienveillance",
+                    color: "text-sky-300",
+                  },
+                  {
+                    level: "Niveau 2: Modéré (J+10)" as ReminderLevel,
+                    desc: "Rappel formel avant pénalités",
+                    color: "text-amber-300",
+                  },
+                  {
+                    level:
+                      "Niveau 3: Ferme & Pénalités (J+15)" as ReminderLevel,
+                    desc: "Application pénalité 10% + délai 48h",
+                    color: "text-orange-400",
+                  },
+                  {
+                    level:
+                      "Niveau 4: Mise en demeure juridique (J+25)" as ReminderLevel,
+                    desc: "Sommation légale avant huissier",
+                    color: "text-rose-400",
+                  },
                 ].map((item) => (
                   <button
                     key={item.level}
                     onClick={() => {
                       setSelectedLevel(item.level);
-                      handleGenerateMessage(activeTenant, item.level, selectedChannel);
+                      handleGenerateMessage(
+                        activeTenant,
+                        item.level,
+                        selectedChannel,
+                      );
                     }}
                     className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                       selectedLevel === item.level
-                        ? 'bg-[#1E2E45] border-[#C9A96E] font-semibold text-white'
-                        : 'bg-[#1E2E45]/40 border-transparent text-[#A8B4C4] hover:bg-[#1E2E45]/80'
+                        ? "bg-[#1E2E45] border-[#C9A96E] font-semibold text-white"
+                        : "bg-[#1E2E45]/40 border-transparent text-[#A8B4C4] hover:bg-[#1E2E45]/80"
                     }`}
                   >
                     <div>
                       <div className={item.color}>{item.level}</div>
-                      <div className="text-[10px] text-[#6B7C94]">{item.desc}</div>
+                      <div className="text-[10px] text-[#6B7C94]">
+                        {item.desc}
+                      </div>
                     </div>
-                    {selectedLevel === item.level && <CheckCircle2 className="w-4 h-4 text-[#C9A96E]" />}
+                    {selectedLevel === item.level && (
+                      <CheckCircle2 className="w-4 h-4 text-[#C9A96E]" />
+                    )}
                   </button>
-                                ))}
+                ))}
 
                 {/* ⬇️ NOUVEAU : Bouton Mise en Demeure (UNIQUEMENT Niveau 4) */}
-                {selectedLevel === 'Niveau 4: Mise en demeure juridique (J+25)' && (
+                {selectedLevel ===
+                  "Niveau 4: Mise en demeure juridique (J+25)" && (
                   <button
                     onClick={() => setIsLetterModalOpen(true)}
                     className="w-full mt-2 p-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
@@ -385,9 +477,24 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'WhatsApp' as ReminderChannel, label: 'WhatsApp', icon: MessageSquare, color: 'text-emerald-400' },
-                  { id: 'SMS' as ReminderChannel, label: 'SMS Court', icon: Send, color: 'text-sky-400' },
-                  { id: 'Email' as ReminderChannel, label: 'Email Formel', icon: Mail, color: 'text-amber-400' },
+                  {
+                    id: "WhatsApp" as ReminderChannel,
+                    label: "WhatsApp",
+                    icon: MessageSquare,
+                    color: "text-emerald-400",
+                  },
+                  {
+                    id: "SMS" as ReminderChannel,
+                    label: "SMS Court",
+                    icon: Send,
+                    color: "text-sky-400",
+                  },
+                  {
+                    id: "Email" as ReminderChannel,
+                    label: "Email Formel",
+                    icon: Mail,
+                    color: "text-amber-400",
+                  },
                 ].map((ch) => {
                   const Icon = ch.icon;
                   const isSel = selectedChannel === ch.id;
@@ -396,12 +503,16 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                       key={ch.id}
                       onClick={() => {
                         setSelectedChannel(ch.id);
-                        handleGenerateMessage(activeTenant, selectedLevel, ch.id);
+                        handleGenerateMessage(
+                          activeTenant,
+                          selectedLevel,
+                          ch.id,
+                        );
                       }}
                       className={`p-2.5 rounded-xl border text-center text-xs flex flex-col items-center gap-1.5 transition-all ${
                         isSel
-                          ? 'bg-[#1E2E45] border-[#C9A96E] text-white font-bold shadow-sm'
-                          : 'bg-[#1E2E45]/40 border-transparent text-[#A8B4C4] hover:bg-[#1E2E45]/80'
+                          ? "bg-[#1E2E45] border-[#C9A96E] text-white font-bold shadow-sm"
+                          : "bg-[#1E2E45]/40 border-transparent text-[#A8B4C4] hover:bg-[#1E2E45]/80"
                       }`}
                     >
                       <Icon className={`w-4 h-4 ${ch.color}`} />
@@ -425,10 +536,12 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                 </div>
                 <div>
                   <div className="text-xs font-bold text-white">
-                    Aperçu du Message — {selectedChannel} ({selectedLevel.split(':')[0]})
+                    Aperçu du Message — {selectedChannel} (
+                    {selectedLevel.split(":")[0]})
                   </div>
                   <div className="text-[10px] text-[#A8B4C4]">
-                    Destinataire : {activeTenant?.prenom} {activeTenant?.nom} ({activeTenant?.telephone})
+                    Destinataire : {activeTenant?.prenom} {activeTenant?.nom} (
+                    {activeTenant?.telephone})
                   </div>
                 </div>
               </div>
@@ -439,7 +552,9 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                 className="px-2.5 py-1 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-[#C9A96E] text-xs font-medium border border-[#C9A96E]/20 transition-all flex items-center gap-1.5"
                 title="Régénérer avec l'IA Gemini"
               >
-                <RefreshCw className={`w-3 h-3 ${isGenerating ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`}
+                />
                 <span>Régénérer</span>
               </button>
             </div>
@@ -463,7 +578,9 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
               </div>
               <div className="text-[10px] text-[#6B7C94] mt-1.5 flex items-center justify-between">
                 <span>{customMessage.length} caractères</span>
-                <span>Variables auto-remplies : Nom, Bien, Montant, Pénalités, Délai</span>
+                <span>
+                  Variables auto-remplies : Nom, Bien, Montant, Pénalités, Délai
+                </span>
               </div>
             </div>
 
@@ -475,7 +592,7 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                   className="px-3 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] text-xs text-[#E8D5B0] font-medium border border-[#C9A96E]/20 transition-all flex items-center gap-1.5"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  <span>{copied ? 'Copié !' : 'Copier'}</span>
+                  <span>{copied ? "Copié !" : "Copier"}</span>
                 </button>
 
                 {activeTenant && (
@@ -493,9 +610,17 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                     <button
                       type="button"
                       onClick={() => {
-                        const amount = activeTenant.arrieresCumules || activeTenant.loyerMensuel;
-                        const waveUrl = generateWavePaymentLink(amount, `LOY-${activeTenant.nom}`);
-                        setCustomMessage((prev) => `${prev}\n\n👉 Réglez instantanément via Wave : ${waveUrl}`);
+                        const amount =
+                          activeTenant.arrieresCumules ||
+                          activeTenant.loyerMensuel;
+                        const waveUrl = generateWavePaymentLink(
+                          amount,
+                          `LOY-${activeTenant.nom}`,
+                        );
+                        setCustomMessage(
+                          (prev) =>
+                            `${prev}\n\n👉 Réglez instantanément via Wave : ${waveUrl}`,
+                        );
                       }}
                       className="px-3 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all"
                       title="Ajouter le lien de paiement direct Wave au message"
@@ -508,7 +633,7 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
               </div>
 
               <div className="flex items-center gap-2">
-                {selectedChannel === 'WhatsApp' && (
+                {selectedChannel === "WhatsApp" && (
                   <button
                     onClick={handleSendWhatsApp}
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 flex items-center gap-2 transition-all hover:scale-105"
@@ -518,7 +643,7 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                   </button>
                 )}
 
-                {selectedChannel === 'SMS' && (
+                {selectedChannel === "SMS" && (
                   <a
                     href={`sms:${activeTenant?.telephone}?body=${encodeURIComponent(customMessage)}`}
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white font-bold text-xs shadow-lg shadow-sky-900/40 flex items-center gap-2 transition-all"
@@ -528,10 +653,10 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
                   </a>
                 )}
 
-                {selectedChannel === 'Email' && (
+                {selectedChannel === "Email" && (
                   <a
                     href={`mailto:${activeTenant?.email}?subject=${encodeURIComponent(
-                      `Rappel de loyer - ${activeTenant?.bienNom}`
+                      `Rappel de loyer - ${activeTenant?.bienNom}`,
                     )}&body=${encodeURIComponent(customMessage)}`}
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg shadow-[#C9A96E]/30 flex items-center gap-2 transition-all hover:scale-105"
                   >
@@ -577,18 +702,27 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
             </thead>
             <tbody className="divide-y divide-[#C9A96E]/10">
               {reminders.map((r) => (
-                <tr key={r.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                <tr
+                  key={r.id}
+                  className="hover:bg-[#1E2E45]/40 transition-colors"
+                >
                   <td className="py-2.5 px-3 font-mono text-[#A8B4C4]">
-                    {r.dateCreation} {r.dateEnvoi ? `(${r.dateEnvoi})` : ''}
+                    {r.dateCreation} {r.dateEnvoi ? `(${r.dateEnvoi})` : ""}
                   </td>
-                  <td className="py-2.5 px-3 font-bold text-white">{r.locataireNom}</td>
-                  <td className="py-2.5 px-3 text-[#A8B4C4] truncate max-w-[180px]">{r.bienNom}</td>
+                  <td className="py-2.5 px-3 font-bold text-white">
+                    {r.locataireNom}
+                  </td>
+                  <td className="py-2.5 px-3 text-[#A8B4C4] truncate max-w-[180px]">
+                    {r.bienNom}
+                  </td>
                   <td className="py-2.5 px-3">
                     <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#1E2E45] text-[#E8D5B0] border border-[#C9A96E]/20 font-medium">
-                      {r.niveau.split(':')[0]}
+                      {r.niveau.split(":")[0]}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 font-medium text-white">{r.canal}</td>
+                  <td className="py-2.5 px-3 font-medium text-white">
+                    {r.canal}
+                  </td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-400">
                     {formatCurrency(r.montantDu)}
                   </td>
@@ -603,16 +737,23 @@ const buildFallbackMessage = (t: Tenant, p: Property | undefined, level: Reminde
           </table>
         </div>
       </div>
-          {/* ⬇️ NOUVEAU : Modale Lettre de Mise en Demeure */}
+      {/* ⬇️ NOUVEAU : Modale Lettre de Mise en Demeure */}
       {isLetterModalOpen && activeTenant && (
         <PaymentReminderLetterModal
           tenant={activeTenant}
           property={activeProperty}
           settings={undefined}
           montantDu={activeTenant.arrieresCumules || activeTenant.loyerMensuel}
-          penalites={activeTenant.joursRetard > 10 ? Math.round(activeTenant.loyerMensuel * 0.1) : 0}
+          penalites={
+            activeTenant.joursRetard > 10
+              ? Math.round(activeTenant.loyerMensuel * 0.1)
+              : 0
+          }
           joursRetard={activeTenant.joursRetard || 25}
-          periode={new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          periode={new Date().toLocaleDateString("fr-FR", {
+            month: "long",
+            year: "numeric",
+          })}
           onClose={() => setIsLetterModalOpen(false)}
         />
       )}

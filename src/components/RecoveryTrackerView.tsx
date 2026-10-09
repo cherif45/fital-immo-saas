@@ -69,17 +69,22 @@ export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
   const [selectedTenantForPayment, setSelectedTenantForPayment] = useState<Tenant | null>(null);
 
   // Map each tenant with their property, owner, and payment status for this period
+  const normalizePeriod = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
   const recoveryRows = tenants.map((tenant) => {
     const property = properties.find((p) => p.id === tenant.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant.proprietaireId));
-    const payment = payments.find(
-      (p) => p.locataireId === tenant.id && p.statut === 'Payé'
-    );
+    // 🐛 FIX Bug 4: filtrer les paiements PAR PERIODE (courante sélectionnée), et cumuler montants si plusieurs paiements (acompte+solde)
+    const periodPayments = payments.filter((p) => {
+      if (p.locataireId !== tenant.id) return false;
+      if (p.statut !== "Payé" && p.statut !== "Partiel") return false;
+      return normalizePeriod(p.periode) === normalizePeriod(selectedPeriod);
+    });
+    const payment = periodPayments[0];
 
     const loyerMensuel = tenant.loyerMensuel || (property?.loyerBase ? property.loyerBase + property.charges : 0);
     const arrieres = tenant.arrieresCumules || 0;
-    const montantTotalARecouvrer = loyerMensuel + (tenant.statut !== 'À jour' ? arrieres : 0);
-    const montantRecouvre = payment ? payment.montantPaye : 0;
+    const montantTotalARecouvrer = loyerMensuel + (tenant.statut !== "À jour" ? arrieres : 0);
+    const montantRecouvre = periodPayments.reduce((sum, p) => sum + (Number(p.montantPaye) || 0), 0);
     const reliquat = Math.max(0, montantTotalARecouvrer - montantRecouvre);
     const tauxRecouvrement =
       montantTotalARecouvrer > 0
