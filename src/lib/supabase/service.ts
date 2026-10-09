@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+Ôªøimport { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -612,7 +612,7 @@ export function mapPaymentFromDb(r: any): Payment {
     montantTotal: Number(r.montant_total ?? r.montantTotal ?? 0),
     montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
-    statut: r.statut || "Pay?",
+    statut: r.statut || "Pay√©",
     modePaiement: r.mode_paiement || r.modePaiement || "Esp?ces",
     moyenPaiementCode:
       r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
@@ -1121,7 +1121,7 @@ export async function loadFullApplicationData(
         q.is("deleted_at", null).order("created_at", { ascending: false }),
       ),
       agencyFilter(supabase.from("contracts").select("*")),
-      // ?? FIX Bug 4: charger les paiements (derniers 500) au lieu de [] ó dashboard + suivi recouvrement en ont besoin
+      // ?? FIX Bug 4: charger les paiements (derniers 500) au lieu de [] ‚Äî dashboard + suivi recouvrement en ont besoin
       agencyFilter(
         supabase
           .from("payments")
@@ -1226,10 +1226,10 @@ export async function loadFullApplicationData(
     ) {
       state.properties = propsRes.value.data.map((r: any) => {
         const mapped = mapPropertyFromDb(r);
-        // ?? FIX Bug 2: fallback proprietaireNom via lookup owners si colonne denormalisÈe est vide
+        // ?? FIX Bug 2: fallback proprietaireNom via lookup owners si colonne denormalis√©e est vide
         if (
           !mapped.proprietaireNom ||
-          mapped.proprietaireNom === "PropriÈtaire" ||
+          mapped.proprietaireNom === "Propri√©taire" ||
           mapped.proprietaireNom === "Propri?taire"
         ) {
           const owner = state.owners.find(
@@ -1368,7 +1368,7 @@ export async function loadFullApplicationData(
         const mapped = mapBuildingFromDb(r);
         if (
           !mapped.proprietaireNom ||
-          mapped.proprietaireNom === "PropriÈtaire" ||
+          mapped.proprietaireNom === "Propri√©taire" ||
           mapped.proprietaireNom === "Propri?taire"
         ) {
           const owner = state.owners.find(
@@ -1389,12 +1389,12 @@ export async function loadFullApplicationData(
         const mapped = mapUnitFromDb(r);
         if (
           !mapped.proprietaireNom ||
-          mapped.proprietaireNom === "PropriÈtaire" ||
+          mapped.proprietaireNom === "Propri√©taire" ||
           mapped.proprietaireNom === "Propri?taire"
         ) {
           // Fallback 1: lookup direct via proprietaireId
           let owner = state.owners.find((o) => o.id === mapped.proprietaireId);
-          // Fallback 2: si l'unit est rattachÈe ‡ un building, rÈcupÈrer le propriÈtaire du building
+          // Fallback 2: si l'unit est rattach√©e √† un building, r√©cup√©rer le propri√©taire du building
           if (!owner && mapped.buildingId) {
             const b = state.buildings.find((bb) => bb.id === mapped.buildingId);
             if (b) {
@@ -2407,7 +2407,7 @@ export async function savePaymentToDb(
       montant_total: payment.montantTotal,
       montant_paye: payment.montantPaye,
       montant_restant: payment.montantRestant || 0,
-      statut: payment.statut || "Pay?",
+      statut: payment.statut || "Pay√©",
       mode_paiement: payment.modePaiement,
       moyen_paiement_code: payment.moyenPaiementCode || "ESPECES",
       verification_statut: payment.verificationStatut || "valide",
@@ -2468,7 +2468,7 @@ export async function validatePendingPaymentInDb(
     const { error } = await supabase
       .from("payments")
       .update({
-        statut: "Pay?",
+        statut: "Pay√©",
         verification_statut: "valide",
         validated_by: validatedBy,
         updated_at: new Date().toISOString(),
