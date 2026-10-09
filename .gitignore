@@ -95,3 +95,6 @@ etat_*.ps1
 
 # Node/Python mix
 *.log
+
+*.bak
+*.bak2
