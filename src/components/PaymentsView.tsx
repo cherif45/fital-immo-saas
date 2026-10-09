@@ -467,8 +467,14 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       const newMontantRestant = Math.max(0, targetTotal - newCumulativePaid);
       const isFull = newMontantRestant === 0;
 
-      paymentToSave = {
+           paymentToSave = {
         ...settlingPayment,
+        id: crypto.randomUUID(), // 🆕 Nouvel ID (ne pas écraser l'acompte)
+        ref: createDocumentNumber(settings?.prefixPaiement, "PAY-"), // 🆕 Nouvelle référence
+        quittanceNumero: createDocumentNumber(
+          settings?.prefixQuittance,
+          "QUI-",
+        ), // 🆕 Nouvelle quittance
         montantPaye: newCumulativePaid,
         montantRestant: newMontantRestant,
         statut: isFull ? "Payé" : "Partiel",
@@ -481,6 +487,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           `Solde loyer ${settlingPayment.periode} réglé (Acompte: ${settlingPayment.ref})`,
         referencePaiementInitial: settlingPayment.ref,
         montantInitialDu: targetTotal,
+        parentPaymentId: settlingPayment.id, // 🆕 Lien vers l'acompte
       };
     } else {
       const isFull = Number(montantPaye) >= totalCalculated;
