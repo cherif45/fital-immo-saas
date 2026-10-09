@@ -638,6 +638,9 @@ export function mapPaymentFromDb(r: any): Payment {
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
+    parentPaymentId: r.parent_payment_id || r.parentPaymentId,
+    detailTotalDu: r.detail_total_du || r.detailTotalDu,
+    periodeNormalisee: r.periode_normalisee || r.periodeNormalisee,
   };
 }
 
@@ -1154,9 +1157,7 @@ export async function loadFullApplicationData(
           .select("*")
           .order("created_at", { ascending: false }),
       ),
-      fetchAllRows("invoices", agencyId, (q) =>
-        q.order("created_at", { ascending: false }),
-      ),
+      Promise.resolve({ data: [], error: null }), // invoices : charge lazy
       agencyFilter(
         supabase
           .from("tenant_reminders")
@@ -1194,15 +1195,9 @@ export async function loadFullApplicationData(
           .select("*")
           .order("created_at", { ascending: false }),
       ),
-      fetchAllRows("archives", agencyId, (q) =>
-        q.order("archived_at", { ascending: false }),
-      ),
-      fetchAllRows("activity_logs", agencyId, (q) =>
-        q.order("created_at", { ascending: false }),
-      ),
-      fetchAllRows("penalties", agencyId, (q) =>
-        q.order("created_at", { ascending: false }),
-      ),
+      Promise.resolve({ data: [], error: null }), // archives : charge lazy
+      Promise.resolve({ data: [], error: null }), // activity_logs : charge lazy
+      Promise.resolve({ data: [], error: null }), // penalties : charge lazy
       Promise.resolve({ data: [], error: null }), // owner_charges : charge lazy
     ]);
 
@@ -2426,6 +2421,9 @@ export async function savePaymentToDb(
       type_recu: payment.typeRecu || "QUITTANCE",
       reference_paiement_initial: payment.referencePaiementInitial || null,
       montant_initial_du: payment.montantInitialDu || 0,
+      parent_payment_id: payment.parentPaymentId || null,
+      detail_total_du: payment.detailTotalDu || null,
+      periode_normalisee: payment.periodeNormalisee || payment.periode || null,
     };
     const exists = payment.id
       ? await recordExists("payments", payment.id, agencyId)

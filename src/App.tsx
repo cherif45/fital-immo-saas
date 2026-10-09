@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -6,22 +6,23 @@ import {
   CreditCard,
   Coins,
   Menu as MenuIcon,
-  Sparkles,} from 'lucide-react';
-import { Sidebar } from './components/Sidebar';
-import { Topbar } from './components/Topbar';
-import { DashboardView } from './components/DashboardView';
-import { ThemeToggle } from './components/ThemeToggle';
-import { useTheme } from './hooks/useTheme';
-import { useAgencySettings } from './hooks/useAgencySettings';
-import { supabase, isSupabaseConfigured } from './lib/supabase/client';
-import { formatNumber } from './lib/utils';
-import { findBlockingPayment } from './lib/payments/duplicate';
-import { createDocumentNumber } from './lib/documentNumber';
-import { createPendingMobilePayment } from './lib/payments/createPendingMobilePayment';
+  Sparkles,
+} from "lucide-react";
+import { Sidebar } from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
+import { DashboardView } from "./components/DashboardView";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { useTheme } from "./hooks/useTheme";
+import { useAgencySettings } from "./hooks/useAgencySettings";
+import { supabase, isSupabaseConfigured } from "./lib/supabase/client";
+import { formatNumber } from "./lib/utils";
+import { findBlockingPayment } from "./lib/payments/duplicate";
+import { createDocumentNumber } from "./lib/documentNumber";
+import { createPendingMobilePayment } from "./lib/payments/createPendingMobilePayment";
 // ============================================================
 // BUNDLE SPLITTING - Lazy imports
 // ============================================================
-import { ViewLoader } from './components/ViewLoader';
+import { ViewLoader } from "./components/ViewLoader";
 import {
   LazyLoginView,
   LazyResetPasswordView,
@@ -70,7 +71,7 @@ import {
   LazyOwnerBulletinModal,
   LazyPaymentReceiptModal,
   LazyThemePreview,
-} from './lib/lazyImports';
+} from "./lib/lazyImports";
 import {
   ActiveTab,
   Property,
@@ -99,7 +100,7 @@ import {
   ActivityLog,
   Penalty,
   OwnerCharge,
-} from './types';
+} from "./types";
 import {
   initialProperties,
   initialOwners,
@@ -119,7 +120,7 @@ import {
   initialPaymentMethods,
   initialCashMovements,
   initialCashClosings,
-} from './data/mockData';
+} from "./data/mockData";
 import {
   loadFullApplicationData,
   loadLocalCollection,
@@ -167,89 +168,106 @@ import {
   saveOwnerChargeToDb,
   deletePenaltyFromDb,
   deleteOwnerChargeFromDb,
-} from './lib/supabase/service';
+} from "./lib/supabase/service";
 
-// Ã°Ÿ†• Force le nettoyage du cache si la version change
-const APP_VERSION = '3.0.7'; // â† était 3.0.4 (fix handleAddTenant + anti-doublon paiement + tenantExit)
-const storedVersion = localStorage.getItem('fital_immo_version');
+// Force le nettoyage du cache si la version change
+const APP_VERSION = "3.0.8";
+const storedVersion = localStorage.getItem("fital_immo_version");
 
 if (storedVersion !== APP_VERSION) {
-  console.log('Ã°Ÿ”„ Nouvelle version détectée, nettoyage du cache...');
-  const keysToKeep = ['fital_immo_user'];
+  console.log("Nouvelle version détectée, nettoyage du cache...");
+  const keysToKeep = ["fital_immo_user"];
   Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('fital_immo_') && !keysToKeep.includes(key)) {
+    if (key.startsWith("fital_immo_") && !keysToKeep.includes(key)) {
       localStorage.removeItem(key);
     }
   });
-  localStorage.setItem('fital_immo_version', APP_VERSION);
+  localStorage.setItem("fital_immo_version", APP_VERSION);
 }
 
-const FALLBACK_AGENCY_ID = 'a592861a-68b0-4469-94ee-751f1f2863b7'; // FITAL IMMO (active)
+const FALLBACK_AGENCY_ID = "a592861a-68b0-4469-94ee-751f1f2863b7";
 
 export default function App() {
-  const [users, setUsers] = useState<UserAccount[]>(() => loadLocalCollection('users', initialUsers));
+  const [users, setUsers] = useState<UserAccount[]>(() =>
+    loadLocalCollection("users", initialUsers),
+  );
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    const saved = loadLocalCollection<UserAccount | null>('current_user', null);
+    const saved = loadLocalCollection<UserAccount | null>("current_user", null);
     if (saved) return saved;
     try {
-      const raw = localStorage.getItem('fital_immo_user');
+      const raw = localStorage.getItem("fital_immo_user");
       if (raw) return JSON.parse(raw);
     } catch (e) {}
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
-  
-  // ðŸ†• Chargement des paramètres d'agence (dynamique, cache 5min)
-  const { settings: agencySettings, reload: reloadAgencySettings } = useAgencySettings(currentUser?.agencyId);
-  useTheme(); // Initialise le thème global
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
+
+  const { settings: agencySettings, reload: reloadAgencySettings } =
+    useAgencySettings(currentUser?.agencyId);
+  useTheme();
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [showThemePreview, setShowThemePreview] = useState(false);
 
-  const [properties, setProperties] = useState<Property[]>(() => loadLocalCollection('properties', initialProperties));
-  const [buildings, setBuildings] = useState<Building[]>(() => loadLocalCollection('buildings', []));
-  const [units, setUnits] = useState<Unit[]>(() => loadLocalCollection('units', []));
-  const [owners, setOwners] = useState<Owner[]>(() => loadLocalCollection('owners', initialOwners));
-  const [tenants, setTenants] = useState<Tenant[]>(() => loadLocalCollection('tenants', initialTenants));
-  const [contracts, setContracts] = useState<LeaseContract[]>(() => loadLocalCollection('contracts', initialContracts));
-  const [payments, setPayments] = useState<Payment[]>(() => loadLocalCollection('payments', initialPayments));
-  const [reminders, setReminders] = useState<TenantReminder[]>(() => loadLocalCollection('reminders', initialReminders));
-  const [inspections, setInspections] = useState<Inspection[]>(() => loadLocalCollection('inspections', initialInspections));
-  const [maintenance, setMaintenance] = useState<MaintenanceTicket[]>(() => loadLocalCollection('maintenance', initialMaintenance));
-  const [disbursements, setDisbursements] = useState<OwnerDisbursement[]>(() => loadLocalCollection('disbursements', initialDisbursements));
-  const [invoices, setInvoices] = useState<Invoice[]>(() => loadLocalCollection('invoices', initialInvoices));
-  const [cashVouchers, setCashVouchers] = useState<CashVoucher[]>(() => loadLocalCollection('cash_vouchers', initialCashVouchers));
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => loadLocalCollection('notifications', initialNotifications));
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => loadLocalCollection('audit_logs', initialAuditLogs));
-  const [settings, setSettings] = useState<AgencySettings>(() => loadLocalCollection('settings', initialSettings));
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>(() => loadLocalCollection('payment_methods', initialPaymentMethods));
-  const [cashMovements, setCashMovements] = useState<CashMovement[]>(() => loadLocalCollection('cash_movements', initialCashMovements));
-  const [cashClosings, setCashClosings] = useState<CashClosing[]>(() => loadLocalCollection('cash_closings', initialCashClosings));
-  const [ownerDeductions, setOwnerDeductions] = useState<OwnerDeduction[]>(() => loadLocalCollection('owner_deductions', []));
-  const [bulletinsVersements, setBulletinsVersements] = useState<BulletinVersement[]>(() => loadLocalCollection('bulletin_versements', []));
-  const [archives, setArchives] = useState<ArchiveRecord[]>(() => loadLocalCollection('archives', []));
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadLocalCollection('activity_logs', []));
-  const [penalties, setPenalties] = useState<Penalty[]>(() => loadLocalCollection('penalties', []));
-  const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>(() => loadLocalCollection('owner_charges', []));
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [owners, setOwners] = useState<Owner[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [contracts, setContracts] = useState<LeaseContract[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [reminders, setReminders] = useState<TenantReminder[]>([]);
+  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [maintenance, setMaintenance] = useState<MaintenanceTicket[]>([]);
+  const [disbursements, setDisbursements] = useState<OwnerDisbursement[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [cashVouchers, setCashVouchers] = useState<CashVoucher[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [settings, setSettings] = useState<AgencySettings>(initialSettings);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>(
+    [],
+  );
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+  const [cashClosings, setCashClosings] = useState<CashClosing[]>([]);
+  const [ownerDeductions, setOwnerDeductions] = useState<OwnerDeduction[]>([]);
+  const [bulletinsVersements, setBulletinsVersements] = useState<
+    BulletinVersement[]
+  >([]);
+  const [archives, setArchives] = useState<ArchiveRecord[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>([]);
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
     const now = new Date();
-    return now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   });
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] =
+    useState<boolean>(false);
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState<boolean>(false);
-  const [receiptModalPayment, setReceiptModalPayment] = useState<Payment | null>(null);
-  const [ownerSlipModalOwner, setOwnerSlipModalOwner] = useState<Owner | null>(null);
-  const [ownerBulletinModalOwner, setOwnerBulletinModalOwner] = useState<Owner | null>(null);
-  const [cashVoucherModalOwner, setCashVoucherModalOwner] = useState<Owner | null>(null);
-  const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] = useState<boolean>(false);
-  const [isNewPropertyModalOpen, setIsNewPropertyModalOpen] = useState<boolean>(false);
-  const [isNewTenantWizardOpen, setIsNewTenantWizardOpen] = useState<boolean>(false);
+  const [receiptModalPayment, setReceiptModalPayment] =
+    useState<Payment | null>(null);
+  const [ownerSlipModalOwner, setOwnerSlipModalOwner] = useState<Owner | null>(
+    null,
+  );
+  const [ownerBulletinModalOwner, setOwnerBulletinModalOwner] =
+    useState<Owner | null>(null);
+  const [cashVoucherModalOwner, setCashVoucherModalOwner] =
+    useState<Owner | null>(null);
+  const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] =
+    useState<boolean>(false);
+  const [isNewPropertyModalOpen, setIsNewPropertyModalOpen] =
+    useState<boolean>(false);
+  const [isNewTenantWizardOpen, setIsNewTenantWizardOpen] =
+    useState<boolean>(false);
   const [tenantExitTarget, setTenantExitTarget] = useState<Tenant | null>(null);
-  const [initialTenantForPayment, setInitialTenantForPayment] = useState<Tenant | null>(null);
+  const [initialTenantForPayment, setInitialTenantForPayment] =
+    useState<Tenant | null>(null);
   const [mobileMoneyModalConfig, setMobileMoneyModalConfig] = useState<{
     isOpen: boolean;
     tenantName?: string;
@@ -273,7 +291,7 @@ export default function App() {
   // useEffect 1 : Reset password
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes('access_token') || hash.includes('type=recovery')) {
+    if (hash.includes("access_token") || hash.includes("type=recovery")) {
       setIsResetPasswordMode(true);
     }
   }, []);
@@ -281,13 +299,13 @@ export default function App() {
   // useEffect 2 : Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setIsGlobalSearchOpen((prev) => !prev);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // useEffect 3 : Session auth
@@ -298,86 +316,117 @@ export default function App() {
           await new Promise((resolve) => setTimeout(resolve, 300));
 
           let { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
             .maybeSingle();
 
           if (!profile) {
             await new Promise((resolve) => setTimeout(resolve, 800));
             const retry = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
               .maybeSingle();
             profile = retry.data;
           }
 
           if (profile) {
-            if (profile.statut === 'suspendu' || profile.statut === 'desactive') {
-              console.warn('Session restaurée refusée : compte suspendu ou désactivé.');
+            if (
+              profile.statut === "suspendu" ||
+              profile.statut === "desactive"
+            ) {
+              console.warn(
+                "Session restaurée refusée : compte suspendu ou désactivé.",
+              );
               const { error } = await supabase.auth.signOut();
-              if (error) console.error('Impossible de fermer la session du compte bloqué :', error);
-              localStorage.removeItem('fital_immo_user');
-              localStorage.removeItem('fital_immo_current_user');
+              if (error)
+                console.error(
+                  "Impossible de fermer la session du compte bloqué :",
+                  error,
+                );
+              localStorage.removeItem("fital_immo_user");
+              localStorage.removeItem("fital_immo_current_user");
               return;
             }
 
             const { data: agencyData, error: agencyError } = await supabase
-              .from('agencies')
-              .select('name, slug, status')
-              .eq('id', profile.agency_id)
+              .from("agencies")
+              .select("name, slug, status")
+              .eq("id", profile.agency_id)
               .maybeSingle();
-            if (agencyError || !agencyData || !['active', 'trial'].includes(agencyData.status)) {
+            if (
+              agencyError ||
+              !agencyData ||
+              !["active", "trial"].includes(agencyData.status)
+            ) {
               console.warn(
-                'Session restaurée refusée : agence inaccessible, suspendue ou inactive.',
+                "Session restaurée refusée : agence inaccessible, suspendue ou inactive.",
                 agencyError?.message,
               );
               const { error } = await supabase.auth.signOut();
-              if (error) console.error('Impossible de fermer la session de l’agence bloquée :', error);
-              localStorage.removeItem('fital_immo_user');
-              localStorage.removeItem('fital_immo_current_user');
+              if (error)
+                console.error(
+                  "Impossible de fermer la session de l'agence bloquée :",
+                  error,
+                );
+              localStorage.removeItem("fital_immo_user");
+              localStorage.removeItem("fital_immo_current_user");
               return;
             }
 
             const userAccount: UserAccount = {
               id: session.user.id,
               agencyId: profile.agency_id || FALLBACK_AGENCY_ID,
-              email: session.user.email || '',
-              nom: profile.nom || 'Administrateur',
-              prenom: profile.prenom || '',
-              telephone: profile.telephone || '',
-              role: (profile.role as any) || 'ADMIN',
-              statut: profile.statut || 'actif',
-              permissions: profile.permissions || ['ALL'],
-              organisation: agencyData?.name || 'FITAL-IMMO Agence',
+              email: session.user.email || "",
+              nom: profile.nom || "Administrateur",
+              prenom: profile.prenom || "",
+              telephone: profile.telephone || "",
+              role: (profile.role as any) || "ADMIN",
+              statut: profile.statut || "actif",
+              permissions: profile.permissions || ["ALL"],
+              organisation: agencyData?.name || "FITAL-IMMO Agence",
               createdAt: session.user.created_at || new Date().toISOString(),
-              initiales: profile.initiales || (profile.prenom && profile.nom ? `${profile.prenom.trim()[0]}${profile.nom.trim()[0]}`.toUpperCase() : undefined),
+              initiales:
+                profile.initiales ||
+                (profile.prenom && profile.nom
+                  ? `${profile.prenom.trim()[0]}${profile.nom.trim()[0]}`.toUpperCase()
+                  : undefined),
               signatureUrl: profile.signature_url || undefined,
               fonction: profile.fonction || undefined,
             };
             setCurrentUser(userAccount);
-            persistCollection('current_user', userAccount);
-            setUsers((prev) => (prev.some((u) => u.id === userAccount.id) ? prev : [userAccount, ...prev]));
+            persistCollection("current_user", userAccount);
+            setUsers((prev) =>
+              prev.some((u) => u.id === userAccount.id)
+                ? prev
+                : [userAccount, ...prev],
+            );
           } else {
-            console.warn('Session restaurée refusée : profil utilisateur absent.');
+            console.warn(
+              "Session restaurée refusée : profil utilisateur absent.",
+            );
             const { error } = await supabase.auth.signOut();
-            if (error) console.error('Impossible de fermer la session sans profil :', error);
+            if (error)
+              console.error(
+                "Impossible de fermer la session sans profil :",
+                error,
+              );
           }
         } else {
-          const localUserJson = localStorage.getItem('fital_immo_user');
+          const localUserJson = localStorage.getItem("fital_immo_user");
           if (localUserJson) {
             try {
               const parsed = JSON.parse(localUserJson);
               if (parsed && parsed.id) {
                 setCurrentUser(parsed);
-                persistCollection('current_user', parsed);
+                persistCollection("current_user", parsed);
               }
             } catch (e) {}
           }
         }
       } catch (err) {
-        console.warn('Erreur verification session auth:', err);
+        console.warn("Erreur verification session auth:", err);
       } finally {
         setIsAuthLoading(false);
       }
@@ -386,29 +435,35 @@ export default function App() {
 
   // useEffect 4 : Chargement données
   useEffect(() => {
-    if (!currentUser?.agencyId || currentUser.agencyId.trim() === '') {
-      console.log('â³ En attente de l\'agencyId...');
+    if (!currentUser?.agencyId || currentUser.agencyId.trim() === "") {
       return;
     }
 
-    console.log('📝¥ Chargement des données pour:', currentUser.agencyId);
+    // Éviter le double-appel (React Strict Mode en dev)
+    const loadingKey = `data_loading_${currentUser.agencyId}`;
+    if ((window as any)[loadingKey]) {
+      return;
+    }
+    (window as any)[loadingKey] = true;
+
+    console.log("Chargement des données pour:", currentUser.agencyId);
 
     let cancelled = false;
+    setIsDataLoading(true);
 
     const timer = setTimeout(async () => {
       if (cancelled) return;
       try {
         const data = await loadFullApplicationData(currentUser.agencyId);
-        // Ã°Ÿ†• Charger les stats agrégées côté serveur (super rapide)
         try {
           const stats = await getAgencyStats(currentUser.agencyId);
           if (stats) setAgencyStats(stats);
         } catch (e) {
-          console.warn('Stats loading failed:', e);
+          console.warn("Stats loading failed:", e);
         }
         if (cancelled) return;
 
-        console.log('âœ… Données chargées:', {
+        console.log("Données chargées:", {
           properties: data.properties?.length,
           buildings: data.buildings?.length,
           units: data.units?.length,
@@ -443,87 +498,147 @@ export default function App() {
         setPenalties(data.penalties || []);
         setOwnerCharges(data.ownerCharges || []);
       } catch (err) {
-        console.error('âŒ Erreur chargement:', err);
+        console.error("Erreur chargement:", err);
+      } finally {
+        if (!cancelled) {
+          setIsDataLoading(false);
+          (window as any)[loadingKey] = false;
+        }
       }
     }, 400);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      (window as any)[loadingKey] = false;
     };
   }, [currentUser?.agencyId, currentUser?.id]);
-
   const handleSignOut = async () => {
     await signOutSession();
     try {
-      localStorage.removeItem('fital_immo_user');
-      localStorage.removeItem('fital_immo_current_user');
+      localStorage.removeItem("fital_immo_user");
+      localStorage.removeItem("fital_immo_current_user");
     } catch (e) {}
     setCurrentUser(null);
     setIsProfileModalOpen(false);
   };
 
-  const handleTriggerAuditLog = (action: string, module: string, details: string, entityRef?: string) => {
-    const userLabel = currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système';
-    const userRole = currentUser ? currentUser.role : 'SYSTÈME';
+  const handleTriggerAuditLog = (
+    action: string,
+    module: string,
+    details: string,
+    entityRef?: string,
+  ) => {
+    const userLabel = currentUser
+      ? `${currentUser.prenom} ${currentUser.nom}`
+      : "Système";
+    const userRole = currentUser ? currentUser.role : "SYSTÈME";
     const newLog: AuditLog = {
       id: crypto.randomUUID(),
-      action, entite: module, entiteId: entityRef || 'SYSTÈME',
+      action,
+      entite: module,
+      entiteId: entityRef || "SYSTÈME",
       utilisateur: `${userLabel} (${userRole})`,
-      userNom: userLabel, module, entityRef, details,
-      date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      userNom: userLabel,
+      module,
+      entityRef,
+      details,
+      date: new Date().toISOString().replace("T", " ").substring(0, 19),
       createdAt: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
     logSystemAudit(newLog, currentUser?.agencyId);
   };
 
-  const checkAccessPermission = (tab: ActiveTab, user: UserAccount): boolean => {
-    if (user.role === 'SUPER_ADMIN_SAAS') {
-      return tab === 'saas-admin' || tab === 'dashboard';
+  const checkAccessPermission = (
+    tab: ActiveTab,
+    user: UserAccount,
+  ): boolean => {
+    if (user.role === "SUPER_ADMIN_SAAS") {
+      return tab === "saas-admin" || tab === "dashboard";
     }
 
-    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return true;
-    if (tab === 'archives' || tab === 'activity-logs') {
-      return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(user.role);
+    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") return true;
+    if (tab === "archives" || tab === "activity-logs") {
+      return ["ADMIN", "SUPER_ADMIN", "GESTIONNAIRE"].includes(user.role);
     }
-    if (tab === 'penalties') {
-      return ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'].includes(user.role);
+    if (tab === "penalties") {
+      return ["ADMIN", "SUPER_ADMIN", "GESTIONNAIRE", "CAISSIER"].includes(
+        user.role,
+      );
     }
-    if (user.role === 'CAISSIER') {
-      return ['dashboard', 'caisse', 'pending-payments', 'payments', 'payment-reports', 'tenants', 'buildings', 'units', 'finance', 'documents'].includes(tab);
+    if (user.role === "CAISSIER") {
+      return [
+        "dashboard",
+        "caisse",
+        "pending-payments",
+        "payments",
+        "payment-reports",
+        "tenants",
+        "buildings",
+        "units",
+        "finance",
+        "documents",
+      ].includes(tab);
     }
-    if (user.role === 'PROPRIETAIRE') {
-      return ['dashboard', 'buildings', 'units', 'tenants', 'finance'].includes(tab);
+    if (user.role === "PROPRIETAIRE") {
+      return ["dashboard", "buildings", "units", "tenants", "finance"].includes(
+        tab,
+      );
     }
-    if (user.role === 'LOCATAIRE') {
-      return ['dashboard', 'payments', 'maintenance'].includes(tab);
+    if (user.role === "LOCATAIRE") {
+      return ["dashboard", "payments", "maintenance"].includes(tab);
     }
-    if (user.role === 'AGENT') {
-      return ['dashboard', 'inspections', 'properties', 'buildings', 'units', 'maintenance', 'recovery'].includes(tab);
+    if (user.role === "AGENT") {
+      return [
+        "dashboard",
+        "inspections",
+        "properties",
+        "buildings",
+        "units",
+        "maintenance",
+        "recovery",
+      ].includes(tab);
     }
-    if (user.role === 'GESTIONNAIRE') {
-      return ['dashboard', 'owners', 'properties', 'buildings', 'units', 'tenants', 'contracts', 'inspections', 'recovery', 'reminders', 'maintenance', 'documents', 'finance', 'archives', 'activity-logs', 'penalties'].includes(tab);
+    if (user.role === "GESTIONNAIRE") {
+      return [
+        "dashboard",
+        "owners",
+        "properties",
+        "buildings",
+        "units",
+        "tenants",
+        "contracts",
+        "inspections",
+        "recovery",
+        "reminders",
+        "maintenance",
+        "documents",
+        "finance",
+        "archives",
+        "activity-logs",
+        "penalties",
+      ].includes(tab);
     }
     return false;
   };
 
   const handleSwitchUser = (newUser: UserAccount) => {
-    if (newUser.statut !== 'actif') {
-      alert('Ce compte est suspendu ou désactivé et ne peut pas être ouvert.');
+    if (newUser.statut !== "actif") {
+      alert("Ce compte est suspendu ou désactivé et ne peut pas être ouvert.");
       return;
     }
     setCurrentUser(newUser);
-    persistCollection('current_user', newUser);
-    localStorage.setItem('fital_immo_user', JSON.stringify(newUser));
-    if (!checkAccessPermission(activeTab, newUser)) setActiveTab('dashboard');
+    persistCollection("current_user", newUser);
+    localStorage.setItem("fital_immo_user", JSON.stringify(newUser));
+    if (!checkAccessPermission(activeTab, newUser)) setActiveTab("dashboard");
   };
 
   const handleSafeTabChange = (targetTab: ActiveTab) => {
     if (currentUser && checkAccessPermission(targetTab, currentUser)) {
       setActiveTab(targetTab);
     } else {
-      setActiveTab('dashboard');
+      setActiveTab("dashboard");
     }
   };
 
@@ -531,16 +646,38 @@ export default function App() {
   // HANDLERS : BUILDINGS
   // ============================================================
   const handleAddBuilding = (newBuilding: Building) => {
-    setBuildings((prev) => { const next = [newBuilding, ...prev]; persistCollection('buildings', next); return next; });
-    if (currentUser?.agencyId) saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
+    setBuildings((prev) => {
+      const next = [newBuilding, ...prev];
+      persistCollection("buildings", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
   };
   const handleUpdateBuilding = (updatedBuilding: Building) => {
-    setBuildings((prev) => { const next = prev.map((b) => (b.id === updatedBuilding.id ? updatedBuilding : b)); persistCollection('buildings', next); return next; });
-    if (currentUser?.agencyId) saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(console.warn);
+    setBuildings((prev) => {
+      const next = prev.map((b) =>
+        b.id === updatedBuilding.id ? updatedBuilding : b,
+      );
+      persistCollection("buildings", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveBuildingToDb(updatedBuilding, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleDeleteBuilding = (buildingId: string) => {
-    setBuildings((prev) => { const next = prev.filter((b) => b.id !== buildingId); persistCollection('buildings', next); return next; });
-    setUnits((prev) => { const next = prev.filter((u) => u.buildingId !== buildingId); persistCollection('units', next); return next; });
+    setBuildings((prev) => {
+      const next = prev.filter((b) => b.id !== buildingId);
+      persistCollection("buildings", next);
+      return next;
+    });
+    setUnits((prev) => {
+      const next = prev.filter((u) => u.buildingId !== buildingId);
+      persistCollection("units", next);
+      return next;
+    });
     deleteBuildingFromDb(buildingId).catch(console.warn);
   };
 
@@ -548,22 +685,35 @@ export default function App() {
   // HANDLERS : UNITS
   // ============================================================
   const handleAddUnit = (newUnit: Unit) => {
-    setUnits((prev) => { const next = [newUnit, ...prev]; persistCollection('units', next); return next; });
-    if (currentUser?.agencyId) saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
+    setUnits((prev) => {
+      const next = [newUnit, ...prev];
+      persistCollection("units", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
   };
   const handleUpdateUnit = (updatedUnit: Unit) => {
-    setUnits((prev) => { const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u)); persistCollection('units', next); return next; });
-    if (currentUser?.agencyId) saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
+    setUnits((prev) => {
+      const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
+      persistCollection("units", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
   };
   const handleDeleteUnit = (unitId: string) => {
-    setUnits((prev) => { const next = prev.filter((u) => u.id !== unitId); persistCollection('units', next); return next; });
+    setUnits((prev) => {
+      const next = prev.filter((u) => u.id !== unitId);
+      persistCollection("units", next);
+      return next;
+    });
     deleteUnitFromDb(unitId).catch(console.warn);
   };
 
   // ============================================================
   // HANDLERS : PENALTIES
   // ============================================================
-  // ðŸ†• Handlers OwnerCharges
   const handleAddOwnerCharge = (charge: any) => {
     setOwnerCharges((prev) => [charge, ...prev]);
     if (currentUser?.agencyId) {
@@ -576,29 +726,47 @@ export default function App() {
     deleteOwnerChargeFromDb(chargeId).catch(console.warn);
   };
   const handleAddPenalty = (penalty: Penalty) => {
-    setPenalties((prev) => { const next = [penalty, ...prev]; persistCollection('penalties', next); return next; });
-    if (currentUser?.agencyId) savePenaltyToDb(penalty, currentUser.agencyId).catch(console.warn);
+    setPenalties((prev) => {
+      const next = [penalty, ...prev];
+      persistCollection("penalties", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      savePenaltyToDb(penalty, currentUser.agencyId).catch(console.warn);
   };
   const handleDeletePenalty = (penaltyId: string) => {
-    setPenalties((prev) => { const next = prev.filter((p) => p.id !== penaltyId); persistCollection('penalties', next); return next; });
+    setPenalties((prev) => {
+      const next = prev.filter((p) => p.id !== penaltyId);
+      persistCollection("penalties", next);
+      return next;
+    });
     deletePenaltyFromDb(penaltyId).catch(console.warn);
   };
   const handleUpdatePenalty = (penalty: Penalty) => {
-    setPenalties((prev) => { const next = prev.map((p) => (p.id === penalty.id ? penalty : p)); persistCollection('penalties', next); return next; });
+    setPenalties((prev) => {
+      const next = prev.map((p) => (p.id === penalty.id ? penalty : p));
+      persistCollection("penalties", next);
+      return next;
+    });
   };
 
   // ============================================================
   // HANDLERS : ARCHIVES & ACTIVITY
   // ============================================================
   const handleArchiveRecord = (archive: ArchiveRecord) => {
-    setArchives((prev) => { const next = [archive, ...prev]; persistCollection('archives', next); return next; });
-    if (currentUser?.agencyId) saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
+    setArchives((prev) => {
+      const next = [archive, ...prev];
+      persistCollection("archives", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveArchiveToDb(archive, currentUser.agencyId).catch(console.warn);
   };
   const handleLogActivity = (activity: ActivityLog) => {
-    console.log('📝 handleLogActivity REÃƒ‡U:', activity.title);
+    console.log("handleLogActivity REÇU:", activity.title);
     setActivityLogs((prev) => {
       const next = [activity, ...prev];
-      persistCollection('activity_logs', next);
+      persistCollection("activity_logs", next);
       return next;
     });
     if (currentUser?.agencyId) {
@@ -610,11 +778,22 @@ export default function App() {
   // HANDLERS : OWNER DEDUCTIONS
   // ============================================================
   const handleAddOwnerDeduction = (deduction: OwnerDeduction) => {
-    setOwnerDeductions((prev) => { const next = [deduction, ...prev]; persistCollection('owner_deductions', next); return next; });
-    if (currentUser?.agencyId) saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(console.warn);
+    setOwnerDeductions((prev) => {
+      const next = [deduction, ...prev];
+      persistCollection("owner_deductions", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveOwnerDeductionToDb(deduction, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleDeleteOwnerDeduction = (deductionId: string) => {
-    setOwnerDeductions((prev) => { const next = prev.filter((d) => d.id !== deductionId); persistCollection('owner_deductions', next); return next; });
+    setOwnerDeductions((prev) => {
+      const next = prev.filter((d) => d.id !== deductionId);
+      persistCollection("owner_deductions", next);
+      return next;
+    });
     deleteOwnerDeductionFromDb(deductionId).catch(console.warn);
   };
 
@@ -625,20 +804,30 @@ export default function App() {
     const enrichedBulletin: BulletinVersement = {
       ...bulletin,
       createdById: bulletin.createdById || currentUser?.id,
-      createdByNom: bulletin.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        bulletin.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: bulletin.createdByRole || currentUser?.role,
     };
     setBulletinsVersements((prev) => {
       const existing = prev.findIndex((b) => b.id === enrichedBulletin.id);
-      const next = existing >= 0 ? prev.map((b) => (b.id === enrichedBulletin.id ? enrichedBulletin : b)) : [enrichedBulletin, ...prev];
-      persistCollection('bulletin_versements', next);
+      const next =
+        existing >= 0
+          ? prev.map((b) =>
+              b.id === enrichedBulletin.id ? enrichedBulletin : b,
+            )
+          : [enrichedBulletin, ...prev];
+      persistCollection("bulletin_versements", next);
       return next;
     });
-    if (currentUser?.agencyId) saveBulletinVersementToDb(enrichedBulletin, currentUser.agencyId).catch(console.warn);
+    if (currentUser?.agencyId)
+      saveBulletinVersementToDb(enrichedBulletin, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
 
   // ============================================================
-  // HANDLERS : PAIEMENTS (avec anti-doublon affiné v3.0.5)
+  // HANDLERS : PAIEMENTS
   // ============================================================
   const handleAddPayment = async (newPayment: Payment): Promise<boolean> => {
     const existingPayment = findBlockingPayment(
@@ -647,32 +836,37 @@ export default function App() {
       newPayment.periode,
     );
 
-    const existingPaymentIsPending = existingPayment?.statut === 'En attente'
-      || existingPayment?.verificationStatut === 'en_attente';
+    const existingPaymentIsPending =
+      existingPayment?.statut === "En attente" ||
+      existingPayment?.verificationStatut === "en_attente";
     const isUpdatingExistingPayment = existingPayment?.id === newPayment.id;
 
-    if (existingPayment && !isUpdatingExistingPayment && existingPaymentIsPending) {
+    if (
+      existingPayment &&
+      !isUpdatingExistingPayment &&
+      existingPaymentIsPending
+    ) {
       alert(
-        `â³ Paiement déjà en attente\n\n` +
-        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
-        `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`
+        `Paiement déjà en attente\n\n` +
+          `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA est déjà en attente de validation pour ce locataire.\n\n` +
+          `Veuillez d'abord valider ou rejeter ce paiement avant d'en créer un nouveau.`,
       );
       return false;
     }
 
     if (existingPayment && !isUpdatingExistingPayment) {
       alert(
-        `â›” DOUBLON DÃƒ‰TECTÃƒ‰ "” Paiement refusé\n\n` +
-        `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ce locataire (${existingPayment.periode}).\n\n` +
-        `Quittance : ${existingPayment.quittanceNumero}\n` +
-        `Date : ${existingPayment.datePaiement}\n\n` +
-        `Pour éviter un double encaissement, ce paiement est bloqué.`
+        `DOUBLON DÉTECTÉ - Paiement refusé\n\n` +
+          `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ce locataire (${existingPayment.periode}).\n\n` +
+          `Quittance : ${existingPayment.quittanceNumero}\n` +
+          `Date : ${existingPayment.datePaiement}\n\n` +
+          `Pour éviter un double encaissement, ce paiement est bloqué.`,
       );
       handleTriggerAuditLog(
-        'PAYMENT_BLOCKED_DUPLICATE',
-        'Paiements',
+        "PAYMENT_BLOCKED_DUPLICATE",
+        "Paiements",
         `Tentative bloquée : ${newPayment.locataireNom} - ${newPayment.periode} - ${formatNumber(newPayment.montantPaye)} FCFA`,
-        newPayment.quittanceNumero
+        newPayment.quittanceNumero,
       );
       return false;
     }
@@ -680,11 +874,17 @@ export default function App() {
     const enrichedPayment: Payment = {
       ...newPayment,
       createdById: newPayment.createdById || currentUser?.id,
-      createdByNom: newPayment.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newPayment.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newPayment.createdByRole || currentUser?.role,
     };
     if (currentUser?.agencyId) {
-      const result = await savePaymentToDbWithLog(enrichedPayment, currentUser.agencyId, currentUser.id);
+      const result = await savePaymentToDbWithLog(
+        enrichedPayment,
+        currentUser.agencyId,
+        currentUser.id,
+      );
       if (!result.success) {
         alert(result.error || "Le paiement n'a pas pu être enregistré.");
         return false;
@@ -693,30 +893,47 @@ export default function App() {
     setPayments((prev) => {
       const exists = prev.some((payment) => payment.id === enrichedPayment.id);
       const next = exists
-        ? prev.map((payment) => payment.id === enrichedPayment.id ? enrichedPayment : payment)
+        ? prev.map((payment) =>
+            payment.id === enrichedPayment.id ? enrichedPayment : payment,
+          )
         : [enrichedPayment, ...prev];
-      persistCollection('payments', next);
+      persistCollection("payments", next);
       return next;
     });
 
-    if (newPayment.modePaiement === 'Espèces' || newPayment.moyenPaiementCode === 'ESPECES') {
+    if (
+      newPayment.modePaiement === "Espèces" ||
+      newPayment.moyenPaiementCode === "ESPECES"
+    ) {
       const newCashEntry: CashMovement = {
         id: crypto.randomUUID(),
-        type: 'ENCAISSEMENT',
+        type: "ENCAISSEMENT",
         montant: newPayment.montantPaye,
         libelle: `Encaissement loyer ${newPayment.periode} - ${newPayment.locataireNom}`,
-        dateHeure: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        dateHeure: new Date().toISOString().replace("T", " ").substring(0, 16),
         auteurId: currentUser?.id,
-        auteurNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
+        auteurNom: currentUser
+          ? `${currentUser.prenom} ${currentUser.nom}`
+          : "Système",
         justificatifRef: newPayment.quittanceNumero,
-        moyenPaiementCode: 'ESPECES',
+        moyenPaiementCode: "ESPECES",
       };
-      setCashMovements((prev) => { const next = [newCashEntry, ...prev]; persistCollection('cash_movements', next); return next; });
-      if (currentUser?.agencyId) saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(console.warn);
+      setCashMovements((prev) => {
+        const next = [newCashEntry, ...prev];
+        persistCollection("cash_movements", next);
+        return next;
+      });
+      if (currentUser?.agencyId)
+        saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(
+          console.warn,
+        );
     }
 
     setTenants((prev) => {
-      if (newPayment.statut === 'En attente' || newPayment.verificationStatut === 'en_attente') {
+      if (
+        newPayment.statut === "En attente" ||
+        newPayment.verificationStatut === "en_attente"
+      ) {
         return prev;
       }
       const next = prev.map((t) => {
@@ -726,51 +943,56 @@ export default function App() {
         const paye = newPayment.montantPaye || 0;
         const percent = total > 0 ? (paye / total) * 100 : 0;
 
-        let newStatut: 'Ãƒ€ jour' | 'Retard' | 'Impayé';
+        let newStatut: "À jour" | "Retard" | "Impayé";
         if (percent >= 100) {
-          newStatut = 'Ãƒ€ jour';
+          newStatut = "À jour";
         } else if (percent >= 50) {
-          newStatut = 'Ãƒ€ jour';
+          newStatut = "À jour";
         } else if (percent > 0) {
-          newStatut = 'Retard';
+          newStatut = "Retard";
         } else {
-          newStatut = 'Impayé';
+          newStatut = "Impayé";
         }
 
         return {
           ...t,
           statut: newStatut,
-          joursRetard: newStatut === 'Ãƒ€ jour' ? 0 : t.joursRetard,
+          joursRetard: newStatut === "À jour" ? 0 : t.joursRetard,
           arrieresCumules: Math.max(0, total - paye),
         };
       });
-      persistCollection('tenants', next);
+      persistCollection("tenants", next);
       return next;
     });
 
     const activityEntry: ActivityLog = {
       id: crypto.randomUUID(),
-      agencyId: currentUser?.agencyId || 'local',
+      agencyId: currentUser?.agencyId || "local",
       userId: currentUser?.id,
-      userNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
-      activityType: 'PAYMENT',
-      entityType: 'payment',
+      userNom: currentUser
+        ? `${currentUser.prenom} ${currentUser.nom}`
+        : "Système",
+      activityType: "PAYMENT",
+      entityType: "payment",
       entityId: newPayment.id,
       entityRef: newPayment.quittanceNumero,
-      title: `Paiement ${newPayment.statut} "” ${newPayment.locataireNom}`,
+      title: `Paiement ${newPayment.statut} - ${newPayment.locataireNom}`,
       description: `${formatNumber(newPayment.montantPaye)} FCFA pour ${newPayment.bienNom}`,
       montant: newPayment.montantPaye,
-      activityDate: new Date().toISOString().split('T')[0],
-      activityHour: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      activityDate: new Date().toISOString().split("T")[0],
+      activityHour: new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       createdAt: new Date().toISOString(),
     };
     handleLogActivity(activityEntry);
-    console.log('Ã°Ÿ”¥ LOG ACTIVITÃƒ‰ ENVOYÃƒ‰:', activityEntry.title);
 
     alert(
-      newPayment.statut === 'En attente' || newPayment.verificationStatut === 'en_attente'
+      newPayment.statut === "En attente" ||
+        newPayment.verificationStatut === "en_attente"
         ? `Paiement transmis et en attente de validation.\n\nRéférence : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`
-        : `âœ… Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`
+        : `Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`,
     );
     return true;
   };
@@ -779,26 +1001,55 @@ export default function App() {
     const t = tenant || tenants[0];
     setMobileMoneyModalConfig({
       isOpen: true,
-      tenantName: t ? `${t.prenom} ${t.nom}` : 'Client FITAL-IMMO',
-      tenantPhone: t?.telephone || '+221 77 845 20 10',
-      propertyNom: t?.bienNom || 'Résidence FITAL-IMMO',
+      tenantName: t ? `${t.prenom} ${t.nom}` : "Client FITAL-IMMO",
+      tenantPhone: t?.telephone || "+221 77 845 20 10",
+      propertyNom: t?.bienNom || "Résidence FITAL-IMMO",
       amount: amount || t?.arrieresCumules || t?.loyerMensuel || 250000,
       period: selectedPeriod,
-      reference: createDocumentNumber(agencySettings?.prefixPaiement, 'PAY-'),
+      reference: createDocumentNumber(agencySettings?.prefixPaiement, "PAY-"),
       tenantId: t?.id,
     });
   };
 
-  const handleOpenQuickComms = (contact?: { name: string; phone: string; role?: string; propertyNom?: string; amount?: number; daysLate?: number; }) => {
+  const handleOpenQuickComms = (contact?: {
+    name: string;
+    phone: string;
+    role?: string;
+    propertyNom?: string;
+    amount?: number;
+    daysLate?: number;
+  }) => {
     if (contact) {
-      setQuickCommsModalConfig({ isOpen: true, recipientName: contact.name, recipientPhone: contact.phone, recipientRole: contact.role || 'Locataire', propertyNom: contact.propertyNom, dueAmount: contact.amount, daysLate: contact.daysLate });
+      setQuickCommsModalConfig({
+        isOpen: true,
+        recipientName: contact.name,
+        recipientPhone: contact.phone,
+        recipientRole: contact.role || "Locataire",
+        propertyNom: contact.propertyNom,
+        dueAmount: contact.amount,
+        daysLate: contact.daysLate,
+      });
     } else {
-      const lateTenant = tenants.find((t) => t.statut === 'Retard') || tenants[0];
-      setQuickCommsModalConfig({ isOpen: true, recipientName: lateTenant ? `${lateTenant.prenom} ${lateTenant.nom}` : 'Locataire FITAL-IMMO', recipientPhone: lateTenant?.telephone || '+221 77 845 20 10', recipientRole: 'Locataire', propertyNom: lateTenant?.bienNom || 'Logement Dakar', dueAmount: lateTenant?.arrieresCumules || lateTenant?.loyerMensuel || 150000, daysLate: lateTenant?.joursRetard || 0 });
+      const lateTenant =
+        tenants.find((t) => t.statut === "Retard") || tenants[0];
+      setQuickCommsModalConfig({
+        isOpen: true,
+        recipientName: lateTenant
+          ? `${lateTenant.prenom} ${lateTenant.nom}`
+          : "Locataire FITAL-IMMO",
+        recipientPhone: lateTenant?.telephone || "+221 77 845 20 10",
+        recipientRole: "Locataire",
+        propertyNom: lateTenant?.bienNom || "Logement Dakar",
+        dueAmount:
+          lateTenant?.arrieresCumules || lateTenant?.loyerMensuel || 150000,
+        daysLate: lateTenant?.joursRetard || 0,
+      });
     }
   };
 
-  const resolvePaymentStatus = (payment: Partial<Payment>): Payment['statut'] => {
+  const resolvePaymentStatus = (
+    payment: Partial<Payment>,
+  ): Payment["statut"] => {
     const paid = Number(payment.montantPaye ?? 0);
     const totalFromBreakdown =
       (payment.loyerBase ?? 0) +
@@ -807,15 +1058,16 @@ export default function App() {
       (payment.tva ?? 0) +
       (payment.tom ?? 0);
     const total = Number(
-      payment.montantTotal ?? ((totalFromBreakdown > 0 ? totalFromBreakdown : paid)),
+      payment.montantTotal ??
+        (totalFromBreakdown > 0 ? totalFromBreakdown : paid),
     );
 
-    if (payment.verificationStatut === 'en_attente') return 'En attente';
-    if (payment.verificationStatut === 'rejete') return 'Impayé';
-    if (total > 0 && paid >= total) return 'Payé';
-    if (paid > 0) return 'Partiel';
-    if (payment.statut === 'Impayé') return 'Impayé';
-    return 'Impayé';
+    if (payment.verificationStatut === "en_attente") return "En attente";
+    if (payment.verificationStatut === "rejete") return "Impayé";
+    if (total > 0 && paid >= total) return "Payé";
+    if (paid > 0) return "Partiel";
+    if (payment.statut === "Impayé") return "Impayé";
+    return "Impayé";
   };
 
   const handleConfirmMobileMoneyPayment = async (
@@ -827,9 +1079,20 @@ export default function App() {
   ): Promise<boolean> => {
     const tenant = tenants.find((t) => t.id === tenantId);
     const property = properties.find((p) => p.id === tenant?.bienId);
-    const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant?.proprietaireId));
-    if (!tenant || !property || !period.trim() || !transactionId.trim() || !Number.isFinite(amount) || amount <= 0) {
-      alert('âŒ Impossible de valider le paiement : données de paiement invalides ou locataire/bien introuvable.');
+    const owner = owners.find(
+      (o) => o.id === (property?.proprietaireId || tenant?.proprietaireId),
+    );
+    if (
+      !tenant ||
+      !property ||
+      !period.trim() ||
+      !transactionId.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      alert(
+        "Impossible de valider le paiement : données de paiement invalides ou locataire/bien introuvable.",
+      );
       return false;
     }
 
@@ -837,20 +1100,26 @@ export default function App() {
 
     if (samePeriodPayment) {
       alert(
-        `â³ PAIEMENT DÉJÀ TRAITÉ\n\n` +
-        `Un paiement de ${formatNumber(samePeriodPayment.montantPaye)} FCFA est déjà enregistré pour ${tenant.prenom} ${tenant.nom} (${period}).\n\n` +
-        `Statut : ${
-          samePeriodPayment.statut === 'En attente' || samePeriodPayment.verificationStatut === 'en_attente'
-            ? 'En attente de validation'
-            : samePeriodPayment.statut
-        }.\n\n` +
-        `Veuillez d'abord le valider ou le rejeter avant d'en créer un nouveau.`
+        `PAIEMENT DÉJÀ TRAITÉ\n\n` +
+          `Un paiement de ${formatNumber(samePeriodPayment.montantPaye)} FCFA est déjà enregistré pour ${tenant.prenom} ${tenant.nom} (${period}).\n\n` +
+          `Statut : ${
+            samePeriodPayment.statut === "En attente" ||
+            samePeriodPayment.verificationStatut === "en_attente"
+              ? "En attente de validation"
+              : samePeriodPayment.statut
+          }.\n\n` +
+          `Veuillez d'abord le valider ou le rejeter avant d'en créer un nouveau.`,
       );
       setMobileMoneyModalConfig(null);
       return false;
     }
 
-    const methodCode = method === 'WAVE' ? 'WAVE' : method === 'ORANGE_MONEY' ? 'ORANGE_MONEY' : 'AUTRE';
+    const methodCode =
+      method === "WAVE"
+        ? "WAVE"
+        : method === "ORANGE_MONEY"
+          ? "ORANGE_MONEY"
+          : "AUTRE";
     const newPayment = createPendingMobilePayment({
       tenant,
       property,
@@ -861,7 +1130,9 @@ export default function App() {
       period,
       settings: agencySettings,
       currentUser,
-      dueDay: contracts.find((item) => item.locataireId === tenant.id)?.jourEcheance ?? 5,
+      dueDay:
+        contracts.find((item) => item.locataireId === tenant.id)
+          ?.jourEcheance ?? 5,
     });
     const saved = await handleAddPayment(newPayment);
     if (saved) setMobileMoneyModalConfig(null);
@@ -875,271 +1146,404 @@ export default function App() {
 
         const finalStatus = resolvePaymentStatus({
           ...p,
-          verificationStatut: 'valide',
+          verificationStatut: "valide",
           montantPaye: Number(p.montantPaye ?? 0),
           montantTotal: Number(p.montantTotal ?? p.montantPaye ?? 0),
         });
 
         return {
           ...p,
-          verificationStatut: 'valide' as const,
+          verificationStatut: "valide" as const,
           statut: finalStatus,
-          dateValidation: new Date().toISOString().split('T')[0],
+          dateValidation: new Date().toISOString().split("T")[0],
           valideParId: currentUser?.id,
-          valideParNom: currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système',
-          montantRestant: Math.max(0, Number(p.montantTotal ?? p.montantPaye ?? 0) - Number(p.montantPaye ?? 0)),
+          valideParNom: currentUser
+            ? `${currentUser.prenom} ${currentUser.nom}`
+            : "Système",
+          montantRestant: Math.max(
+            0,
+            Number(p.montantTotal ?? p.montantPaye ?? 0) -
+              Number(p.montantPaye ?? 0),
+          ),
         };
       });
-      persistCollection('payments', next);
+      persistCollection("payments", next);
       return next;
     });
-    if (currentUser?.agencyId) validatePendingPaymentInDb(paymentId, currentUser.agencyId, currentUser.id).catch(console.warn);
+    if (currentUser?.agencyId)
+      validatePendingPaymentInDb(
+        paymentId,
+        currentUser.agencyId,
+        currentUser.id,
+      ).catch(console.warn);
   };
 
   const handleRejectPendingPayment = (paymentId: string, reason: string) => {
     setPayments((prev) => {
-      const next = prev.map((p) => p.id === paymentId ? {
-        ...p,
-        verificationStatut: 'rejete' as const,
-        statut: 'Impayé' as const,
-        motifRejet: reason,
-        montantRestant: Number(p.montantTotal ?? p.montantPaye ?? 0),
-      } : p);
-      persistCollection('payments', next);
+      const next = prev.map((p) =>
+        p.id === paymentId
+          ? {
+              ...p,
+              verificationStatut: "rejete" as const,
+              statut: "Impayé" as const,
+              motifRejet: reason,
+              montantRestant: Number(p.montantTotal ?? p.montantPaye ?? 0),
+            }
+          : p,
+      );
+      persistCollection("payments", next);
       return next;
     });
-    if (currentUser?.agencyId) rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(console.warn);
+    if (currentUser?.agencyId)
+      rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(
+        console.warn,
+      );
   };
 
   const handleAddCashMovement = (mov: CashMovement) => {
     const enrichedMov: CashMovement = {
       ...mov,
       createdById: mov.createdById || currentUser?.id,
-      createdByNom: mov.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        mov.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: mov.createdByRole || currentUser?.role,
     };
-    setCashMovements((prev) => { const next = [enrichedMov, ...prev]; persistCollection('cash_movements', next); return next; });
-    if (currentUser?.agencyId) saveCashMovementToDb(enrichedMov, currentUser.agencyId).catch(console.warn);
+    setCashMovements((prev) => {
+      const next = [enrichedMov, ...prev];
+      persistCollection("cash_movements", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveCashMovementToDb(enrichedMov, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
 
   const handleAddCashClosing = (cls: CashClosing) => {
-    setCashClosings((prev) => { const next = [cls, ...prev]; persistCollection('cash_closings', next); return next; });
-    if (currentUser?.agencyId) saveCashClosingToDb(cls, currentUser.agencyId, currentUser.id, `${currentUser.prenom} ${currentUser.nom}`).catch(console.warn);
+    setCashClosings((prev) => {
+      const next = [cls, ...prev];
+      persistCollection("cash_closings", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveCashClosingToDb(
+        cls,
+        currentUser.agencyId,
+        currentUser.id,
+        `${currentUser.prenom} ${currentUser.nom}`,
+      ).catch(console.warn);
   };
 
   const handleUpdatePaymentMethod = (method: PaymentMethodConfig) => {
-    setPaymentMethods((prev) => { const next = prev.map((m) => (m.id === method.id ? method : m)); persistCollection('payment_methods', next); return next; });
+    setPaymentMethods((prev) => {
+      const next = prev.map((m) => (m.id === method.id ? method : m));
+      persistCollection("payment_methods", next);
+      return next;
+    });
     savePaymentMethodToDb(method, currentUser?.agencyId).catch(console.warn);
   };
 
   const handleAddPaymentMethod = (method: PaymentMethodConfig) => {
-    setPaymentMethods((prev) => { const next = [...prev, method]; persistCollection('payment_methods', next); return next; });
+    setPaymentMethods((prev) => {
+      const next = [...prev, method];
+      persistCollection("payment_methods", next);
+      return next;
+    });
     savePaymentMethodToDb(method, currentUser?.agencyId).catch(console.warn);
   };
 
-  const handleAddUser = async (user: UserAccount): Promise<{ success: boolean; error?: string }> => {
+  const handleAddUser = async (
+    user: UserAccount,
+  ): Promise<{ success: boolean; error?: string }> => {
     let agencyId = currentUser?.agencyId;
-    if (isSupabaseConfigured && supabase && (!agencyId || agencyId.startsWith('agency-'))) {
+    if (
+      isSupabaseConfigured &&
+      supabase &&
+      (!agencyId || agencyId.startsWith("agency-"))
+    ) {
       const agency = await getOrCreateDefaultAgency();
       if (agency) agencyId = agency.id;
     }
-    if (isSupabaseConfigured && agencyId && !agencyId.startsWith('agency-')) {
+    if (isSupabaseConfigured && agencyId && !agencyId.startsWith("agency-")) {
       const result = await createUserAccountInSupabase({
-        email: user.email, password: user.password || `Pass${Date.now()}!`,
-        nom: user.nom, prenom: user.prenom, telephone: user.telephone,
-        role: user.role, agencyId, permissions: user.permissions,
-        proprietaireId: user.proprietaireId, locataireId: user.locataireId,
-        organisation: user.organisation, avatar: user.avatar,
+        email: user.email,
+        password: user.password || `Pass${Date.now()}!`,
+        nom: user.nom,
+        prenom: user.prenom,
+        telephone: user.telephone,
+        role: user.role,
+        agencyId,
+        permissions: user.permissions,
+        proprietaireId: user.proprietaireId,
+        locataireId: user.locataireId,
+        organisation: user.organisation,
+        avatar: user.avatar,
       });
       if (result.success && result.user) {
-        setUsers((prev) => { const next = [result.user!, ...prev.filter((u) => u.email !== user.email)]; persistCollection('users', next); return next; });
+        setUsers((prev) => {
+          const next = [
+            result.user!,
+            ...prev.filter((u) => u.email !== user.email),
+          ];
+          persistCollection("users", next);
+          return next;
+        });
         return { success: true };
       }
       return { success: false, error: result.error };
     }
-    setUsers((prev) => { const next = [user, ...prev]; persistCollection('users', next); return next; });
-    return { success: true, error: isSupabaseConfigured ? undefined : 'Compte local.' };
+    setUsers((prev) => {
+      const next = [user, ...prev];
+      persistCollection("users", next);
+      return next;
+    });
+    return {
+      success: true,
+      error: isSupabaseConfigured ? undefined : "Compte local.",
+    };
   };
 
   const handleUpdateUser = async (
     updatedUser: UserAccount,
   ): Promise<{ success: boolean; error?: string }> => {
-    const isLocalUser = updatedUser.id.startsWith('user-') || updatedUser.id.startsWith('usr-');
+    const isLocalUser =
+      updatedUser.id.startsWith("user-") || updatedUser.id.startsWith("usr-");
     if (isSupabaseConfigured && !isLocalUser) {
-      const result = await saveUserToDb(updatedUser, updatedUser.agencyId || currentUser?.agencyId);
+      const result = await saveUserToDb(
+        updatedUser,
+        updatedUser.agencyId || currentUser?.agencyId,
+      );
       if (!result.success) return result;
     }
 
     setUsers((prev) => {
-      const next = prev.map((user) => user.id === updatedUser.id ? updatedUser : user);
-      persistCollection('users', next);
+      const next = prev.map((user) =>
+        user.id === updatedUser.id ? updatedUser : user,
+      );
+      persistCollection("users", next);
       return next;
     });
     return { success: true };
   };
 
   const handleAddProperty = (newProperty: Property) => {
-    setProperties((prev) => { const next = [newProperty, ...prev]; persistCollection('properties', next); return next; });
-    if (currentUser?.agencyId) savePropertyToDbWithLog(newProperty, currentUser.agencyId).catch(console.warn);
+    setProperties((prev) => {
+      const next = [newProperty, ...prev];
+      persistCollection("properties", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      savePropertyToDbWithLog(newProperty, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleUpdateProperty = (updatedProperty: Property) => {
-    setProperties((prev) => { const next = prev.map((p) => (p.id === updatedProperty.id ? updatedProperty : p)); persistCollection('properties', next); return next; });
-    if (currentUser?.agencyId) savePropertyToDb(updatedProperty, currentUser.agencyId).catch(console.warn);
+    setProperties((prev) => {
+      const next = prev.map((p) =>
+        p.id === updatedProperty.id ? updatedProperty : p,
+      );
+      persistCollection("properties", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      savePropertyToDb(updatedProperty, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleDeleteProperty = (propertyId: string) => {
-    setProperties((prev) => { const next = prev.filter((p) => p.id !== propertyId); persistCollection('properties', next); return next; });
-    softDeleteRecord('properties', propertyId).catch(console.warn);
+    setProperties((prev) => {
+      const next = prev.filter((p) => p.id !== propertyId);
+      persistCollection("properties", next);
+      return next;
+    });
+    softDeleteRecord("properties", propertyId).catch(console.warn);
   };
 
   const handleAddContract = (newContract: LeaseContract) => {
     const enrichedContract: LeaseContract = {
       ...newContract,
       createdById: newContract.createdById || currentUser?.id,
-      createdByNom: newContract.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newContract.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newContract.createdByRole || currentUser?.role,
     };
-    setContracts((prev) => { const next = [enrichedContract, ...prev]; persistCollection('contracts', next); return next; });
-    if (currentUser?.agencyId) saveContractToDbWithLog(enrichedContract, currentUser.agencyId).catch(console.warn);
+    setContracts((prev) => {
+      const next = [enrichedContract, ...prev];
+      persistCollection("contracts", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveContractToDbWithLog(enrichedContract, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleUpdateContract = (updatedContract: LeaseContract) => {
-    setContracts((prev) => { const next = prev.map((c) => (c.id === updatedContract.id ? updatedContract : c)); persistCollection('contracts', next); return next; });
-    if (currentUser?.agencyId) saveContractToDb(updatedContract, currentUser.agencyId).catch(console.warn);
+    setContracts((prev) => {
+      const next = prev.map((c) =>
+        c.id === updatedContract.id ? updatedContract : c,
+      );
+      persistCollection("contracts", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveContractToDb(updatedContract, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
 
-  // ============================================================
-  // HANDLER : AJOUT LOCATAIRE (corrigé v3.0.5 - properties ET units)
-  // ============================================================
   const handleAddTenant = (newTenant: Tenant) => {
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : vérifier que le bien n'est pas déjà occupé
     const existingUnit = units.find((u) => u.id === newTenant.bienId);
     const existingProp = properties.find((p) => p.id === newTenant.bienId);
 
-    if (existingUnit && existingUnit.statut === 'Occupé' && existingUnit.locataireActuelId !== newTenant.id) {
-      alert(`â›” Le bien ${existingUnit.nom} est déjà occupé.`);
+    if (
+      existingUnit &&
+      existingUnit.statut === "Occupé" &&
+      existingUnit.locataireActuelId !== newTenant.id
+    ) {
+      alert(`Le bien ${existingUnit.nom} est déjà occupé.`);
       return;
     }
-    if (existingProp && existingProp.statut === 'Occupé' && existingProp.locataireActuelNom && existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`) {
-      alert(`â›” Le bien ${existingProp.nom} est déjà occupé.`);
+    if (
+      existingProp &&
+      existingProp.statut === "Occupé" &&
+      existingProp.locataireActuelNom &&
+      existingProp.locataireActuelNom !== `${newTenant.prenom} ${newTenant.nom}`
+    ) {
+      alert(`Le bien ${existingProp.nom} est déjà occupé.`);
       return;
     }
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
         t.prenom?.toLowerCase() === newTenant.prenom?.toLowerCase() &&
         t.cni === newTenant.cni &&
         t.bienId !== newTenant.bienId &&
-        !t.dateSortie
+        !t.dateSortie,
     );
 
     if (existingActiveLease) {
       alert(
-        `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
-        `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjà : ${existingActiveLease.bienNom}`
+        `LOCATAIRE DÉJÀ ACTIF\n\n` +
+          `${newTenant.prenom} ${newTenant.nom} (CNI : ${newTenant.cni}) occupe déjà : ${existingActiveLease.bienNom}`,
       );
       return;
     }
 
-    // âœ… Pas de doublon â†’ procéder normalement
-    setTenants((prev) => { const next = [newTenant, ...prev]; persistCollection('tenants', next); return next; });
-    if (currentUser?.agencyId) saveTenantToDbWithLog(newTenant, currentUser.agencyId).catch(console.warn);
+    setTenants((prev) => {
+      const next = [newTenant, ...prev];
+      persistCollection("tenants", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveTenantToDbWithLog(newTenant, currentUser.agencyId).catch(
+        console.warn,
+      );
 
-    // Ã°Ÿ”§ FIX v3.0.5 : mise à jour des DEUX si les deux existent (plus de return prématuré)
     if (newTenant.bienId) {
-      // Mise à jour PROPERTY si existe
       if (existingProp) {
         setProperties((prev) => {
           const next = prev.map((p) => {
             if (p.id === newTenant.bienId) {
               const updatedP = {
                 ...p,
-                statut: 'Occupé' as const,
+                statut: "Occupé" as const,
                 locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
                 locataireActuelId: newTenant.id,
               };
-              if (currentUser?.agencyId) savePropertyToDb(updatedP, currentUser.agencyId).catch(console.warn);
+              if (currentUser?.agencyId)
+                savePropertyToDb(updatedP, currentUser.agencyId).catch(
+                  console.warn,
+                );
               return updatedP;
             }
             return p;
           });
-          persistCollection('properties', next);
+          persistCollection("properties", next);
           return next;
         });
       }
 
-      // Mise à jour UNIT si existe
       if (existingUnit) {
         setUnits((prev) => {
           const next = prev.map((u) => {
             if (u.id === newTenant.bienId) {
               const updatedU = {
                 ...u,
-                statut: 'Occupé' as const,
+                statut: "Occupé" as const,
                 locataireActuelId: newTenant.id,
                 locataireActuelNom: `${newTenant.prenom} ${newTenant.nom}`,
               };
-              if (currentUser?.agencyId) saveUnitToDb(updatedU, currentUser.agencyId).catch(console.warn);
+              if (currentUser?.agencyId)
+                saveUnitToDb(updatedU, currentUser.agencyId).catch(
+                  console.warn,
+                );
               return updatedU;
             }
             return u;
           });
-          persistCollection('units', next);
+          persistCollection("units", next);
           return next;
         });
       }
     }
   };
 
-  const handleCompleteNewTenantWizard = async (data: { tenant: Tenant; contract: LeaseContract; inspection: Inspection; }) => {
+  const handleCompleteNewTenantWizard = async (data: {
+    tenant: Tenant;
+    contract: LeaseContract;
+    inspection: Inspection;
+  }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 1 : le bien est-il déjà occupé ?
     const existingUnit = units.find((u) => u.id === data.tenant.bienId);
     const existingProp = properties.find((p) => p.id === data.tenant.bienId);
 
-    if (existingUnit && existingUnit.statut === 'Occupé') {
+    if (existingUnit && existingUnit.statut === "Occupé") {
       alert(
-        `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
-        `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || 'un autre locataire'}.\n\n` +
-        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+        `CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+          `L'unité ${existingUnit.nom} est déjà louée par ${existingUnit.locataireActuelNom || "un autre locataire"}.\n\n` +
+          `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`,
       );
       return;
     }
-    if (existingProp && existingProp.statut === 'Occupé') {
+    if (existingProp && existingProp.statut === "Occupé") {
       alert(
-        `â›” CE BIEN EST DÃƒ‰JÃƒ€ OCCUPÃƒ‰\n\n` +
-        `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || 'un autre locataire'}.\n\n` +
-        `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`
+        `CE BIEN EST DÉJÀ OCCUPÉ\n\n` +
+          `Le bien ${existingProp.nom} est déjà loué par ${existingProp.locataireActuelNom || "un autre locataire"}.\n\n` +
+          `Veuillez d'abord enregistrer la sortie de ce locataire avant d'en créer un nouveau.`,
       );
       return;
     }
 
-    // Ã°Ÿ›¡ï¸ ANTI-DOUBLON 2 : ce locataire occupe-t-il déjà un autre bien ?
     const existingActiveLease = tenants.find(
       (t) =>
         t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
         t.prenom?.toLowerCase() === data.tenant.prenom?.toLowerCase() &&
         t.cni === data.tenant.cni &&
         t.bienId !== data.tenant.bienId &&
-        !t.dateSortie
+        !t.dateSortie,
     );
 
     if (existingActiveLease) {
       alert(
-        `â›” LOCATAIRE DÃƒ‰JÃƒ€ ACTIF\n\n` +
-        `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
-        `${existingActiveLease.bienNom}\n\n` +
-        `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
-        `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`
+        `LOCATAIRE DÉJÀ ACTIF\n\n` +
+          `${data.tenant.prenom} ${data.tenant.nom} (CNI : ${data.tenant.cni}) occupe déjà :\n` +
+          `${existingActiveLease.bienNom}\n\n` +
+          `Un locataire ne peut occuper qu'un seul bien à la fois.\n\n` +
+          `Si c'est une erreur, enregistrez d'abord sa sortie de l'autre bien.`,
       );
       return;
     }
 
-    // âœ… Pas de doublon â†’ procéder normalement
-    const tenantResult = await saveTenantToDb(data.tenant, currentUser.agencyId);
+    const tenantResult = await saveTenantToDb(
+      data.tenant,
+      currentUser.agencyId,
+    );
     if (!tenantResult.success) {
-      alert('Erreur création locataire : ' + tenantResult.error);
+      alert("Erreur création locataire : " + tenantResult.error);
       return;
     }
     const realTenantId = tenantResult.data?.id || data.tenant.id;
@@ -1150,25 +1554,28 @@ export default function App() {
     await saveContractToDb(contractToSave, currentUser.agencyId);
     await saveInspectionToDb(inspectionToSave, currentUser.agencyId);
 
-    // Mettre à jour UNIT ou PROPERTY
     if (existingUnit) {
       const updatedU = {
         ...existingUnit,
-        statut: 'Occupé' as const,
+        statut: "Occupé" as const,
         locataireActuelId: realTenantId,
         locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
       };
       await saveUnitToDb(updatedU, currentUser.agencyId);
-      setUnits((prev) => prev.map((u) => (u.id === updatedU.id ? updatedU : u)));
+      setUnits((prev) =>
+        prev.map((u) => (u.id === updatedU.id ? updatedU : u)),
+      );
     } else if (existingProp) {
       const updatedP = {
         ...existingProp,
-        statut: 'Occupé' as const,
+        statut: "Occupé" as const,
         locataireActuelNom: `${data.tenant.prenom} ${data.tenant.nom}`,
         locataireActuelId: realTenantId,
       };
       await savePropertyToDb(updatedP, currentUser.agencyId);
-      setProperties((prev) => prev.map((p) => (p.id === updatedP.id ? updatedP : p)));
+      setProperties((prev) =>
+        prev.map((p) => (p.id === updatedP.id ? updatedP : p)),
+      );
     }
 
     setTenants((prev) => [tenantToSave, ...prev]);
@@ -1176,49 +1583,68 @@ export default function App() {
     setInspections((prev) => [inspectionToSave, ...prev]);
   };
 
-  // ============================================================
-  // HANDLER : SORTIE LOCATAIRE (corrigé v3.0.5 - else if â†’ if)
-  // ============================================================
-  const handleCompleteTenantExit = async (data: { tenantId: string; bienId: string; dateSortie: string; inspection: Inspection; retenueCaution: number; restitutionCaution: number; }) => {
+  const handleCompleteTenantExit = async (data: {
+    tenantId: string;
+    bienId: string;
+    dateSortie: string;
+    inspection: Inspection;
+    retenueCaution: number;
+    restitutionCaution: number;
+  }) => {
     if (!currentUser?.agencyId) return;
 
-    // 1. Locataire "” sauvegarder en DB
     const tenantToUpdate = tenants.find((t) => t.id === data.tenantId);
     if (tenantToUpdate) {
       const updatedTenant = {
         ...tenantToUpdate,
-        statut: 'Ãƒ€ jour' as const,
+        statut: "À jour" as const,
         dateSortie: data.dateSortie,
       };
       const res = await saveTenantToDb(updatedTenant, currentUser.agencyId);
       if (res.success) {
-        setTenants((prev) => prev.map((t) => (t.id === data.tenantId ? updatedTenant : t)));
+        setTenants((prev) =>
+          prev.map((t) => (t.id === data.tenantId ? updatedTenant : t)),
+        );
       }
     }
 
-    // 2. Bien ou Unit "” sauvegarder en DB
     const property = properties.find((p) => p.id === data.bienId);
     const unit = units.find((u) => u.id === data.bienId);
 
-    // Ã°Ÿ”§ FIX v3.0.5 : si â†’ (au lieu de else if), pour libérer les deux si les deux existent
     if (property) {
-      const updatedProp = { ...property, statut: 'Vacant' as const, locataireActuelNom: undefined, locataireActuelId: undefined };
+      const updatedProp = {
+        ...property,
+        statut: "Vacant" as const,
+        locataireActuelNom: undefined,
+        locataireActuelId: undefined,
+      };
       const res = await savePropertyToDb(updatedProp, currentUser.agencyId);
       if (res.success) {
-        setProperties((prev) => prev.map((p) => (p.id === data.bienId ? updatedProp : p)));
+        setProperties((prev) =>
+          prev.map((p) => (p.id === data.bienId ? updatedProp : p)),
+        );
       }
     }
 
     if (unit) {
-      const updatedUnit = { ...unit, statut: 'Vacant' as const, locataireActuelId: undefined, locataireActuelNom: undefined };
+      const updatedUnit = {
+        ...unit,
+        statut: "Vacant" as const,
+        locataireActuelId: undefined,
+        locataireActuelNom: undefined,
+      };
       const res = await saveUnitToDb(updatedUnit, currentUser.agencyId);
       if (res.success) {
-        setUnits((prev) => prev.map((u) => (u.id === data.bienId ? updatedUnit : u)));
+        setUnits((prev) =>
+          prev.map((u) => (u.id === data.bienId ? updatedUnit : u)),
+        );
       }
     }
 
-    // 3. Inspection "” sauvegarder en DB
-    const inspRes = await saveInspectionToDb(data.inspection, currentUser.agencyId);
+    const inspRes = await saveInspectionToDb(
+      data.inspection,
+      currentUser.agencyId,
+    );
     if (inspRes.success && inspRes.data) {
       setInspections((prev) => [inspRes.data!, ...prev]);
     } else {
@@ -1227,68 +1653,130 @@ export default function App() {
   };
 
   const handleAddOwner = (newOwner: Owner) => {
-    setOwners((prev) => { const next = [newOwner, ...prev]; persistCollection('owners', next); return next; });
-    if (currentUser?.agencyId) saveOwnerToDbWithLog(newOwner, currentUser.agencyId).catch(console.warn);
+    setOwners((prev) => {
+      const next = [newOwner, ...prev];
+      persistCollection("owners", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveOwnerToDbWithLog(newOwner, currentUser.agencyId).catch(console.warn);
   };
   const handleAddReminder = (newReminder: TenantReminder) => {
-    setReminders((prev) => { const next = [newReminder, ...prev]; persistCollection('reminders', next); return next; });
-    if (currentUser?.agencyId) saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
+    setReminders((prev) => {
+      const next = [newReminder, ...prev];
+      persistCollection("reminders", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
   };
 
   const handleAddInspection = (newInspection: Inspection) => {
     const enrichedInspection: Inspection = {
       ...newInspection,
       createdById: newInspection.createdById || currentUser?.id,
-      createdByNom: newInspection.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newInspection.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newInspection.createdByRole || currentUser?.role,
     };
-    setInspections((prev) => { const next = [enrichedInspection, ...prev]; persistCollection('inspections', next); return next; });
-    if (currentUser?.agencyId) saveInspectionToDb(enrichedInspection, currentUser.agencyId).catch(console.warn);
+    setInspections((prev) => {
+      const next = [enrichedInspection, ...prev];
+      persistCollection("inspections", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveInspectionToDb(enrichedInspection, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleAddTicket = (newTicket: MaintenanceTicket) => {
     const enrichedTicket: MaintenanceTicket = {
       ...newTicket,
       createdById: newTicket.createdById || currentUser?.id,
-      createdByNom: newTicket.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newTicket.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newTicket.createdByRole || currentUser?.role,
     };
-    setMaintenance((prev) => { const next = [enrichedTicket, ...prev]; persistCollection('maintenance', next); return next; });
-    if (currentUser?.agencyId) saveMaintenanceToDb(enrichedTicket, currentUser.agencyId).catch(console.warn);
+    setMaintenance((prev) => {
+      const next = [enrichedTicket, ...prev];
+      persistCollection("maintenance", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveMaintenanceToDb(enrichedTicket, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleUpdateTicket = (updatedTicket: MaintenanceTicket) => {
-    setMaintenance((prev) => { const next = prev.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)); persistCollection('maintenance', next); return next; });
-    if (currentUser?.agencyId) saveMaintenanceToDb(updatedTicket, currentUser.agencyId).catch(console.warn);
+    setMaintenance((prev) => {
+      const next = prev.map((t) =>
+        t.id === updatedTicket.id ? updatedTicket : t,
+      );
+      persistCollection("maintenance", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveMaintenanceToDb(updatedTicket, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleAddDisbursement = (newDisbursement: OwnerDisbursement) => {
     const enrichedDisbursement: OwnerDisbursement = {
       ...newDisbursement,
       createdById: newDisbursement.createdById || currentUser?.id,
-      createdByNom: newDisbursement.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newDisbursement.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newDisbursement.createdByRole || currentUser?.role,
     };
-    setDisbursements((prev) => { const next = [enrichedDisbursement, ...prev]; persistCollection('disbursements', next); return next; });
-    if (currentUser?.agencyId) saveDisbursementToDb(enrichedDisbursement, currentUser.agencyId).catch(console.warn);
+    setDisbursements((prev) => {
+      const next = [enrichedDisbursement, ...prev];
+      persistCollection("disbursements", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveDisbursementToDb(enrichedDisbursement, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
   const handleAddInvoice = (newInvoice: Invoice) => {
     const enrichedInvoice: Invoice = {
       ...newInvoice,
       createdById: newInvoice.createdById || currentUser?.id,
-      createdByNom: newInvoice.createdByNom || (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : 'Système'),
+      createdByNom:
+        newInvoice.createdByNom ||
+        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newInvoice.createdByRole || currentUser?.role,
     };
-    setInvoices((prev) => { const next = [enrichedInvoice, ...prev]; persistCollection('invoices', next); return next; });
-    if (currentUser?.agencyId) saveInvoiceToDb(enrichedInvoice, currentUser.agencyId).catch(console.warn);
+    setInvoices((prev) => {
+      const next = [enrichedInvoice, ...prev];
+      persistCollection("invoices", next);
+      return next;
+    });
+    if (currentUser?.agencyId)
+      saveInvoiceToDb(enrichedInvoice, currentUser.agencyId).catch(
+        console.warn,
+      );
   };
-  const handleSaveSettings = async (newSettings: AgencySettings): Promise<void> => {
+  const handleSaveSettings = async (
+    newSettings: AgencySettings,
+  ): Promise<void> => {
     if (currentUser?.agencyId) {
       const result = await saveSettingsToDb(newSettings, currentUser.agencyId);
-      if (!result.success) throw new Error(result.error || 'Impossible de sauvegarder les paramètres.');
+      if (!result.success)
+        throw new Error(
+          result.error || "Impossible de sauvegarder les paramètres.",
+        );
       await reloadAgencySettings();
     }
     setSettings(newSettings);
-    persistCollection('settings', newSettings);
+    persistCollection("settings", newSettings);
   };
-  const handleOpenQuickReminder = (tenant: Tenant) => { setActiveTab('reminders'); };
+  const handleOpenQuickReminder = (tenant: Tenant) => {
+    setActiveTab("reminders");
+  };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
     if (tenant) {
       setInitialTenantForPayment(tenant);
@@ -1296,110 +1784,172 @@ export default function App() {
       setInitialTenantForPayment(null);
     }
     setIsNewPaymentModalOpen(true);
-    setActiveTab('payments');
+    setActiveTab("payments");
   };
-  const handleOpenBulletinVersement = (owner: Owner) => { setOwnerBulletinModalOwner(owner); };
+  const handleOpenBulletinVersement = (owner: Owner) => {
+    setOwnerBulletinModalOwner(owner);
+  };
 
-  const unpaidCount = tenants.filter((t) => t.statut === 'Impayé' || t.statut === 'Retard').length;
-  const pendingPaymentsCount = payments.filter((p) => p.verificationStatut === 'en_attente').length;
+  const unpaidCount = tenants.filter(
+    (t) => t.statut === "Impayé" || t.statut === "Retard",
+  ).length;
+  const pendingPaymentsCount = payments.filter(
+    (p) => p.verificationStatut === "en_attente",
+  ).length;
 
   // SCOPED DATA
   const scopedProperties = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'LOCATAIRE') {
+    if (currentUser?.role === "PROPRIETAIRE")
+      return properties.filter(
+        (p) => p.proprietaireId === currentUser.proprietaireId,
+      );
+    if (currentUser?.role === "LOCATAIRE") {
       const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
       return myTenant ? properties.filter((p) => p.id === myTenant.bienId) : [];
     }
     return properties;
   })();
 
-  const scopedPropertiesOrUnits = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      return properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-    }
-    return properties;
-  })();
   const scopedBuildings = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === "PROPRIETAIRE")
+      return buildings.filter(
+        (b) => b.proprietaireId === currentUser.proprietaireId,
+      );
     return buildings;
   })();
   const scopedUnits = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); if (myTenant) return units.filter((u) => u.buildingId === myTenant.bienId || u.locataireActuelId === myTenant.id); }
+    if (currentUser?.role === "PROPRIETAIRE")
+      return units.filter(
+        (u) => u.proprietaireId === currentUser.proprietaireId,
+      );
+    if (currentUser?.role === "LOCATAIRE") {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      if (myTenant)
+        return units.filter(
+          (u) =>
+            u.buildingId === myTenant.bienId ||
+            u.locataireActuelId === myTenant.id,
+        );
+    }
     return units;
   })();
   const scopedTenants = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
-      const filtered = tenants.filter((t) => myBienIds.includes(t.bienId) || t.proprietaireId === currentUser.proprietaireId);
+    if (currentUser?.role === "PROPRIETAIRE") {
+      const myProps = properties.filter(
+        (p) => p.proprietaireId === currentUser.proprietaireId,
+      );
+      const myUnits = units.filter(
+        (u) => u.proprietaireId === currentUser.proprietaireId,
+      );
+      const myBienIds = [
+        ...myProps.map((p) => p.id),
+        ...myUnits.map((u) => u.id),
+      ];
+      const filtered = tenants.filter(
+        (t) =>
+          myBienIds.includes(t.bienId) ||
+          t.proprietaireId === currentUser.proprietaireId,
+      );
 
       return filtered.map((t) => ({
         ...t,
-        telephone: '',
-        email: '',
-        cni: '',
+        telephone: "",
+        email: "",
+        cni: "",
         typePiece: undefined,
-        profession: '',
-        employeur: '',
+        profession: "",
+        employeur: "",
         revenuMensuel: 0,
-        statut: 'Ãƒ€ jour' as const,
+        statut: "À jour" as const,
         joursRetard: 0,
         arrieresCumules: 0,
-        observations: '',
-        conjointNom: '',
-        conjointTelephone: '',
+        observations: "",
+        conjointNom: "",
+        conjointTelephone: "",
       }));
     }
-    if (currentUser?.role === 'LOCATAIRE') return tenants.filter((t) => t.id === currentUser.locataireId);
+    if (currentUser?.role === "LOCATAIRE")
+      return tenants.filter((t) => t.id === currentUser.locataireId);
     return tenants;
   })();
   const scopedPayments = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return [];
-    if (currentUser?.role === 'LOCATAIRE') return payments.filter((p) => p.locataireId === currentUser.locataireId);
-    if (currentUser?.role === 'AGENT') return [];
+    if (currentUser?.role === "PROPRIETAIRE") return [];
+    if (currentUser?.role === "LOCATAIRE")
+      return payments.filter((p) => p.locataireId === currentUser.locataireId);
+    if (currentUser?.role === "AGENT") return [];
     return payments;
   })();
   const scopedContracts = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return contracts.filter((c) => c.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'LOCATAIRE') return contracts.filter((c) => c.locataireId === currentUser.locataireId);
+    if (currentUser?.role === "PROPRIETAIRE")
+      return contracts.filter(
+        (c) => c.proprietaireId === currentUser.proprietaireId,
+      );
+    if (currentUser?.role === "LOCATAIRE")
+      return contracts.filter((c) => c.locataireId === currentUser.locataireId);
     return contracts;
   })();
   const scopedInspections = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
+    if (currentUser?.role === "PROPRIETAIRE") {
+      const myProps = properties.filter(
+        (p) => p.proprietaireId === currentUser.proprietaireId,
+      );
+      const myUnits = units.filter(
+        (u) => u.proprietaireId === currentUser.proprietaireId,
+      );
+      const myBienIds = [
+        ...myProps.map((p) => p.id),
+        ...myUnits.map((u) => u.id),
+      ];
       return inspections.filter((i) => myBienIds.includes(i.bienId));
     }
-    if (currentUser?.role === 'LOCATAIRE') return inspections.filter((i) => i.locataireId === currentUser.locataireId);
+    if (currentUser?.role === "LOCATAIRE")
+      return inspections.filter(
+        (i) => i.locataireId === currentUser.locataireId,
+      );
     return inspections;
   })();
   const scopedMaintenance = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') {
-      const myProps = properties.filter((p) => p.proprietaireId === currentUser.proprietaireId);
-      const myUnits = units.filter((u) => u.proprietaireId === currentUser.proprietaireId);
-      const myBienIds = [...myProps.map((p) => p.id), ...myUnits.map((u) => u.id)];
+    if (currentUser?.role === "PROPRIETAIRE") {
+      const myProps = properties.filter(
+        (p) => p.proprietaireId === currentUser.proprietaireId,
+      );
+      const myUnits = units.filter(
+        (u) => u.proprietaireId === currentUser.proprietaireId,
+      );
+      const myBienIds = [
+        ...myProps.map((p) => p.id),
+        ...myUnits.map((u) => u.id),
+      ];
       return maintenance.filter((m) => myBienIds.includes(m.bienId));
     }
-    if (currentUser?.role === 'LOCATAIRE') { const myTenant = tenants.find((t) => t.id === currentUser.locataireId); return myTenant ? maintenance.filter((m) => m.bienId === myTenant.bienId) : []; }
+    if (currentUser?.role === "LOCATAIRE") {
+      const myTenant = tenants.find((t) => t.id === currentUser.locataireId);
+      return myTenant
+        ? maintenance.filter((m) => m.bienId === myTenant.bienId)
+        : [];
+    }
     return maintenance;
   })();
   const scopedDisbursements = (() => {
-    if (currentUser?.role === 'PROPRIETAIRE') return disbursements.filter((d) => d.proprietaireId === currentUser.proprietaireId);
-    if (currentUser?.role === 'AGENT' || currentUser?.role === 'LOCATAIRE') return [];
+    if (currentUser?.role === "PROPRIETAIRE")
+      return disbursements.filter(
+        (d) => d.proprietaireId === currentUser.proprietaireId,
+      );
+    if (currentUser?.role === "AGENT" || currentUser?.role === "LOCATAIRE")
+      return [];
     return disbursements;
   })();
 
   if (isResetPasswordMode) {
     return (
-      <ViewLoader variant="form"><LazyResetPasswordView
-        onSuccess={() => {
-          setIsResetPasswordMode(false);
-          window.location.hash = '';
-        }}
-      /></ViewLoader>
+      <ViewLoader variant="form">
+        <LazyResetPasswordView
+          onSuccess={() => {
+            setIsResetPasswordMode(false);
+            window.location.hash = "";
+          }}
+        />
+      </ViewLoader>
     );
   }
 
@@ -1408,7 +1958,9 @@ export default function App() {
       <div className="min-h-screen bg-[#0A111D] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-4 border-[#C9A96E]/30 border-t-[#C9A96E] rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-[#A8B4C4] font-medium tracking-wide">Chargement sécurisé de FITAL-IMMO...</p>
+          <p className="text-xs text-[#A8B4C4] font-medium tracking-wide">
+            Chargement sécurisé de FITAL-IMMO...
+          </p>
         </div>
       </div>
     );
@@ -1416,38 +1968,68 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <ViewLoader variant="form"><LazyLoginView
-        availableUsers={users}
-        onLoginSuccess={async (user) => {
-          let resolvedUser = user;
-          if (isSupabaseConfigured && user.agencyId && !user.agencyId.startsWith('agency-')) {
-            const cloudUsers = await fetchAgencyUsers(user.agencyId);
-            if (cloudUsers.length > 0) {
-              setUsers(cloudUsers);
-              persistCollection('users', cloudUsers);
+      <ViewLoader variant="form">
+        <LazyLoginView
+          availableUsers={users}
+          onLoginSuccess={async (user) => {
+            let resolvedUser = user;
+            if (
+              isSupabaseConfigured &&
+              user.agencyId &&
+              !user.agencyId.startsWith("agency-")
+            ) {
+              const cloudUsers = await fetchAgencyUsers(user.agencyId);
+              if (cloudUsers.length > 0) {
+                setUsers(cloudUsers);
+                persistCollection("users", cloudUsers);
+              }
+            } else if (isSupabaseConfigured) {
+              const agency = await getOrCreateDefaultAgency();
+              if (agency) {
+                resolvedUser = { ...user, agencyId: agency.id };
+              }
             }
-          } else if (isSupabaseConfigured) {
-            const agency = await getOrCreateDefaultAgency();
-            if (agency) {
-              resolvedUser = { ...user, agencyId: agency.id };
-            }
-          }
-          setCurrentUser(resolvedUser);
-          persistCollection('current_user', resolvedUser);
-          localStorage.setItem('fital_immo_user', JSON.stringify(resolvedUser));
-          setUsers((prev) => {
-            const next = prev.some((u) => u.id === resolvedUser.id) ? prev : [resolvedUser, ...prev];
-            persistCollection('users', next);
-            return next;
-          });
-        }}
-      /></ViewLoader>
+            setCurrentUser(resolvedUser);
+            persistCollection("current_user", resolvedUser);
+            localStorage.setItem(
+              "fital_immo_user",
+              JSON.stringify(resolvedUser),
+            );
+            setUsers((prev) => {
+              const next = prev.some((u) => u.id === resolvedUser.id)
+                ? prev
+                : [resolvedUser, ...prev];
+              persistCollection("users", next);
+              return next;
+            });
+          }}
+        />
+      </ViewLoader>
     );
   }
 
-  // Page de prévisualisation des thèmes
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A111D] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[#C9A96E]/30 border-t-[#C9A96E] rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-[#A8B4C4] font-medium tracking-wide">
+            Chargement des données FITAL-IMMO...
+          </p>
+          <p className="text-[10px] text-[#6B7C94]">
+            Cela peut prendre quelques secondes.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (showThemePreview) {
-    return <ViewLoader variant="default"><LazyThemePreview onBack={() => setShowThemePreview(false)} /></ViewLoader>;
+    return (
+      <ViewLoader variant="default">
+        <LazyThemePreview onBack={() => setShowThemePreview(false)} />
+      </ViewLoader>
+    );
   }
 
   return (
@@ -1457,21 +2039,31 @@ export default function App() {
         setActiveTab={handleSafeTabChange}
         unpaidCount={unpaidCount}
         settings={agencySettings}
-        urgentMaintenanceCount={maintenance.filter((m) => m.priorite === 'Urgente').length}
-        currentUser={{
-          ...currentUser,
-          __ownerBuildingsCount: currentUser.role === 'PROPRIETAIRE'
-            ? buildings.filter((b) => b.proprietaireId === currentUser.proprietaireId).length
-            : buildings.length,
-          __ownerUnitsCount: currentUser.role === 'PROPRIETAIRE'
-            ? units.filter((u) => u.proprietaireId === currentUser.proprietaireId).length
-            : units.length,
-        } as any}
+        urgentMaintenanceCount={
+          maintenance.filter((m) => m.priorite === "Urgente").length
+        }
+        currentUser={
+          {
+            ...currentUser,
+            __ownerBuildingsCount:
+              currentUser.role === "PROPRIETAIRE"
+                ? buildings.filter(
+                    (b) => b.proprietaireId === currentUser.proprietaireId,
+                  ).length
+                : buildings.length,
+            __ownerUnitsCount:
+              currentUser.role === "PROPRIETAIRE"
+                ? units.filter(
+                    (u) => u.proprietaireId === currentUser.proprietaireId,
+                  ).length
+                : units.length,
+          } as any
+        }
         onOpenProfile={() => setIsProfileModalOpen(true)}
         pendingPaymentsCount={pendingPaymentsCount}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
-            />
+      />
       <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         <Topbar
           activeTab={activeTab}
@@ -1480,7 +2072,7 @@ export default function App() {
           onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
           onOpenNewProperty={() => setIsNewPropertyModalOpen(true)}
           onOpenNewTenant={() => setIsNewTenantWizardOpen(true)}
-          onOpenReminders={() => handleSafeTabChange('reminders')}
+          onOpenReminders={() => handleSafeTabChange("reminders")}
           selectedPeriod={selectedPeriod}
           setSelectedPeriod={setSelectedPeriod}
           unpaidCount={unpaidCount}
@@ -1498,686 +2090,836 @@ export default function App() {
         />
 
         <main className="flex-1 p-3.5 sm:p-5 md:p-8 pb-24 md:pb-8 max-w-[1600px] w-full mx-auto">
-          {activeTab === 'dashboard' && (currentUser.role === 'ADMIN' || currentUser.role === 'SUPER_ADMIN') && (
-            <DashboardView
-              properties={properties}
-              tenants={tenants}
-              payments={payments}
-              maintenance={maintenance}
-              setActiveTab={handleSafeTabChange}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              onOpenQuickReminder={handleOpenQuickReminder}
-              onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
-              onOpenNewProperty={() => setIsNewPropertyModalOpen(true)}
-              currentUser={currentUser}
-            />
+          {activeTab === "dashboard" &&
+            (currentUser.role === "ADMIN" ||
+              currentUser.role === "SUPER_ADMIN") && (
+              <DashboardView
+                properties={properties}
+                tenants={tenants}
+                payments={payments}
+                maintenance={maintenance}
+                setActiveTab={handleSafeTabChange}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                onOpenQuickReminder={handleOpenQuickReminder}
+                onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
+                onOpenNewProperty={() => setIsNewPropertyModalOpen(true)}
+                currentUser={currentUser}
+              />
+            )}
+
+          {activeTab === "dashboard" && currentUser.role === "CAISSIER" && (
+            <ViewLoader variant="kpi">
+              <LazyCashierDashboardView
+                payments={payments}
+                tenants={tenants}
+                owners={owners}
+                cashMovements={cashMovements}
+                cashClosings={cashClosings}
+                paymentMethods={paymentMethods}
+                onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                setActiveTab={handleSafeTabChange}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'dashboard' && currentUser.role === 'CAISSIER' && (
-            <ViewLoader variant="kpi"><LazyCashierDashboardView
-              payments={payments}
-              tenants={tenants}
-              owners={owners}
-              cashMovements={cashMovements}
-              cashClosings={cashClosings}
-              paymentMethods={paymentMethods}
-              onOpenNewPayment={() => handleOpenNewPaymentForTenant()}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              setActiveTab={handleSafeTabChange}
-            /></ViewLoader>
+          {activeTab === "dashboard" && currentUser.role === "PROPRIETAIRE" && (
+            <ViewLoader variant="kpi">
+              <LazyOwnerDashboardView
+                currentUser={currentUser}
+                owner={
+                  owners.find((o) => o.id === currentUser.proprietaireId) ||
+                  owners[0]
+                }
+                properties={scopedProperties}
+                tenants={scopedTenants}
+                payments={scopedPayments}
+                maintenance={scopedMaintenance}
+                disbursements={scopedDisbursements}
+                settings={agencySettings}
+                cashVouchers={cashVouchers.filter(
+                  (v) =>
+                    v.proprietaireId === currentUser.proprietaireId ||
+                    !currentUser.proprietaireId,
+                )}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'dashboard' && currentUser.role === 'PROPRIETAIRE' && (
-            <ViewLoader variant="kpi"><LazyOwnerDashboardView
-              currentUser={currentUser}
-              owner={owners.find((o) => o.id === currentUser.proprietaireId) || owners[0]}
-              properties={scopedProperties}
-              tenants={scopedTenants}
-              payments={scopedPayments}
-              maintenance={scopedMaintenance}
-              disbursements={scopedDisbursements}
-              settings={agencySettings}
-              cashVouchers={cashVouchers.filter((v) => v.proprietaireId === currentUser.proprietaireId || !currentUser.proprietaireId)}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-            /></ViewLoader>
+          {activeTab === "dashboard" && currentUser.role === "LOCATAIRE" && (
+            <ViewLoader variant="kpi">
+              <LazyTenantDashboardView
+                currentUser={currentUser}
+                settings={agencySettings}
+                tenant={
+                  tenants.find((t) => t.id === currentUser.locataireId) ||
+                  tenants[0]
+                }
+                property={properties.find(
+                  (p) =>
+                    p.id ===
+                    (currentUser.bienId ||
+                      tenants.find((t) => t.id === currentUser.locataireId)
+                        ?.bienId),
+                )}
+                contract={contracts.find(
+                  (c) => c.locataireId === currentUser.locataireId,
+                )}
+                payments={scopedPayments}
+                inspections={scopedInspections}
+                maintenance={scopedMaintenance}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                onInitiateOnlinePayment={(amount, method, transactionRef) => {
+                  return handleConfirmMobileMoneyPayment(
+                    amount,
+                    method,
+                    transactionRef,
+                    currentUser.locataireId,
+                    selectedPeriod,
+                  );
+                }}
+                paymentPeriod={selectedPeriod}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'dashboard' && currentUser.role === 'LOCATAIRE' && (
-            <ViewLoader variant="kpi"><LazyTenantDashboardView
-              currentUser={currentUser}
-              settings={agencySettings}
-              tenant={tenants.find((t) => t.id === currentUser.locataireId) || tenants[0]}
-              property={properties.find((p) => p.id === (currentUser.bienId || tenants.find((t) => t.id === currentUser.locataireId)?.bienId))}
-              contract={contracts.find((c) => c.locataireId === currentUser.locataireId)}
-              payments={scopedPayments}
-              inspections={scopedInspections}
-              maintenance={scopedMaintenance}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              onInitiateOnlinePayment={(amount, method, transactionRef) => {
-                return handleConfirmMobileMoneyPayment(
-                  amount,
-                  method,
-                  transactionRef,
-                  currentUser.locataireId,
-                  selectedPeriod,
-                );
-              }}
-              paymentPeriod={selectedPeriod}
-            /></ViewLoader>
+          {activeTab === "dashboard" && currentUser.role === "AGENT" && (
+            <ViewLoader variant="kpi">
+              <LazyAgentDashboardView
+                currentUser={currentUser}
+                properties={properties}
+                tenants={tenants}
+                inspections={scopedInspections}
+                maintenance={scopedMaintenance}
+                reminders={reminders}
+                onOpenInspectionModal={() => handleSafeTabChange("inspections")}
+                onOpenMaintenanceModal={() =>
+                  handleSafeTabChange("maintenance")
+                }
+                setActiveTab={handleSafeTabChange}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'dashboard' && currentUser.role === 'AGENT' && (
-            <ViewLoader variant="kpi"><LazyAgentDashboardView
-              currentUser={currentUser}
-              properties={properties}
-              tenants={tenants}
-              inspections={scopedInspections}
-              maintenance={scopedMaintenance}
-              reminders={reminders}
-              onOpenInspectionModal={() => handleSafeTabChange('inspections')}
-              onOpenMaintenanceModal={() => handleSafeTabChange('maintenance')}
-              setActiveTab={handleSafeTabChange}
-            /></ViewLoader>
+          {activeTab === "dashboard" && currentUser.role === "GESTIONNAIRE" && (
+            <ViewLoader variant="kpi">
+              <LazyManagerDashboardView
+                properties={properties}
+                tenants={tenants}
+                owners={owners}
+                contracts={contracts}
+                payments={payments}
+                maintenance={scopedMaintenance}
+                reminders={reminders}
+                onOpenNewContract={() => handleSafeTabChange("contracts")}
+                onOpenNewTenant={() => setIsNewTenantWizardOpen(true)}
+                onOpenNewReminder={() => handleSafeTabChange("reminders")}
+                setActiveTab={handleSafeTabChange}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'dashboard' && currentUser.role === 'GESTIONNAIRE' && (
-            <ViewLoader variant="kpi"><LazyManagerDashboardView
-              properties={properties}
-              tenants={tenants}
-              owners={owners}
-              contracts={contracts}
-              payments={payments}
-              maintenance={scopedMaintenance}
-              reminders={reminders}
-              onOpenNewContract={() => handleSafeTabChange('contracts')}
-              onOpenNewTenant={() => setIsNewTenantWizardOpen(true)}
-              onOpenNewReminder={() => handleSafeTabChange('reminders')}
-              setActiveTab={handleSafeTabChange}
-            /></ViewLoader>
+          {activeTab === "saas-admin" &&
+            currentUser.role === "SUPER_ADMIN_SAAS" && (
+              <ViewLoader variant="kpi">
+                <LazySuperAdminDashboard
+                  currentUser={currentUser}
+                  agencyStats={agencyStats}
+                  payments={payments}
+                  invoices={invoices}
+                  cashMovements={cashMovements}
+                  owners={owners}
+                  tenants={tenants}
+                  properties={properties}
+                  buildings={buildings}
+                  units={units}
+                  contracts={contracts}
+                />
+              </ViewLoader>
+            )}
+
+          {activeTab === "admin-control" && (
+            <ViewLoader variant="default">
+              <LazyAdminControlCenterView
+                users={users}
+                properties={properties}
+                owners={owners}
+                tenants={tenants}
+                payments={payments}
+                cashMovements={cashMovements}
+                cashClosings={cashClosings}
+                paymentMethods={paymentMethods}
+                auditLogs={auditLogs}
+                settings={agencySettings}
+                maintenance={maintenance}
+                buildings={buildings}
+                units={units}
+                contracts={contracts}
+                invoices={invoices}
+                disbursements={disbursements}
+                bulletins={bulletinsVersements}
+                ownerDeductions={ownerDeductions}
+                ownerCharges={ownerCharges}
+                inspections={inspections}
+                activityLogs={activityLogs}
+                reminders={reminders}
+                penalties={penalties}
+                archives={archives}
+                notifications={notifications}
+                onTriggerAuditLog={handleTriggerAuditLog}
+                agencyStats={agencyStats}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'saas-admin' && currentUser.role === 'SUPER_ADMIN_SAAS' && (
-            <ViewLoader variant="kpi"><LazySuperAdminDashboard 
-              currentUser={currentUser} 
-              agencyStats={agencyStats}
-              payments={payments}
-              invoices={invoices}
-              cashMovements={cashMovements}
-              owners={owners}
-              tenants={tenants}
-              properties={properties}
-              buildings={buildings}
-              units={units}
-              contracts={contracts}
-            /></ViewLoader>
+          {activeTab === "admin-journal" && (
+            <ViewLoader variant="list">
+              <LazyAdminActivityJournalView
+                auditLogs={auditLogs}
+                onTriggerAuditLog={handleTriggerAuditLog}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'admin-control' && (
-            <ViewLoader variant="default"><LazyAdminControlCenterView
-              users={users}
-              properties={properties}
-              owners={owners}
-              tenants={tenants}
-              payments={payments}
-              cashMovements={cashMovements}
-              cashClosings={cashClosings}
-              paymentMethods={paymentMethods}
-              auditLogs={auditLogs}
-              settings={agencySettings}
-              maintenance={maintenance}
-              buildings={buildings}
-              units={units}
-              contracts={contracts}
-              invoices={invoices}
-              disbursements={disbursements}
-              bulletins={bulletinsVersements}
-              ownerDeductions={ownerDeductions}
-              ownerCharges={ownerCharges}
-              inspections={inspections}
-              activityLogs={activityLogs}
-              reminders={reminders}
-              penalties={penalties}
-              archives={archives}
-              notifications={notifications}
-              onTriggerAuditLog={handleTriggerAuditLog}
-              agencyStats={agencyStats}
-            /></ViewLoader>
+          {activeTab === "agency-settings" && currentUser?.agencyId && (
+            <ViewLoader variant="form">
+              <LazyAgencySettingsView agencyId={currentUser.agencyId} />
+            </ViewLoader>
           )}
 
-          {activeTab === 'admin-journal' && (
-            <ViewLoader variant="list"><LazyAdminActivityJournalView auditLogs={auditLogs} onTriggerAuditLog={handleTriggerAuditLog} /></ViewLoader>
+          {activeTab === "admin-users" && (
+            <ViewLoader variant="list">
+              <LazyAdminUsersView
+                users={users}
+                currentUser={currentUser}
+                owners={owners}
+                tenants={tenants}
+                properties={properties}
+                buildings={buildings}
+                onAddUser={handleAddUser}
+                isSupabaseOnline={isSupabaseConfigured}
+                onUpdateUser={handleUpdateUser}
+                onSwitchActiveUser={handleSwitchUser}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'agency-settings' && currentUser?.agencyId && (
-            <ViewLoader variant="form"><LazyAgencySettingsView agencyId={currentUser.agencyId} /></ViewLoader>
+          {activeTab === "archives" && (
+            <ViewLoader variant="list">
+              <LazyArchiveView
+                currentUser={currentUser}
+                tenants={tenants}
+                owners={owners}
+                properties={properties}
+                buildings={buildings}
+                units={units}
+                contracts={contracts}
+                payments={payments}
+                disbursements={disbursements}
+                inspections={inspections}
+                maintenance={maintenance}
+                invoices={invoices}
+                bulletins={bulletinsVersements}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'admin-users' && (
-            <ViewLoader variant="list"><LazyAdminUsersView
-              users={users}
-              currentUser={currentUser}
-              owners={owners}
-              tenants={tenants}
-              properties={properties}
-              buildings={buildings}
-              onAddUser={handleAddUser}
-              isSupabaseOnline={isSupabaseConfigured}
-              onUpdateUser={handleUpdateUser}
-              onSwitchActiveUser={handleSwitchUser}
-            /></ViewLoader>
+          {activeTab === "activity-logs" && (
+            <ViewLoader variant="list">
+              <LazyActivityLogView
+                activities={activityLogs}
+                currentUser={currentUser}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'archives' && (
-            <ViewLoader variant="list"><LazyArchiveView
-              currentUser={currentUser}
-              tenants={tenants}
-              owners={owners}
-              properties={properties}
-              buildings={buildings}
-              units={units}
-              contracts={contracts}
-              payments={payments}
-              disbursements={disbursements}
-              inspections={inspections}
-              maintenance={maintenance}
-              invoices={invoices}
-              bulletins={bulletinsVersements}
-            /></ViewLoader>
+          {activeTab === "penalties" && (
+            <ViewLoader variant="list">
+              <LazyPenaltiesView
+                penalties={penalties}
+                tenants={scopedTenants}
+                payments={scopedPayments}
+                currentUser={currentUser}
+                onAddPenalty={handleAddPenalty}
+                onDeletePenalty={handleDeletePenalty}
+                onUpdatePenalty={handleUpdatePenalty}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'activity-logs' && (
-            <ViewLoader variant="list"><LazyActivityLogView activities={activityLogs} currentUser={currentUser} /></ViewLoader>
+          {activeTab === "owner-charges" && (
+            <ViewLoader variant="list">
+              <LazyOwnerChargesView
+                ownerCharges={ownerCharges}
+                owners={owners}
+                currentUser={currentUser}
+                onAddOwnerCharge={handleAddOwnerCharge}
+                onDeleteOwnerCharge={handleDeleteOwnerCharge}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'penalties' && (
-            <ViewLoader variant="list"><LazyPenaltiesView
-              penalties={penalties}
-              tenants={scopedTenants}
-              payments={scopedPayments}
-              currentUser={currentUser}
-              onAddPenalty={handleAddPenalty}
-              onDeletePenalty={handleDeletePenalty}
-              onUpdatePenalty={handleUpdatePenalty}
-            /></ViewLoader>
+          {activeTab === "caisse" && (
+            <ViewLoader variant="list">
+              <LazyCashRegisterView
+                cashMovements={cashMovements}
+                cashClosings={cashClosings}
+                currentUser={currentUser}
+                onAddCashMovement={handleAddCashMovement}
+                onAddCashClosing={handleAddCashClosing}
+                agencyStats={agencyStats}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'owner-charges' && (
-            <ViewLoader variant="list"><LazyOwnerChargesView
-              ownerCharges={ownerCharges}
-              owners={owners}
-              currentUser={currentUser}
-              onAddOwnerCharge={handleAddOwnerCharge}
-              onDeleteOwnerCharge={handleDeleteOwnerCharge}
-            /></ViewLoader>
+          {activeTab === "pending-payments" && (
+            <ViewLoader variant="list">
+              <LazyPendingPaymentsView
+                payments={payments}
+                currentUser={currentUser}
+                onValidatePayment={handleValidatePendingPayment}
+                onRejectPayment={handleRejectPendingPayment}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'caisse' && (
-            <ViewLoader variant="list"><LazyCashRegisterView
-              cashMovements={cashMovements}
-              cashClosings={cashClosings}
-              currentUser={currentUser}
-              onAddCashMovement={handleAddCashMovement}
-              onAddCashClosing={handleAddCashClosing}
-              agencyStats={agencyStats}
-            /></ViewLoader>
+          {activeTab === "payment-methods" && (
+            <ViewLoader variant="list">
+              <LazyPaymentMethodsConfigView
+                paymentMethods={paymentMethods}
+                settings={agencySettings}
+                onUpdatePaymentMethod={handleUpdatePaymentMethod}
+                onAddPaymentMethod={handleAddPaymentMethod}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'pending-payments' && (
-            <ViewLoader variant="list"><LazyPendingPaymentsView
-              payments={payments}
-              currentUser={currentUser}
-              onValidatePayment={handleValidatePendingPayment}
-              onRejectPayment={handleRejectPendingPayment}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-            /></ViewLoader>
+          {activeTab === "payment-reports" && (
+            <ViewLoader variant="list">
+              <LazyPaymentMethodReportsView
+                payments={payments}
+                paymentMethods={paymentMethods}
+                owners={owners}
+                properties={properties}
+                tenants={tenants}
+                currentUser={currentUser}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'payment-methods' && (
-            <ViewLoader variant="list"><LazyPaymentMethodsConfigView
-              paymentMethods={paymentMethods}
-              settings={agencySettings}
-              onUpdatePaymentMethod={handleUpdatePaymentMethod}
-              onAddPaymentMethod={handleAddPaymentMethod}
-            /></ViewLoader>
+          {activeTab === "recovery" && (
+            <ViewLoader variant="list">
+              <LazyRecoveryTrackerView
+                properties={scopedProperties}
+                owners={owners}
+                tenants={scopedTenants}
+                payments={scopedPayments}
+                selectedPeriod={selectedPeriod}
+                settings={agencySettings}
+                onOpenQuickReminder={handleOpenQuickComms}
+                onOpenNewPayment={handleOpenNewPaymentForTenant}
+                onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+                onAddPayment={handleAddPayment}
+                currentUser={currentUser}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'payment-reports' && (
-            <ViewLoader variant="list"><LazyPaymentMethodReportsView
-              payments={payments}
-              paymentMethods={paymentMethods}
-              owners={owners}
-              properties={properties}
-              tenants={tenants}
-              currentUser={currentUser}
-            /></ViewLoader>
+          {activeTab === "reminders" && (
+            <ViewLoader variant="list">
+              <LazyAutomatedRemindersView
+                tenants={scopedTenants}
+                properties={scopedProperties}
+                payments={scopedPayments}
+                reminders={reminders}
+                onAddReminder={handleAddReminder}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'recovery' && (
-            <ViewLoader variant="list"><LazyRecoveryTrackerView
-              properties={scopedProperties}
-              owners={owners}
-              tenants={scopedTenants}
-              payments={scopedPayments}
-              selectedPeriod={selectedPeriod}
-              settings={agencySettings}
-              onOpenQuickReminder={handleOpenQuickComms}
-              onOpenNewPayment={handleOpenNewPaymentForTenant}
-              onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-              onAddPayment={handleAddPayment}
-              currentUser={currentUser}
-            /></ViewLoader>
+          {activeTab === "payments" && (
+            <ViewLoader variant="list">
+              <LazyPaymentsView
+                payments={scopedPayments}
+                tenants={scopedTenants}
+                properties={scopedProperties}
+                owners={owners}
+                currentUser={currentUser || undefined}
+                settings={agencySettings}
+                onAddPayment={handleAddPayment}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                isNewPaymentModalOpen={isNewPaymentModalOpen}
+                setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
+                initialTenantForPayment={initialTenantForPayment}
+                onValidatePendingPayment={handleValidatePendingPayment}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'reminders' && (
-            <ViewLoader variant="list"><LazyAutomatedRemindersView
-              tenants={scopedTenants}
-              properties={scopedProperties}
-              payments={scopedPayments}
-              reminders={reminders}
-              onAddReminder={handleAddReminder}
-            /></ViewLoader>
+          {activeTab === "buildings" && (
+            <ViewLoader variant="list">
+              <LazyBuildingsView
+                buildings={scopedBuildings}
+                units={scopedUnits}
+                owners={owners}
+                currentUser={currentUser}
+                onAddBuilding={handleAddBuilding}
+                onUpdateBuilding={handleUpdateBuilding}
+                onDeleteBuilding={handleDeleteBuilding}
+                onSelectBuilding={() => handleSafeTabChange("units")}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'payments' && (
-            <ViewLoader variant="list"><LazyPaymentsView
-              payments={scopedPayments}
-              tenants={scopedTenants}
-              properties={scopedProperties}
-              owners={owners}
-              currentUser={currentUser || undefined}
-              settings={agencySettings}
-              onAddPayment={handleAddPayment}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              isNewPaymentModalOpen={isNewPaymentModalOpen}
-              setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
-              initialTenantForPayment={initialTenantForPayment}
-              onValidatePendingPayment={handleValidatePendingPayment}
-            /></ViewLoader>
+          {activeTab === "units" && (
+            <ViewLoader variant="list">
+              <LazyUnitsView
+                units={scopedUnits}
+                buildings={scopedBuildings}
+                owners={owners}
+                tenants={scopedTenants}
+                currentUser={currentUser}
+                onAddUnit={handleAddUnit}
+                onUpdateUnit={handleUpdateUnit}
+                onDeleteUnit={handleDeleteUnit}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'buildings' && (
-            <ViewLoader variant="list"><LazyBuildingsView
-              buildings={scopedBuildings}
-              units={scopedUnits}
-              owners={owners}
-              currentUser={currentUser}
-              onAddBuilding={handleAddBuilding}
-              onUpdateBuilding={handleUpdateBuilding}
-              onDeleteBuilding={handleDeleteBuilding}
-              onSelectBuilding={() => handleSafeTabChange('units')}
-            /></ViewLoader>
+          {activeTab === "properties" && (
+            <ViewLoader variant="list">
+              <LazyPropertiesView
+                properties={scopedProperties}
+                owners={owners}
+                tenants={scopedTenants}
+                currentUser={currentUser}
+                onAddProperty={handleAddProperty}
+                onUpdateProperty={handleUpdateProperty}
+                onDeleteProperty={handleDeleteProperty}
+                isNewPropertyModalOpen={isNewPropertyModalOpen}
+                setIsNewPropertyModalOpen={setIsNewPropertyModalOpen}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'units' && (
-            <ViewLoader variant="list"><LazyUnitsView
-              units={scopedUnits}
-              buildings={scopedBuildings}
-              owners={owners}
-              tenants={scopedTenants}
-              currentUser={currentUser}
-              onAddUnit={handleAddUnit}
-              onUpdateUnit={handleUpdateUnit}
-              onDeleteUnit={handleDeleteUnit}
-            /></ViewLoader>
-          )}
-
-          {activeTab === 'properties' && (
-            <ViewLoader variant="list"><LazyPropertiesView
-              properties={scopedProperties}
-              owners={owners}
-              tenants={scopedTenants}
-              currentUser={currentUser}
-              onAddProperty={handleAddProperty}
-              onUpdateProperty={handleUpdateProperty}
-              onDeleteProperty={handleDeleteProperty}
-              isNewPropertyModalOpen={isNewPropertyModalOpen}
-              setIsNewPropertyModalOpen={setIsNewPropertyModalOpen}
-            /></ViewLoader>
-          )}
-
-          {activeTab === 'tenants' && (
+          {activeTab === "tenants" && (
             <div className="space-y-4">
-              {['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE'].includes(currentUser.role) && (
+              {["ADMIN", "SUPER_ADMIN", "GESTIONNAIRE"].includes(
+                currentUser.role,
+              ) && (
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setIsNewTenantWizardOpen(true)}
                     className="px-4 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-sm transition-all shadow-md cursor-pointer flex items-center gap-2"
                   >
-                    <span className="inline-flex items-center gap-2"><Sparkles className="w-4 h-4" />Assistant Nouveau Locataire (7 Etapes)</span>
+                    <span className="inline-flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Assistant Nouveau Locataire (7 Etapes)
+                    </span>
                   </button>
                 </div>
               )}
-              <ViewLoader variant="list"><LazyTenantsView
-                tenants={scopedTenants}
-                properties={scopedProperties}
-                units={scopedUnits}
-                payments={scopedPayments}
-                owners={owners}
-                selectedPeriod={selectedPeriod}
-                settings={agencySettings}
-                currentUser={currentUser}
-                onOpenQuickReminder={handleOpenQuickComms}
-                onOpenNewPayment={handleOpenNewPaymentForTenant}
-                onAddTenant={handleAddTenant}
-                onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
-                onAddPayment={handleAddPayment}
-                onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
-              /></ViewLoader>
+              <ViewLoader variant="list">
+                <LazyTenantsView
+                  tenants={scopedTenants}
+                  properties={scopedProperties}
+                  units={scopedUnits}
+                  payments={scopedPayments}
+                  owners={owners}
+                  selectedPeriod={selectedPeriod}
+                  settings={agencySettings}
+                  currentUser={currentUser}
+                  onOpenQuickReminder={handleOpenQuickComms}
+                  onOpenNewPayment={handleOpenNewPaymentForTenant}
+                  onAddTenant={handleAddTenant}
+                  onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
+                  onAddPayment={handleAddPayment}
+                  onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
+                />
+              </ViewLoader>
             </div>
           )}
 
-          {activeTab === 'owners' && (
-            <ViewLoader variant="list"><LazyOwnersView
-  owners={owners}
-  properties={properties}
-  buildings={buildings}
-  units={units}
-  payments={payments}
-  settings={agencySettings}
-  onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-  onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
-  onAddOwner={handleAddOwner}
-  onUpdateOwner={(owner) => {
-    setOwners((prev) => prev.map((o) => (o.id === owner.id ? owner : o)));
-    if (currentUser?.agencyId) {
-      saveOwnerToDb(owner, currentUser.agencyId).catch(console.warn);
-    }
-  }}
-  onDeleteOwner={async (ownerId) => {
-    if (!currentUser?.agencyId || !supabase) return;
-    const { error } = await supabase
-      .from('owners')
-      .delete()
-      .eq('id', ownerId)
-      .eq('agency_id', currentUser.agencyId);
-    if (error) {
-      alert(`Impossible de supprimer : ${error.message}`);
-      return;
-    }
-    setOwners((prev) => prev.filter((o) => o.id !== ownerId));
-  }}
-/></ViewLoader>
+          {activeTab === "owners" && (
+            <ViewLoader variant="list">
+              <LazyOwnersView
+                owners={owners}
+                properties={properties}
+                buildings={buildings}
+                units={units}
+                payments={payments}
+                settings={agencySettings}
+                onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+                onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
+                onAddOwner={handleAddOwner}
+                onUpdateOwner={(owner) => {
+                  setOwners((prev) =>
+                    prev.map((o) => (o.id === owner.id ? owner : o)),
+                  );
+                  if (currentUser?.agencyId) {
+                    saveOwnerToDb(owner, currentUser.agencyId).catch(
+                      console.warn,
+                    );
+                  }
+                }}
+                onDeleteOwner={async (ownerId) => {
+                  if (!currentUser?.agencyId || !supabase) return;
+                  const { error } = await supabase
+                    .from("owners")
+                    .delete()
+                    .eq("id", ownerId)
+                    .eq("agency_id", currentUser.agencyId);
+                  if (error) {
+                    alert(`Impossible de supprimer : ${error.message}`);
+                    return;
+                  }
+                  setOwners((prev) => prev.filter((o) => o.id !== ownerId));
+                }}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'contracts' && (
-            <ViewLoader variant="list"><LazyContractsView
-              contracts={scopedContracts}
-              tenants={tenants}
-              properties={scopedProperties}
-              owners={owners}
-              currentUser={currentUser}
-              settings={agencySettings}
-              onAddContract={handleAddContract}
-              onUpdateContract={handleUpdateContract}
-            /></ViewLoader>
+          {activeTab === "contracts" && (
+            <ViewLoader variant="list">
+              <LazyContractsView
+                contracts={scopedContracts}
+                tenants={tenants}
+                properties={scopedProperties}
+                owners={owners}
+                currentUser={currentUser}
+                settings={agencySettings}
+                onAddContract={handleAddContract}
+                onUpdateContract={handleUpdateContract}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'inspections' && (
-            <ViewLoader variant="list"><LazyInspectionsView
-              inspections={scopedInspections}
-              tenants={scopedTenants}
-              properties={scopedProperties}
-              settings={agencySettings}
-              onAddInspection={handleAddInspection}
-            /></ViewLoader>
+          {activeTab === "inspections" && (
+            <ViewLoader variant="list">
+              <LazyInspectionsView
+                inspections={scopedInspections}
+                tenants={scopedTenants}
+                properties={scopedProperties}
+                settings={agencySettings}
+                onAddInspection={handleAddInspection}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'maintenance' && (
-            <ViewLoader variant="list"><LazyMaintenanceView
-              tickets={scopedMaintenance}
-              properties={scopedProperties}
-              tenants={scopedTenants}
-              owners={owners}
-              currentUser={currentUser}
-              onAddTicket={handleAddTicket}
-              onUpdateTicket={handleUpdateTicket}
-              onAddCashMovement={handleAddCashMovement}
-              onTriggerAuditLog={handleTriggerAuditLog}
-              agencyStats={agencyStats}
-            /></ViewLoader>
+          {activeTab === "maintenance" && (
+            <ViewLoader variant="list">
+              <LazyMaintenanceView
+                tickets={scopedMaintenance}
+                properties={scopedProperties}
+                tenants={scopedTenants}
+                owners={owners}
+                currentUser={currentUser}
+                onAddTicket={handleAddTicket}
+                onUpdateTicket={handleUpdateTicket}
+                onAddCashMovement={handleAddCashMovement}
+                onTriggerAuditLog={handleTriggerAuditLog}
+                agencyStats={agencyStats}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'invoices' && (
-            <ViewLoader variant="list"><LazyInvoicesView
-              invoices={invoices}
-              properties={scopedProperties}
-              buildings={scopedBuildings}
-              units={scopedUnits}
-              owners={owners}
-              tenants={scopedTenants}
-              onAddInvoice={handleAddInvoice}
-              currentUser={currentUser}
-              settings={agencySettings}
-            /></ViewLoader>
+          {activeTab === "invoices" && (
+            <ViewLoader variant="list">
+              <LazyInvoicesView
+                invoices={invoices}
+                properties={scopedProperties}
+                buildings={scopedBuildings}
+                units={scopedUnits}
+                owners={owners}
+                tenants={scopedTenants}
+                onAddInvoice={handleAddInvoice}
+                currentUser={currentUser}
+                settings={agencySettings}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'finance' && (
-            <ViewLoader variant="default"><LazyFinanceView
-              disbursements={scopedDisbursements}
-              payments={scopedPayments}
-              owners={currentUser?.role === 'PROPRIETAIRE'
-                ? owners.filter((o) => o.id === currentUser.proprietaireId)
-                : owners}
-              properties={scopedProperties}
-              buildings={scopedBuildings}
-              units={scopedUnits}
-              tenants={scopedTenants}
-              invoices={invoices}
-              maintenance={scopedMaintenance}
-              ownerDeductions={ownerDeductions}
-              onAddDisbursement={handleAddDisbursement}
-              onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
-              currentUser={currentUser}
-            /></ViewLoader>
+          {activeTab === "finance" && (
+            <ViewLoader variant="default">
+              <LazyFinanceView
+                disbursements={scopedDisbursements}
+                payments={scopedPayments}
+                owners={
+                  currentUser?.role === "PROPRIETAIRE"
+                    ? owners.filter((o) => o.id === currentUser.proprietaireId)
+                    : owners
+                }
+                properties={scopedProperties}
+                buildings={scopedBuildings}
+                units={scopedUnits}
+                tenants={scopedTenants}
+                invoices={invoices}
+                maintenance={scopedMaintenance}
+                ownerDeductions={ownerDeductions}
+                onAddDisbursement={handleAddDisbursement}
+                onOpenBulletin={(owner) => handleOpenBulletinVersement(owner)}
+                currentUser={currentUser}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'reports' && (
-            <ViewLoader variant="default"><LazyReportsView
-              properties={scopedProperties}
-              tenants={scopedTenants}
-              payments={scopedPayments}
-              owners={owners}
-              disbursements={scopedDisbursements}
-              selectedPeriod={selectedPeriod}
-            /></ViewLoader>
+          {activeTab === "reports" && (
+            <ViewLoader variant="default">
+              <LazyReportsView
+                properties={scopedProperties}
+                tenants={scopedTenants}
+                payments={scopedPayments}
+                owners={owners}
+                disbursements={scopedDisbursements}
+                selectedPeriod={selectedPeriod}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'documents' && (
-            <ViewLoader variant="list"><LazyDocumentsView
-              payments={scopedPayments}
-              owners={owners}
-              tenants={scopedTenants}
-              contracts={scopedContracts}
-              properties={scopedProperties}
-              currentUser={currentUser}
-              settings={agencySettings}
-              onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
-              onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
-            /></ViewLoader>
+          {activeTab === "documents" && (
+            <ViewLoader variant="list">
+              <LazyDocumentsView
+                payments={scopedPayments}
+                owners={owners}
+                tenants={scopedTenants}
+                contracts={scopedContracts}
+                properties={scopedProperties}
+                currentUser={currentUser}
+                settings={agencySettings}
+                onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
+                onOpenOwnerSlip={(owner) => setOwnerSlipModalOwner(owner)}
+              />
+            </ViewLoader>
           )}
 
-          {activeTab === 'settings' && currentUser?.agencyId && (
-  <ViewLoader variant="form"><LazyAgencySettingsView agencyId={currentUser.agencyId} /></ViewLoader>
-)}
+          {activeTab === "settings" && currentUser?.agencyId && (
+            <ViewLoader variant="form">
+              <LazyAgencySettingsView agencyId={currentUser.agencyId} />
+            </ViewLoader>
+          )}
         </main>
       </div>
 
       {receiptModalPayment && (
-        <ViewLoader variant="default"><LazyPaymentReceiptModal
-          payment={receiptModalPayment}
-          settings={agencySettings}
-          units={units}
-          buildings={buildings}
-          currentUser={currentUser}
-          onClose={() => setReceiptModalPayment(null)}
-        /></ViewLoader>
+        <ViewLoader variant="default">
+          <LazyPaymentReceiptModal
+            payment={receiptModalPayment}
+            settings={agencySettings}
+            units={units}
+            buildings={buildings}
+            currentUser={currentUser}
+            onClose={() => setReceiptModalPayment(null)}
+          />
+        </ViewLoader>
       )}
 
       {ownerSlipModalOwner && (
-        <ViewLoader variant="default"><LazyPaymentBulletinModal
-          owner={ownerSlipModalOwner}
-          properties={properties}
-          tenants={tenants}
-          payments={payments}
-          tickets={maintenance}
-          selectedPeriod={selectedPeriod}
-          settings={agencySettings}
-          onClose={() => setOwnerSlipModalOwner(null)}
-        /></ViewLoader>
+        <ViewLoader variant="default">
+          <LazyPaymentBulletinModal
+            owner={ownerSlipModalOwner}
+            properties={properties}
+            tenants={tenants}
+            payments={payments}
+            tickets={maintenance}
+            selectedPeriod={selectedPeriod}
+            settings={agencySettings}
+            onClose={() => setOwnerSlipModalOwner(null)}
+          />
+        </ViewLoader>
       )}
 
       {ownerBulletinModalOwner && (
-        <ViewLoader variant="default"><LazyOwnerBulletinModal
-          currentUser={currentUser}
-          settings={agencySettings}
-          owner={ownerBulletinModalOwner}
-          properties={properties}
-          buildings={buildings}
-          units={units}
-          tenants={tenants}
-          payments={payments}
-          invoices={invoices}
-          maintenance={maintenance}
-          deductions={ownerDeductions}
-          selectedPeriod={selectedPeriod}
-          onClose={() => setOwnerBulletinModalOwner(null)}
-          onSaveDeduction={handleAddOwnerDeduction}
-          onDeleteDeduction={handleDeleteOwnerDeduction}
-          onSaveBulletin={handleSaveBulletinVersement}
-        /></ViewLoader>
+        <ViewLoader variant="default">
+          <LazyOwnerBulletinModal
+            currentUser={currentUser}
+            settings={agencySettings}
+            owner={ownerBulletinModalOwner}
+            properties={properties}
+            buildings={buildings}
+            units={units}
+            tenants={tenants}
+            payments={payments}
+            invoices={invoices}
+            maintenance={maintenance}
+            deductions={ownerDeductions}
+            selectedPeriod={selectedPeriod}
+            onClose={() => setOwnerBulletinModalOwner(null)}
+            onSaveDeduction={handleAddOwnerDeduction}
+            onDeleteDeduction={handleDeleteOwnerDeduction}
+            onSaveBulletin={handleSaveBulletinVersement}
+          />
+        </ViewLoader>
       )}
 
-      {cashVoucherModalOwner && (() => {
-        const ownerDisb = disbursements.find(
-          (d) => d.proprietaireId === cashVoucherModalOwner.id && d.periode === selectedPeriod
-        );
-        const ownerPayments = payments.filter(
-          (p) => p.proprietaireId === cashVoucherModalOwner.id && p.statut === 'Payé'
-        );
-        const loyersBruts = ownerDisb?.loyersBruts
-          ?? ownerPayments.reduce((sum, p) => sum + (p.loyerBase || 0), 0);
-        const commission = ownerDisb?.commissionAgence
-          ?? Math.round(loyersBruts * ((cashVoucherModalOwner.tauxCommission || 10) / 100));
-        const montantNet = ownerDisb?.montantNetPaye ?? Math.max(0, loyersBruts - commission);
-        return (
-          <ViewLoader variant="default"><LazyCashVoucherModal
-            owner={cashVoucherModalOwner}
-            montantNet={montantNet}
-            loyersBruts={loyersBruts}
-            commission={commission}
-            periode={selectedPeriod}
-            onClose={() => setCashVoucherModalOwner(null)}
-          /></ViewLoader>
-        );
-      })()}
+      {cashVoucherModalOwner &&
+        (() => {
+          const ownerDisb = disbursements.find(
+            (d) =>
+              d.proprietaireId === cashVoucherModalOwner.id &&
+              d.periode === selectedPeriod,
+          );
+          const ownerPayments = payments.filter(
+            (p) =>
+              p.proprietaireId === cashVoucherModalOwner.id &&
+              p.statut === "Payé",
+          );
+          const loyersBruts =
+            ownerDisb?.loyersBruts ??
+            ownerPayments.reduce((sum, p) => sum + (p.loyerBase || 0), 0);
+          const commission =
+            ownerDisb?.commissionAgence ??
+            Math.round(
+              loyersBruts *
+                ((cashVoucherModalOwner.tauxCommission || 10) / 100),
+            );
+          const montantNet =
+            ownerDisb?.montantNetPaye ?? Math.max(0, loyersBruts - commission);
+          return (
+            <ViewLoader variant="default">
+              <LazyCashVoucherModal
+                owner={cashVoucherModalOwner}
+                montantNet={montantNet}
+                loyersBruts={loyersBruts}
+                commission={commission}
+                periode={selectedPeriod}
+                onClose={() => setCashVoucherModalOwner(null)}
+              />
+            </ViewLoader>
+          );
+        })()}
 
       {isNewTenantWizardOpen && (
-        <ViewLoader variant="form"><LazyNewTenantWizardModal
-          properties={properties}
-          units={units}
-          settings={agencySettings}
-          onComplete={handleCompleteNewTenantWizard}
-          onClose={() => setIsNewTenantWizardOpen(false)}
-        /></ViewLoader>
+        <ViewLoader variant="form">
+          <LazyNewTenantWizardModal
+            properties={properties}
+            units={units}
+            settings={agencySettings}
+            onComplete={handleCompleteNewTenantWizard}
+            onClose={() => setIsNewTenantWizardOpen(false)}
+          />
+        </ViewLoader>
       )}
 
       {tenantExitTarget && (
-        <ViewLoader variant="default"><LazyTenantExitModal
-          tenant={tenantExitTarget}
-          property={properties.find((p) => p.id === tenantExitTarget.bienId)}
-          onConfirmExit={handleCompleteTenantExit}
-          onClose={() => setTenantExitTarget(null)}
-        /></ViewLoader>
+        <ViewLoader variant="default">
+          <LazyTenantExitModal
+            tenant={tenantExitTarget}
+            property={properties.find((p) => p.id === tenantExitTarget.bienId)}
+            onConfirmExit={handleCompleteTenantExit}
+            onClose={() => setTenantExitTarget(null)}
+          />
+        </ViewLoader>
       )}
 
-      <ViewLoader variant="form"><LazyGlobalSearchModal
-        isOpen={isGlobalSearchOpen}
-        onClose={() => setIsGlobalSearchOpen(false)}
-        properties={properties}
-        owners={owners}
-        tenants={tenants}
-        contracts={contracts}
-        payments={payments}
-        invoices={invoices}
-        maintenance={maintenance}
-        onNavigate={(targetTab) => handleSafeTabChange(targetTab)}
-      /></ViewLoader>
+      <ViewLoader variant="form">
+        <LazyGlobalSearchModal
+          isOpen={isGlobalSearchOpen}
+          onClose={() => setIsGlobalSearchOpen(false)}
+          properties={properties}
+          owners={owners}
+          tenants={tenants}
+          contracts={contracts}
+          payments={payments}
+          invoices={invoices}
+          maintenance={maintenance}
+          onNavigate={(targetTab) => handleSafeTabChange(targetTab)}
+        />
+      </ViewLoader>
 
-      <ViewLoader variant="form"><LazyUserProfileModal
-        currentUser={currentUser}
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onSignOut={handleSignOut}
-        onUpdatePassword={(newPass) => {
-          setAuditLogs((prev) => [
-            {
-              id: crypto.randomUUID(),
-              action: 'MODIFICATION_MOT_DE_PASSE',
-              entite: 'USER',
-              entiteId: currentUser.id,
-              utilisateur: `${currentUser.prenom} ${currentUser.nom}`,
-              details: `Mise à jour sécurisée du mot de passe via Supabase Auth`,
-              createdAt: new Date().toISOString(),
-            },
-            ...prev,
-          ]);
-        }}
-      /></ViewLoader>
+      <ViewLoader variant="form">
+        <LazyUserProfileModal
+          currentUser={currentUser}
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onSignOut={handleSignOut}
+          onUpdatePassword={(newPass) => {
+            setAuditLogs((prev) => [
+              {
+                id: crypto.randomUUID(),
+                action: "MODIFICATION_MOT_DE_PASSE",
+                entite: "USER",
+                entiteId: currentUser.id,
+                utilisateur: `${currentUser.prenom} ${currentUser.nom}`,
+                details: `Mise à jour sécurisée du mot de passe via Supabase Auth`,
+                createdAt: new Date().toISOString(),
+              },
+              ...prev,
+            ]);
+          }}
+        />
+      </ViewLoader>
 
       {mobileMoneyModalConfig && (
-        <ViewLoader variant="form"><LazyMobileMoneyPaymentModal
-          isOpen={mobileMoneyModalConfig.isOpen}
-          onClose={() => setMobileMoneyModalConfig(null)}
-          amount={mobileMoneyModalConfig.amount || 250000}
-          tenantName={mobileMoneyModalConfig.tenantName || 'Client FITAL-IMMO'}
-          tenantPhone={mobileMoneyModalConfig.tenantPhone || '+221 77 845 20 10'}
-          propertyNom={mobileMoneyModalConfig.propertyNom || 'Logement Dakar'}
-          period={mobileMoneyModalConfig.period || selectedPeriod}
-          reference={mobileMoneyModalConfig.reference || createDocumentNumber(agencySettings?.prefixPaiement, 'PAY-')}
-          onConfirmPayment={handleConfirmMobileMoneyPayment}
-          waveNumero={settings.waveNumero}
-          orangeMoneyCode={settings.orangeMoneyCode}
-          whatsappBusiness={settings.whatsappBusiness}
-          settings={agencySettings}
-          currentUser={currentUser}
-          tenantId={mobileMoneyModalConfig.tenantId}
-          payments={payments}
-        /></ViewLoader>
+        <ViewLoader variant="form">
+          <LazyMobileMoneyPaymentModal
+            isOpen={mobileMoneyModalConfig.isOpen}
+            onClose={() => setMobileMoneyModalConfig(null)}
+            amount={mobileMoneyModalConfig.amount || 250000}
+            tenantName={
+              mobileMoneyModalConfig.tenantName || "Client FITAL-IMMO"
+            }
+            tenantPhone={
+              mobileMoneyModalConfig.tenantPhone || "+221 77 845 20 10"
+            }
+            propertyNom={mobileMoneyModalConfig.propertyNom || "Logement Dakar"}
+            period={mobileMoneyModalConfig.period || selectedPeriod}
+            reference={
+              mobileMoneyModalConfig.reference ||
+              createDocumentNumber(agencySettings?.prefixPaiement, "PAY-")
+            }
+            onConfirmPayment={handleConfirmMobileMoneyPayment}
+            waveNumero={settings.waveNumero}
+            orangeMoneyCode={settings.orangeMoneyCode}
+            whatsappBusiness={settings.whatsappBusiness}
+            settings={agencySettings}
+            currentUser={currentUser}
+            tenantId={mobileMoneyModalConfig.tenantId}
+            payments={payments}
+          />
+        </ViewLoader>
       )}
 
       {quickCommsModalConfig && (
-        <ViewLoader variant="form"><LazyQuickCommsModal
-          isOpen={quickCommsModalConfig.isOpen}
-          onClose={() => setQuickCommsModalConfig(null)}
-          tenants={tenants}
-          owners={owners}
-          properties={properties}
-          recipientName={quickCommsModalConfig.recipientName}
-          recipientPhone={quickCommsModalConfig.recipientPhone}
-          recipientRole={quickCommsModalConfig.recipientRole}
-          propertyNom={quickCommsModalConfig.propertyNom}
-          dueAmount={quickCommsModalConfig.dueAmount}
-          daysLate={quickCommsModalConfig.daysLate}
-        /></ViewLoader>
+        <ViewLoader variant="form">
+          <LazyQuickCommsModal
+            isOpen={quickCommsModalConfig.isOpen}
+            onClose={() => setQuickCommsModalConfig(null)}
+            tenants={tenants}
+            owners={owners}
+            properties={properties}
+            recipientName={quickCommsModalConfig.recipientName}
+            recipientPhone={quickCommsModalConfig.recipientPhone}
+            recipientRole={quickCommsModalConfig.recipientRole}
+            propertyNom={quickCommsModalConfig.propertyNom}
+            dueAmount={quickCommsModalConfig.dueAmount}
+            daysLate={quickCommsModalConfig.daysLate}
+          />
+        </ViewLoader>
       )}
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0F1B2D]/95 backdrop-blur-xl border-t border-[#C9A96E]/20 px-2 py-1.5 shadow-2xl flex items-center justify-around">
         <button
-          onClick={() => handleSafeTabChange('dashboard')}
+          onClick={() => handleSafeTabChange("dashboard")}
           className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-            activeTab === 'dashboard' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
+            activeTab === "dashboard"
+              ? "text-[#C9A96E] font-bold"
+              : "text-[#6B7C94] hover:text-[#A8B4C4]"
           }`}
         >
           <LayoutDashboard className="w-5 h-5 mb-0.5" />
           <span className="text-[10px]">Accueil</span>
         </button>
 
-        {currentUser.role !== 'LOCATAIRE' && (
+        {currentUser.role !== "LOCATAIRE" && (
           <button
-            onClick={() => handleSafeTabChange('buildings')}
+            onClick={() => handleSafeTabChange("buildings")}
             className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-              activeTab === 'buildings' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
+              activeTab === "buildings"
+                ? "text-[#C9A96E] font-bold"
+                : "text-[#6B7C94] hover:text-[#A8B4C4]"
             }`}
           >
             <Building2 className="w-5 h-5 mb-0.5" />
@@ -2185,38 +2927,49 @@ export default function App() {
           </button>
         )}
 
-        {currentUser.role !== 'LOCATAIRE' && currentUser.role !== 'PROPRIETAIRE' && (
-          <button
-            onClick={() => handleSafeTabChange('tenants')}
-            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-              activeTab === 'tenants' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
-            }`}
-          >
-            <Users className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Locataires</span>
-          </button>
-        )}
+        {currentUser.role !== "LOCATAIRE" &&
+          currentUser.role !== "PROPRIETAIRE" && (
+            <button
+              onClick={() => handleSafeTabChange("tenants")}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
+                activeTab === "tenants"
+                  ? "text-[#C9A96E] font-bold"
+                  : "text-[#6B7C94] hover:text-[#A8B4C4]"
+              }`}
+            >
+              <Users className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px]">Locataires</span>
+            </button>
+          )}
 
         <button
-          onClick={() => handleSafeTabChange(currentUser.role === 'CAISSIER' ? 'caisse' : 'payments')}
+          onClick={() =>
+            handleSafeTabChange(
+              currentUser.role === "CAISSIER" ? "caisse" : "payments",
+            )
+          }
           className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-            activeTab === 'payments' || activeTab === 'caisse' ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
+            activeTab === "payments" || activeTab === "caisse"
+              ? "text-[#C9A96E] font-bold"
+              : "text-[#6B7C94] hover:text-[#A8B4C4]"
           }`}
         >
-          {currentUser.role === 'CAISSIER' ? (
+          {currentUser.role === "CAISSIER" ? (
             <Coins className="w-5 h-5 mb-0.5" />
           ) : (
             <CreditCard className="w-5 h-5 mb-0.5" />
           )}
           <span className="text-[10px]">
-            {currentUser.role === 'CAISSIER' ? 'Caisse' : 'Loyers'}
+            {currentUser.role === "CAISSIER" ? "Caisse" : "Loyers"}
           </span>
         </button>
 
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
           className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all min-w-[56px] min-h-[44px] ${
-            isMobileSidebarOpen ? 'text-[#C9A96E] font-bold' : 'text-[#6B7C94] hover:text-[#A8B4C4]'
+            isMobileSidebarOpen
+              ? "text-[#C9A96E] font-bold"
+              : "text-[#6B7C94] hover:text-[#A8B4C4]"
           }`}
         >
           <MenuIcon className="w-5 h-5 mb-0.5" />

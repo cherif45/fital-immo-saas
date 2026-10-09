@@ -1,6 +1,7 @@
-import type { Payment } from '../../types';
+import type { Payment } from "../../types";
 
-const normalizePeriod = (period: string) => period.trim().toLowerCase();
+const normalizePeriod = (period: string) =>
+  (period || "").trim().toLowerCase().replace(/\s+/g, " ");
 
 export function findBlockingPayment(
   payments: readonly Payment[],
@@ -10,18 +11,23 @@ export function findBlockingPayment(
   const normalizedPeriod = normalizePeriod(period);
 
   return payments.find((payment) => {
+    // 🆕 Comparer sur periodeNormalisee si disponible, sinon fallback sur periode
+    const paymentPeriod = payment.periodeNormalisee
+      ? normalizePeriod(payment.periodeNormalisee)
+      : normalizePeriod(payment.periode);
+
     if (
       payment.locataireId !== tenantId ||
-      normalizePeriod(payment.periode) !== normalizedPeriod ||
-      payment.verificationStatut === 'rejete'
+      paymentPeriod !== normalizedPeriod ||
+      payment.verificationStatut === "rejete"
     ) {
       return false;
     }
 
     return (
-      payment.verificationStatut === 'en_attente' ||
-      payment.statut === 'En attente' ||
-      payment.statut === 'Payé'
+      payment.verificationStatut === "en_attente" ||
+      payment.statut === "En attente" ||
+      payment.statut === "Payé"
     );
   });
 }

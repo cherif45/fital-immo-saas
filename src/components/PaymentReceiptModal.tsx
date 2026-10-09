@@ -11,7 +11,12 @@ interface PaymentReceiptModalProps {
   settings?: AgencySettings;
   units?: Unit[];
   buildings?: Building[];
-  currentUser?: { nom: string; prenom: string; role?: string; initiales?: string } | null;
+  currentUser?: {
+    nom: string;
+    prenom: string;
+    role?: string;
+    initiales?: string;
+  } | null;
   onClose: () => void;
 }
 
@@ -182,7 +187,12 @@ interface QuittanceCopyProps {
   datePaiement: string;
   observation: string;
   referenceCaissier: string;
-  currentUser?: { nom: string; prenom: string; role?: string; initiales?: string } | null;
+  currentUser?: {
+    nom: string;
+    prenom: string;
+    role?: string;
+    initiales?: string;
+  } | null;
 }
 
 const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
@@ -230,7 +240,8 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     {/* Corps */}
     <div className="text-[9.5px] text-neutral-900 leading-snug space-y-1 px-4">
       <div>
-        Reçu de Mr (mme) : <strong className="underline">{payment.locataireNom}</strong>
+        Reçu de Mr (mme) :{" "}
+        <strong className="underline">{payment.locataireNom}</strong>
       </div>
       <div>
         {isRecu ? "la somme de : " : "La somme de : "}
@@ -241,11 +252,13 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
         <strong>{nomUnite}</strong>
       </div>
       <div>
-        Lieux qu'il occupe dans l'immeuble situé : <strong>{adresseImmeuble}</strong>
+        Lieux qu'il occupe dans l'immeuble situé :{" "}
+        <strong>{adresseImmeuble}</strong>
       </div>
       {!isRecu ? (
         <div>
-          Période : du <strong>{dateDebut}</strong> au <strong>{dateFin}</strong>
+          Période : du <strong>{dateDebut}</strong> au{" "}
+          <strong>{dateFin}</strong>
         </div>
       ) : (
         <div>
@@ -275,13 +288,18 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
       </div>
       <div className="text-right text-[8.5px] pl-3 flex-shrink-0">
         <div className="font-bold text-neutral-900 mb-0.5">Réf Caissier</div>
-        <div className="font-mono text-xs font-bold text-neutral-900">{referenceCaissier}</div>
+        <div className="font-mono text-xs font-bold text-neutral-900">
+          {referenceCaissier}
+        </div>
       </div>
     </div>
 
     {/* NOTA */}
     <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[7px] text-neutral-700 leading-tight px-4">
-      <span className="font-bold">NOTA :</span> 1. Le locataire ne peut déménager sans préavis écrit. 2. Un reçu écrit doit être délivré dans les délais prescrits. 3. Réparations locatives à la charge du locataire sauf force majeure.
+      <span className="font-bold">NOTA :</span> 1. Le locataire ne peut
+      déménager sans préavis écrit. 2. Un reçu écrit doit être délivré dans les
+      délais prescrits. 3. Réparations locatives à la charge du locataire sauf
+      force majeure.
     </div>
 
     {/* Pied de page */}
@@ -333,25 +351,29 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   const [numeroQuittance, setNumeroQuittance] = useState<number>(
     (payment as any).numero_quittance ||
       parseInt(payment.quittanceNumero?.replace(/\D/g, "") || "0") ||
-    Number(createDocumentNumber(settings?.prefixQuittance, "QUI-").replace(/\D/g, "").slice(-12)),
+      Number(
+        createDocumentNumber(settings?.prefixQuittance, "QUI-")
+          .replace(/\D/g, "")
+          .slice(-12),
+      ),
   );
 
   // Bug 3 & Bug 21 : Calcul des initiales Prénom + Nom (ex: "TA" pour Test ADMIN, "OF" pour Ousmane FALL)
   const computedInitiales = useMemo(() => {
-    if (currentUser?.initiales?.trim()) return currentUser.initiales.trim().toUpperCase();
+    if (currentUser?.initiales?.trim())
+      return currentUser.initiales.trim().toUpperCase();
     if (currentUser?.prenom && currentUser?.nom) {
-      const p = currentUser.prenom.trim()[0] || '';
-      const n = currentUser.nom.trim()[0] || '';
+      const p = currentUser.prenom.trim()[0] || "";
+      const n = currentUser.nom.trim()[0] || "";
       if (p || n) return `${p}${n}`.toUpperCase();
     }
     return "AG";
   }, [currentUser]);
 
   const [referenceCaissier, setReferenceCaissier] = useState<string>(
-    String(
-      (payment as any).reference_caissier ||
-      computedInitiales,
-    ).toUpperCase().slice(0, 4),
+    String((payment as any).reference_caissier || computedInitiales)
+      .toUpperCase()
+      .slice(0, 4),
   );
 
   const unite = useMemo(
@@ -426,19 +448,11 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">
               Type
             </label>
-            <select
-              value={receiptType}
-              onChange={(e) => {
-                const newType = e.target.value as ReceiptType;
-                setReceiptType(newType);
-                setObservation(getDefaultObservation(newType, payment.periode));
-              }}
-              className="px-3 py-1.5 rounded-lg bg-[#1E2E45] border border-[#C9A96E]/30 text-white"
-            >
-              <option value="QUITTANCE">Quittance de Loyer</option>
-              <option value="RECU_ACOMPTE">Reçu de Loyer (Acompte)</option>
-              <option value="QUITTANCE_SOLDE">Quittance de Solde</option>
-            </select>
+            <div className="px-3 py-1.5 rounded-lg bg-[#0F1B2D] border border-[#C9A96E]/30 text-[#C9A96E] font-bold text-xs">
+              {receiptType === "RECU_ACOMPTE" && "Reçu de Loyer (Acompte)"}
+              {receiptType === "QUITTANCE_SOLDE" && "Quittance de Solde"}
+              {receiptType === "QUITTANCE" && "Quittance de Loyer"}
+            </div>
           </div>
           <div>
             <label className="block text-[10px] text-[#A8B4C4] uppercase mb-1">

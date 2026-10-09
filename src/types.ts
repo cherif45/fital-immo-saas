@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // TYPES GLOBAUX — FITAL-IMMO
 // ============================================================
 
@@ -409,6 +409,9 @@ export interface Payment extends AuditSignature {
   typeRecu?: ReceiptType;
   referencePaiementInitial?: string;
   montantInitialDu?: number;
+  parentPaymentId?: string;
+  detailTotalDu?: Record<string, any>;
+  periodeNormalisee?: string;
 }
 
 // ============================================================

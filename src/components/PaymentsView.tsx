@@ -28,6 +28,7 @@ import {
   PaymentStatus,
   UserAccount,
   AgencySettings,
+  ReceiptType,
 } from "../types";
 import {
   formatCurrency,
@@ -188,6 +189,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   // ⬇️ NOUVEAU : Gestion acompte/solde
   const [referencePaiementInitial, setReferencePaiementInitial] =
     useState<string>("");
+  // 🆕 Type de reçu forcé manuellement (null = auto)
+  const [forcedTypeRecu, setForcedTypeRecu] = useState<ReceiptType | null>(
+    null,
+  );
 
   // 🔒 MATRICE DE PERMISSIONS
   const role = currentUser?.role || "ADMIN";
@@ -205,20 +210,95 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     role === "GESTIONNAIRE" ||
     role === "LOCATAIRE";
   const canSeeOthers = !isLocataire;
+  // ============================================================
+  // 🆕 DÉTECTION AUTOMATIQUE DU CONTEXTE DE PAIEMENT
+  // ============================================================
+  const paymentContext = useMemo(() => {
+    if (!selectedTenantId || !periode) {
+      return null;
+    }
 
+    // 1. Paiements existants pour ce locataire + période (hors rejetés)
+    const existing = allKnownPayments.filter(
+      (p) =>
+        p.locataireId === selectedTenantId &&
+        (p.periode || "").trim().toLowerCase() ===
+          (periode || "").trim().toLowerCase() &&
+        p.verificationStatut !== "rejete" &&
+        (p.statut === "Payé" ||
+          p.statut === "Partiel" ||
+          p.statut === "En attente"),
+    );
+
+    // 2. Cumul payé (exclure "En attente" du cumul)
+    const alreadyPaid = existing
+      .filter((p) => p.verificationStatut !== "en_attente")
+      .reduce((sum, p) => sum + Number(p.montantPaye || 0), 0);
+
+    // 3. Total dû (courant + charges + tva + tom + pénalités)
+    const totalDue =
+      (tenants.find((t) => t.id === selectedTenantId)?.loyerMensuel || 0) +
+      charges +
+      tva +
+      tom +
+      penalites;
+
+    // 4. Reste à payer
+    const remaining = Math.max(0, totalDue - alreadyPaid);
+
+    // 5. Parent = le plus ancien paiement
+    const parent =
+      existing.length > 0
+        ? existing.sort((a, b) =>
+            (a.datePaiement || "").localeCompare(b.datePaiement || ""),
+          )[0]
+        : null;
+
+    return {
+      hasExisting: existing.length > 0,
+      existingCount: existing.length,
+      totalDue,
+      alreadyPaid,
+      remaining,
+      parentId: parent?.id || null,
+      parentRef: parent?.ref || null,
+      lastPaymentDate: parent?.datePaiement || null,
+    };
+  }, [
+    selectedTenantId,
+    periode,
+    allKnownPayments,
+    charges,
+    tva,
+    tom,
+    penalites,
+    tenants,
+  ]);
+  // 🆕 Auto-remplir le montant avec le RESTE À PAYER si un acompte existe
+  React.useEffect(() => {
+    if (!paymentContext || !paymentContext.hasExisting) return;
+    if (settlingPayment) return;
+    if (paymentContext.remaining > 0) {
+      setMontantPaye(paymentContext.remaining);
+    }
+  }, [paymentContext, settlingPayment]);
+
+  // Auto-remplir le formulaire quand on change de locataire
   React.useEffect(() => {
     if (selectedTenantId) {
       const t = tenants.find((item) => item.id === selectedTenantId);
+
       if (t) {
         const p = properties.find((prop) => prop.id === t.bienId);
         const base = t.loyerMensuel || p?.loyerBase || 0;
         setCharges(p?.charges || 0);
         setPenalites(t.joursRetard > 10 ? Math.round(base * 0.1) : 0);
-        setMontantPaye(
+        const fullAmount =
           base +
-            (p?.charges || 0) +
-            (t.joursRetard > 10 ? Math.round(base * 0.1) : 0),
-        );
+          (p?.charges || 0) +
+          (t.joursRetard > 10 ? Math.round(base * 0.1) : 0);
+        setMontantPaye(fullAmount);
+        // Le paymentContext calculera le "reste à payer" via un useEffect dédié
       }
     }
   }, [selectedTenantId]);
@@ -404,12 +484,14 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       };
     } else {
       const isFull = Number(montantPaye) >= totalCalculated;
-      const typeRecu =
+      const autoTypeRecu =
         referencePaiementInitial && isFull
           ? "QUITTANCE_SOLDE"
           : !isFull
             ? "RECU_ACOMPTE"
             : "QUITTANCE";
+      // 🆕 Utiliser forcedTypeRecu si l'utilisateur l'a changé manuellement
+      const typeRecu = forcedTypeRecu || autoTypeRecu;
 
       paymentToSave = {
         id: crypto.randomUUID(),
@@ -447,6 +529,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         typeRecu,
         referencePaiementInitial: referencePaiementInitial || undefined,
         montantInitialDu: initialPayment?.montantTotal || totalCalculated,
+        parentPaymentId:
+          settlingPayment?.id || paymentContext?.parentId || undefined,
       };
     }
 
@@ -994,6 +1078,83 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#C9A96E]"
                   />
                 </div>
+              </div>
+
+              {/* 🆕 PANNEAU SITUATION ACTUELLE */}
+              {paymentContext && paymentContext.hasExisting && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+                  <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>📊 Situation actuelle pour {periode}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                      <div className="text-[#6B7C94] uppercase text-[9px]">
+                        Total dû
+                      </div>
+                      <div className="font-mono font-bold text-white">
+                        {formatNumber(paymentContext.totalDue)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[#6B7C94] uppercase text-[9px]">
+                        Déjà payé ({paymentContext.existingCount}x)
+                      </div>
+                      <div className="font-mono font-bold text-emerald-300">
+                        {formatNumber(paymentContext.alreadyPaid)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[#6B7C94] uppercase text-[9px]">
+                        Reste à payer
+                      </div>
+                      <div className="font-mono font-bold text-rose-300">
+                        {formatNumber(paymentContext.remaining)}
+                      </div>
+                    </div>
+                  </div>
+                  {paymentContext.lastPaymentDate && (
+                    <div className="text-[10px] text-amber-200/70">
+                      Dernier versement : {paymentContext.lastPaymentDate}
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* 🆕 TYPE DE REÇU */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Type de Reçu
+                </label>
+                <select
+                  value={forcedTypeRecu || "QUITTANCE"}
+                  onChange={(e) => {
+                    const newType = e.target.value as ReceiptType;
+                    const selectedTenant = tenants.find(
+                      (item) => item.id === selectedTenantId,
+                    );
+                    const autoType =
+                      referencePaiementInitial &&
+                      montantPaye >= (selectedTenant?.loyerMensuel || 0)
+                        ? "QUITTANCE_SOLDE"
+                        : montantPaye < (selectedTenant?.loyerMensuel || 0)
+                          ? "RECU_ACOMPTE"
+                          : "QUITTANCE";
+                    if (newType !== autoType) {
+                      if (
+                        !window.confirm(
+                          `⚠️ TYPE DE REÇU MODIFIÉ\n\nAuto : ${autoType}\nChoisi : ${newType}\n\nConfirmer ?`,
+                        )
+                      )
+                        return;
+                    }
+                    setForcedTypeRecu(newType);
+                  }}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
+                >
+                  <option value="QUITTANCE">Quittance</option>
+                  <option value="RECU_ACOMPTE">Reçu d'acompte</option>
+                  <option value="QUITTANCE_SOLDE">Quittance de solde</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/15">
