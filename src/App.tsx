@@ -224,7 +224,9 @@ export default function App() {
   const [users, setUsers] = useState<UserAccount[]>(() =>
     loadLocalCollection("users", initialUsers),
   );
+  const isAgencyLoginPath = /^\/login\//i.test(window.location.pathname);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    if (isAgencyLoginPath) return null;
     const saved = loadLocalCollection<UserAccount | null>("current_user", null);
     if (saved) return saved;
     try {
@@ -349,6 +351,10 @@ export default function App() {
   useEffect(() => {
     getAuthSession().then(async (session) => {
       try {
+        if (isAgencyLoginPath) {
+          setCurrentUser(null);
+          return;
+        }
         if (session?.user && supabase) {
           await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -468,7 +474,7 @@ export default function App() {
         setIsAuthLoading(false);
       }
     });
-  }, []);
+  }, [isAgencyLoginPath]);
 
   // useEffect 4 : Chargement données
   useEffect(() => {

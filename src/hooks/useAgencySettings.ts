@@ -98,6 +98,11 @@ export function useAgencySettings(agencyId?: string) {
           slogan2: data.slogan_2,
           logoUrl: data.logo_url,
           primaryColor: data.primary_color,
+          loginBackgroundColor: data.login_background_color,
+          loginCardColor: data.login_card_color,
+          loginSurfaceColor: data.login_surface_color,
+          loginTextColor: data.login_text_color,
+          loginMutedColor: data.login_muted_color,
           cachetUrl: data.cachet_url,
           enteteUrl: data.entete_url,
           piedPageUrl: data.pied_page_url,
@@ -154,6 +159,11 @@ export function useAgencySettings(agencyId?: string) {
         if (patch.slogan2 !== undefined) dbPatch.slogan_2 = patch.slogan2;
         if (patch.logoUrl !== undefined) dbPatch.logo_url = patch.logoUrl;
         if (patch.primaryColor !== undefined) dbPatch.primary_color = patch.primaryColor;
+        if (patch.loginBackgroundColor !== undefined) dbPatch.login_background_color = patch.loginBackgroundColor;
+        if (patch.loginCardColor !== undefined) dbPatch.login_card_color = patch.loginCardColor;
+        if (patch.loginSurfaceColor !== undefined) dbPatch.login_surface_color = patch.loginSurfaceColor;
+        if (patch.loginTextColor !== undefined) dbPatch.login_text_color = patch.loginTextColor;
+        if (patch.loginMutedColor !== undefined) dbPatch.login_muted_color = patch.loginMutedColor;
         if (patch.cachetUrl !== undefined) dbPatch.cachet_url = patch.cachetUrl;
         if (patch.enteteUrl !== undefined) dbPatch.entete_url = patch.enteteUrl;
         if (patch.piedPageUrl !== undefined) dbPatch.pied_page_url = patch.piedPageUrl;

@@ -34,6 +34,7 @@ import {
   ActivityLog,
   Penalty,
   OwnerCharge,
+  PublicAgencyLoginBranding,
 } from "../../types";
 import { createDocumentNumber } from "../documentNumber";
 
@@ -90,6 +91,64 @@ export const defaultSettings: AgencySettings = {
   whatsappBusiness: "+221 77 845 20 10",
   standardTelephone: "+221 33 820 40 50",
 };
+
+export async function fetchPublicAgencyLoginBranding(
+  slug: string,
+): Promise<PublicAgencyLoginBranding | null> {
+  if (!supabase) throw new Error("Supabase non configuré.");
+
+  const { data, error } = await supabase.rpc("get_public_agency_login", {
+    p_slug: slug,
+  });
+  if (error) {
+    throw new Error(`Impossible de charger l'identité de l'agence : ${error.message}`);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row == null) return null;
+  if (typeof row !== "object") {
+    throw new Error("Réponse invalide lors du chargement de l'agence.");
+  }
+
+  const record = row as Record<string, unknown>;
+  if (
+    typeof record.agency_id !== "string" ||
+    typeof record.agency_name !== "string"
+  ) {
+    throw new Error("Réponse incomplète lors du chargement de l'agence.");
+  }
+
+  return {
+    id: record.agency_id,
+    name: record.agency_name,
+    slogan: typeof record.slogan === "string" ? record.slogan : "",
+    logoUrl: typeof record.logo_url === "string" ? record.logo_url : null,
+    primaryColor:
+      typeof record.primary_color === "string"
+        ? record.primary_color
+        : "#C9A96E",
+    backgroundColor:
+      typeof record.login_background_color === "string"
+        ? record.login_background_color
+        : "#0A111D",
+    cardColor:
+      typeof record.login_card_color === "string"
+        ? record.login_card_color
+        : "#162133",
+    surfaceColor:
+      typeof record.login_surface_color === "string"
+        ? record.login_surface_color
+        : "#0A111D",
+    textColor:
+      typeof record.login_text_color === "string"
+        ? record.login_text_color
+        : "#F0EDE8",
+    mutedColor:
+      typeof record.login_muted_color === "string"
+        ? record.login_muted_color
+        : "#A8B4C4",
+  };
+}
 
 export const defaultPaymentMethods: PaymentMethodConfig[] = [
   {

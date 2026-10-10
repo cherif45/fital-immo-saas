@@ -10,7 +10,7 @@ export type AgencyAssetType =
   | 'entete' 
   | 'pied_page';
 
-const BUCKET_NAME = 'agency-assets';
+const BUCKET_NAME = 'agency-logos';
 
 /**
  * Upload un asset d'agence vers Supabase Storage
@@ -64,7 +64,7 @@ export async function deleteAgencyAsset(
 
   try {
     // Extraire le path depuis l'URL publique
-    const match = url.match(/agency-assets\/(.+)$/);
+    const match = url.match(/agency-logos\/(.+)$/);
     if (!match) return { success: false, error: 'URL invalide' };
 
     const path = match[1];

@@ -61,6 +61,19 @@ export interface Agency {
   createdAt?: string;
 }
 
+export interface PublicAgencyLoginBranding {
+  id: string;
+  name: string;
+  slogan: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  backgroundColor: string;
+  cardColor: string;
+  surfaceColor: string;
+  textColor: string;
+  mutedColor: string;
+}
+
 export type ActiveTab =
   | "dashboard"
   | "buildings"
@@ -887,6 +900,11 @@ export interface AgencySettings {
   boitePostale?: string;
   siteWeb?: string;
   primaryColor?: string;
+  loginBackgroundColor?: string;
+  loginCardColor?: string;
+  loginSurfaceColor?: string;
+  loginTextColor?: string;
+  loginMutedColor?: string;
   website?: string;
   agencyId?: string;
 

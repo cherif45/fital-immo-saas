@@ -53,7 +53,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{
+    text: string;
+    type: 'success' | 'error' | 'info';
+    loginSlug?: string;
+  } | null>(null);
 
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [agencyFilter, setAgencyFilter] = useState<string>('ALL');
@@ -146,6 +150,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
       setStatusMessage({
         text: `✅ Agence "${formData.agencyName}" créée. Admin : ${formData.adminEmail}.`,
         type: 'success',
+        loginSlug: formData.agencySlug,
       });
       setIsCreateModalOpen(false);
       setFormData({
@@ -441,7 +446,19 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
           : statusMessage.type === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
           : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
         }`}>
-          <span>{statusMessage.text}</span>
+          <div>
+            <span>{statusMessage.text}</span>
+            {statusMessage.loginSlug && (
+              <a
+                href={`/login/${encodeURIComponent(statusMessage.loginSlug)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-2 underline underline-offset-2"
+              >
+                Ouvrir la page de connexion
+              </a>
+            )}
+          </div>
           <button onClick={() => setStatusMessage(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
@@ -600,6 +617,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ curren
                     <td className="py-3 px-4">
                       <div className="font-bold text-white">{agency.name}</div>
                       <div className="text-[10px] text-[#C9A96E] font-mono">{agency.slug}</div>
+                      <a
+                        href={`/login/${encodeURIComponent(agency.slug)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-sky-300 hover:text-sky-200 underline underline-offset-2"
+                      >
+                        Page de connexion
+                      </a>
                     </td>
                     <td className="py-3 px-3">
                       <div className="text-slate-300">{agency.email}</div>
