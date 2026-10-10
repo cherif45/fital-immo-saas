@@ -624,6 +624,9 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     CONSTRAINT uq_invoice_ref_agency UNIQUE (agency_id, ref)
 );
 
+DROP INDEX IF EXISTS public.uq_invoice_unique_action;
+DROP INDEX IF EXISTS public.uq_invoice_travaux_unique;
+
 -- ------------------------------------------------------------------------------
 -- 17. TABLE : tenant_reminders (Relances de Recouvrement)
 -- ------------------------------------------------------------------------------
@@ -662,6 +665,30 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
     ip_address VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES public.agencies(id) ON DELETE CASCADE,
+    user_id UUID,
+    user_nom VARCHAR(150),
+    activity_type VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(100),
+    entity_id TEXT,
+    entity_ref VARCHAR(150),
+    title TEXT NOT NULL,
+    description TEXT,
+    montant NUMERIC(15, 2),
+    activity_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    activity_hour VARCHAR(10),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_logs_agency_created
+    ON public.activity_logs (agency_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_activity_logs_agency_date
+    ON public.activity_logs (agency_id, activity_date DESC);
 
 -- ------------------------------------------------------------------------------
 -- 19. TABLE : agency_settings (Paramètres Agence)
@@ -778,6 +805,7 @@ ALTER TABLE public.cash_vouchers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agency_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -948,6 +976,19 @@ CREATE POLICY "audit_logs_select_policy" ON public.audit_logs
 
 DROP POLICY IF EXISTS "audit_logs_insert_policy" ON public.audit_logs;
 CREATE POLICY "audit_logs_insert_policy" ON public.audit_logs
+    FOR INSERT TO authenticated
+    WITH CHECK (agency_id = public.get_user_agency_id());
+
+DROP POLICY IF EXISTS "activity_logs_select_policy" ON public.activity_logs;
+CREATE POLICY "activity_logs_select_policy" ON public.activity_logs
+    FOR SELECT TO authenticated
+    USING (
+        agency_id = public.get_user_agency_id()
+        AND public.get_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE')
+    );
+
+DROP POLICY IF EXISTS "activity_logs_insert_policy" ON public.activity_logs;
+CREATE POLICY "activity_logs_insert_policy" ON public.activity_logs
     FOR INSERT TO authenticated
     WITH CHECK (agency_id = public.get_user_agency_id());
 

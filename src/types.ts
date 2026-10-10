@@ -687,17 +687,33 @@ export interface InvoiceLine {
   montant: number;
 }
 
+export interface InvoiceMaterialItem {
+  id: string;
+  designation: string;
+  quantite: number;
+  prixUnitaire: number;
+  total: number;
+}
+
 export interface Invoice extends AuditSignature {
   id: string;
   ref: string;
-  numero: string;
-  type: string;
-  locataireId?: string;
-  locataireNom?: string;
+  numero?: string;
+  type: "Adhésion" | "Travaux" | "Frais de dossier" | "Autre";
   proprietaireId?: string;
   proprietaireNom?: string;
+  locataireId?: string;
+  locataireNom?: string;
   bienId?: string;
   bienNom?: string;
+  travauxId?: string;
+  natureTravaux?: string;
+  materiels?: InvoiceMaterialItem[];
+  mainOeuvre?: number;
+  prestataireNom?: string;
+  prestataireContact?: string;
+  decaisserSurProprietaire?: boolean;
+  statutDecaissement?: "En attente" | "Décaissé" | "Non imputé";
   periode?: string;
   dateFacture?: string;
   dateEmission?: string;

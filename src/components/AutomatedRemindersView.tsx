@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BellRing,
   Sparkles,
@@ -39,6 +39,7 @@ import {
   triggerWhatsApp,
 } from "../lib/comms/commsHelper";
 import { generateWavePaymentLink } from "../lib/payments/mobileMoney";
+import { normalizePaymentPeriod } from "../lib/payments/period";
 import { PaymentReminderLetterModal } from "./PaymentReminderLetterModal";
 
 interface AutomatedRemindersViewProps {
@@ -57,69 +58,84 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   reminders,
   onAddReminder,
 }) => {
-  // Normaliser une période pour comparaison
-  const normalizePeriode = (p: string): string => {
-    if (!p) return "";
-    const clean = p.toLowerCase().trim();
-    const moisMap: Record<string, string> = {
-      janv: "janvier",
-      jan: "janvier",
-      févr: "février",
-      fev: "février",
-      fév: "février",
-      fevr: "février",
-      avr: "avril",
-      juil: "juillet",
-      août: "août",
-      aout: "août",
-      sept: "septembre",
-      sep: "septembre",
-      oct: "octobre",
-      nov: "novembre",
-      déc: "décembre",
-      dec: "décembre",
-    };
-    let result = clean;
-    Object.entries(moisMap).forEach(([abbr, full]) => {
-      if (result.startsWith(abbr)) result = result.replace(abbr, full);
-    });
-    result = result.replace(/([a-zéû]+)(\d{4})/, "$1 $2");
-    return result;
-  };
-
-  const moisActuel = normalizePeriode(
-    new Date()
-      .toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
-      .toLowerCase()
-      .trim(),
+  const now = new Date();
+  const moisActuel = normalizePaymentPeriod(
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
   );
+  const overdueTenants = useMemo(() => {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const fallbackDueDate = new Date(now.getFullYear(), now.getMonth(), 5);
+    return tenants.flatMap((tenant) => {
+      if (tenant.dateSortie || tenant.statut === "Parti") return [];
+      const entryDate = tenant.dateEntree
+        ? new Date(`${tenant.dateEntree.slice(0, 10)}T00:00:00`)
+        : null;
+      if (entryDate && entryDate > today) return [];
 
-  // Overdue = locataires actifs qui n'ont PAS payé le mois en cours (à 100%)
-  const overdueTenants = tenants.filter((t) => {
-    if (t.dateSortie) return false; // exclure les sortis
-    const paiementsMois = payments.filter(
-      (p: any) =>
-        p.locataireId === t.id &&
-        (p.statut === "Payé" || p.statut === "Partiel") &&
-        normalizePeriode(p.periode || "") === moisActuel,
-    );
-    if (paiementsMois.length === 0) return true; // rien payé → à relancer
-    const totalPaye = paiementsMois.reduce(
-      (sum: number, p: any) => sum + (Number(p.montantPaye) || 0),
-      0,
-    );
-    const firstPayment = paiementsMois[0];
-    const totalDu =
-      (firstPayment && Number(firstPayment.montantTotal) > 0
-        ? Number(firstPayment.montantTotal)
-        : 0) ||
-      Number(t.loyerMensuel) ||
-      0;
-    return totalPaye < totalDu; // paiement partiel → à relancer
-  });
+      const currentMonthPayments = payments.filter(
+        (payment) =>
+          payment.locataireId === tenant.id &&
+          normalizePaymentPeriod(payment.periodeNormalisee || payment.periode) ===
+            moisActuel,
+      );
+      const validatedPayments = currentMonthPayments.filter(
+        (payment) =>
+          (payment.statut === "Payé" || payment.statut === "Partiel") &&
+          payment.verificationStatut !== "rejete" &&
+          payment.verificationStatut !== "en_attente",
+      );
+      const totalPaid = validatedPayments.reduce(
+        (sum, payment) => sum + (Number(payment.montantPaye) || 0),
+        0,
+      );
+      const totalDue = Math.max(
+        Number(tenant.loyerMensuel) || 0,
+        ...currentMonthPayments.map((payment) => Number(payment.montantTotal) || 0),
+      );
+      const rentBalance = Math.max(0, totalDue - totalPaid);
+      const arrears = Math.max(0, Number(tenant.arrieresCumules) || 0);
+      const paymentDueDates = currentMonthPayments
+        .map((payment) => payment.dateEcheance)
+        .filter((date): date is string => !!date)
+        .map((date) => new Date(`${date.slice(0, 10)}T00:00:00`))
+        .filter((date) => Number.isFinite(date.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime());
+      const dueDate = paymentDueDates[0] || fallbackDueDate;
+      const daysPastDue = Math.max(
+        0,
+        Math.floor((today.getTime() - dueDate.getTime()) / 86400000),
+      );
+      const enteredAfterDueDate =
+        !!entryDate &&
+        entryDate.getFullYear() === now.getFullYear() &&
+        entryDate.getMonth() === now.getMonth() &&
+        entryDate > dueDate;
+      const isCurrentRentOverdue =
+        rentBalance > 0 && daysPastDue > 0 && !enteredAfterDueDate;
+      if (!arrears && !isCurrentRentOverdue) return [];
+
+      const daysLate = arrears
+        ? Math.max(1, Number(tenant.joursRetard) || daysPastDue)
+        : daysPastDue;
+      const amountDue = arrears + (isCurrentRentOverdue ? rentBalance : 0);
+      return [
+        {
+          ...tenant,
+          joursRetard: daysLate,
+          arrieresCumules: amountDue,
+          dateEcheanceRelance: dueDate.toLocaleDateString("fr-FR"),
+        },
+      ];
+    });
+  }, [tenants, payments, moisActuel, now.getFullYear(), now.getMonth(), now.getDate()]);
   const [selectedTenantId, setSelectedTenantId] = useState<string>(
     overdueTenants[0]?.id || tenants[0]?.id || "",
   );
+  useEffect(() => {
+    if (overdueTenants.length > 0 && !overdueTenants.some((tenant) => tenant.id === selectedTenantId)) {
+      setSelectedTenantId(overdueTenants[0].id);
+    }
+  }, [overdueTenants, selectedTenantId]);
   const [selectedChannel, setSelectedChannel] =
     useState<ReminderChannel>("WhatsApp");
   const [selectedLevel, setSelectedLevel] = useState<ReminderLevel>(
@@ -132,7 +148,12 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   const [isLetterModalOpen, setIsLetterModalOpen] = useState<boolean>(false);
 
   const activeTenant =
-    tenants.find((t) => t.id === selectedTenantId) || overdueTenants[0];
+    overdueTenants.find((t) => t.id === selectedTenantId) ||
+    overdueTenants[0] ||
+    tenants.find((tenant) => tenant.id === selectedTenantId);
+  const activeTenantIsOverdue = overdueTenants.some(
+    (tenant) => tenant.id === activeTenant?.id,
+  );
   const activeProperty = properties.find((p) => p.id === activeTenant?.bienId);
 
   // Auto determine appropriate severity level based on days of delay
@@ -168,7 +189,9 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
           joursRetard: t.joursRetard || 7,
           niveau: targetLevel,
           canal: targetChannel,
-          dateEcheance: "5 du mois courant",
+          dateEcheance:
+            overdueTenants.find((tenant) => tenant.id === t.id)
+              ?.dateEcheanceRelance || "5 du mois courant",
           penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
         }),
       });
@@ -228,7 +251,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
       setSelectedLevel(suggested);
       handleGenerateMessage(activeTenant, suggested, selectedChannel);
     }
-  }, [selectedTenantId, selectedChannel]);
+  }, [selectedTenantId, selectedChannel, overdueTenants]);
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(customMessage);
@@ -240,7 +263,11 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
 
   // Open direct WhatsApp URL
   const handleSendWhatsApp = () => {
-    if (!activeTenant) return;
+    if (
+      !activeTenant ||
+      !overdueTenants.some((tenant) => tenant.id === activeTenant.id)
+    )
+      return;
     const phoneClean = activeTenant.telephone.replace(/[^0-9]/g, "");
     const encoded = encodeURIComponent(customMessage);
     window.open(`https://wa.me/${phoneClean}?text=${encoded}`, "_blank");
@@ -290,7 +317,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         joursRetard: t.joursRetard,
         niveau: level,
         canal: "WhatsApp",
-        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(t.arrieresCumules || t.loyerMensuel).toLocaleString("fr-FR")} FCFA (${t.joursRetard}j de retard). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
+        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(t.arrieresCumules || t.loyerMensuel).toLocaleString("fr-FR")} FCFA (${t.joursRetard}j de retard, échéance ${t.dateEcheanceRelance}). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
         statut: "Envoyé",
         dateCreation: new Date().toISOString().split("T")[0],
         dateEnvoi: new Date().toLocaleTimeString("fr-FR", {
@@ -357,6 +384,11 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {overdueTenants.length === 0 && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-4 text-center text-[11px] text-emerald-200">
+                  Aucun loyer en retard à relancer pour le moment.
+                </div>
+              )}
               {overdueTenants.map((t) => {
                 const isSelected = t.id === selectedTenantId;
                 return (
@@ -636,7 +668,8 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                 {selectedChannel === "WhatsApp" && (
                   <button
                     onClick={handleSendWhatsApp}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 flex items-center gap-2 transition-all hover:scale-105"
+                    disabled={!activeTenantIsOverdue}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-xs shadow-lg shadow-emerald-900/40 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>Ouvrir WhatsApp & Envoyer</span>
@@ -646,7 +679,11 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                 {selectedChannel === "SMS" && (
                   <a
                     href={`sms:${activeTenant?.telephone}?body=${encodeURIComponent(customMessage)}`}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white font-bold text-xs shadow-lg shadow-sky-900/40 flex items-center gap-2 transition-all"
+                    onClick={(event) => {
+                      if (!activeTenantIsOverdue) event.preventDefault();
+                    }}
+                    aria-disabled={!activeTenantIsOverdue}
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white font-bold text-xs shadow-lg shadow-sky-900/40 flex items-center gap-2 transition-all ${!activeTenantIsOverdue ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     <Send className="w-4 h-4" />
                     <span>Envoyer par SMS</span>
@@ -658,7 +695,11 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                     href={`mailto:${activeTenant?.email}?subject=${encodeURIComponent(
                       `Rappel de loyer - ${activeTenant?.bienNom}`,
                     )}&body=${encodeURIComponent(customMessage)}`}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg shadow-[#C9A96E]/30 flex items-center gap-2 transition-all hover:scale-105"
+                    onClick={(event) => {
+                      if (!activeTenantIsOverdue) event.preventDefault();
+                    }}
+                    aria-disabled={!activeTenantIsOverdue}
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg shadow-[#C9A96E]/30 flex items-center gap-2 transition-all hover:scale-105 ${!activeTenantIsOverdue ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     <Mail className="w-4 h-4" />
                     <span>Ouvrir dans Messagerie</span>

@@ -592,6 +592,38 @@ export function mapContractFromDb(r: any): LeaseContract {
 }
 
 export function mapPaymentFromDb(r: any): Payment {
+  const statut = r.statut || "Payé";
+  const montantPaye = Number(r.montant_paye ?? r.montantPaye ?? 0);
+  const montantTotal = Number(r.montant_total ?? r.montantTotal ?? 0);
+  const modePaiement = r.mode_paiement || r.modePaiement || "Espèces";
+  const storedMethodCode = r.moyen_paiement_code || r.moyenPaiementCode;
+  const normalizedMode = String(modePaiement).toLocaleLowerCase("fr-FR");
+  const transactionReference = String(
+    r.reference_transaction ||
+      r.referenceTransaction ||
+      r.transaction_reference ||
+      r.transactionReference ||
+      r.numero_transaction ||
+      r.numeroTransaction ||
+      "",
+  ).toUpperCase();
+  const moyenPaiementCode =
+    storedMethodCode ||
+    (normalizedMode.includes("orange")
+      ? "ORANGE_MONEY"
+      : normalizedMode.includes("wave")
+        ? "WAVE"
+        : normalizedMode.includes("mobile")
+          ? transactionReference.includes("ORANGE") ||
+            transactionReference.includes("OM")
+            ? "ORANGE_MONEY"
+            : "WAVE"
+          : normalizedMode.includes("virement")
+            ? "VIREMENT"
+            : normalizedMode.includes("chèque") ||
+                normalizedMode.includes("cheque")
+              ? "CHEQUE"
+              : "ESPECES");
   return {
     id: r.id,
     ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
@@ -609,13 +641,13 @@ export function mapPaymentFromDb(r: any): Payment {
     tva: Number(r.tva ?? 0),
     tom: Number(r.tom ?? 0),
     penalites: Number(r.penalites ?? 0),
-    montantTotal: Number(r.montant_total ?? r.montantTotal ?? 0),
-    montantPaye: Number(r.montant_paye ?? r.montantPaye ?? 0),
+    montantTotal,
+    montantPaye:
+      montantPaye === 0 && statut === "Payé" ? montantTotal : montantPaye,
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
-    statut: r.statut || "Payé",
-    modePaiement: r.mode_paiement || r.modePaiement || "Esp?ces",
-    moyenPaiementCode:
-      r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
+    statut,
+    modePaiement,
+    moyenPaiementCode,
     verificationStatut:
       r.verification_statut || r.verificationStatut || "valide",
     referenceTransaction:
@@ -929,6 +961,17 @@ export function mapInvoiceFromDb(r: any): Invoice {
     locataireNom: r.locataire_nom || r.locataireNom || "",
     bienId: r.bien_id || r.bienId || "",
     bienNom: r.bien_nom || r.bienNom || "",
+    natureTravaux: r.nature_travaux || r.natureTravaux || undefined,
+    materiels: r.materiels || [],
+    mainOeuvre: Number(r.main_oeuvre ?? r.mainOeuvre ?? 0),
+    prestataireNom: r.prestataire_nom || r.prestataireNom || undefined,
+    prestataireContact:
+      r.prestataire_contact || r.prestataireContact || undefined,
+    decaisserSurProprietaire: Boolean(
+      r.decaisser_sur_proprietaire ?? r.decaisserSurProprietaire ?? false,
+    ),
+    statutDecaissement:
+      r.statut_decaissement || r.statutDecaissement || undefined,
     periode: r.periode || "Ce mois",
     dateFacture:
       r.date_facture || r.dateFacture || new Date().toISOString().split("T")[0],
@@ -1157,7 +1200,12 @@ export async function loadFullApplicationData(
           .select("*")
           .order("created_at", { ascending: false }),
       ),
-      Promise.resolve({ data: [], error: null }), // invoices : charge lazy
+      agencyFilter(
+        supabase
+          .from("invoices")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ),
       agencyFilter(
         supabase
           .from("tenant_reminders")
@@ -1312,13 +1360,21 @@ export async function loadFullApplicationData(
       });
       persistCollection("disbursements", state.disbursements);
     }
-    if (
-      invRes.status === "fulfilled" &&
-      invRes.value.data &&
-      invRes.value.data.length > 0
-    ) {
-      state.invoices = invRes.value.data.map(mapInvoiceFromDb);
-      persistCollection("invoices", state.invoices);
+    if (invRes.status === "fulfilled") {
+      if (invRes.value.error) {
+        console.error(
+          "Erreur lors du chargement des factures depuis Supabase:",
+          invRes.value.error,
+        );
+      } else if (invRes.value.data) {
+        state.invoices = invRes.value.data.map(mapInvoiceFromDb);
+        persistCollection("invoices", state.invoices);
+      }
+    } else {
+      console.error(
+        "Impossible de charger les factures depuis Supabase:",
+        invRes.reason,
+      );
     }
     if (
       remindRes.status === "fulfilled" &&
@@ -1799,6 +1855,7 @@ export async function savePenaltyToDb(
     return { success: true, data: penalty as Penalty };
   try {
     const record = {
+      id: penalty.id,
       agency_id: agencyId,
       payment_id: penalty.paymentId || null,
       locataire_id: penalty.locataireId,
@@ -1818,7 +1875,7 @@ export async function savePenaltyToDb(
     };
     const { data, error } = await supabase
       .from("penalties")
-      .insert([record])
+      .upsert([record], { onConflict: "id" })
       .select()
       .single();
     if (error) throw error;
@@ -2136,6 +2193,79 @@ export async function fetchActivitiesByDate(
   } catch (err: any) {
     return [];
   }
+}
+
+export async function fetchAgencyActivityLogs(
+  agencyId: string,
+): Promise<ActivityLog[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const [activitiesResult, auditResult] = await Promise.all([
+    fetchAllRows("activity_logs", agencyId, (query) =>
+      query.order("created_at", { ascending: false }),
+    ),
+    fetchAllRows("audit_logs", agencyId, (query) =>
+      query.order("created_at", { ascending: false }),
+    ),
+  ]);
+
+  if (activitiesResult.error && auditResult.error) {
+    throw new Error(
+      `Impossible de charger le journal d'activité : ${activitiesResult.error.message}; ${auditResult.error.message}`,
+    );
+  }
+  const activities = activitiesResult.data.map(mapActivityLogFromDb);
+  const auditActivities: ActivityLog[] = auditResult.data.map((row) => {
+    const createdAt = row.created_at || new Date().toISOString();
+    return {
+      id: `audit-${row.id}`,
+      agencyId: row.agency_id || agencyId,
+      userId: row.user_id,
+      userNom: row.user_nom || row.utilisateur,
+      activityType: "OTHER",
+      entityType: row.entity_type || row.module,
+      entityId: row.entity_id || row.entite_id,
+      entityRef: row.entity_ref || row.entite_id,
+      title: row.action || "Action",
+      description: row.details || "",
+      activityDate: createdAt.slice(0, 10),
+      activityHour: createdAt.slice(11, 19),
+      createdAt,
+    };
+  });
+  const byId = new Map(
+    [...activities, ...auditActivities].map((activity) => [
+      activity.id,
+      activity,
+    ]),
+  );
+  const sorted = [...byId.values()].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || ""),
+  );
+  const unique: ActivityLog[] = [];
+  const recentByKey = new Map<string, number[]>();
+  for (const activity of sorted) {
+    const createdAt = new Date(activity.createdAt).getTime();
+    const key = JSON.stringify([
+      activity.title,
+      activity.userNom,
+      activity.entityRef,
+      activity.description,
+    ]);
+    const recent = recentByKey.get(key) || [];
+    const duplicates =
+      Number.isFinite(createdAt) &&
+      recent.some((timestamp) => Math.abs(createdAt - timestamp) <= 5000);
+    if (!duplicates) unique.push(activity);
+    if (Number.isFinite(createdAt)) {
+      recentByKey.set(
+        key,
+        duplicates
+          ? recent
+          : [...recent.filter((timestamp) => timestamp - createdAt <= 5000), createdAt],
+      );
+    }
+  }
+  return unique;
 }
 
 export async function fetchActivitiesByEntity(
@@ -2723,7 +2853,6 @@ export async function saveDisbursementToDb(
       agency_id: agencyId,
       ref: disb.ref || `REV-${Date.now()}`,
       proprietaire_id: disb.proprietaireId,
-      proprietaire_nom: disb.proprietaireNom || null,
       periode: disb.periode || "Ce mois",
       loyers_bruts_recouvres: disb.loyersBruts || disb.montantBrut || 0,
       taux_commission: disb.tauxCommission || 10,
@@ -2736,7 +2865,7 @@ export async function saveDisbursementToDb(
         disb.dateReglement ||
         disb.dateReversement ||
         new Date().toISOString().split("T")[0],
-      statut: disb.statut || "Effectu?",
+      statut: disb.statut || "Effectué",
       created_by_id: disb.createdById || null,
       created_by_nom: disb.createdByNom || null,
       created_by_role: disb.createdByRole || null,
@@ -2779,9 +2908,17 @@ export async function saveInvoiceToDb(
     return { success: true, data: inv as Invoice };
   try {
     const record = {
+      id: inv.id || crypto.randomUUID(),
       agency_id: agencyId,
       ref: inv.ref || inv.numero || `FAC-${Date.now()}`,
       type: inv.type || "Frais de dossier",
+      nature_travaux: inv.natureTravaux || null,
+      materiels: inv.materiels || [],
+      main_oeuvre: inv.mainOeuvre || 0,
+      prestataire_nom: inv.prestataireNom || null,
+      prestataire_contact: inv.prestataireContact || null,
+      decaisser_sur_proprietaire: inv.decaisserSurProprietaire || false,
+      statut_decaissement: inv.statutDecaissement || null,
       proprietaire_id: inv.proprietaireId || null,
       proprietaire_nom: inv.proprietaireNom || null,
       locataire_id: inv.locataireId || null,
@@ -2801,27 +2938,13 @@ export async function saveInvoiceToDb(
       created_by_nom: inv.createdByNom || null,
       created_by_role: inv.createdByRole || null,
     };
-    const exists = inv.id
-      ? await recordExists("invoices", inv.id, agencyId)
-      : false;
-    if (exists) {
-      const { data, error } = await supabase
-        .from("invoices")
-        .update(record)
-        .eq("id", inv.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return { success: true, data: mapInvoiceFromDb(data) };
-    } else {
-      const { data, error } = await supabase
-        .from("invoices")
-        .insert([record])
-        .select()
-        .single();
-      if (error) throw error;
-      return { success: true, data: mapInvoiceFromDb(data) };
-    }
+    const { data, error } = await supabase
+      .from("invoices")
+      .upsert(record, { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return { success: true, data: mapInvoiceFromDb(data) };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

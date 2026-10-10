@@ -2,10 +2,13 @@ import React, { useState, useMemo } from 'react';
 import {
   Archive, Search, Eye, Building2, User, Users, FileText, Layers,
   FileSignature, WalletCards, ClipboardList, Wrench, Receipt, Calendar,
-  X, Printer, Download, TrendingUp, Home,
+  X, Printer, Download, TrendingUp, Home, History, BellRing, Coins,
+  ShieldCheck,
 } from 'lucide-react';
 import {
-  ArchiveRecord, UserAccount, Tenant, Owner, Property, Building, Unit,
+  ArchiveRecord, ActivityLog, CashClosing, CashMovement, CashVoucher,
+  OwnerCharge, OwnerDeduction, Penalty, TenantReminder, UserAccount, Tenant,
+  Owner, Property, Building, Unit,
   LeaseContract, Payment, OwnerDisbursement, Inspection, MaintenanceTicket,
   Invoice, BulletinVersement,
 } from '../types';
@@ -25,6 +28,17 @@ interface ArchiveViewProps {
   maintenance?: MaintenanceTicket[];
   invoices?: Invoice[];
   bulletins?: BulletinVersement[];
+  ownerCharges?: OwnerCharge[];
+  ownerDeductions?: OwnerDeduction[];
+  archives?: ArchiveRecord[];
+  activities?: ActivityLog[];
+  penalties?: Penalty[];
+  reminders?: TenantReminder[];
+  cashMovements?: CashMovement[];
+  cashClosings?: CashClosing[];
+  cashVouchers?: CashVoucher[];
+  activityLoading?: boolean;
+  activityError?: string | null;
 }
 
 type ArchiveTab =
@@ -38,7 +52,18 @@ type ArchiveTab =
   | 'payments'
   | 'disbursements'
   | 'inspections'
-  | 'bulletins';
+  | 'maintenance'
+  | 'bulletins'
+  | 'invoices'
+  | 'owner-charges'
+  | 'activities'
+  | 'archives'
+  | 'penalties'
+  | 'reminders'
+  | 'cash-movements'
+  | 'cash-closings'
+  | 'cash-vouchers'
+  | 'owner-deductions';
 
 interface UnifiedRecord {
   id: string;
@@ -63,7 +88,18 @@ const TAB_CONFIG: Record<ArchiveTab, { label: string; icon: any; color: string }
   payments: { label: 'Paiements', icon: WalletCards, color: 'text-[#C9A96E]' },
   disbursements: { label: 'Décaissements', icon: TrendingUp, color: 'text-sky-400' },
   inspections: { label: 'États des Lieux', icon: ClipboardList, color: 'text-orange-400' },
+  maintenance: { label: 'Travaux', icon: Wrench, color: 'text-orange-300' },
   bulletins: { label: 'Bulletins', icon: FileText, color: 'text-sky-400' },
+  invoices: { label: 'Factures', icon: Receipt, color: 'text-amber-300' },
+  'owner-charges': { label: 'Charges propriétaire', icon: WalletCards, color: 'text-rose-300' },
+  activities: { label: 'Actions du journal', icon: History, color: 'text-cyan-300' },
+  archives: { label: 'Éléments archivés', icon: Archive, color: 'text-slate-300' },
+  penalties: { label: 'Pénalités', icon: ShieldCheck, color: 'text-rose-300' },
+  reminders: { label: 'Relances', icon: BellRing, color: 'text-indigo-300' },
+  'cash-movements': { label: 'Mouvements de caisse', icon: Coins, color: 'text-emerald-300' },
+  'cash-closings': { label: 'Clôtures de caisse', icon: Calendar, color: 'text-sky-300' },
+  'cash-vouchers': { label: 'Bons de caisse', icon: FileText, color: 'text-amber-300' },
+  'owner-deductions': { label: 'Déductions propriétaire', icon: Coins, color: 'text-purple-300' },
 };
 
 export const ArchiveView: React.FC<ArchiveViewProps> = ({
@@ -80,6 +116,17 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
   maintenance = [],
   invoices = [],
   bulletins = [],
+  ownerCharges = [],
+  ownerDeductions = [],
+  archives = [],
+  activities = [],
+  penalties = [],
+  reminders = [],
+  cashMovements = [],
+  cashClosings = [],
+  cashVouchers = [],
+  activityLoading = false,
+  activityError = null,
 }) => {
   const [activeTab, setActiveTab] = useState<ArchiveTab>('all');
   const [search, setSearch] = useState('');
@@ -152,7 +199,9 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     payments.forEach((p) => records.push({
       id: p.id, tab: 'payments', type: 'Paiement',
       ref: p.quittanceNumero, nom: p.locataireNom,
-      montant: p.montantPaye,
+      montant:
+        Number(p.montantPaye) ||
+        (p.statut === 'Payé' ? Number(p.montantTotal) || 0 : 0),
       date: p.datePaiement,
       statut: p.statut,
       raw: p,
@@ -185,8 +234,127 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
       raw: b,
     }));
 
+    invoices.forEach((invoice) => records.push({
+      id: invoice.id, tab: 'invoices', type: 'Facture',
+      ref: invoice.ref || invoice.numero || invoice.id.slice(0, 8),
+      nom: invoice.proprietaireNom || invoice.locataireNom || invoice.bienNom || invoice.type,
+      montant: invoice.total ?? invoice.montantTotal,
+      date: invoice.dateFacture || invoice.dateEmission || invoice.createdAt || '',
+      statut: invoice.statut,
+      raw: invoice,
+    }));
+
+    ownerCharges.forEach((charge) => records.push({
+      id: charge.id, tab: 'owner-charges', type: 'Charge propriétaire',
+      ref: charge.referenceDocument || charge.id.slice(0, 8),
+      nom: `${charge.libelle} — ${charge.proprietaireNom || 'Propriétaire'}`,
+      montant: charge.montant,
+      date: charge.dateCharge || charge.createdAt || '',
+      statut: charge.statut,
+      raw: charge,
+    }));
+
+    maintenance.forEach((ticket) => records.push({
+      id: ticket.id, tab: 'maintenance', type: 'Intervention / Travaux',
+      ref: ticket.ref || ticket.id.slice(0, 8),
+      nom: `${ticket.titre} — ${ticket.bienNom}`,
+      montant: ticket.coutReel ?? ticket.coutEstime,
+      date: ticket.dateSignalement,
+      statut: ticket.statut,
+      raw: ticket,
+    }));
+
+    activities.forEach((activity) => records.push({
+      id: activity.id, tab: 'activities', type: activity.activityType || 'Action',
+      ref: activity.entityRef || activity.entityId || activity.id.slice(0, 8),
+      nom: `${activity.title}${activity.userNom ? ` — ${activity.userNom}` : ''}`,
+      montant: activity.montant,
+      date: activity.createdAt || activity.activityDate,
+      statut: 'Action enregistrée',
+      raw: activity,
+    }));
+
+    archives.forEach((archive) => records.push({
+      id: archive.id, tab: 'archives', type: `Archive ${archive.entityType}`,
+      ref: archive.entityRef || archive.entityId || archive.id.slice(0, 8),
+      nom: archive.entityNom || archive.entityRef || archive.entityType,
+      montant:
+        archive.data?.montant ??
+        archive.data?.total ??
+        archive.data?.montantTotal ??
+        archive.data?.montantPaye,
+      date: archive.archivedAt,
+      statut: 'Archivé',
+      raw: archive,
+    }));
+
+    penalties.forEach((penalty) => records.push({
+      id: penalty.id, tab: 'penalties', type: 'Pénalité',
+      ref: penalty.paymentId || penalty.id.slice(0, 8),
+      nom: penalty.locataireNom || penalty.locataireId,
+      montant: penalty.montantPenalite,
+      date: penalty.dateApplication || penalty.dateCalcul,
+      statut: penalty.statut,
+      raw: penalty,
+    }));
+
+    reminders.forEach((reminder) => records.push({
+      id: reminder.id, tab: 'reminders', type: `Relance ${reminder.canal}`,
+      ref: reminder.id,
+      nom: reminder.locataireNom,
+      montant: reminder.montantDu,
+      date: reminder.dateCreation,
+      statut: reminder.statut,
+      raw: reminder,
+    }));
+
+    cashMovements.forEach((movement) => records.push({
+      id: movement.id, tab: 'cash-movements', type: `Caisse ${movement.type}`,
+      ref: movement.reference || movement.ref || movement.id.slice(0, 8),
+      nom: movement.libelle || movement.description || movement.motif || movement.beneficiaire || 'Mouvement de caisse',
+      montant: movement.montant,
+      date: movement.dateOperation || movement.dateHeure || movement.createdAt || '',
+      statut: movement.statut || 'Enregistré',
+      raw: movement,
+    }));
+
+    cashClosings.forEach((closing) => records.push({
+      id: closing.id, tab: 'cash-closings', type: 'Clôture de caisse',
+      ref: closing.reference || closing.numero || closing.id.slice(0, 8),
+      nom: closing.caissierNom || 'Clôture',
+      montant: closing.soldeReel ?? closing.soldeTheorique,
+      date: closing.dateCloture || closing.date || closing.createdAt || '',
+      statut: closing.statut || 'Clôturée',
+      raw: closing,
+    }));
+
+    cashVouchers.forEach((voucher) => records.push({
+      id: voucher.id, tab: 'cash-vouchers', type: 'Bon de caisse',
+      ref: voucher.ref || voucher.numero || voucher.id.slice(0, 8),
+      nom: voucher.proprietaireNom,
+      montant: voucher.montantNet,
+      date: voucher.dateEmission,
+      statut: voucher.statut,
+      raw: voucher,
+    }));
+
+    ownerDeductions.forEach((deduction) => records.push({
+      id: deduction.id, tab: 'owner-deductions', type: `Déduction ${deduction.typeDeduction}`,
+      ref: deduction.referenceDocument || deduction.bulletinRef || deduction.id.slice(0, 8),
+      nom: deduction.libelle,
+      montant: deduction.montant,
+      date: deduction.dateDeduction || deduction.createdAt || '',
+      statut: 'Enregistrée',
+      raw: deduction,
+    }));
+
     return records;
-  }, [tenants, owners, properties, buildings, units, contracts, payments, disbursements, inspections, bulletins]);
+  }, [
+    tenants, owners, properties, buildings, units, contracts, payments,
+    disbursements, inspections, maintenance, invoices, bulletins,
+    ownerCharges, ownerDeductions, archives, activities, penalties,
+    reminders, cashMovements, cashClosings, cashVouchers,
+  ]);
 
   // Filtres
   const filtered = useMemo(() => {
@@ -195,8 +363,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((r) =>
-        r.nom.toLowerCase().includes(q) ||
-        r.ref.toLowerCase().includes(q) ||
+        (r.nom || '').toLowerCase().includes(q) ||
+        (r.ref || '').toLowerCase().includes(q) ||
         r.type.toLowerCase().includes(q)
       );
     }
@@ -234,6 +402,19 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {(activityLoading || activityError) && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-xs ${
+            activityError
+              ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+              : 'border-sky-500/30 bg-sky-500/10 text-sky-200'
+          }`}
+        >
+          {activityError
+            ? `Journal des actions incomplet : ${activityError}`
+            : 'Chargement du journal des actions…'}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-[#C9A96E]/15 text-[#C9A96E] flex items-center justify-center">
@@ -328,7 +509,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                       <td className="py-3 px-3 font-mono text-[#C9A96E] text-[11px]">{r.ref || '—'}</td>
                       <td className="py-3 px-3 font-bold text-white truncate max-w-[250px]">{r.nom}</td>
                       <td className="py-3 px-3 text-right font-mono text-[#E8D5B0]">
-                        {r.montant ? `${formatNumber(r.montant)} F` : '—'}
+                        {r.montant !== undefined ? `${formatNumber(r.montant)} F` : '—'}
                       </td>
                       <td className="py-3 px-3 text-[#A8B4C4]">
                         {r.date ? formatDate(r.date) : '—'}
@@ -440,7 +621,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                     {selectedRecord.date ? formatDate(selectedRecord.date) : '—'}
                   </div>
                 </div>
-                {selectedRecord.montant !== undefined && selectedRecord.montant > 0 && (
+                {selectedRecord.montant !== undefined && (
                   <div className="p-3 bg-[#C9A96E]/10 rounded-xl border border-[#C9A96E]/30 col-span-2">
                     <div className="text-[10px] text-[#C9A96E] uppercase font-bold">Montant</div>
                     <div className="text-[#E8D5B0] font-bold font-mono text-lg mt-0.5">

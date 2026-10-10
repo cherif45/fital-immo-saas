@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Payment, PaymentMethodConfig, Owner, Property, Tenant } from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
-import { paginateTable } from '../lib/supabase/service';
+import { mapPaymentFromDb, paginateTable } from '../lib/supabase/service';
 import { 
   BarChart3, 
   Download, 
@@ -48,36 +48,24 @@ export function PaymentMethodReportsView({
     if (!currentUser?.agencyId) return;
     setIsLoadingMore(true);
     try {
-      const result = await paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE);
-          const mapped: Payment[] = result.data.map((r: any) => ({
-      ...r,
-      id: r.id,
-      ref: r.ref,
-      quittanceNumero: r.quittance_numero || r.numero_quittance || r.ref,
-      numeroQuittance: r.numero_quittance || r.quittance_numero || r.ref,
-      locataireId: r.locataire_id,
-      locataireNom: r.locataire_nom || r.locataireNom || '',
-      bienId: r.bien_id,
-      bienNom: r.bien_nom || r.bienNom || '',
-      proprietaireId: r.proprietaire_id,
-      proprietaireNom: r.proprietaire_nom,
-      montantPaye: Number(r.montant_paye) || 0,
-      montantTotal: Number(r.montant_total) || 0,
-      montantRestant: Number(r.montant_restant) || 0,
-      loyerBase: Number(r.loyer_base) || 0,
-      charges: Number(r.charges) || 0,
-      periode: r.periode,
-      datePaiement: r.date_paiement,
-      statut: r.statut,
-      modePaiement: r.mode_paiement,
-      moyenPaiementCode: r.moyen_paiement_code || r.mode_paiement,
-    }));
-      if (page === 0) {
-        setServerPayments(mapped);
-      } else {
-        setServerPayments(prev => [...prev, ...mapped]);
+      let currentPage = page;
+      let total = 0;
+      const allPayments: Payment[] = [];
+      while (true) {
+        const result = await paginateTable<any>(
+          'payments',
+          currentUser.agencyId,
+          currentPage,
+          PAGE_SIZE,
+        );
+        const batch = result.data.map(mapPaymentFromDb);
+        allPayments.push(...batch);
+        total = result.total;
+        if (batch.length === 0 || allPayments.length >= total) break;
+        currentPage += 1;
       }
-      setServerTotal(result.total);
+      setServerPayments(allPayments);
+      setServerTotal(total);
     } catch (e) {
       console.warn('loadAllPayments:', e);
     } finally {
@@ -89,14 +77,49 @@ export function PaymentMethodReportsView({
   const [selectedMethod, setSelectedMethod] = useState<string>('ALL');
   const [selectedOwner, setSelectedOwner] = useState<string>('ALL');
 
-  const filteredPayments = displayPayments.filter((p) => {
-    const matchMethod = selectedMethod === 'ALL' || p.moyenPaiementCode === selectedMethod || p.modePaiement === selectedMethod;
+  const getMethodCode = (payment: Payment): string => {
+    const code = (payment.moyenPaiementCode || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (code && !['MOBILE_MONEY', 'MOBILEMONEY'].includes(code)) {
+      const normalizedCode = code.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (normalizedCode === 'ESPECES' || normalizedCode === 'CASH') return 'ESPECES';
+      if (normalizedCode === 'CHEQUE') return 'CHEQUE';
+      if (normalizedCode === 'BANK_TRANSFER') return 'VIREMENT';
+      return normalizedCode;
+    }
+    const mode = (payment.modePaiement || '').toLocaleLowerCase('fr-FR');
+    if (mode.includes('orange')) return 'ORANGE_MONEY';
+    if (mode.includes('wave')) return 'WAVE';
+    if (mode.includes('mobile')) {
+      const reference = `${payment.referenceTransaction || ''} ${payment.transactionReference || ''}`.toUpperCase();
+      return reference.includes('ORANGE') || reference.includes('OM')
+        ? 'ORANGE_MONEY'
+        : 'WAVE';
+    }
+    if (mode.includes('virement')) return 'VIREMENT';
+    if (mode.includes('chèque') || mode.includes('cheque')) return 'CHEQUE';
+    return 'ESPECES';
+  };
+
+  const validPayments = displayPayments
+    .filter(
+      (payment) =>
+        (payment.statut === 'Payé' || payment.statut === 'Partiel') &&
+        payment.verificationStatut !== 'en_attente' &&
+        payment.verificationStatut !== 'rejete',
+    )
+    .map((payment) => ({
+      ...payment,
+      montantPaye:
+        Number(payment.montantPaye) ||
+        (payment.statut === 'Payé' ? Number(payment.montantTotal) || 0 : 0),
+    }));
+  const filteredPayments = validPayments.filter((p) => {
+    const matchMethod = selectedMethod === 'ALL' || getMethodCode(p) === selectedMethod;
     const matchOwner = selectedOwner === 'ALL' || p.proprietaireId === selectedOwner;
-    const matchStatus = p.statut === 'Payé' || p.statut === 'Partiel';
-    return matchMethod && matchOwner && matchStatus;
+    return matchMethod && matchOwner;
   });
 
-  const totalCollected = filteredPayments.reduce((sum, p) => sum + p.montantPaye, 0);
+  const totalCollected = filteredPayments.reduce((sum, p) => sum + (Number(p.montantPaye) || 0), 0);
 
   // Group by payment method
   const statsByMethod: Record<string, { count: number; volume: number; code: string; label: string }> = {};
@@ -110,34 +133,19 @@ export function PaymentMethodReportsView({
   if (!statsByMethod['VIREMENT']) statsByMethod['VIREMENT'] = { count: 0, volume: 0, code: 'VIREMENT', label: 'Virement' };
   if (!statsByMethod['CHEQUE']) statsByMethod['CHEQUE'] = { count: 0, volume: 0, code: 'CHEQUE', label: 'Chèque' };
 
-  // ✅ FIX : filtrer sur Payé/Partiel + mapper correctement Wave/OM
-  payments
-    .filter((p) => p.statut === 'Payé' || p.statut === 'Partiel')
-    .forEach((p) => {
-      let key: string | null = null;
-
-      // 1. Priorité au code précis
-      if (p.moyenPaiementCode && statsByMethod[p.moyenPaiementCode]) {
-        key = p.moyenPaiementCode;
-      } else if (p.modePaiement === 'Mobile Money') {
-        // Fallback : Wave ou OM selon la référence
-        const ref = (p.referenceTransaction || p.numeroTransaction || '').toUpperCase();
-        key = ref.includes('OM') || ref.includes('ORANGE') ? 'ORANGE_MONEY' : 'WAVE';
-      } else if (p.modePaiement === 'Espèces') {
-        key = 'ESPECES';
-      } else if (p.modePaiement === 'Virement') {
-        key = 'VIREMENT';
-      } else if (p.modePaiement === 'Chèque') {
-        key = 'CHEQUE';
-      } else {
-        key = 'ESPECES';
-      }
-
-      if (key && statsByMethod[key]) {
-        statsByMethod[key].count += 1;
-        statsByMethod[key].volume += p.montantPaye;
-      }
-    });
+  filteredPayments.forEach((payment) => {
+    const key = getMethodCode(payment);
+    if (!statsByMethod[key]) {
+      statsByMethod[key] = {
+        count: 0,
+        volume: 0,
+        code: key,
+        label: payment.modePaiement || key,
+      };
+    }
+    statsByMethod[key].count += 1;
+    statsByMethod[key].volume += Number(payment.montantPaye) || 0;
+  });
 
   const handleExportCSV = () => {
     const csvContent =
@@ -174,6 +182,11 @@ export function PaymentMethodReportsView({
           <h1 className="text-2xl font-bold text-white mt-1">Rapports par Moyen de Paiement</h1>
           <p className="text-xs text-slate-400">
             Analyse comparative des volumes collectés par canal, fréquences d'utilisation et rapprochements bancaires.
+          </p>
+          <p className="text-[10px] text-slate-500 mt-1">
+            {isLoadingMore
+              ? 'Chargement des encaissements…'
+              : `${filteredPayments.length} règlement(s) validé(s) sur ${serverTotal || displayPayments.length} chargé(s)`}
           </p>
         </div>
 

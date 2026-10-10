@@ -24,9 +24,9 @@ interface PenaltiesViewProps {
   tenants: Tenant[];
   payments: Payment[];
   currentUser?: UserAccount;
-  onAddPenalty: (penalty: Penalty) => void;
-  onDeletePenalty: (penaltyId: string) => void;
-  onUpdatePenalty?: (penalty: Penalty) => void;
+  onAddPenalty: (penalty: Penalty) => Promise<boolean>;
+  onDeletePenalty: (penaltyId: string) => Promise<boolean>;
+  onUpdatePenalty?: (penalty: Penalty) => Promise<boolean>;
 }
 
 export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
@@ -154,7 +154,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManage) return;
     if (!selectedTenantId || montantBase <= 0) {
@@ -182,7 +182,10 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       notes: notes || undefined,
     };
 
-    onAddPenalty(newPenalty);
+    const saved = await onAddPenalty(newPenalty);
+    if (!saved) return;
+    setServerPenalties((prev) => [newPenalty, ...prev]);
+    setServerTotal((prev) => prev + 1);
     setIsNewPenaltyModalOpen(false);
 
     // Reset
@@ -193,7 +196,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     setNotes('');
   };
 
-  const handleApplyPenalty = (penalty: Penalty) => {
+  const handleApplyPenalty = async (penalty: Penalty) => {
     if (!onUpdatePenalty) return;
     if (!canManage) return;
     const updated: Penalty = {
@@ -201,13 +204,22 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       statut: 'Appliquée',
       dateApplication: new Date().toISOString().split('T')[0],
     };
-    onUpdatePenalty(updated);
+    if (await onUpdatePenalty(updated)) {
+      setServerPenalties((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      );
+    }
   };
 
-  const handleDeletePenalty = (penalty: Penalty) => {
+  const handleDeletePenalty = async (penalty: Penalty) => {
     if (!canManage) return;
     if (window.confirm(`Supprimer la pénalité de ${penalty.locataireNom} ?`)) {
-      onDeletePenalty(penalty.id);
+      if (await onDeletePenalty(penalty.id)) {
+        setServerPenalties((prev) =>
+          prev.filter((item) => item.id !== penalty.id),
+        );
+        setServerTotal((prev) => Math.max(0, prev - 1));
+      }
     }
   };
 

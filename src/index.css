@@ -1772,3 +1772,40 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     margin: 6mm;
   }
 }
+
+@media print {
+  body:has(.invoice-print-modal) #root {
+    display: none !important;
+  }
+
+  .invoice-print-modal {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+  }
+
+  .invoice-print-container.print-container {
+    display: block !important;
+    position: static !important;
+    width: 190mm !important;
+    max-width: 190mm !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+}

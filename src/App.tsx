@@ -164,11 +164,44 @@ import {
   saveBulletinVersementToDb,
   saveArchiveToDb,
   saveActivityLogToDb,
+  fetchAgencyActivityLogs,
   savePenaltyToDb,
   saveOwnerChargeToDb,
   deletePenaltyFromDb,
   deleteOwnerChargeFromDb,
 } from "./lib/supabase/service";
+
+function mergeActivityLogs(
+  localLogs: ActivityLog[],
+  fetchedLogs: ActivityLog[],
+): ActivityLog[] {
+  const sorted = [...localLogs, ...fetchedLogs].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || ""),
+  );
+  const merged: ActivityLog[] = [];
+  const recentByKey = new Map<string, number[]>();
+  for (const activity of sorted) {
+    const timestamp = new Date(activity.createdAt).getTime();
+    const key = JSON.stringify([
+      activity.title,
+      activity.userNom,
+      activity.entityRef,
+      activity.description,
+    ]);
+    const recent = recentByKey.get(key) || [];
+    const duplicate =
+      Number.isFinite(timestamp) &&
+      recent.some((previous) => Math.abs(timestamp - previous) <= 5000);
+    if (!duplicate) merged.push(activity);
+    if (Number.isFinite(timestamp) && !duplicate) {
+      recentByKey.set(
+        key,
+        [...recent.filter((previous) => previous - timestamp <= 5000), timestamp],
+      );
+    }
+  }
+  return merged;
+}
 
 // Force le nettoyage du cache si la version change
 const APP_VERSION = "3.0.8";
@@ -238,6 +271,10 @@ export default function App() {
   >([]);
   const [archives, setArchives] = useState<ArchiveRecord[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [activityLogsLoading, setActivityLogsLoading] = useState(false);
+  const [activityLogsError, setActivityLogsError] = useState<string | null>(
+    null,
+  );
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>([]);
 
@@ -513,6 +550,46 @@ export default function App() {
       (window as any)[loadingKey] = false;
     };
   }, [currentUser?.agencyId, currentUser?.id]);
+
+  // Charger les actions à la demande pour les vues journal et archives.
+  useEffect(() => {
+    if (
+      (activeTab !== "activity-logs" && activeTab !== "archives") ||
+      !currentUser?.agencyId
+    )
+      return;
+
+    let cancelled = false;
+    setActivityLogsLoading(true);
+    setActivityLogsError(null);
+    fetchAgencyActivityLogs(currentUser.agencyId)
+      .then((activities) => {
+        if (cancelled) return;
+        setActivityLogs((previous) => {
+          const merged = mergeActivityLogs(previous, activities);
+          persistCollection("activity_logs", merged);
+          return merged;
+        });
+      })
+      .catch((error) => {
+        console.error("Erreur de chargement du journal d'activité:", error);
+        if (!cancelled) {
+          setActivityLogsError(
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger le journal d'activité.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setActivityLogsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, currentUser?.agencyId]);
+
   const handleSignOut = async () => {
     await signOutSession();
     try {
@@ -547,6 +624,26 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+    const activityDate = newLog.createdAt.slice(0, 10);
+    const activityHour = newLog.createdAt.slice(11, 19);
+    const activity: ActivityLog = {
+      id: `audit-${newLog.id}`,
+      agencyId: currentUser?.agencyId || "",
+      userNom: userLabel,
+      activityType: "OTHER",
+      entityType: module,
+      entityRef: entityRef,
+      title: action,
+      description: details,
+      activityDate,
+      activityHour,
+      createdAt: newLog.createdAt,
+    };
+    setActivityLogs((prev) => {
+      const next = [activity, ...prev];
+      persistCollection("activity_logs", next);
+      return next;
+    });
     logSystemAudit(newLog, currentUser?.agencyId);
   };
 
@@ -714,40 +811,93 @@ export default function App() {
   // ============================================================
   // HANDLERS : PENALTIES
   // ============================================================
-  const handleAddOwnerCharge = (charge: any) => {
+  const handleAddOwnerCharge = (charge: OwnerCharge) => {
     setOwnerCharges((prev) => [charge, ...prev]);
     if (currentUser?.agencyId) {
       saveOwnerChargeToDb(charge, currentUser.agencyId).catch(console.warn);
     }
+    handleTriggerAuditLog(
+      "OWNER_CHARGE_CREATED",
+      "Charges propriétaire",
+      `${charge.libelle} — ${formatNumber(charge.montant)} FCFA`,
+      charge.referenceDocument || charge.id,
+    );
   };
 
   const handleDeleteOwnerCharge = (chargeId: string) => {
+    const charge = ownerCharges.find((item) => item.id === chargeId);
     setOwnerCharges((prev) => prev.filter((c) => c.id !== chargeId));
     deleteOwnerChargeFromDb(chargeId).catch(console.warn);
+    handleTriggerAuditLog(
+      "OWNER_CHARGE_DELETED",
+      "Charges propriétaire",
+      `Suppression de la charge ${charge?.libelle || chargeId}`,
+      charge?.referenceDocument || chargeId,
+    );
   };
-  const handleAddPenalty = (penalty: Penalty) => {
+  const handleAddPenalty = async (penalty: Penalty): Promise<boolean> => {
+    if (currentUser?.agencyId) {
+      const result = await savePenaltyToDb(penalty, currentUser.agencyId);
+      if (!result.success) {
+        alert(`Échec de l'enregistrement de la pénalité : ${result.error}`);
+        return false;
+      }
+    }
     setPenalties((prev) => {
       const next = [penalty, ...prev];
       persistCollection("penalties", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      savePenaltyToDb(penalty, currentUser.agencyId).catch(console.warn);
+    handleTriggerAuditLog(
+      "PENALTY_CREATED",
+      "Pénalités",
+      `${penalty.locataireNom} — ${formatNumber(penalty.montantPenalite)} FCFA (${penalty.periode})`,
+      penalty.id,
+    );
+    return true;
   };
-  const handleDeletePenalty = (penaltyId: string) => {
+  const handleDeletePenalty = async (penaltyId: string): Promise<boolean> => {
+    const penalty = penalties.find((item) => item.id === penaltyId);
+    const result = await deletePenaltyFromDb(penaltyId);
+    if (!result.success) {
+      alert(`Échec de la suppression de la pénalité : ${result.error}`);
+      return false;
+    }
     setPenalties((prev) => {
       const next = prev.filter((p) => p.id !== penaltyId);
       persistCollection("penalties", next);
       return next;
     });
-    deletePenaltyFromDb(penaltyId).catch(console.warn);
+    handleTriggerAuditLog(
+      "PENALTY_DELETED",
+      "Pénalités",
+      `Suppression de la pénalité de ${penalty?.locataireNom || penaltyId}`,
+      penaltyId,
+    );
+    return true;
   };
-  const handleUpdatePenalty = (penalty: Penalty) => {
+  const handleUpdatePenalty = async (penalty: Penalty): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible d'appliquer la pénalité : agence non identifiée.");
+      return false;
+    }
+    const result = await savePenaltyToDb(penalty, currentUser.agencyId);
+    if (!result.success) {
+      alert(`Échec de la mise à jour de la pénalité : ${result.error}`);
+      return false;
+    }
     setPenalties((prev) => {
       const next = prev.map((p) => (p.id === penalty.id ? penalty : p));
       persistCollection("penalties", next);
       return next;
     });
+    handleTriggerAuditLog(
+      "PENALTY_APPLIED",
+      "Pénalités",
+      `${penalty.locataireNom} — ${formatNumber(penalty.montantPenalite)} FCFA`,
+      penalty.id,
+    );
+    return true;
   };
 
   // ============================================================
@@ -770,7 +920,14 @@ export default function App() {
       return next;
     });
     if (currentUser?.agencyId) {
-      saveActivityLogToDb(activity, currentUser.agencyId).catch(console.warn);
+      saveActivityLogToDb(activity, currentUser.agencyId).then((result) => {
+        if (!result.success) {
+          console.error(
+            "Échec de l'enregistrement de l'activité:",
+            result.error,
+          );
+        }
+      });
     }
   };
 
@@ -1669,6 +1826,12 @@ export default function App() {
     });
     if (currentUser?.agencyId)
       saveReminderToDb(newReminder, currentUser.agencyId).catch(console.warn);
+    handleTriggerAuditLog(
+      "REMINDER_SENT",
+      "Relances",
+      `${newReminder.canal} — ${newReminder.locataireNom} — ${formatNumber(newReminder.montantDu)} FCFA`,
+      newReminder.id,
+    );
   };
 
   const handleAddInspection = (newInspection: Inspection) => {
@@ -1741,7 +1904,7 @@ export default function App() {
         console.warn,
       );
   };
-  const handleAddInvoice = (newInvoice: Invoice) => {
+  const handleAddInvoice = async (newInvoice: Invoice): Promise<void> => {
     const enrichedInvoice: Invoice = {
       ...newInvoice,
       createdById: newInvoice.createdById || currentUser?.id,
@@ -1750,15 +1913,87 @@ export default function App() {
         (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newInvoice.createdByRole || currentUser?.role,
     };
+    let invoiceToUse = enrichedInvoice;
+    if (currentUser?.agencyId) {
+      const result = await saveInvoiceToDb(enrichedInvoice, currentUser.agencyId);
+      if (!result.success) {
+        throw new Error(result.error || "Impossible d'enregistrer la facture.");
+      }
+      invoiceToUse = result.data || enrichedInvoice;
+    }
+
     setInvoices((prev) => {
-      const next = [enrichedInvoice, ...prev];
+      const next = [invoiceToUse, ...prev];
       persistCollection("invoices", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      saveInvoiceToDb(enrichedInvoice, currentUser.agencyId).catch(
-        console.warn,
-      );
+    handleTriggerAuditLog(
+      "INVOICE_CREATED",
+      "Factures",
+      `${invoiceToUse.ref} — ${invoiceToUse.type} — ${formatNumber(invoiceToUse.total)} FCFA`,
+      invoiceToUse.ref,
+    );
+
+    // 🆕 Si c'est une facture de travaux décaissée sur le propriétaire,
+    //     créer aussi une charge propriétaire + un décaissement
+    if (
+      newInvoice.type === "Travaux" &&
+      newInvoice.decaisserSurProprietaire !== false &&
+      newInvoice.proprietaireId &&
+      currentUser?.agencyId
+    ) {
+      // 1. Charge propriétaire
+      const newCharge: OwnerCharge = {
+        id: crypto.randomUUID(),
+        agencyId: currentUser.agencyId,
+        proprietaireId: newInvoice.proprietaireId,
+        proprietaireNom: newInvoice.proprietaireNom,
+        periode: selectedPeriod,
+        typeCharge: "TRAVAUX",
+        libelle: `Travaux ${newInvoice.natureTravaux || "entretien"} - ${newInvoice.bienNom}`,
+        montant: newInvoice.total,
+        referenceDocument: newInvoice.ref,
+        dateCharge:
+          newInvoice.dateFacture || new Date().toISOString().split("T")[0],
+        statut: "Validé",
+        notes: newInvoice.notes || "",
+      };
+      setOwnerCharges((prev) => {
+        const next = [newCharge, ...prev];
+        persistCollection("owner_charges", next);
+        return next;
+      });
+      saveOwnerChargeToDb(newCharge, currentUser.agencyId).catch(console.warn);
+
+      // 2. Décaissement
+      const newDisb: OwnerDisbursement = {
+        id: crypto.randomUUID(),
+        ref: `REV-${Date.now()}`,
+        proprietaireId: newInvoice.proprietaireId,
+        proprietaireNom: newInvoice.proprietaireNom || "",
+        periode: selectedPeriod,
+        loyersBruts: 0,
+        montantBrut: 0,
+        tauxCommission: 0,
+        commissionAgence: 0,
+        chargesDeduites: newInvoice.total,
+        montantNetPaye: -newInvoice.total,
+        montantNet: -newInvoice.total,
+        statut: "Effectué",
+        modeReglement: "Déduction bulletin",
+        dateReglement:
+          newInvoice.dateFacture || new Date().toISOString().split("T")[0],
+        createdById: currentUser.id,
+        createdByNom: `${currentUser.prenom} ${currentUser.nom}`,
+        createdByRole: currentUser.role,
+      };
+      setDisbursements((prev) => {
+        const next = [newDisb, ...prev];
+        persistCollection("disbursements", next);
+        return next;
+      });
+      saveDisbursementToDb(newDisb, currentUser.agencyId).catch(console.warn);
+    }
   };
   const handleSaveSettings = async (
     newSettings: AgencySettings,
@@ -2322,6 +2557,17 @@ export default function App() {
                 maintenance={maintenance}
                 invoices={invoices}
                 bulletins={bulletinsVersements}
+                ownerCharges={ownerCharges}
+                archives={archives}
+                activities={activityLogs}
+                activityLoading={activityLogsLoading}
+                activityError={activityLogsError}
+                penalties={penalties}
+                reminders={reminders}
+                cashMovements={cashMovements}
+                cashClosings={cashClosings}
+                cashVouchers={cashVouchers}
+                ownerDeductions={ownerDeductions}
               />
             </ViewLoader>
           )}
@@ -2331,6 +2577,8 @@ export default function App() {
               <LazyActivityLogView
                 activities={activityLogs}
                 currentUser={currentUser}
+                loading={activityLogsLoading}
+                error={activityLogsError}
               />
             </ViewLoader>
           )}

@@ -34,6 +34,7 @@ import { QuickCommsModal } from './QuickCommsModal';
 import { MobileMoneyPaymentModal } from './MobileMoneyPaymentModal';
 import { createDocumentNumber } from '../lib/documentNumber';
 import { createPendingMobilePayment } from '../lib/payments/createPendingMobilePayment';
+import { normalizePaymentPeriod } from '../lib/payments/period';
 
 interface RecoveryTrackerViewProps {
   properties: Property[];
@@ -69,7 +70,6 @@ export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
   const [selectedTenantForPayment, setSelectedTenantForPayment] = useState<Tenant | null>(null);
 
   // Map each tenant with their property, owner, and payment status for this period
-  const normalizePeriod = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
   const recoveryRows = tenants.map((tenant) => {
     const property = properties.find((p) => p.id === tenant.bienId);
     const owner = owners.find((o) => o.id === (property?.proprietaireId || tenant.proprietaireId));
@@ -77,7 +77,8 @@ export const RecoveryTrackerView: React.FC<RecoveryTrackerViewProps> = ({
     const periodPayments = payments.filter((p) => {
       if (p.locataireId !== tenant.id) return false;
       if (p.statut !== "Payé" && p.statut !== "Partiel") return false;
-      return normalizePeriod(p.periode) === normalizePeriod(selectedPeriod);
+      if (p.verificationStatut === "rejete" || p.verificationStatut === "en_attente") return false;
+      return normalizePaymentPeriod(p.periodeNormalisee || p.periode) === normalizePaymentPeriod(selectedPeriod);
     });
     const payment = periodPayments[0];
 

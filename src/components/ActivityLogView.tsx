@@ -24,6 +24,8 @@ import { formatCurrency, formatNumber, formatDate } from "../lib/utils";
 interface ActivityLogViewProps {
   activities: ActivityLog[];
   currentUser?: UserAccount;
+  loading?: boolean;
+  error?: string | null;
 }
 
 const ACTIVITY_CONFIG: Record<
@@ -95,6 +97,8 @@ const ACTIVITY_CONFIG: Record<
 export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
   activities,
   currentUser,
+  loading = false,
+  error = null,
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0],
@@ -103,7 +107,7 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateRangeMode, setDateRangeMode] = useState<
     "day" | "week" | "month" | "all"
-  >("day");
+  >("all");
   const [selectedActivity, setSelectedActivity] = useState<ActivityLog | null>(
     null,
   );
@@ -225,6 +229,19 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-200"
+        >
+          {error}
+        </div>
+      )}
+      {loading && (
+        <p role="status" className="text-xs text-[#A8B4C4]">
+          Chargement du journal d'activité...
+        </p>
+      )}
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-xl">
         <div className="flex items-center gap-3">
