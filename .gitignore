@@ -109,3 +109,5 @@ etat_*.ps1
 *.bak8
 *.bak9
 *.bak10
+
+supabase/.temp/
