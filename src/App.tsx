@@ -165,43 +165,12 @@ import {
   saveArchiveToDb,
   saveActivityLogToDb,
   fetchAgencyActivityLogs,
+  fetchAgencyArchiveData,
   savePenaltyToDb,
   saveOwnerChargeToDb,
   deletePenaltyFromDb,
   deleteOwnerChargeFromDb,
 } from "./lib/supabase/service";
-
-function mergeActivityLogs(
-  localLogs: ActivityLog[],
-  fetchedLogs: ActivityLog[],
-): ActivityLog[] {
-  const sorted = [...localLogs, ...fetchedLogs].sort((a, b) =>
-    (b.createdAt || "").localeCompare(a.createdAt || ""),
-  );
-  const merged: ActivityLog[] = [];
-  const recentByKey = new Map<string, number[]>();
-  for (const activity of sorted) {
-    const timestamp = new Date(activity.createdAt).getTime();
-    const key = JSON.stringify([
-      activity.title,
-      activity.userNom,
-      activity.entityRef,
-      activity.description,
-    ]);
-    const recent = recentByKey.get(key) || [];
-    const duplicate =
-      Number.isFinite(timestamp) &&
-      recent.some((previous) => Math.abs(timestamp - previous) <= 5000);
-    if (!duplicate) merged.push(activity);
-    if (Number.isFinite(timestamp) && !duplicate) {
-      recentByKey.set(
-        key,
-        [...recent.filter((previous) => previous - timestamp <= 5000), timestamp],
-      );
-    }
-  }
-  return merged;
-}
 
 // Force le nettoyage du cache si la version change
 const APP_VERSION = "3.0.8";
@@ -566,27 +535,52 @@ export default function App() {
       return;
 
     let cancelled = false;
+    setActivityLogs([]);
     setActivityLogsLoading(true);
     setActivityLogsError(null);
-    fetchAgencyActivityLogs(currentUser.agencyId)
-      .then((activities) => {
+    const loadRecords = async () => {
+      if (activeTab === "archives") {
+        const data = await fetchAgencyArchiveData(currentUser.agencyId);
         if (cancelled) return;
-        setActivityLogs((previous) => {
-          const merged = mergeActivityLogs(previous, activities);
-          persistCollection("activity_logs", merged);
-          return merged;
-        });
-      })
-      .catch((error) => {
-        console.error("Erreur de chargement du journal d'activité:", error);
-        if (!cancelled) {
-          setActivityLogsError(
-            error instanceof Error
-              ? error.message
-              : "Impossible de charger le journal d'activité.",
-          );
-        }
-      })
+        setTenants(data.tenants);
+        setOwners(data.owners);
+        setProperties(data.properties);
+        setBuildings(data.buildings);
+        setUnits(data.units);
+        setContracts(data.contracts);
+        setPayments(data.payments);
+        setDisbursements(data.disbursements);
+        setInspections(data.inspections);
+        setMaintenance(data.maintenance);
+        setInvoices(data.invoices);
+        setBulletinsVersements(data.bulletinVersements);
+        setOwnerCharges(data.ownerCharges);
+        setOwnerDeductions(data.ownerDeductions);
+        setArchives(data.archives);
+        setActivityLogs(data.activityLogs);
+        setPenalties(data.penalties);
+        setReminders(data.reminders);
+        setCashMovements(data.cashMovements);
+        setCashClosings(data.cashClosings);
+        setCashVouchers(data.cashVouchers);
+        return;
+      }
+      const activities = await fetchAgencyActivityLogs(currentUser.agencyId);
+      if (cancelled) return;
+      setActivityLogs(activities);
+    };
+
+    loadRecords().catch((error: unknown) => {
+      console.error("Erreur de chargement du journal ou des archives:", error);
+      if (!cancelled) {
+        if (activeTab === "activity-logs") setActivityLogs([]);
+        setActivityLogsError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger les données distantes.",
+        );
+      }
+    })
       .finally(() => {
         if (!cancelled) setActivityLogsLoading(false);
       });
@@ -645,12 +639,43 @@ export default function App() {
       activityHour,
       createdAt: newLog.createdAt,
     };
-    setActivityLogs((prev) => {
-      const next = [activity, ...prev];
-      persistCollection("activity_logs", next);
-      return next;
+    if (!currentUser?.agencyId) {
+      setActivityLogsError(
+        "Impossible d'enregistrer l'activité : agence de l'utilisateur introuvable.",
+      );
+      return;
+    }
+    setActivityLogsError(null);
+    void saveActivityLogToDb(activity, currentUser.agencyId).then(
+      (activityResult) => {
+        const savedActivity = activityResult.data;
+        if (!activityResult.success || !savedActivity) {
+          throw new Error(
+            activityResult.error ||
+              "L'activité n'a pas été enregistrée dans Supabase.",
+          );
+        }
+        setActivityLogs((previous) => [
+          savedActivity,
+          ...previous.filter((entry) => entry.id !== savedActivity.id),
+        ]);
+      },
+    ).catch((error: unknown) => {
+      console.error("Erreur d'enregistrement du journal d'activité:", error);
+      setActivityLogsError(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer l'activité dans Supabase.",
+      );
     });
-    logSystemAudit(newLog, currentUser?.agencyId);
+    void logSystemAudit(newLog, currentUser.agencyId).catch((error: unknown) => {
+      console.error("Erreur d'enregistrement de l'audit:", error);
+      setActivityLogsError(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer l'audit de cette action.",
+      );
+    });
   };
 
   const checkAccessPermission = (
@@ -920,21 +945,33 @@ export default function App() {
   };
   const handleLogActivity = (activity: ActivityLog) => {
     console.log("handleLogActivity REÇU:", activity.title);
-    setActivityLogs((prev) => {
-      const next = [activity, ...prev];
-      persistCollection("activity_logs", next);
-      return next;
-    });
-    if (currentUser?.agencyId) {
-      saveActivityLogToDb(activity, currentUser.agencyId).then((result) => {
-        if (!result.success) {
-          console.error(
-            "Échec de l'enregistrement de l'activité:",
-            result.error,
-          );
-        }
-      });
+    if (!currentUser?.agencyId) {
+      setActivityLogsError(
+        "Impossible d'enregistrer l'activité : agence de l'utilisateur introuvable.",
+      );
+      return;
     }
+    setActivityLogsError(null);
+    void saveActivityLogToDb(activity, currentUser.agencyId).then((result) => {
+      const savedActivity = result.data;
+      if (!result.success || !savedActivity) {
+        throw new Error(
+          result.error || "L'activité n'a pas été enregistrée dans Supabase.",
+        );
+      }
+      setActivityLogs((previous) => [
+        savedActivity,
+        ...previous.filter((entry) => entry.id !== savedActivity.id),
+      ]);
+      setActivityLogsError(null);
+    }).catch((error: unknown) => {
+      console.error("Échec de l'enregistrement de l'activité:", error);
+      setActivityLogsError(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer l'activité dans Supabase.",
+      );
+    });
   };
 
   // ============================================================

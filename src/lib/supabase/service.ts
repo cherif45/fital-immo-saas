@@ -68,6 +68,31 @@ export interface AppStateData {
   ownerCharges?: OwnerCharge[];
 }
 
+export type AgencyArchiveData = Pick<
+  AppStateData,
+  | "tenants"
+  | "owners"
+  | "properties"
+  | "buildings"
+  | "units"
+  | "contracts"
+  | "payments"
+  | "disbursements"
+  | "inspections"
+  | "maintenance"
+  | "invoices"
+  | "bulletinVersements"
+  | "ownerCharges"
+  | "ownerDeductions"
+  | "archives"
+  | "activityLogs"
+  | "penalties"
+  | "reminders"
+  | "cashMovements"
+  | "cashClosings"
+  | "cashVouchers"
+>;
+
 export const defaultSettings: AgencySettings = {
   nomAgence: "FITAL-IMMO",
   slogan: "Gestion Immobili??re, Syndic & Recouvrement",
@@ -1136,10 +1161,6 @@ export async function loadFullApplicationData(
     [],
   );
   const localArchives = loadLocalCollection<ArchiveRecord[]>("archives", []);
-  const localActivityLogs = loadLocalCollection<ActivityLog[]>(
-    "activity_logs",
-    [],
-  );
   const localPenalties = loadLocalCollection<Penalty[]>("penalties", []);
   const localOwnerCharges = loadLocalCollection<OwnerCharge[]>(
     "owner_charges",
@@ -1171,7 +1192,7 @@ export async function loadFullApplicationData(
     ownerDeductions: localOwnerDeductions,
     bulletinVersements: localBulletinVersements,
     archives: localArchives,
-    activityLogs: localActivityLogs,
+    activityLogs: [],
     penalties: localPenalties,
     ownerCharges: localOwnerCharges,
   };
@@ -1552,7 +1573,6 @@ export async function loadFullApplicationData(
       activitiesRes.value.data.length > 0
     ) {
       state.activityLogs = activitiesRes.value.data.map(mapActivityLogFromDb);
-      persistCollection("activity_logs", state.activityLogs);
     }
     if (
       penaltiesRes.status === "fulfilled" &&
@@ -1694,7 +1714,9 @@ export async function logSystemAudit(
   log: Partial<AuditLog>,
   agencyId?: string,
 ): Promise<void> {
-  if (!isSupabaseConfigured || !supabase || !agencyId) return;
+  if (!isSupabaseConfigured || !supabase || !agencyId) {
+    throw new Error("Supabase ou agence non configuré pour le journal d'activité.");
+  }
 
   const userNom = log.userNom || log.utilisateur || "Syst?me";
   const module = log.module || log.entite || "SYST?ME";
@@ -1703,65 +1725,19 @@ export async function logSystemAudit(
   const details = log.details || "";
   const action = log.action || "ACTION";
 
-  const today = new Date().toISOString().split("T")[0];
-  const now = new Date().toISOString();
-
-  // 1. Ecrire dans audit_logs
-  try {
-    await supabase.from("audit_logs").insert([
-      {
-        agency_id: agencyId,
-        user_nom: userNom,
-        action: action,
-        module: module,
-        entity_type: entityType,
-        entity_ref: entityRef,
-        details: details,
-      },
-    ]);
-  } catch (e) {
-    console.warn("Erreur insertion audit_logs:", e);
-  }
-
-  // 2. Ecrire dans activity_logs (pour le Journal d'Activite)
-  try {
-    // Mapper l'action vers un activity_type
-    const getActivityType = (act: string): string => {
-      if (act.includes("PAYMENT") || act.includes("Paiement")) return "PAYMENT";
-      if (act.includes("TENANT_CREATED") || act.includes("Nouveau locataire"))
-        return "TENANT_CREATED";
-      if (act.includes("TENANT_EXIT") || act.includes("Sortie"))
-        return "TENANT_EXIT";
-      if (act.includes("CONTRACT") || act.includes("Contrat"))
-        return "CONTRACT";
-      if (act.includes("MAINTENANCE") || act.includes("Travaux"))
-        return "MAINTENANCE";
-      if (act.includes("INSPECTION") || act.includes("Etat des lieux"))
-        return "INSPECTION";
-      if (act.includes("DISBURSEMENT") || act.includes("Reversement"))
-        return "DISBURSEMENT";
-      if (act.includes("CASH") || act.includes("Caisse"))
-        return "CASH_MOVEMENT";
-      if (act.includes("REMINDER") || act.includes("Relance"))
-        return "REMINDER";
-      return "OTHER";
-    };
-
-    await supabase.from("activity_logs").insert([
-      {
-        agency_id: agencyId,
-        user_nom: userNom,
-        activity_type: getActivityType(action),
-        entity_type: entityType,
-        entity_ref: entityRef,
-        title: action,
-        description: details,
-        activity_date: today,
-        activity_hour: now.split("T")[1].substring(0, 8),
-      },
-    ]);
-  } catch (e) {
-    console.warn("Erreur insertion activity_logs:", e);
+  const { error } = await supabase.from("audit_logs").insert([
+    {
+      agency_id: agencyId,
+      user_nom: userNom,
+      action,
+      module,
+      entity_type: entityType,
+      entity_ref: entityRef,
+      details,
+    },
+  ]);
+  if (error) {
+    throw new Error(`Impossible d'enregistrer l'audit : ${error.message}`);
   }
 }
 
@@ -2200,7 +2176,10 @@ export async function saveActivityLogToDb(
   agencyId: string,
 ): Promise<{ success: boolean; data?: ActivityLog; error?: string }> {
   if (!isSupabaseConfigured || !supabase)
-    return { success: true, data: activity as ActivityLog };
+    return {
+      success: false,
+      error: "Supabase n'est pas configuré : l'activité n'a pas été enregistrée.",
+    };
   try {
     const record = {
       agency_id: agencyId,
@@ -2254,10 +2233,94 @@ export async function fetchActivitiesByDate(
   }
 }
 
+async function migrateLocalActivityLogsToDb(agencyId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  const cacheKey = "fital_immo_activity_logs";
+  const raw = window.localStorage.getItem(cacheKey);
+  if (!raw) return;
+
+  const cached: unknown = JSON.parse(raw);
+  if (!Array.isArray(cached)) {
+    throw new Error("Le cache local du journal d'activité est invalide.");
+  }
+
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const agencyLogs = cached.filter(
+    (entry): entry is Record<string, unknown> =>
+      typeof entry === "object" &&
+      entry !== null &&
+      (entry.agencyId === agencyId || entry.agency_id === agencyId) &&
+      typeof entry.id === "string" &&
+      uuidPattern.test(entry.id) &&
+      typeof (entry.title) === "string" &&
+      typeof (entry.activityType ?? entry.activity_type) === "string",
+  );
+  if (agencyLogs.length === 0) return;
+
+  const rows = agencyLogs.map((entry) => {
+    const createdAt =
+      (typeof entry.createdAt === "string" && entry.createdAt) ||
+      (typeof entry.created_at === "string" && entry.created_at) ||
+      new Date().toISOString();
+    const activityDate =
+      (typeof entry.activityDate === "string" && entry.activityDate) ||
+      (typeof entry.activity_date === "string" && entry.activity_date) ||
+      createdAt.slice(0, 10);
+
+    return {
+      id: entry.id,
+      agency_id: agencyId,
+      user_id: entry.userId ?? entry.user_id ?? null,
+      user_nom: entry.userNom ?? entry.user_nom ?? null,
+      activity_type: entry.activityType ?? entry.activity_type,
+      entity_type: entry.entityType ?? entry.entity_type ?? null,
+      entity_id: entry.entityId ?? entry.entity_id ?? null,
+      entity_ref: entry.entityRef ?? entry.entity_ref ?? null,
+      title: entry.title,
+      description: entry.description ?? null,
+      montant: entry.montant ?? null,
+      activity_date: activityDate,
+      activity_hour:
+        entry.activityHour ??
+        entry.activity_hour ??
+        createdAt.slice(11, 19),
+      metadata: entry.metadata ?? {},
+      created_at: createdAt,
+    };
+  });
+  const { error } = await supabase!
+    .from("activity_logs")
+    .upsert(rows, { onConflict: "id", ignoreDuplicates: true });
+  if (error) {
+    throw new Error(
+      `Impossible de transférer les anciennes activités vers Supabase : ${error.message}`,
+    );
+  }
+
+  const migratedIds = new Set(agencyLogs.map((entry) => entry.id));
+  const remaining = cached.filter(
+    (entry) =>
+      typeof entry !== "object" ||
+      entry === null ||
+      !migratedIds.has((entry as Record<string, unknown>).id as string),
+  );
+  if (remaining.length > 0) {
+    window.localStorage.setItem(cacheKey, JSON.stringify(remaining));
+  } else {
+    window.localStorage.removeItem(cacheKey);
+  }
+}
+
 export async function fetchAgencyActivityLogs(
   agencyId: string,
 ): Promise<ActivityLog[]> {
-  if (!isSupabaseConfigured || !supabase) return [];
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error(
+      "Supabase n'est pas configuré : le journal d'activité distant est indisponible.",
+    );
+  }
+  await migrateLocalActivityLogsToDb(agencyId);
   const [activitiesResult, auditResult] = await Promise.all([
     fetchAllRows("activity_logs", agencyId, (query) =>
       query.order("created_at", { ascending: false }),
@@ -2267,9 +2330,18 @@ export async function fetchAgencyActivityLogs(
     ),
   ]);
 
-  if (activitiesResult.error && auditResult.error) {
+  if (activitiesResult.error || auditResult.error) {
     throw new Error(
-      `Impossible de charger le journal d'activité : ${activitiesResult.error.message}; ${auditResult.error.message}`,
+      [
+        activitiesResult.error
+          ? `activity_logs : ${activitiesResult.error.message}`
+          : null,
+        auditResult.error
+          ? `audit_logs : ${auditResult.error.message}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" — "),
     );
   }
   const activities = activitiesResult.data.map(mapActivityLogFromDb);
@@ -2325,6 +2397,112 @@ export async function fetchAgencyActivityLogs(
     }
   }
   return unique;
+}
+
+export async function fetchAgencyArchiveData(
+  agencyId: string,
+): Promise<AgencyArchiveData> {
+  const fetchMapped = async <T>(
+    table: string,
+    mapper: (row: any) => T,
+    orderBy = "created_at",
+  ): Promise<T[]> => {
+    const result = await fetchAllRows(table, agencyId, (query) =>
+      query.order(orderBy, { ascending: false }),
+    );
+    if (result.error) {
+      throw new Error(
+        `Impossible de charger ${table} pour les archives : ${result.error.message}`,
+      );
+    }
+    return result.data.map(mapper);
+  };
+
+  const [
+    tenants,
+    owners,
+    properties,
+    buildings,
+    units,
+    contracts,
+    payments,
+    disbursements,
+    inspections,
+    maintenance,
+    invoices,
+    bulletinVersements,
+    ownerCharges,
+    ownerDeductions,
+    archives,
+    activityLogs,
+    penalties,
+    reminders,
+    cashMovements,
+    cashClosings,
+    cashVoucherRows,
+  ] = await Promise.all([
+    fetchMapped("tenants", mapTenantFromDb),
+    fetchMapped("owners", mapOwnerFromDb),
+    fetchMapped("properties", mapPropertyFromDb),
+    fetchMapped("buildings", mapBuildingFromDb),
+    fetchMapped("units", mapUnitFromDb),
+    fetchMapped("contracts", mapContractFromDb),
+    fetchMapped("payments", mapPaymentFromDb),
+    fetchMapped("disbursements", mapDisbursementFromDb),
+    fetchMapped("property_inspections", mapInspectionFromDb),
+    fetchMapped("maintenance_tickets", mapMaintenanceFromDb),
+    fetchMapped("invoices", mapInvoiceFromDb),
+    fetchMapped("bulletin_versements", mapBulletinVersementFromDb),
+    fetchMapped("owner_charges", mapOwnerChargeFromDb),
+    fetchMapped("owner_deductions", mapOwnerDeductionFromDb),
+    fetchMapped("archives", mapArchiveFromDb, "archived_at"),
+    fetchAgencyActivityLogs(agencyId),
+    fetchMapped("penalties", mapPenaltyFromDb),
+    fetchMapped("tenant_reminders", mapReminderFromDb, "date_creation"),
+    fetchMapped("cash_movements", mapCashMovementFromDb),
+    fetchMapped("cash_closings", mapCashClosingFromDb),
+    fetchMapped("cash_vouchers", (row): CashVoucher => ({
+      id: row.id,
+      ref: row.numero || row.id,
+      numero: row.numero,
+      proprietaireId: row.proprietaire_id || "",
+      proprietaireNom: row.proprietaire_nom || "",
+      loyersBruts: Number(row.loyers_encaisses ?? 0),
+      loyersEncaisses: Number(row.loyers_encaisses ?? 0),
+      commission: Number(row.commissions ?? 0),
+      commissions: Number(row.commissions ?? 0),
+      travaux: Number(row.travaux ?? 0),
+      montantNet: Number(row.montant_net ?? 0),
+      periode: row.periode || "",
+      dateEmission: row.date_emission || row.created_at || "",
+      statut: row.statut || "",
+      modeReglement: row.mode_reversement || "",
+    })),
+  ]);
+
+  return {
+    tenants,
+    owners,
+    properties,
+    buildings,
+    units,
+    contracts,
+    payments,
+    disbursements,
+    inspections,
+    maintenance,
+    invoices,
+    bulletinVersements,
+    ownerCharges,
+    ownerDeductions,
+    archives,
+    activityLogs,
+    penalties,
+    reminders,
+    cashMovements,
+    cashClosings,
+    cashVouchers: cashVoucherRows,
+  };
 }
 
 export async function fetchActivitiesByEntity(

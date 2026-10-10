@@ -925,7 +925,7 @@ CREATE POLICY "cash_close_policy" ON public.cash_closings
 
 CREATE POLICY "audit_logs_select_policy" ON public.audit_logs
     FOR SELECT TO authenticated
-    USING (agency_id = public.get_user_agency_id() AND public.get_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE'));
+    USING (agency_id = public.get_user_agency_id());
 
 CREATE POLICY "audit_logs_insert_policy" ON public.audit_logs
     FOR INSERT TO authenticated
@@ -933,10 +933,7 @@ CREATE POLICY "audit_logs_insert_policy" ON public.audit_logs
 
 CREATE POLICY "activity_logs_select_policy" ON public.activity_logs
     FOR SELECT TO authenticated
-    USING (
-        agency_id = public.get_user_agency_id()
-        AND public.get_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'GESTIONNAIRE')
-    );
+    USING (agency_id = public.get_user_agency_id());
 
 CREATE POLICY "activity_logs_insert_policy" ON public.activity_logs
     FOR INSERT TO authenticated
