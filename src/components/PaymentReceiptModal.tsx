@@ -4,6 +4,7 @@ import { Payment, AgencySettings, ReceiptType, Unit, Building } from "../types";
 import { formatNumber, formatDate } from "../lib/utils";
 import { UserSignatureBlock } from "./UserSignatureBlock";
 import { PrintHeader, PrintFooter } from "./PrintHeader";
+import { printElementById } from "../lib/printDocument";
 import { createDocumentNumber } from "../lib/documentNumber";
 
 interface PaymentReceiptModalProps {
@@ -173,6 +174,7 @@ function getPeriodeDates(periode: string): { debut: string; fin: string } {
 // Helper : Rendu d'une COPIE complète (utilisé 2x)
 // ============================================================
 interface QuittanceCopyProps {
+  copyId?: string;
   copyLabel: string;
   titre: string;
   settings?: AgencySettings | null;
@@ -196,6 +198,7 @@ interface QuittanceCopyProps {
 }
 
 const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
+  copyId,
   copyLabel,
   titre,
   settings,
@@ -212,13 +215,13 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
   referenceCaissier,
   currentUser,
 }) => (
-  <div className="quittance-copy">
+  <div className="quittance-copy" id={copyId}>
     <PrintHeader agency={settings || null} compact />
 
     {/* Titre */}
     <div className="text-center my-1.5">
       <div className="inline-block border border-neutral-900 px-4 py-0.5">
-        <span className="text-xs font-black uppercase tracking-wider text-neutral-900">
+        <span className="text-sm font-black uppercase tracking-wider text-neutral-900">
           {titre}
         </span>
       </div>
@@ -226,19 +229,19 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
 
     {/* N° et Montant */}
     <div className="flex justify-between items-center px-4 mb-2">
-      <div className="border border-neutral-900 px-2.5 py-0.5 text-[9px] font-bold">
+      <div className="border border-neutral-900 px-2.5 py-0.5 text-[11px] font-bold">
         N° <span className="font-mono">{numeroQuittance}</span>
       </div>
       <div className="border border-dashed border-neutral-900 px-3 py-1 bg-neutral-50">
-        <span className="text-[7.5px] text-neutral-600 mr-2">Montant :</span>
-        <span className="text-xs font-black text-neutral-900 font-mono">
+        <span className="text-[9px] text-neutral-600 mr-2">Montant :</span>
+        <span className="text-sm font-black text-neutral-900 font-mono">
           {formatNumber(montantPaye)} F CFA
         </span>
       </div>
     </div>
 
     {/* Corps */}
-    <div className="text-[9.5px] text-neutral-900 leading-snug space-y-1 px-4">
+    <div className="text-[13px] text-neutral-900 leading-snug space-y-1 px-4">
       <div>
         Reçu de Mr (mme) :{" "}
         <strong className="underline">{payment.locataireNom}</strong>
@@ -286,7 +289,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
           cachetUrl={settings?.cachetUrl || undefined}
         />
       </div>
-      <div className="text-right text-[8.5px] pl-3 flex-shrink-0">
+      <div className="text-right text-[10px] pl-3 flex-shrink-0">
         <div className="font-bold text-neutral-900 mb-0.5">Réf Caissier</div>
         <div className="font-mono text-xs font-bold text-neutral-900">
           {referenceCaissier}
@@ -295,7 +298,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* NOTA */}
-    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[7px] text-neutral-700 leading-tight px-4">
+    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[9px] text-neutral-700 leading-tight px-4">
       <span className="font-bold">NOTA :</span> 1. Le locataire ne peut
       déménager sans préavis écrit. 2. Un reçu écrit doit être délivré dans les
       délais prescrits. 3. Réparations locatives à la charge du locataire sauf
@@ -303,7 +306,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* Pied de page */}
-    <div className="mt-1 pt-0.5 border-t border-neutral-200 text-center text-[7px] text-neutral-600">
+    <div className="quittance-foot mt-1 pt-0.5 border-t border-neutral-200 text-center text-[9px] text-neutral-600">
       <span className="font-bold">{settings?.nomAgence || "FITAL-IMMO"}</span>
       {settings?.telephone && <span> — Tél : {settings.telephone}</span>}
       {settings?.rcNumero && <span> — RC : {settings.rcNumero}</span>}
@@ -328,6 +331,46 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   const montantTotal = payment.montantTotal || 0;
   const montantPaye = payment.montantPaye || 0;
   const montantRestant = payment.montantRestant ?? montantTotal - montantPaye;
+
+  // ============================================================
+  // IMPRESSION ISOLÉE : fenêtre dédiée (contenu seul, fond blanc
+  // garanti, sans l'en-tête ni le formulaire d'écran). Chaque copie
+  // est MESURÉE et la police est réduite au besoin pour que les
+  // 2 copies + ligne de découpe tiennent sur UNE page.
+  // ============================================================
+  const handlePrint = () => {
+    printElementById(
+      "printable-quittance",
+      `${titre} — ${payment.ref}`,
+      `
+      @page{size:A4 portrait;margin:7mm 10mm;}
+      #printable-quittance{--qfs:13px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.4 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
+      #printable-quittance p,#printable-quittance li,#printable-quittance span,#printable-quittance div{font-size:var(--qfs) !important;line-height:1.4 !important;}
+      #printable-quittance .quittance-copy{max-height:none !important;overflow:visible !important;break-inside:avoid !important;page-break-inside:avoid !important;}
+      #printable-quittance .cut-line{break-inside:avoid !important;page-break-inside:avoid !important;}
+      #quittance-copy-2{display:flex !important;flex-direction:column !important;}
+      #quittance-copy-2 .quittance-foot{margin-top:auto !important;}
+      `,
+      {
+        pageIds: ["quittance-copy-1", "quittance-copy-2"],
+        baseFontPx: 13,
+        minFontPx: 10.5,
+        pageBudgetMm: 138,
+        cssVar: "--qfs",
+        finalize: (win) => {
+          // Remplit la page : la 2e copie s'étire, son pied colle le bas
+          const doc = win.document;
+          const container = doc.getElementById("printable-quittance") as HTMLElement | null;
+          const copy2 = doc.getElementById("quittance-copy-2") as HTMLElement | null;
+          if (!container || !copy2) return;
+          container.style.minHeight = "283mm";
+          container.style.display = "flex";
+          container.style.flexDirection = "column";
+          copy2.style.flex = "1 0 auto";
+        },
+      },
+    );
+  };
 
   const [receiptType, setReceiptType] = useState<ReceiptType>(() => {
     if (payment.typeRecu) return payment.typeRecu;
@@ -427,7 +470,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           <h2 className="text-base font-bold text-white">{titre}</h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
@@ -497,9 +540,9 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         {/* ============================================================ */}
         {/* CONTENU IMPRIMABLE - 2 COPIES                                */}
         {/* ============================================================ */}
-        <div className="print-container p-6 bg-white text-neutral-900">
+        <div id="printable-quittance" className="print-container p-6 bg-white text-neutral-900">
           {/* COPIE 1 - LOCATAIRE */}
-          <QuittanceCopy {...copyProps} copyLabel="— COPIE LOCATAIRE —" />
+          <QuittanceCopy {...copyProps} copyId="quittance-copy-1" copyLabel="— COPIE LOCATAIRE —" />
 
           {/* LIGNE DE DÉCOUPE */}
           <div className="cut-line">
@@ -507,7 +550,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           </div>
 
           {/* COPIE 2 - AGENCE */}
-          <QuittanceCopy {...copyProps} copyLabel="— COPIE AGENCE —" />
+          <QuittanceCopy {...copyProps} copyId="quittance-copy-2" copyLabel="— COPIE AGENCE —" />
         </div>
       </div>
     </div>

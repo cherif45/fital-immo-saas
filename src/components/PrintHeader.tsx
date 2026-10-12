@@ -2,8 +2,8 @@
 // COMPOSANT — En-tête de document imprimé (dynamique par agence)
 // À utiliser dans TOUS les documents imprimés (quittance, mandat, etc.)
 // ============================================================
-import React from 'react';
-import { AgencySettings } from '../types';
+import React from "react";
+import { AgencySettings } from "../types";
 
 interface PrintHeaderProps {
   agency: AgencySettings | null;
@@ -21,45 +21,57 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
   if (!agency) return null;
 
   return (
-    <div className={`print-header ${compact ? 'print-header-compact' : ''}`}>
+    <div className={`print-header ${compact ? "print-header-compact" : ""}`}>
       {/* En-tête personnalisé (image optionnelle) */}
       {agency.enteteUrl && (
-        <div className={compact ? 'mb-1.5' : 'mb-4'}>
+        <div className={compact ? "mb-1.5" : "mb-4"}>
           <img
             src={agency.enteteUrl}
             alt="En-tête"
-            className={`w-full object-contain ${compact ? 'max-h-12' : 'max-h-32'}`}
+            className={`w-full object-contain ${compact ? "max-h-12" : "max-h-32"}`}
           />
         </div>
       )}
 
       {/* En-tête standard (si pas d'image personnalisée) */}
       {!agency.enteteUrl && (
-        <div className={`flex items-start justify-between border-b border-[#C9A96E] ${compact ? 'pb-1.5 mb-2' : 'border-b-2 pb-4 mb-4'}`}>
+        <div
+          className={`flex items-start justify-between border-b border-[#C9A96E] ${compact ? "pb-1.5 mb-2" : "border-b-2 pb-4 mb-4"}`}
+        >
           <div className="flex items-center gap-3">
             {agency.logoUrl && (
               <img
                 src={agency.logoUrl}
                 alt="Logo"
-                className={`object-contain ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}
+                className={`object-contain ${compact ? "w-12 h-12" : "w-20 h-20"}`}
               />
             )}
             <div>
-              <h1 className={`font-bold text-[#0F1B2D] ${compact ? 'text-sm' : 'text-2xl'}`}>
-                {agency.nomAgence || 'MON AGENCE'}
+              <h1
+                className={`font-bold text-[#0F1B2D] ${compact ? "text-sm" : "text-2xl"}`}
+              >
+                {agency.nomAgence || "MON AGENCE"}
               </h1>
               {agency.slogan1 && (
-                <p className={`text-[#C9A96E] font-semibold ${compact ? 'text-[9px]' : 'text-sm'}`}>
+                <p
+                  className={`text-[#C9A96E] font-semibold ${compact ? "text-[9px]" : "text-sm"}`}
+                >
                   {agency.slogan1}
                 </p>
               )}
               {agency.slogan2 && (
-                <p className={`text-[#0F1B2D]/70 ${compact ? 'text-[8px]' : 'text-xs'}`}>{agency.slogan2}</p>
+                <p
+                  className={`text-[#0F1B2D]/70 ${compact ? "text-[8px]" : "text-xs"}`}
+                >
+                  {agency.slogan2}
+                </p>
               )}
             </div>
           </div>
 
-          <div className={`text-right space-y-0.5 ${compact ? 'text-[8px]' : 'text-xs space-y-1'}`}>
+          <div
+            className={`text-right space-y-0.5 ${compact ? "text-[8px]" : "text-xs space-y-1"}`}
+          >
             {agency.adresse && <div>📍 {agency.adresse}</div>}
             {agency.telephone && <div>📞 {agency.telephone}</div>}
             {agency.email && <div>✉️ {agency.email}</div>}
@@ -73,15 +85,35 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
 
       {/* Titre du document (ignoré si compact et documentType non demandé) */}
       {(documentType || documentRef) && (
-        <div className={`text-center ${compact ? 'my-1.5' : 'my-4'}`}>
+        <div className={`text-center ${compact ? "my-1.5" : "my-4"}`}>
           {documentType && (
-            <h2 className={`font-bold text-[#0F1B2D] uppercase tracking-wider ${compact ? 'text-xs' : 'text-xl'}`}>
+            <h2
+              className={`font-bold text-[#0F1B2D] uppercase tracking-wider ${compact ? "text-xs" : "text-xl"}`}
+            >
               {documentType}
             </h2>
           )}
           {documentRef && (
-            <p className={`text-[#C9A96E] font-mono font-bold ${compact ? 'text-xs' : 'text-sm'}`}>
+            <p
+              className={`text-[#C9A96E] font-mono font-bold ${compact ? "text-xs" : "text-sm"}`}
+            >
               N° {documentRef}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ─── TITRE DU DOCUMENT ─────────────────────────── */}
+      {documentType && (
+        <div className="mt-4 mb-4 text-center">
+          <h1
+            className={`font-black uppercase tracking-[0.15em] text-[#0F1B2D] border-b-2 border-[#C9A96E] pb-2 ${compact ? "text-lg" : "text-3xl"}`}
+          >
+            {documentType}
+          </h1>
+          {documentRef && (
+            <p className="text-xs text-neutral-600 mt-1 font-mono">
+              Réf : {documentRef}
             </p>
           )}
         </div>
@@ -89,6 +121,9 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
     </div>
   );
 };
+
+// ============================================================
+// PIED DE PAGE
 
 // ============================================================
 // PIED DE PAGE — Signature + cachet + pied personnalisé
@@ -118,7 +153,7 @@ export const PrintFooter: React.FC<PrintFooterProps> = ({
 
           <div className="text-center">
             <p className="text-xs text-[#0F1B2D] mb-2">
-              {agency.gerantTitre || 'Le Gérant'}
+              {agency.gerantTitre || "Le Gérant"}
             </p>
             <div className="relative w-40 h-16">
               {showStamp && agency.cachetUrl && (
@@ -137,7 +172,7 @@ export const PrintFooter: React.FC<PrintFooterProps> = ({
               )}
             </div>
             <p className="text-xs font-bold text-[#0F1B2D] mt-1">
-              {agency.gerantNom || '____________________'}
+              {agency.gerantNom || "____________________"}
             </p>
           </div>
         </div>
@@ -154,10 +189,10 @@ export const PrintFooter: React.FC<PrintFooterProps> = ({
         </div>
       ) : (
         <div className="border-t-2 border-[#C9A96E] pt-3 text-center text-[10px] text-[#0F1B2D]/70">
-          <p className="font-bold">{agency.nomAgence || 'MON AGENCE'}</p>
+          <p className="font-bold">{agency.nomAgence || "MON AGENCE"}</p>
           <p>
-            {agency.adresse} {agency.telephone && `— Tél : ${agency.telephone}`}{' '}
-            {agency.rcNumero && `— RC : ${agency.rcNumero}`}{' '}
+            {agency.adresse} {agency.telephone && `— Tél : ${agency.telephone}`}{" "}
+            {agency.rcNumero && `— RC : ${agency.rcNumero}`}{" "}
             {agency.nineaNumero && `— NINEA : ${agency.nineaNumero}`}
           </p>
         </div>

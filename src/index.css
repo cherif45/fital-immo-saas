@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @layer base {
   :root {
@@ -23,7 +23,7 @@
 }
 
 /* ============================================================
-   SCROLLBARS PERSONNALISÉES
+   SCROLLBARS PERSONNALISÃ‰ES
    ============================================================ */
 ::-webkit-scrollbar {
   width: 6px;
@@ -41,7 +41,7 @@
 }
 
 /* ============================================================
-   IMPRESSION — STYLE UNIVERSEL POUR TOUS LES DOCUMENTS
+   IMPRESSION â€” STYLE UNIVERSEL POUR TOUS LES DOCUMENTS
    Compatible : fiches, quittances, contrats, bulletins, PV, etc.
    ============================================================ */
 @page {
@@ -97,7 +97,7 @@
     font-size: 11px !important;
   }
 
-  /* Si une zone d'impression est active, masquer le flux principal de l'app pour éviter tout espace blanc */
+  /* Si une zone d'impression est active, masquer le flux principal de l'app pour Ã©viter tout espace blanc */
   body:has(.print-container) .min-h-screen > aside,
   body:has(.print-container) .min-h-screen > nav,
   body:has(.print-container) .min-h-screen > header,
@@ -105,7 +105,7 @@
     display: none !important;
   }
 
-  /* Débloquer les conteneurs parents de print-container */
+  /* DÃ©bloquer les conteneurs parents de print-container */
   div:has(> .print-container),
   div:has(> * > .print-container),
   div:has(> * > * > .print-container) {
@@ -172,7 +172,7 @@
     inset: auto !important;
   }
 
-  /* Support bulletins et états imprimables */
+  /* Support bulletins et Ã©tats imprimables */
   .bulletin-print-modal {
     display: block !important;
     position: static !important;
@@ -241,7 +241,7 @@
     font-weight: bold !important;
   }
 
-  /* Fonds sombres des badges → gris clair */
+  /* Fonds sombres des badges â†’ gris clair */
   .print-container .bg-\[\#1E2E45\],
   .print-container .bg-\[\#162133\],
   .print-container .bg-\[\#0F1B2D\],
@@ -257,7 +257,7 @@
     background: #f5f5f5 !important;
   }
 
-  /* Texte blanc ou coloré → noir */
+  /* Texte blanc ou colorÃ© â†’ noir */
   .print-container [class*="text-white"],
   .print-container [class*="text-slate"],
   .print-container [class*="text-\\[\\#"],
@@ -270,7 +270,7 @@
     color: #000000 !important;
   }
 
-  /* ---------- 7. CACHER LES ÉLÉMENTS NON IMPRIMABLES ---------- */
+  /* ---------- 7. CACHER LES Ã‰LÃ‰MENTS NON IMPRIMABLES ---------- */
   .no-print,
   .no-print *,
   nav,
@@ -279,9 +279,9 @@
     display: none !important;
   }
 
-  /* ⚠️ Ne pas cacher "header" et "button" globalement — certains documents en ont besoin */
+  /* âš ï¸ Ne pas cacher "header" et "button" globalement â€” certains documents en ont besoin */
 
-  /* ---------- 8. AFFICHER CE QUI DOIT L'ÊTRE ---------- */
+  /* ---------- 8. AFFICHER CE QUI DOIT L'ÃŠTRE ---------- */
   .print-only {
     display: block !important;
   }
@@ -296,7 +296,7 @@
     break-inside: avoid !important;
   }
 
-  /* ---------- 10. TABLEAUX : ÉVITER LES COUPURES ---------- */
+  /* ---------- 10. TABLEAUX : Ã‰VITER LES COUPURES ---------- */
   table {
     page-break-inside: auto;
   }
@@ -355,18 +355,18 @@
 }
 
 /* ============================================================
-   STYLES ÉCRAN (non-print) — pour référence
+   STYLES Ã‰CRAN (non-print) â€” pour rÃ©fÃ©rence
    ============================================================ */
 .print-container,
 .print-area,
 .printable {
-  /* Rien de spécial à l'écran, juste des marqueurs */
+  /* Rien de spÃ©cial Ã  l'Ã©cran, juste des marqueurs */
 }
 /* ============================================================
-   SYSTÈME DE THÈMES (Clair / Sombre)
+   SYSTÃˆME DE THÃˆMES (Clair / Sombre)
    ============================================================ */
 :root {
-  /* Thème SOMBRE (défaut actuel) */
+  /* ThÃ¨me SOMBRE (dÃ©faut actuel) */
   --bg-body: #111827;
   --bg-card: #1f2937;
   --bg-card-hover: #374151;
@@ -382,7 +382,7 @@
 }
 
 .theme-light {
-  /* Thème CLAIR */
+  /* ThÃ¨me CLAIR */
   --bg-body: #f8fafc;
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
@@ -397,7 +397,7 @@
   --accent-dark: #2563eb;
 }
 
-/* Classe utilitaire pour appliquer le thème */
+/* Classe utilitaire pour appliquer le thÃ¨me */
 body {
   background-color: var(--bg-body);
   color: var(--text-primary);
@@ -406,7 +406,7 @@ body {
     color 0.3s ease;
 }
 
-/* Classes utilitaires de thème */
+/* Classes utilitaires de thÃ¨me */
 .theme-bg-body {
   background-color: var(--bg-body);
 }
@@ -444,14 +444,14 @@ body {
   background-color: var(--accent);
 }
 /* ============================================================
-   OVERRIDE THÈME CLAIR (force les couleurs Tailwind hard-codées)
+   OVERRIDE THÃˆME CLAIR (force les couleurs Tailwind hard-codÃ©es)
    ============================================================ */
 .theme-light body {
   background-color: #f8fafc !important;
   color: #1a1a1a !important;
 }
 
-/* Fonds sombres → clairs */
+/* Fonds sombres â†’ clairs */
 .theme-light .bg-\[\#0F1B2D\] {
   background-color: #f8fafc !important;
 }
@@ -468,7 +468,7 @@ body {
   background-color: rgba(240, 240, 235, 0.4) !important;
 }
 
-/* Textes clairs → sombres */
+/* Textes clairs â†’ sombres */
 .theme-light .text-white {
   color: #1a1a1a !important;
 }
@@ -514,10 +514,10 @@ body {
   --tw-gradient-to: #2563eb !important;
 }
 /* ============================================================
-   OVERRIDE THÈME CLAIR v2 — Couverture COMPLÈTE
+   OVERRIDE THÃˆME CLAIR v2 â€” Couverture COMPLÃˆTE
    ============================================================ */
 
-/* Fond général */
+/* Fond gÃ©nÃ©ral */
 .theme-light,
 .theme-light body,
 .theme-light #root {
@@ -525,9 +525,9 @@ body {
   color: #1a1a1a !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SIDEBAR + TOPBAR + CONTAINERS PRINCIPAUX
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light aside,
 .theme-light header,
 .theme-light nav,
@@ -571,9 +571,9 @@ body {
   background-color: #ffffff !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TEXTES
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light h1,
 .theme-light h2,
 .theme-light h3,
@@ -605,12 +605,12 @@ body {
 .theme-light [class*="text-blue"],
 .theme-light [class*="text-cyan"],
 .theme-light [class*="text-purple"] {
-  /* ne pas toucher aux textes colorés */
+  /* ne pas toucher aux textes colorÃ©s */
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BORDURES
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light [class*="border-[#C9A96E]"] {
   border-color: rgba(15, 23, 42, 0.08) !important;
 }
@@ -620,9 +620,9 @@ body {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INPUTS / SELECTS / BOUTONS
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light input,
 .theme-light select,
 .theme-light textarea {
@@ -636,9 +636,9 @@ body {
   color: #94a3b8 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    CARTES / MODAUX
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light [class*="rounded-xl"],
 .theme-light [class*="rounded-2xl"],
 .theme-light [class*="rounded-3xl"] {
@@ -650,9 +650,9 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SCROLLBARS (thème clair)
-   ═══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SCROLLBARS (thÃ¨me clair)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light ::-webkit-scrollbar-track {
   background: rgba(200, 200, 200, 0.3);
 }
@@ -663,12 +663,12 @@ body {
   background: rgba(201, 169, 110, 0.7);
 }
 /* ============================================================
-   OVERRIDE THÈME CLAIR — VERSION COMPLÈTE (38 couleurs)
+   OVERRIDE THÃˆME CLAIR â€” VERSION COMPLÃˆTE (38 couleurs)
    ============================================================ */
 
-/* ═══════════════════════════════════════════════════════════
-   FONDS SOMBRES → BEIGE CLAIR / BLANC
-   ═══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   FONDS SOMBRES â†’ BEIGE CLAIR / BLANC
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Fond principal */
 .theme-light,
@@ -678,7 +678,7 @@ body {
   color: #1a1a1a !important;
 }
 
-/* Fond très sombre (headers de tableaux) */
+/* Fond trÃ¨s sombre (headers de tableaux) */
 .theme-light [class*="bg-\[\#0A111D\]"],
 .theme-light [class*="bg-\[\#0a111d\]"] {
   background-color: #ffffff !important;
@@ -701,7 +701,7 @@ body {
   background-color: #f1f5f9 !important;
 }
 
-/* Fond très sombre alternatif */
+/* Fond trÃ¨s sombre alternatif */
 .theme-light [class*="bg-\[\#0D1624\]"],
 .theme-light [class*="bg-\[\#111C2E\]"],
 .theme-light [class*="bg-\[\#141E30\]"],
@@ -716,11 +716,11 @@ body {
   background-color: #e2e8f0 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    TEXTES
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Textes principaux (blancs) → noirs */
+/* Textes principaux (blancs) â†’ noirs */
 .theme-light .text-white,
 .theme-light [class*="text-\[\#F0EDE8\]"],
 .theme-light [class*="text-\[\#f0ede8\]"] {
@@ -743,13 +743,13 @@ body {
   color: #718096 !important;
 }
 
-/* Textes dorés */
+/* Textes dorÃ©s */
 .theme-light [class*="text-\[\#E8D5B0\]"],
 .theme-light [class*="text-\[\#e8d5b0\]"] {
   color: #8b6530 !important;
 }
 
-/* Texte foncé sur boutons or (reste foncé) */
+/* Texte foncÃ© sur boutons or (reste foncÃ©) */
 .theme-light [class*="text-\[\#0F1B2D\]"],
 .theme-light [class*="text-\[\#0f1b2d\]"],
 .theme-light [class*="text-\[\#0A111D\]"],
@@ -759,11 +759,11 @@ body {
   color: #1a1a1a !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BORDURES
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Bordures sombres → claires */
+/* Bordures sombres â†’ claires */
 .theme-light [class*="border-\[\#2A3447\]"],
 .theme-light [class*="border-\[\#2a3447\]"] {
   border-color: rgba(0, 0, 0, 0.1) !important;
@@ -773,7 +773,7 @@ body {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Bordures dorées (gardent leur couleur mais plus claires) */
+/* Bordures dorÃ©es (gardent leur couleur mais plus claires) */
 .theme-light [class*="border-\[\#C9A96E\]"],
 .theme-light [class*="border-\[\#c9a96e\]"] {
   border-color: rgba(15, 23, 42, 0.12) !important;
@@ -783,12 +783,12 @@ body {
 .theme-light [class*="border-\[\#10B981\]"],
 .theme-light [class*="border-\[\#F59E0B\]"],
 .theme-light [class*="border-\[\#EF4444\]"] {
-  /* Garde inchangé */
+  /* Garde inchangÃ© */
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INPUTS / SELECTS / TEXTAREAS
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light input,
 .theme-light select,
 .theme-light textarea {
@@ -809,9 +809,9 @@ body {
   outline: none;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SCROLLBARS (thème clair)
-   ═══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SCROLLBARS (thÃ¨me clair)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light ::-webkit-scrollbar-track {
   background: rgba(200, 200, 200, 0.3);
 }
@@ -822,9 +822,9 @@ body {
   background: rgba(201, 169, 110, 0.7);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   OMBRES (plus subtiles en thème clair)
-   ═══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   OMBRES (plus subtiles en thÃ¨me clair)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light .shadow-2xl {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
 }
@@ -832,19 +832,19 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    BOUTONS/GRADIENTS OR (gardent leur couleur)
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light [class*="from-\[\#C9A96E\]"],
 .theme-light [class*="to-\[\#A07840\]"],
 .theme-light [class*="bg-\[\#C9A96E\]"],
 .theme-light [class*="bg-\[\#D8BA80\]"] {
-  /* Garde inchangé (boutons or) */
+  /* Garde inchangÃ© (boutons or) */
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    STATUTS DYNAMIQUES (gardent leurs couleurs)
-   ═══════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .theme-light [class*="text-\[\#10B981\]"],
 .theme-light [class*="text-\[\#EF4444\]"],
 .theme-light [class*="text-\[\#F59E0B\]"],
@@ -854,16 +854,16 @@ body {
   /* Garde les couleurs de statut (vert, rouge, orange) */
 }
 /* ============================================================
-   FIX BANNIÈRES SOMBRES EN THÈME CLAIR (Centre de Contrôle)
+   FIX BANNIÃˆRES SOMBRES EN THÃˆME CLAIR (Centre de ContrÃ´le)
    ============================================================ */
 
-/* Bannière du Centre de Contrôle - garde le fond sombre mais force le texte en blanc */
+/* BanniÃ¨re du Centre de ContrÃ´le - garde le fond sombre mais force le texte en blanc */
 .theme-light .bg-gradient-to-br,
 .theme-light .bg-gradient-to-r {
   color: #ffffff;
 }
 
-/* Force le texte blanc dans les bannières sombres */
+/* Force le texte blanc dans les banniÃ¨res sombres */
 .theme-light [class*="from-[#0F1B2D]"] h1,
 .theme-light [class*="from-[#0F1B2D]"] h2,
 .theme-light [class*="from-[#0F1B2D]"] p,
@@ -875,7 +875,7 @@ body {
   color: #ffffff !important;
 }
 
-/* Fix spécifique : bannière "Centre de Contrôle & Supervision" */
+/* Fix spÃ©cifique : banniÃ¨re "Centre de ContrÃ´le & Supervision" */
 .theme-light [class*="rounded-2xl"][class*="bg-gradient"],
 .theme-light [class*="rounded-3xl"][class*="bg-gradient"] {
   color: #ffffff !important;
@@ -890,7 +890,7 @@ body {
   color: #ffffff !important;
 }
 
-/* Fix spécifique : "Volume global des données" */
+/* Fix spÃ©cifique : "Volume global des donnÃ©es" */
 .theme-light .bg-\[\#0F1B2D\] .text-white,
 .theme-light [class*="bg-\[\#0F1B2D\]"] [class*="text-\[\#"],
 .theme-light [class*="bg-\[\#0F1B2D\]"] h1,
@@ -907,19 +907,19 @@ body {
   color: #ffffff !important;
 }
 
-/* Cas particulier : garder les bannières sombres avec texte clair */
+/* Cas particulier : garder les banniÃ¨res sombres avec texte clair */
 .theme-light [class*="from-[#162133]"],
 .theme-light [class*="from-[#1E2E45]"] {
-  /* Si le dégradé va vers sombre, garde le texte blanc */
+  /* Si le dÃ©gradÃ© va vers sombre, garde le texte blanc */
 }
 /* ============================================================
-   ACCENTS MÉTIER — 6 palettes professionnelles
-   Ajouté le : chantier Thème Premium
+   ACCENTS MÃ‰TIER â€” 6 palettes professionnelles
+   AjoutÃ© le : chantier ThÃ¨me Premium
    But : permettre le changement de couleur d'accent via [data-accent]
-   Les 181 règles ci-dessus ne sont PAS touchées.
+   Les 181 rÃ¨gles ci-dessus ne sont PAS touchÃ©es.
    ============================================================ */
 
-/* 🥇 Or Champagne — DÉFAUT (identité FITAL) */
+/* ðŸ¥‡ Or Champagne â€” DÃ‰FAUT (identitÃ© FITAL) */
 :root[data-accent="gold"],
 [data-accent="gold"] {
   --accent: #c9a96e;
@@ -931,7 +931,7 @@ body {
   --accent-glow: rgba(201, 169, 110, 0.25);
 }
 
-/* 💼 Bleu Royal — agences classiques, finance */
+/* ðŸ’¼ Bleu Royal â€” agences classiques, finance */
 :root[data-accent="blue"],
 [data-accent="blue"] {
   --accent: #2563eb;
@@ -943,7 +943,7 @@ body {
   --accent-glow: rgba(37, 99, 235, 0.25);
 }
 
-/* 🌿 Vert Émeraude — patrimoine, investisseurs */
+/* ðŸŒ¿ Vert Ã‰meraude â€” patrimoine, investisseurs */
 :root[data-accent="emerald"],
 [data-accent="emerald"] {
   --accent: #047857;
@@ -955,7 +955,7 @@ body {
   --accent-glow: rgba(4, 120, 87, 0.25);
 }
 
-/* 🍷 Bordeaux — premium, haut de gamme */
+/* ðŸ· Bordeaux â€” premium, haut de gamme */
 :root[data-accent="bordeaux"],
 [data-accent="bordeaux"] {
   --accent: #7f1d1d;
@@ -967,7 +967,7 @@ body {
   --accent-glow: rgba(127, 29, 29, 0.25);
 }
 
-/* 🏛️ Bleu Notaire — institutionnel, légal */
+/* ðŸ›ï¸ Bleu Notaire â€” institutionnel, lÃ©gal */
 :root[data-accent="navy"],
 [data-accent="navy"] {
   --accent: #1e3a5f;
@@ -979,7 +979,7 @@ body {
   --accent-glow: rgba(30, 58, 95, 0.25);
 }
 
-/* ⚫ Anthracite — sobre, neutre, expertise */
+/* âš« Anthracite â€” sobre, neutre, expertise */
 :root[data-accent="anthracite"],
 [data-accent="anthracite"] {
   --accent: #374151;
@@ -991,7 +991,7 @@ body {
   --accent-glow: rgba(55, 65, 81, 0.25);
 }
 
-/* En mode clair, on assombrit légèrement l'accent pour la lisibilité */
+/* En mode clair, on assombrit lÃ©gÃ¨rement l'accent pour la lisibilitÃ© */
 .theme-light[data-accent="gold"] {
   --accent: #a07840;
 }
@@ -1011,7 +1011,7 @@ body {
   --accent: #1f2937;
 }
 
-/* Transition fluide lors du changement d'accent (uniquement les propriétés liées) */
+/* Transition fluide lors du changement d'accent (uniquement les propriÃ©tÃ©s liÃ©es) */
 * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-duration: 200ms;
@@ -1030,22 +1030,22 @@ body {
 }
 
 /* ============================================================
-   FIN — Accents métier
+   FIN â€” Accents mÃ©tier
    ============================================================ */
 
 /* ============================================================
    MIGRATION AUTOMATIQUE DES ACCENTS
-   Ajouté le : chantier Thème Premium
+   AjoutÃ© le : chantier ThÃ¨me Premium
    But : forcer l'utilisation de var(--accent) quand l'accent
-         n'est PAS "gold" (défaut). Préserve l'identité FITAL
-         par défaut, migre dynamiquement vers l'accent choisi.
-   Méthode : override Tailwind hardcodé (bg-[#C9A96E], etc.)
-   Sécurité : scopé à [data-accent]:not([data-accent="gold"])
+         n'est PAS "gold" (dÃ©faut). PrÃ©serve l'identitÃ© FITAL
+         par dÃ©faut, migre dynamiquement vers l'accent choisi.
+   MÃ©thode : override Tailwind hardcodÃ© (bg-[#C9A96E], etc.)
+   SÃ©curitÃ© : scopÃ© Ã  [data-accent]:not([data-accent="gold"])
    ============================================================ */
 
-/* Ne s'applique QUE si l'accent est différent de "gold" */
+/* Ne s'applique QUE si l'accent est diffÃ©rent de "gold" */
 [data-accent]:not([data-accent="gold"]) {
-  /* ─── FONDS OR → FOND ACCENT ──────────────────────────── */
+  /* â”€â”€â”€ FONDS OR â†’ FOND ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .bg-\[\#C9A96E\] {
     background-color: var(--accent) !important;
   }
@@ -1062,7 +1062,7 @@ body {
     background-color: var(--accent-border) !important;
   }
 
-  /* ─── TEXTES OR → TEXTE ACCENT ────────────────────────── */
+  /* â”€â”€â”€ TEXTES OR â†’ TEXTE ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .text-\[\#C9A96E\] {
     color: var(--accent) !important;
   }
@@ -1076,7 +1076,7 @@ body {
     color: var(--accent) !important;
   }
 
-  /* ─── BORDURES OR → BORDURE ACCENT ────────────────────── */
+  /* â”€â”€â”€ BORDURES OR â†’ BORDURE ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .border-\[\#C9A96E\] {
     border-color: var(--accent) !important;
   }
@@ -1096,7 +1096,7 @@ body {
     border-color: var(--accent) !important;
   }
 
-  /* ─── GRADIENTS OR → GRADIENT ACCENT ──────────────────── */
+  /* â”€â”€â”€ GRADIENTS OR â†’ GRADIENT ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .from-\[\#C9A96E\] {
     --tw-gradient-from: var(--accent) !important;
   }
@@ -1113,7 +1113,7 @@ body {
     --tw-gradient-via: var(--accent-soft) !important;
   }
 
-  /* ─── OMBRES OR → OMBRE ACCENT ────────────────────────── */
+  /* â”€â”€â”€ OMBRES OR â†’ OMBRE ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .shadow-\[\#C9A96E\]\/20 {
     box-shadow: 0 4px 14px 0 var(--accent-glow) !important;
   }
@@ -1121,12 +1121,12 @@ body {
     box-shadow: 0 8px 20px 0 var(--accent-glow) !important;
   }
 
-  /* ─── RING OR → RING ACCENT ───────────────────────────── */
+  /* â”€â”€â”€ RING OR â†’ RING ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .ring-\[\#C9A96E\] {
     --tw-ring-color: var(--accent) !important;
   }
 
-  /* ─── HOVER BORDER OR → HOVER BORDER ACCENT ───────────── */
+  /* â”€â”€â”€ HOVER BORDER OR â†’ HOVER BORDER ACCENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .hover\:border-\[\#C9A96E\]:hover {
     border-color: var(--accent) !important;
   }
@@ -1142,8 +1142,8 @@ body {
 }
 
 /* ============================================================
-   FIN — Migration automatique des accents
-   Pour DÉSACTIVER la migration : commenter le bloc ci-dessus
+   FIN â€” Migration automatique des accents
+   Pour DÃ‰SACTIVER la migration : commenter le bloc ci-dessus
    Pour AJOUTER un composant : ajouter la classe Tailwind exacte
    ============================================================ */
 
@@ -1243,7 +1243,7 @@ body {
   color: #374151 !important;
 }
 
-/* Slate colors -> plus foncés */
+/* Slate colors -> plus foncÃ©s */
 .theme-light .text-slate-300 {
   color: #374151 !important;
 }
@@ -1257,7 +1257,7 @@ body {
   color: #1f2937 !important;
 }
 
-/* Neutral colors -> plus foncés */
+/* Neutral colors -> plus foncÃ©s */
 .theme-light .text-neutral-500 {
   color: #4b5563 !important;
 }
@@ -1340,7 +1340,7 @@ body {
   color: inherit !important;
 }
 
-/* Boutons avec fond coloré : garder le blanc */
+/* Boutons avec fond colorÃ© : garder le blanc */
 .theme-light button[class*="bg-gradient"] {
   color: #ffffff !important;
 }
@@ -1460,7 +1460,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
   color: #ffffff !important;
 }
 
-/* 2. Badges de statut (Payé, etc.) avec fond colore */
+/* 2. Badges de statut (PayÃ©, etc.) avec fond colore */
 .theme-light [class*="bg-emerald-500"] *,
 .theme-light [class*="bg-emerald-600"] *,
 .theme-light [class*="bg-rose-500"] *,
@@ -1623,7 +1623,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
    FIN DU FICHIER
    ============================================================================ */
 /* ============================================================ */
-/* FIX BULLETIN - Pagination naturelle + Centré + Compact      */
+/* FIX BULLETIN - Pagination naturelle + CentrÃ© + Compact      */
 /* ============================================================ */
 
 @media print {
@@ -1663,7 +1663,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
   }
 
   /* 1. Centrer le contenu */
-  .print-container {
+  :not(.bulletin-print-container).print-container {
     max-width: 200mm !important;
     margin: 0 auto !important;
     padding: 3mm !important;
@@ -1675,93 +1675,93 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     break-after: avoid !important;
   }
 
-  /* 2. Réduire les espacements entre blocs */
-  .print-container > * {
+  /* 2. RÃ©duire les espacements entre blocs */
+  :not(.bulletin-print-container).print-container > * {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
-  .print-container > * + * {
+  :not(.bulletin-print-container).print-container > * + * {
     margin-top: 1.5mm !important;
   }
 
   /* 3. Tableaux compacts */
-  .print-container table {
+  :not(.bulletin-print-container).print-container table {
     font-size: 8px !important;
     margin-bottom: 1.5mm !important;
   }
-  .print-container th,
-  .print-container td {
+  :not(.bulletin-print-container).print-container th,
+  :not(.bulletin-print-container).print-container td {
     padding: 1.5px 3px !important;
     line-height: 1.15 !important;
   }
 
   /* 4. Titres compacts */
-  .print-container h1 {
+  :not(.bulletin-print-container).print-container h1 {
     font-size: 13px !important;
     margin: 1mm 0 !important;
   }
-  .print-container h2 {
+  :not(.bulletin-print-container).print-container h2 {
     font-size: 11px !important;
     margin: 1mm 0 !important;
   }
-  .print-container h3 {
+  :not(.bulletin-print-container).print-container h3 {
     font-size: 10px !important;
     margin: 1mm 0 !important;
   }
 
-  /* 5. Le NET À REVERSER reste petit */
-  .print-container .text-2xl {
+  /* 5. Le NET Ã€ REVERSER reste petit */
+  :not(.bulletin-print-container).print-container .text-2xl {
     font-size: 14px !important;
   }
-  .print-container .text-sm {
+  :not(.bulletin-print-container).print-container .text-sm {
     font-size: 9px !important;
   }
-  .print-container .text-xs {
+  :not(.bulletin-print-container).print-container .text-xs {
     font-size: 8px !important;
   }
 
-  /* 6. Réduire les paddings */
-  .print-container .p-8 {
+  /* 6. RÃ©duire les paddings */
+  :not(.bulletin-print-container).print-container .p-8 {
     padding: 4mm !important;
   }
-  .print-container .p-4 {
+  :not(.bulletin-print-container).print-container .p-4 {
     padding: 2mm !important;
   }
-  .print-container .p-3 {
+  :not(.bulletin-print-container).print-container .p-3 {
     padding: 1.5mm !important;
   }
-  .print-container .p-2 {
+  :not(.bulletin-print-container).print-container .p-2 {
     padding: 1mm !important;
   }
-  .print-container .mb-5 {
+  :not(.bulletin-print-container).print-container .mb-5 {
     margin-bottom: 1.5mm !important;
   }
-  .print-container .mb-6 {
+  :not(.bulletin-print-container).print-container .mb-6 {
     margin-bottom: 2mm !important;
   }
-  .print-container .mb-4 {
+  :not(.bulletin-print-container).print-container .mb-4 {
     margin-bottom: 1.5mm !important;
   }
-  .print-container .mt-4 {
+  :not(.bulletin-print-container).print-container .mt-4 {
     margin-top: 1.5mm !important;
   }
-  .print-container .mt-6 {
+  :not(.bulletin-print-container).print-container .mt-6 {
     margin-top: 2mm !important;
   }
-  .print-container .pt-4 {
+  :not(.bulletin-print-container).print-container .pt-4 {
     padding-top: 1.5mm !important;
   }
 
   /* 7. Signatures ne se coupent pas */
-  .print-container .grid-cols-2 {
+  :not(.bulletin-print-container).print-container .grid-cols-2 {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  /* 8. Supprimer espaces résiduels */
+  /* 8. Supprimer espaces rÃ©siduels */
   body::after,
   #root::after,
-  .print-container::after {
+  :not(.bulletin-print-container).print-container::after {
     display: none !important;
     content: none !important;
   }
@@ -1807,5 +1807,928 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
+  }
+}
+/* ============================================================
+   FIX MANDAT DE GÉRANCE - Impression
+   ============================================================ */
+@media print {
+  /* Débloquer tous les parents de la modale mandat */
+  body:has(.mandate-print-modal) .fixed.inset-0 {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    z-index: auto !important;
+    inset: auto !important;
+  }
+
+  body:has(.mandate-print-modal) .mandate-print-modal {
+    position: static !important;
+    display: block !important;
+    background: #ffffff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Le conteneur imprimable */
+  body:has(.mandate-print-modal) .print-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 5mm !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    font-size: 12px !important; /* ← tailles aérées */
+    line-height: 1.5 !important;
+  }
+
+  /* Bandeaux verticaux : les cacher (ils ne servent à rien à l'impression) */
+  body:has(.mandate-print-modal) .print-container > div[style*="rotate"] {
+    display: none !important;
+  }
+}
+/* ============================================================
+   FIX MANDAT - Empêcher la numérotation des listes à l'impression
+   ============================================================ */
+@media print {
+  body:has(.mandate-print-modal) .print-container ul,
+  body:has(.mandate-print-modal) .print-container ol {
+    list-style: none !important;
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container li {
+    list-style: none !important;
+    list-style-type: none !important;
+    display: flex !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+    margin-bottom: 4px !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container li::before,
+  body:has(.mandate-print-modal) .print-container li::marker {
+    display: none !important;
+    content: none !important;
+  }
+}
+/* ============================================================
+   FIX MANDAT - Rendre visible à l'impression
+   ============================================================ */
+@media print {
+  body:has(.mandate-print-modal) * {
+    visibility: visible !important;
+  }
+  body:has(.mandate-print-modal) .print\:hidden,
+  body:has(.mandate-print-modal) button {
+    display: none !important;
+  }
+}
+/* FIX MANDAT - Couleurs impression */
+@media print {
+  body:has(.mandate-print-modal) .mandate-print-modal,
+  body:has(.mandate-print-modal) .mandate-print-modal * {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+}
+/* FIX MANDAT - Forcer TOUT visible et fond blanc */
+@media print {
+  /* Forcer TOUT visible */
+  body:has(.mandate-print-modal) *,
+  body:has(.mandate-print-modal) *::before,
+  body:has(.mandate-print-modal) *::after {
+    visibility: visible !important;
+  }
+
+  /* Fond blanc partout */
+  body:has(.mandate-print-modal) .mandate-print-modal,
+  body:has(.mandate-print-modal) .mandate-print-modal .print-container,
+  body:has(.mandate-print-modal) .mandate-print-modal .print-container * {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+
+  /* Cacher les boutons et le header */
+  body:has(.mandate-print-modal) button,
+  body:has(.mandate-print-modal) .print\:hidden {
+    display: none !important;
+  }
+}
+@media print {
+  /* Cibler l'overlay fixe (parent de .mandate-print-modal) */
+  body:has(.mandate-print-modal) .fixed.inset-0 {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}
+@media print {
+  body:has(.mandate-print-modal) .fixed.inset-0 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ============================================================
+   FIX FACTURE - Taille augmentée + En-tête pleine largeur
+   ============================================================ */
+@media print {
+  /* Conteneur principal : supprimer les arrondis */
+  body:has(.invoice-print-modal) .invoice-print-container {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* En-tête noir : pleine largeur, padding propre */
+  body:has(.invoice-print-modal) .invoice-print-container > div:first-child {
+    border-radius: 0 !important;
+    padding: 6mm 10mm !important;
+  }
+
+  /* Bandeau titre doré : pleine largeur */
+  body:has(.invoice-print-modal) .invoice-print-container > div:nth-child(2) {
+    border-radius: 0 !important;
+    padding: 5mm 10mm !important;
+  }
+
+  /* TAILLE DE TEXTE GÉNÉRALE */
+  body:has(.invoice-print-modal) .invoice-print-container {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Contenu principal : padding cohérent */
+  body:has(.invoice-print-modal) .invoice-print-container .p-8 {
+    padding: 8mm 10mm !important;
+  }
+
+  /* Titres */
+  body:has(.invoice-print-modal) .invoice-print-container .text-2xl {
+    font-size: 22px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-xl {
+    font-size: 18px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-base {
+    font-size: 14px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-sm {
+    font-size: 12px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-xs {
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-\[10px\] {
+    font-size: 10px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .text-\[11px\] {
+    font-size: 11px !important;
+  }
+
+  /* Tableau : cellules plus grandes */
+  body:has(.invoice-print-modal) .invoice-print-container table th,
+  body:has(.invoice-print-modal) .invoice-print-container table td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container table th {
+    font-size: 10px !important;
+  }
+
+  /* Total TTC : plus gros */
+  body:has(.invoice-print-modal) .invoice-print-container .text-xl.font-black {
+    font-size: 20px !important;
+  }
+
+  /* Garder les fonds colorés */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900 * {
+    background-color: #171717 !important;
+    color: #ffffff !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .bg-\[\#C9A96E\],
+  body:has(.invoice-print-modal) .invoice-print-container .bg-\[\#C9A96E\] * {
+    background-color: #c9a96e !important;
+    color: #171717 !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .bg-amber-50,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-amber-100 {
+    background-color: #fef3c7 !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-50,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-100 {
+    background-color: #f5f5f5 !important;
+  }
+}
+/* ============================================================
+   FIX FACTURE - Texte blanc en-tête/pied + 1 page
+   ============================================================ */
+@media print {
+  /* ─── EN-TÊTE + PIED : TEXTE BLANC ─────────────────── */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900 *,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r *,
+  body:has(.invoice-print-modal) .invoice-print-container .from-neutral-900,
+  body:has(.invoice-print-modal) .invoice-print-container .to-neutral-800 {
+    color: #ffffff !important;
+    background-color: #171717 !important;
+  }
+
+  /* Préserver le doré dans le bandeau titre */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-\[\#C9A96E\],
+  body:has(.invoice-print-modal) .invoice-print-container .bg-\[\#C9A96E\] * {
+    background-color: #c9a96e !important;
+    color: #171717 !important;
+  }
+
+  /* Préserver le doré dans le total TTC */
+  body:has(.invoice-print-modal)
+    .invoice-print-container
+    .bg-neutral-900
+    .text-\[\#C9A96E\] {
+    color: #c9a96e !important;
+  }
+
+  /* ─── TENIR SUR 1 PAGE : COMPACTER ─────────────────── */
+  body:has(.invoice-print-modal) .invoice-print-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Réduire le padding principal */
+  body:has(.invoice-print-modal) .invoice-print-container .p-8 {
+    padding: 5mm 8mm !important;
+  }
+
+  /* Réduire l'espacement vertical entre les blocs */
+  body:has(.invoice-print-modal) .invoice-print-container .space-y-6 > * + * {
+    margin-top: 3mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .space-y-4 > * + * {
+    margin-top: 2mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .space-y-2 > * + * {
+    margin-top: 1mm !important;
+  }
+
+  /* Réduire les marges génériques */
+  body:has(.invoice-print-modal) .invoice-print-container .pt-4 {
+    padding-top: 2mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .mt-2 {
+    margin-top: 1mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .mb-2 {
+    margin-bottom: 1mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .pb-1 {
+    padding-bottom: 0.5mm !important;
+  }
+
+  /* En-tête plus compact */
+  body:has(.invoice-print-modal) .invoice-print-container > div:first-child {
+    padding: 4mm 8mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container > div:nth-child(2) {
+    padding: 3mm 8mm !important;
+  }
+
+  /* Pied plus compact */
+  body:has(.invoice-print-modal) .invoice-print-container > div:last-child,
+  body:has(.invoice-print-modal)
+    .invoice-print-container
+    > div:nth-last-child(2) {
+    padding: 3mm 8mm !important;
+  }
+
+  /* Signatures plus compactes */
+  body:has(.invoice-print-modal) .invoice-print-container .h-20 {
+    height: 14mm !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container .pt-4.border-t-2 {
+    padding-top: 3mm !important;
+  }
+
+  /* Tableau : cellules compactes */
+  body:has(.invoice-print-modal) .invoice-print-container table th,
+  body:has(.invoice-print-modal) .invoice-print-container table td {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+  body:has(.invoice-print-modal) .invoice-print-container table th {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Le bloc montant en lettres */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-100 {
+    padding: 3mm 8mm !important;
+  }
+
+  /* Le bloc modalité de règlement */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-amber-50 {
+    padding: 3mm 8mm !important;
+  }
+
+  /* Images dans le bandeau */
+  body:has(.invoice-print-modal) .invoice-print-container img.w-16 {
+    width: 12mm !important;
+    height: 12mm !important;
+  }
+}
+/* ============================================================
+   FIX FACTURE - Pied collé en bas + Textes gras en-tête/pied
+   ============================================================ */
+@media print {
+  /* ─── EN-TÊTE + PIED : TEXTE GRAS ─────────────────── */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900 *,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r * {
+    font-weight: 700 !important;
+    color: #ffffff !important;
+  }
+
+  /* Le nom de l'agence en très gras */
+  body:has(.invoice-print-modal)
+    .invoice-print-container
+    .text-\[\#C9A96E\].font-black,
+  body:has(.invoice-print-modal) .invoice-print-container .font-black {
+    font-weight: 900 !important;
+  }
+
+  /* ─── STRUCTURE : FLEX COLONNE PLEINE HAUTEUR ─────────── */
+  /* Le conteneur facture devient une colonne qui prend toute la page A4 */
+  body:has(.invoice-print-modal) .invoice-print-container {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 275mm !important; /* A4 - marges */
+    height: auto !important;
+  }
+
+  /* Le pied de page (dernier enfant = bandeau noir) est poussé en bas */
+  body:has(.invoice-print-modal) .invoice-print-container > div:last-child {
+    margin-top: auto !important;
+  }
+
+  /* Le contenu principal prend tout l'espace disponible */
+  body:has(.invoice-print-modal) .invoice-print-container .p-8 {
+    flex: 1 1 auto !important;
+  }
+} /* ============================================================
+   FIX FACTURE - Pied collé en bas + Textes gras en-tête/pied
+   ============================================================ */
+@media print {
+  /* ─── EN-TÊTE + PIED : TEXTE GRAS ─────────────────── */
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-neutral-900 *,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r,
+  body:has(.invoice-print-modal) .invoice-print-container .bg-gradient-to-r * {
+    font-weight: 700 !important;
+    color: #ffffff !important;
+  }
+
+  /* Le nom de l'agence en très gras */
+  body:has(.invoice-print-modal)
+    .invoice-print-container
+    .text-\[\#C9A96E\].font-black,
+  body:has(.invoice-print-modal) .invoice-print-container .font-black {
+    font-weight: 900 !important;
+  }
+
+  /* ─── STRUCTURE : FLEX COLONNE PLEINE HAUTEUR ─────────── */
+  /* Le conteneur facture devient une colonne qui prend toute la page A4 */
+  body:has(.invoice-print-modal) .invoice-print-container {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 275mm !important; /* A4 - marges */
+    height: auto !important;
+  }
+
+  /* Le pied de page (dernier enfant = bandeau noir) est poussé en bas */
+  body:has(.invoice-print-modal) .invoice-print-container > div:last-child {
+    margin-top: auto !important;
+  }
+
+  /* Le contenu principal prend tout l'espace disponible */
+  body:has(.invoice-print-modal) .invoice-print-container .p-8 {
+    flex: 1 1 auto !important;
+  }
+}
+/* ============================================================
+   STYLE PRO - BULLETIN DE VERSEMENT
+   ============================================================ */
+@media print {
+  /* ─── CONTENEUR ─────────────────────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container > .p-8,
+  body:has(.bulletin-print-modal) .bulletin-print-container > .p-6,
+  body:has(.bulletin-print-modal) .bulletin-print-container > div[class*="p-8"],
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div[class*="p-6"] {
+    padding: 6mm 8mm !important;
+  }
+
+  /* ─── EN-TÊTE AGENCE : fond noir + texte blanc ──────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:first-child {
+    background: #171717 !important;
+    color: #ffffff !important;
+    padding: 5mm 8mm !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:first-child *,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    h1,
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:first-child p,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    div,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    span {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  /* Nom agence en doré */
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    .text-\[\#C9A96E\],
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    [class*="text-[#C9A96E]"] {
+    color: #c9a96e !important;
+    font-weight: 900 !important;
+  }
+
+  /* ─── TITRE BULLETIN : fond doré ────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:nth-child(2) {
+    background: #c9a96e !important;
+    color: #171717 !important;
+    padding: 4mm 8mm !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    *,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    h1,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    div,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    span {
+    color: #171717 !important;
+    font-weight: 900 !important;
+  }
+
+  /* ─── TABLEAUX : en-tête noir, lignes alternées ─────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container table thead,
+  body:has(.bulletin-print-modal) .bulletin-print-container table thead tr {
+    background: #171717 !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container table thead th,
+  body:has(.bulletin-print-modal) .bulletin-print-container table thead * {
+    background: #171717 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-color: #444 !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container table td {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+    border-color: #999 !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    table
+    tbody
+    tr:nth-child(even) {
+    background: #f8f8f8 !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container table tfoot,
+  body:has(.bulletin-print-modal) .bulletin-print-container table tfoot tr,
+  body:has(.bulletin-print-modal) .bulletin-print-container table tfoot td {
+    background: #e5e5e5 !important;
+    font-weight: 900 !important;
+    color: #171717 !important;
+  }
+
+  /* ─── NET À REVERSER : bloc noir + montant doré ────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .text-\[32px\],
+  body:has(.bulletin-print-modal) .bulletin-print-container .text-3xl,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    [class*="text-[32px]"] {
+    background: #171717 !important;
+    color: #c9a96e !important;
+    padding: 4mm 8mm !important;
+    font-weight: 900 !important;
+    border-radius: 4px !important;
+  }
+
+  /* ─── ARRÊTÉ LE PRÉSENT BULLETIN ────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .border-l-4 {
+    background: #f5f5f5 !important;
+    border-left-color: #171717 !important;
+    padding: 3mm 6mm !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+
+  /* ─── SIGNATURES : cadres pointillés ────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .border-dotted,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    [class*="border-dotted"] {
+    border-color: #999 !important;
+    border-bottom-width: 2px !important;
+  }
+
+  /* ─── PIED DE PAGE : bandeau noir ───────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .print-footer,
+  body:has(.bulletin-print-modal) .bulletin-print-container .border-t-2 {
+    background: #171717 !important;
+    color: #ffffff !important;
+    padding: 4mm 8mm !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container .print-footer *,
+  body:has(.bulletin-print-modal) .bulletin-print-container .border-t-2 * {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    .print-footer
+    .font-bold,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    .border-t-2
+    .font-bold {
+    color: #c9a96e !important;
+    font-weight: 900 !important;
+  }
+
+  /* ─── TENIR SUR 1 PAGE ──────────────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  body:has(.bulletin-print-modal) .bulletin-print-container table {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+/* ============================================================
+   FIX BULLETIN - Réduire taille en-tête + Net à reverser
+   ============================================================ */
+@media print {
+  /* ─── EN-TÊTE PLUS COMPACT ─────────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:first-child {
+    padding: 3mm 6mm !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    img,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    .w-20,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    [class*="w-20"] {
+    width: 14mm !important;
+    height: 14mm !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    .text-\[18px\],
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    [class*="text-[18px]"] {
+    font-size: 14px !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    .text-\[12px\],
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:first-child
+    [class*="text-[12px]"] {
+    font-size: 10px !important;
+  }
+
+  /* ─── TITRE BULLETIN PLUS COMPACT ──────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container > div:nth-child(2) {
+    padding: 2mm 6mm !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    h1,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    .text-\[22px\] {
+    font-size: 16px !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    > div:nth-child(2)
+    .text-\[13px\] {
+    font-size: 10px !important;
+    margin-top: 1mm !important;
+  }
+
+  /* ─── NET À REVERSER PLUS COMPACT ──────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .text-\[32px\],
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    [class*="text-[32px]"] {
+    padding: 2mm 6mm !important;
+    font-size: 22px !important;
+    font-weight: 900 !important;
+  }
+
+  /* Réduire le cadre qui entoure le bloc Net */
+  body:has(.bulletin-print-modal) .bulletin-print-container .border-2,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    [class*="border-2"] {
+    margin: 2mm auto !important;
+  }
+
+  /* Label "NET À REVERSER" plus petit */
+  body:has(.bulletin-print-modal) .bulletin-print-container .bg-neutral-800,
+  body:has(.bulletin-print-modal)
+    .bulletin-print-container
+    [class*="bg-neutral-800"] {
+    padding: 2mm 6mm !important;
+    font-size: 11px !important;
+  }
+
+  /* ─── ESPACEMENT GÉNÉRAL RÉDUIT ────────────────────── */
+  body:has(.bulletin-print-modal) .bulletin-print-container .my-6 {
+    margin-top: 3mm !important;
+    margin-bottom: 3mm !important;
+  }
+  body:has(.bulletin-print-modal) .bulletin-print-container .mb-6 {
+    margin-bottom: 3mm !important;
+  }
+  body:has(.bulletin-print-modal) .bulletin-print-container .mt-8 {
+    margin-top: 4mm !important;
+  }
+  body:has(.bulletin-print-modal) .bulletin-print-container .mt-10 {
+    margin-top: 5mm !important;
+  }
+}
+/* ============================================================
+   STYLE PRO - MANDAT DE GÉRANCE
+   ============================================================ */
+@media print {
+  /* ─── CACHER LES BANDEAUX ROTATÉS ──────────────────── */
+  body:has(.mandate-print-modal) .print-container > div[style*="rotate"],
+  body:has(.mandate-print-modal) .print-container > div[style*="transform"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* ─── CONTENEUR : pleine largeur ───────────────────── */
+  body:has(.mandate-print-modal) .print-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container > .p-8,
+  body:has(.mandate-print-modal) .print-container > .p-6,
+  body:has(.mandate-print-modal) .print-container > [class*="p-8"],
+  body:has(.mandate-print-modal) .print-container > [class*="p-6"],
+  body:has(.mandate-print-modal) .print-container > [class*="sm:p-10"] {
+    padding: 6mm 8mm !important;
+  }
+
+  /* ─── EN-TÊTE AGENCE : fond noir ───────────────────── */
+  body:has(.mandate-print-modal) .print-container > div:first-child {
+    background: #171717 !important;
+    color: #ffffff !important;
+    padding: 5mm 8mm !important;
+    border-radius: 0 !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container > div:first-child * {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  body:has(.mandate-print-modal)
+    .print-container
+    > div:first-child
+    .text-\[\#C9A96E\],
+  body:has(.mandate-print-modal)
+    .print-container
+    > div:first-child
+    [class*="text-[#C9A96E]"] {
+    color: #c9a96e !important;
+    font-weight: 900 !important;
+  }
+
+  /* ─── TITRE ENCADRÉ "MANDAT DE GÉRANCE" : fond doré ── */
+  body:has(.mandate-print-modal) .print-container .border-2.border-neutral-900,
+  body:has(.mandate-print-modal)
+    .print-container
+    [class*="border-2"][class*="border-neutral-900"] {
+    background: #c9a96e !important;
+    border: none !important;
+    padding: 3mm 8mm !important;
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 0 !important;
+  }
+
+  body:has(.mandate-print-modal)
+    .print-container
+    .border-2.border-neutral-900
+    *,
+  body:has(.mandate-print-modal)
+    .print-container
+    [class*="border-2"][class*="border-neutral-900"]
+    * {
+    color: #171717 !important;
+    font-weight: 900 !important;
+    font-size: 16px !important;
+  }
+
+  /* ─── CORPS DU MANDAT : plus grand et lisible ──────── */
+  body:has(.mandate-print-modal) .print-container .text-\[11px\],
+  body:has(.mandate-print-modal) .print-container [class*="text-[11px]"] {
+    font-size: 12px !important;
+    line-height: 1.7 !important;
+    color: #171717 !important;
+  }
+
+  /* Paragraphes justifiés */
+  body:has(.mandate-print-modal) .print-container p {
+    margin-bottom: 3mm !important;
+  }
+
+  /* ─── LISTE DES MISSIONS ───────────────────────────── */
+  body:has(.mandate-print-modal) .print-container ul {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 3mm 0 !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container li {
+    display: flex !important;
+    gap: 3mm !important;
+    align-items: flex-start !important;
+    margin-bottom: 2mm !important;
+    font-size: 12px !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container li::marker {
+    content: none !important;
+  }
+
+  /* ─── SIGNATURES : cadres pointillés pro ───────────── */
+  body:has(.mandate-print-modal) .print-container .border-dotted,
+  body:has(.mandate-print-modal) .print-container [class*="border-dotted"] {
+    border-color: #999 !important;
+    border-bottom-width: 2px !important;
+  }
+
+  /* Nom du gérant et propriétaire en gras */
+  body:has(.mandate-print-modal) .print-container .font-bold {
+    font-weight: 900 !important;
+    color: #171717 !important;
+  }
+
+  /* ─── PIED DE PAGE : bandeau noir ──────────────────── */
+  body:has(.mandate-print-modal) .print-container .print-footer,
+  body:has(.mandate-print-modal) .print-container .border-t-2 {
+    background: #171717 !important;
+    color: #ffffff !important;
+    padding: 4mm 8mm !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    margin-top: 6mm !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container .print-footer *,
+  body:has(.mandate-print-modal) .print-container .border-t-2 * {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+  }
+
+  body:has(.mandate-print-modal) .print-container .print-footer .font-bold,
+  body:has(.mandate-print-modal) .print-container .border-t-2 .font-bold {
+    color: #c9a96e !important;
+    font-weight: 900 !important;
+  }
+
+  /* ─── TENIR SUR 1 PAGE ─────────────────────────────── */
+  body:has(.mandate-print-modal) .print-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+@media print {
+  /* Cibler DIRECTEMENT, sans :has() */
+  .print-container > div[style*="rotate"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
   }
 }

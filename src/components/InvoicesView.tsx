@@ -1024,225 +1024,361 @@ export function InvoicesView({
       {selectedInvoice &&
         createPortal(
           <div className="invoice-print-modal fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="invoice-print-container print-container bg-white text-neutral-900 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl p-8 space-y-6 font-sans">
-            <PrintHeader
-              agency={settings}
-              documentType={
-                selectedInvoice.type === "Travaux"
-                  ? "Facture travaux & décompte fournitures"
-                  : "Facture officielle"
-              }
-              documentRef={selectedInvoice.ref}
-            />
-            <p className="text-right text-xs text-neutral-500">
-              Date d'émission : {formatDate(selectedInvoice.dateFacture)}
-            </p>
-
-            {/* Imputation & Context Grid */}
-            <div className="grid grid-cols-2 gap-4 bg-neutral-50 p-4 rounded-xl border border-neutral-200 text-xs">
-              <div>
-                <p className="font-bold text-neutral-500 uppercase text-[10px]">
-                  BIEN & LOCATAIRE
-                </p>
-                <p className="font-bold text-neutral-900 text-sm mt-0.5">
-                  {selectedInvoice.bienNom || "Lot sous mandat"}
-                </p>
-                <p className="text-neutral-600 mt-0.5">
-                  Locataire :{" "}
-                  <strong>{selectedInvoice.locataireNom || "En place"}</strong>
-                </p>
-                {selectedInvoice.prestataireNom && (
-                  <p className="text-neutral-600">
-                    Artisan : {selectedInvoice.prestataireNom}{" "}
-                    {selectedInvoice.prestataireContact
-                      ? `(${selectedInvoice.prestataireContact})`
-                      : ""}
-                  </p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-neutral-500 uppercase text-[10px]">
-                  BAILLEUR DÉBITEUR (IMPUTATION)
-                </p>
-                <p className="font-bold text-neutral-900 text-sm mt-0.5">
-                  {selectedInvoice.proprietaireNom}
-                </p>
-                <div className="mt-1">
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    {selectedInvoice.decaisserSurProprietaire !== false
-                      ? "âœ“ Retenue sur reversement de loyer"
-                      : "Règlement direct"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* If Materials exist: Detailed Materials Table */}
-            {selectedInvoice.materiels &&
-            selectedInvoice.materiels.length > 0 ? (
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-700 mb-2">
-                  Décompte des Pièces & Fournitures Achetées :
-                </div>
-                <table className="w-full text-left text-xs border border-neutral-200 rounded-lg overflow-hidden border-collapse">
-                  <thead>
-                    <tr className="bg-neutral-900 text-white font-bold text-[10px] uppercase">
-                      <th className="py-2 px-3">
-                        Désignation du Matériel / Fourniture
-                      </th>
-                      <th className="py-2 px-3 text-center">Qté</th>
-                      <th className="py-2 px-3 text-right">Prix Unitaire</th>
-                      <th className="py-2 px-3 text-right">Montant HT</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200">
-                    {selectedInvoice.materiels.map((m) => (
-                      <tr key={m.id}>
-                        <td className="py-2.5 px-3 font-medium text-neutral-900">
-                          {m.designation}
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-mono">
-                          {m.quantite}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono">
-                          {formatNumber(m.prixUnitaire)} F
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-neutral-900">
-                          {formatNumber(m.total)} F
-                        </td>
-                      </tr>
-                    ))}
-                    {selectedInvoice.mainOeuvre ? (
-                      <tr className="bg-amber-50/50 font-semibold text-neutral-800">
-                        <td className="py-2 px-3" colSpan={3}>
-                          Main d'Å“uvre & Frais d'intervention (
-                          {selectedInvoice.prestataireNom || "Artisan"})
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold">
-                          {formatNumber(selectedInvoice.mainOeuvre)} F
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              /* Standard lines table */
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-neutral-900 text-[10px] uppercase font-bold text-neutral-700">
-                    <th className="py-2">Désignation</th>
-                    <th className="py-2 text-center">Qté</th>
-                    <th className="py-2 text-right">Prix Unitaire</th>
-                    <th className="py-2 text-right">Total HT</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  {selectedInvoice.lignes.map((l) => (
-                    <tr key={l.id}>
-                      <td className="py-3 font-medium text-neutral-800">
-                        {l.description}
-                      </td>
-                      <td className="py-3 text-center font-mono">
-                        {l.quantite}
-                      </td>
-                      <td className="py-3 text-right font-mono">
-                        {formatNumber(l.prixUnitaire)} F
-                      </td>
-                      <td className="py-3 text-right font-bold font-mono">
-                        {formatNumber(l.montant)} F
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* Total Block */}
-            <div className="flex justify-end pt-2">
-              <div className="w-72 space-y-1.5 text-xs border-t-2 border-neutral-900 pt-3">
-                <div className="flex justify-between text-neutral-600">
-                  <span>Sous-total HT :</span>
-                  <span className="font-mono font-semibold">
-                    {formatNumber(selectedInvoice.sousTotal)} FCFA
-                  </span>
-                </div>
-                {selectedInvoice.taxes > 0 && (
-                  <div className="flex justify-between text-neutral-600">
-                    <span>TVA (18%) :</span>
-                    <span className="font-mono font-semibold">
-                      {formatNumber(selectedInvoice.taxes)} FCFA
-                    </span>
+            <div className="invoice-print-container print-container bg-white text-neutral-900 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl font-sans">
+              {/* ═══════════ EN-TÊTE AGENCE ═══════════ */}
+              <div className="bg-gradient-to-r from-neutral-900 to-neutral-800 text-white px-8 py-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {settings?.logoUrl ? (
+                      <img
+                        src={settings.logoUrl}
+                        alt="Logo"
+                        className="w-16 h-16 object-contain rounded-lg bg-white p-1"
+                        onError={(e) =>
+                          ((e.target as HTMLImageElement).style.display =
+                            "none")
+                        }
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-[#C9A96E] flex items-center justify-center text-neutral-900 font-black text-xl">
+                        {(settings?.nomAgence || "F").charAt(0)}
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-lg font-black uppercase tracking-wide text-[#C9A96E]">
+                        {settings?.nomAgence || "VOTRE AGENCE"}
+                      </div>
+                      <div className="text-[10px] text-white/70 uppercase tracking-widest mt-0.5">
+                        {settings?.slogan1 || "Gestion Immobilière"}
+                      </div>
+                    </div>
                   </div>
+                  <div className="text-right text-[10px] text-white/80 space-y-0.5">
+                    {settings?.telephone && <div>📞 {settings.telephone}</div>}
+                    {settings?.email && <div>✉ {settings.email}</div>}
+                    {settings?.adresse && <div>📍 {settings.adresse}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══════════ BANDEAU TITRE ═══════════ */}
+              <div className="bg-[#C9A96E] text-neutral-900 px-8 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-black uppercase tracking-wider">
+                    {selectedInvoice.type === "Travaux"
+                      ? "FACTURE DE TRAVAUX"
+                      : "FACTURE"}
+                  </div>
+                  <div className="text-[11px] font-semibold text-neutral-900/80 mt-0.5">
+                    {selectedInvoice.type === "Travaux"
+                      ? "Décompte des fournitures & imputation propriétaire"
+                      : "Facture officielle"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-bold uppercase text-neutral-900/70">
+                    N° Facture
+                  </div>
+                  <div className="text-sm font-black font-mono">
+                    {selectedInvoice.ref}
+                  </div>
+                  <div className="text-[10px] mt-1 text-neutral-900/80">
+                    Émise le{" "}
+                    <strong>{formatDate(selectedInvoice.dateFacture)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                {/* ═══════════ BLOCS BIEN/LOCATAIRE + BAILLEUR ═══════════ */}
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="border-l-4 border-neutral-900 bg-neutral-50 p-4 rounded-r-lg">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500 mb-1">
+                      Bien & Locataire
+                    </div>
+                    <div className="text-base font-black text-neutral-900">
+                      {selectedInvoice.bienNom || "Lot sous mandat"}
+                    </div>
+                    <div className="text-xs text-neutral-600 mt-1">
+                      Locataire :{" "}
+                      <strong>
+                        {selectedInvoice.locataireNom || "En place"}
+                      </strong>
+                    </div>
+                    {selectedInvoice.prestataireNom && (
+                      <div className="text-xs text-neutral-600 mt-1">
+                        Artisan :{" "}
+                        <strong>{selectedInvoice.prestataireNom}</strong>
+                        {selectedInvoice.prestataireContact &&
+                          ` (${selectedInvoice.prestataireContact})`}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-l-4 border-[#C9A96E] bg-amber-50 p-4 rounded-r-lg">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-700 mb-1">
+                      Bailleur débiteur (imputation)
+                    </div>
+                    <div className="text-base font-black text-neutral-900">
+                      {selectedInvoice.proprietaireNom}
+                    </div>
+                    <div className="mt-2">
+                      <span className="inline-block px-3 py-1 rounded-full text-[10px] font-black bg-amber-500 text-white">
+                        {selectedInvoice.decaisserSurProprietaire !== false
+                          ? "✓ RETENUE SUR REVERSEMENT DE LOYER"
+                          : "RÈGLEMENT DIRECT"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ═══════════ DÉCOMPTE MATÉRIELS ═══════════ */}
+                {selectedInvoice.materiels &&
+                selectedInvoice.materiels.length > 0 ? (
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wider text-neutral-900 mb-2 pb-1 border-b-2 border-neutral-900">
+                      Décompte des pièces & fournitures achetées
+                    </div>
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-neutral-900 text-white">
+                          <th className="py-2 px-3 text-left font-bold text-[10px] uppercase">
+                            Désignation
+                          </th>
+                          <th className="py-2 px-3 text-center font-bold text-[10px] uppercase w-[50px]">
+                            Qté
+                          </th>
+                          <th className="py-2 px-3 text-right font-bold text-[10px] uppercase w-[100px]">
+                            Prix unitaire
+                          </th>
+                          <th className="py-2 px-3 text-right font-bold text-[10px] uppercase w-[100px]">
+                            Montant HT
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedInvoice.materiels.map((m, idx) => (
+                          <tr
+                            key={m.id}
+                            className={
+                              idx % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                            }
+                          >
+                            <td className="py-2 px-3 font-medium text-neutral-900">
+                              {m.designation}
+                            </td>
+                            <td className="py-2 px-3 text-center font-mono">
+                              {m.quantite}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono">
+                              {formatNumber(m.prixUnitaire)} F
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold">
+                              {formatNumber(m.total)} F
+                            </td>
+                          </tr>
+                        ))}
+                        {selectedInvoice.mainOeuvre ? (
+                          <tr className="bg-amber-100 font-semibold text-neutral-900 border-t-2 border-amber-500">
+                            <td className="py-2 px-3" colSpan={3}>
+                              Main d'œuvre & frais d'intervention —{" "}
+                              {selectedInvoice.prestataireNom || "Artisan"}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black">
+                              {formatNumber(selectedInvoice.mainOeuvre)} F
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-neutral-900 text-white">
+                        <th className="py-2 px-3 text-left font-bold text-[10px] uppercase">
+                          Désignation
+                        </th>
+                        <th className="py-2 px-3 text-center font-bold text-[10px] uppercase w-[50px]">
+                          Qté
+                        </th>
+                        <th className="py-2 px-3 text-right font-bold text-[10px] uppercase w-[100px]">
+                          P.U.
+                        </th>
+                        <th className="py-2 px-3 text-right font-bold text-[10px] uppercase w-[100px]">
+                          Total HT
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedInvoice.lignes.map((l, idx) => (
+                        <tr
+                          key={l.id}
+                          className={
+                            idx % 2 === 0 ? "bg-white" : "bg-neutral-50"
+                          }
+                        >
+                          <td className="py-2 px-3 font-medium text-neutral-900">
+                            {l.description}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono">
+                            {l.quantite}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono">
+                            {formatNumber(l.prixUnitaire)} F
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold">
+                            {formatNumber(l.montant)} F
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
-                <div className="flex justify-between text-base font-black text-neutral-900 border-t-2 border-neutral-900 pt-2">
-                  <span>TOTAL TTC :</span>
-                  <span className="text-emerald-800 font-mono">
-                    {formatNumber(selectedInvoice.total)} FCFA
-                  </span>
+
+                {/* ═══════════ TOTAUX ═══════════ */}
+                <div className="flex justify-end">
+                  <div className="w-80 space-y-2">
+                    <div className="flex justify-between text-sm text-neutral-700 py-1">
+                      <span>Sous-total HT :</span>
+                      <span className="font-mono font-bold">
+                        {formatNumber(selectedInvoice.sousTotal)} FCFA
+                      </span>
+                    </div>
+                    {selectedInvoice.taxes > 0 && (
+                      <div className="flex justify-between text-sm text-neutral-700 py-1">
+                        <span>TVA (18%) :</span>
+                        <span className="font-mono font-bold">
+                          {formatNumber(selectedInvoice.taxes)} FCFA
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center bg-neutral-900 text-white px-4 py-3 rounded-lg">
+                      <span className="font-black uppercase text-sm">
+                        Total TTC
+                      </span>
+                      <span className="text-xl font-black font-mono text-[#C9A96E]">
+                        {formatNumber(selectedInvoice.total)} FCFA
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ═══════════ MONTANT EN LETTRES ═══════════ */}
+                <div className="bg-neutral-100 border-l-4 border-neutral-900 p-4 rounded-r-lg">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500 mb-1">
+                    Arrêtée la présente facture à la somme de :
+                  </div>
+                  <div className="text-sm font-black uppercase italic text-neutral-900">
+                    {numberToWordsFrench(selectedInvoice.total)}
+                  </div>
+                </div>
+
+                {/* ═══════════ MODALITÉ DE RÈGLEMENT ═══════════ */}
+                <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-sm flex-shrink-0">
+                      !
+                    </div>
+                    <div className="text-xs text-amber-950 leading-relaxed">
+                      <div className="font-black uppercase text-[11px] mb-1">
+                        Modalité de règlement
+                      </div>
+                      Montant imputé en <strong>décaissement direct</strong> sur
+                      les encaissements de loyers du propriétaire{" "}
+                      <strong>{selectedInvoice.proprietaireNom}</strong> pour le
+                      lot <strong>{selectedInvoice.bienNom}</strong>, déductible
+                      sur son bulletin de versement mensuel.
+                    </div>
+                  </div>
+                </div>
+
+                {/* ═══════════ SIGNATURES ═══════════ */}
+                <div className="grid grid-cols-3 gap-6 pt-4 border-t-2 border-neutral-300">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500 mb-2">
+                      Le Locataire
+                    </div>
+                    <div className="h-20 border border-dashed border-neutral-300 rounded-lg flex items-end p-2">
+                      <span className="text-[9px] text-neutral-400 italic">
+                        Signature & Date
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500 mb-2">
+                      L'Artisan / Prestataire
+                    </div>
+                    <div className="h-20 border border-dashed border-neutral-300 rounded-lg flex items-end p-2">
+                      <span className="text-[9px] text-neutral-400 italic">
+                        Signature
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500 mb-2">
+                      L'Agence
+                    </div>
+                    <div className="h-20 border border-dashed border-amber-600 rounded-lg bg-amber-50 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-amber-800 uppercase text-center leading-tight">
+                        ★ Travaux
+                        <br />
+                        certifiés &<br />
+                        décaissés ★
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Amount in French Words */}
-            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-300 text-xs text-neutral-900">
-              <span className="font-semibold text-neutral-600">
-                Arrêtée la présente facture Ã  la somme de :{" "}
-              </span>
-              <strong className="font-bold uppercase italic underline">
-                {numberToWordsFrench(selectedInvoice.total)}
-              </strong>
-            </div>
-
-            {/* Mention légale de décaissement */}
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-950">
-              <strong>MODALITÉ DE RÃˆGLEMENT :</strong> Montant imputé en
-              décaissement direct sur les encaissements de loyers du
-              propriétaire <strong>{selectedInvoice.proprietaireNom}</strong>{" "}
-              pour le lot <strong>{selectedInvoice.bienNom}</strong>, déductible
-              sur son bulletin de versement mensuel.
-            </div>
-
-            {/* Signatures */}
-            <div className="grid grid-cols-2 gap-8 pt-4 border-t border-neutral-200 text-xs">
-              <div>
-                <p className="font-bold text-neutral-700">
-                  Pour Réception des Travaux (Locataire) :
-                </p>
-                <div className="h-14 border border-dashed border-neutral-300 rounded-lg p-2 mt-1 flex items-end">
-                  <span className="text-[10px] text-neutral-400 italic">
-                    Signature & Date
-                  </span>
+              {/* ═══════════ PIED DE PAGE ═══════════ */}
+              <div className="bg-neutral-900 text-white px-8 py-4 text-[10px] leading-relaxed">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="font-black uppercase text-[#C9A96E] mb-1">
+                      {settings?.nomAgence || "FITAL-IMMO SAS"}
+                    </div>
+                    <div className="text-white/70">
+                      {settings?.adresse && (
+                        <div>Siège : {settings.adresse}</div>
+                      )}
+                      {settings?.ville && (
+                        <div>
+                          {settings.ville}, {settings.pays}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white/70">
+                      {settings?.rcNumero && (
+                        <div>RC : {settings.rcNumero}</div>
+                      )}
+                      {settings?.nineaNumero && (
+                        <div>NINEA : {settings.nineaNumero}</div>
+                      )}
+                      {settings?.email && <div>{settings.email}</div>}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-neutral-900">
-                  Pour FITAL-IMMO Services Gérance
-                </p>
-                <div className="inline-block mt-2 px-3 py-1 border-2 border-dashed border-amber-800/60 bg-amber-50 rounded-lg text-[10px] font-black text-amber-900 uppercase">
-                  â˜… TRAVAUX CERTIFIÉS & DÉCAISSÉS â˜…
-                </div>
+
+              {/* ═══════════ BOUTONS (écran) ═══════════ */}
+              <div className="bg-neutral-100 px-8 py-4 flex justify-between items-center border-t border-neutral-200 no-print">
+                <button
+                  onClick={() => setSelectedInvoice(null)}
+                  className="px-4 py-2 bg-white hover:bg-neutral-200 text-neutral-700 font-semibold rounded-xl text-xs cursor-pointer border border-neutral-300"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-5 py-2.5 bg-neutral-900 hover:bg-black text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimer la facture / PDF</span>
+                </button>
               </div>
-            </div>
-
-            <PrintFooter agency={settings} />
-
-            {/* Modal Bottom Buttons (no-print) */}
-            <div className="flex justify-between items-center pt-4 border-t border-neutral-200 no-print">
-              <button
-                onClick={() => setSelectedInvoice(null)}
-                className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold rounded-xl text-xs cursor-pointer"
-              >
-                Fermer
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-5 py-2 bg-neutral-900 hover:bg-black text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimer la Facture / PDF</span>
-              </button>
-            </div>
             </div>
           </div>,
           document.body,
