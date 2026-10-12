@@ -241,7 +241,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* Corps */}
-    <div className="text-[13px] text-neutral-900 leading-snug space-y-1 px-4">
+    <div className="text-[14px] text-neutral-900 leading-snug space-y-1 px-4">
       <div>
         Reçu de Mr (mme) :{" "}
         <strong className="underline">{payment.locataireNom}</strong>
@@ -298,11 +298,25 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* NOTA */}
-    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[9px] text-neutral-700 leading-tight px-4">
-      <span className="font-bold">NOTA :</span> 1. Le locataire ne peut
-      déménager sans préavis écrit. 2. Un reçu écrit doit être délivré dans les
-      délais prescrits. 3. Réparations locatives à la charge du locataire sauf
-      force majeure.
+    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[10px] text-neutral-700 leading-tight px-4">
+      <div className="font-black uppercase mb-1">NOTA</div>
+      <div>- Un locataire ne peut déménager sans :</div>
+      <div className="pl-3">
+        1. Qu'il n'ait justifié au propriétaire par une quittance du percepteur
+        qu'il acquitte toutes ses contributions personnelles et mobilières de
+        l'année courante.
+      </div>
+      <div className="pl-3">
+        2. Qu'il n'est donné ou reçu congé par écrit dans les délais prescrits.
+      </div>
+      <div className="pl-3">
+        3. Qu'il n'ait fait faire toutes les réparations locatives à sa charge
+        suivant l'usage ou d'après l'état des lieux s'il en existe un.
+      </div>
+      <div className="mt-0.5">
+        - Il ne pourra sous-louer en tout ou en partie les locaux sans le
+        consentement du propriétaire.
+      </div>
     </div>
 
     {/* Pied de page */}
@@ -344,7 +358,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       `${titre} — ${payment.ref}`,
       `
       @page{size:A4 portrait;margin:7mm 10mm;}
-      #printable-quittance{--qfs:13px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.4 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
+      #printable-quittance{--qfs:14px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.4 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
       #printable-quittance p,#printable-quittance li,#printable-quittance span,#printable-quittance div{font-size:var(--qfs) !important;line-height:1.4 !important;}
       #printable-quittance .quittance-copy{max-height:none !important;overflow:visible !important;break-inside:avoid !important;page-break-inside:avoid !important;}
       #printable-quittance .cut-line{break-inside:avoid !important;page-break-inside:avoid !important;}
@@ -353,15 +367,19 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       `,
       {
         pageIds: ["quittance-copy-1", "quittance-copy-2"],
-        baseFontPx: 13,
+        baseFontPx: 14,
         minFontPx: 10.5,
         pageBudgetMm: 138,
         cssVar: "--qfs",
         finalize: (win) => {
           // Remplit la page : la 2e copie s'étire, son pied colle le bas
           const doc = win.document;
-          const container = doc.getElementById("printable-quittance") as HTMLElement | null;
-          const copy2 = doc.getElementById("quittance-copy-2") as HTMLElement | null;
+          const container = doc.getElementById(
+            "printable-quittance",
+          ) as HTMLElement | null;
+          const copy2 = doc.getElementById(
+            "quittance-copy-2",
+          ) as HTMLElement | null;
           if (!container || !copy2) return;
           container.style.minHeight = "283mm";
           container.style.display = "flex";
@@ -540,9 +558,16 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         {/* ============================================================ */}
         {/* CONTENU IMPRIMABLE - 2 COPIES                                */}
         {/* ============================================================ */}
-        <div id="printable-quittance" className="print-container p-6 bg-white text-neutral-900">
+        <div
+          id="printable-quittance"
+          className="print-container p-6 bg-white text-neutral-900"
+        >
           {/* COPIE 1 - LOCATAIRE */}
-          <QuittanceCopy {...copyProps} copyId="quittance-copy-1" copyLabel="— COPIE LOCATAIRE —" />
+          <QuittanceCopy
+            {...copyProps}
+            copyId="quittance-copy-1"
+            copyLabel="— COPIE LOCATAIRE —"
+          />
 
           {/* LIGNE DE DÉCOUPE */}
           <div className="cut-line">
@@ -550,7 +575,11 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           </div>
 
           {/* COPIE 2 - AGENCE */}
-          <QuittanceCopy {...copyProps} copyId="quittance-copy-2" copyLabel="— COPIE AGENCE —" />
+          <QuittanceCopy
+            {...copyProps}
+            copyId="quittance-copy-2"
+            copyLabel="— COPIE AGENCE —"
+          />
         </div>
       </div>
     </div>

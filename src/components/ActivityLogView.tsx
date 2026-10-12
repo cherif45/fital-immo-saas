@@ -107,7 +107,7 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateRangeMode, setDateRangeMode] = useState<
     "day" | "week" | "month" | "all"
-  >("all");
+  >("day");
   const [selectedActivity, setSelectedActivity] = useState<ActivityLog | null>(
     null,
   );

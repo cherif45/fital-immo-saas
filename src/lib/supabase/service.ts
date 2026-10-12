@@ -126,7 +126,9 @@ export async function fetchPublicAgencyLoginBranding(
     p_slug: slug,
   });
   if (error) {
-    throw new Error(`Impossible de charger l'identité de l'agence : ${error.message}`);
+    throw new Error(
+      `Impossible de charger l'identité de l'agence : ${error.message}`,
+    );
   }
 
   const row = Array.isArray(data) ? data[0] : data;
@@ -1715,7 +1717,9 @@ export async function logSystemAudit(
   agencyId?: string,
 ): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !agencyId) {
-    throw new Error("Supabase ou agence non configuré pour le journal d'activité.");
+    throw new Error(
+      "Supabase ou agence non configuré pour le journal d'activité.",
+    );
   }
 
   const userNom = log.userNom || log.utilisateur || "Syst?me";
@@ -2178,7 +2182,8 @@ export async function saveActivityLogToDb(
   if (!isSupabaseConfigured || !supabase)
     return {
       success: false,
-      error: "Supabase n'est pas configuré : l'activité n'a pas été enregistrée.",
+      error:
+        "Supabase n'est pas configuré : l'activité n'a pas été enregistrée.",
     };
   try {
     const record = {
@@ -2253,7 +2258,7 @@ async function migrateLocalActivityLogsToDb(agencyId: string): Promise<void> {
       (entry.agencyId === agencyId || entry.agency_id === agencyId) &&
       typeof entry.id === "string" &&
       uuidPattern.test(entry.id) &&
-      typeof (entry.title) === "string" &&
+      typeof entry.title === "string" &&
       typeof (entry.activityType ?? entry.activity_type) === "string",
   );
   if (agencyLogs.length === 0) return;
@@ -2282,9 +2287,7 @@ async function migrateLocalActivityLogsToDb(agencyId: string): Promise<void> {
       montant: entry.montant ?? null,
       activity_date: activityDate,
       activity_hour:
-        entry.activityHour ??
-        entry.activity_hour ??
-        createdAt.slice(11, 19),
+        entry.activityHour ?? entry.activity_hour ?? createdAt.slice(11, 19),
       metadata: entry.metadata ?? {},
       created_at: createdAt,
     };
@@ -2321,24 +2324,32 @@ export async function fetchAgencyActivityLogs(
     );
   }
   await migrateLocalActivityLogsToDb(agencyId);
-  const [activitiesResult, auditResult] = await Promise.all([
-    fetchAllRows("activity_logs", agencyId, (query) =>
-      query.order("created_at", { ascending: false }),
-    ),
-    fetchAllRows("audit_logs", agencyId, (query) =>
-      query.order("created_at", { ascending: false }),
-    ),
-  ]);
+  // Charge uniquement les 30 derniers jours d'activité (évite timeout sur 58 000+ lignes)
+  const dateLimite = new Date();
+  dateLimite.setDate(dateLimite.getDate() - 30);
+  const dateLimiteStr = dateLimite.toISOString();
 
+  const [activitiesResult, auditResult] = await Promise.all([
+    supabase!
+      .from("activity_logs")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase!
+      .from("audit_logs")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+  ]);
   if (activitiesResult.error || auditResult.error) {
     throw new Error(
       [
         activitiesResult.error
           ? `activity_logs : ${activitiesResult.error.message}`
           : null,
-        auditResult.error
-          ? `audit_logs : ${auditResult.error.message}`
-          : null,
+        auditResult.error ? `audit_logs : ${auditResult.error.message}` : null,
       ]
         .filter(Boolean)
         .join(" — "),
@@ -2392,7 +2403,10 @@ export async function fetchAgencyActivityLogs(
         key,
         duplicates
           ? recent
-          : [...recent.filter((timestamp) => timestamp - createdAt <= 5000), createdAt],
+          : [
+              ...recent.filter((timestamp) => timestamp - createdAt <= 5000),
+              createdAt,
+            ],
       );
     }
   }
@@ -2461,23 +2475,26 @@ export async function fetchAgencyArchiveData(
     fetchMapped("tenant_reminders", mapReminderFromDb, "date_creation"),
     fetchMapped("cash_movements", mapCashMovementFromDb),
     fetchMapped("cash_closings", mapCashClosingFromDb),
-    fetchMapped("cash_vouchers", (row): CashVoucher => ({
-      id: row.id,
-      ref: row.numero || row.id,
-      numero: row.numero,
-      proprietaireId: row.proprietaire_id || "",
-      proprietaireNom: row.proprietaire_nom || "",
-      loyersBruts: Number(row.loyers_encaisses ?? 0),
-      loyersEncaisses: Number(row.loyers_encaisses ?? 0),
-      commission: Number(row.commissions ?? 0),
-      commissions: Number(row.commissions ?? 0),
-      travaux: Number(row.travaux ?? 0),
-      montantNet: Number(row.montant_net ?? 0),
-      periode: row.periode || "",
-      dateEmission: row.date_emission || row.created_at || "",
-      statut: row.statut || "",
-      modeReglement: row.mode_reversement || "",
-    })),
+    fetchMapped(
+      "cash_vouchers",
+      (row): CashVoucher => ({
+        id: row.id,
+        ref: row.numero || row.id,
+        numero: row.numero,
+        proprietaireId: row.proprietaire_id || "",
+        proprietaireNom: row.proprietaire_nom || "",
+        loyersBruts: Number(row.loyers_encaisses ?? 0),
+        loyersEncaisses: Number(row.loyers_encaisses ?? 0),
+        commission: Number(row.commissions ?? 0),
+        commissions: Number(row.commissions ?? 0),
+        travaux: Number(row.travaux ?? 0),
+        montantNet: Number(row.montant_net ?? 0),
+        periode: row.periode || "",
+        dateEmission: row.date_emission || row.created_at || "",
+        statut: row.statut || "",
+        modeReglement: row.mode_reversement || "",
+      }),
+    ),
   ]);
 
   return {
