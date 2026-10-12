@@ -570,17 +570,21 @@ export default function App() {
       setActivityLogs(activities);
     };
 
-    loadRecords().catch((error: unknown) => {
-      console.error("Erreur de chargement du journal ou des archives:", error);
-      if (!cancelled) {
-        if (activeTab === "activity-logs") setActivityLogs([]);
-        setActivityLogsError(
-          error instanceof Error
-            ? error.message
-            : "Impossible de charger les données distantes.",
+    loadRecords()
+      .catch((error: unknown) => {
+        console.error(
+          "Erreur de chargement du journal ou des archives:",
+          error,
         );
-      }
-    })
+        if (!cancelled) {
+          if (activeTab === "activity-logs") setActivityLogs([]);
+          setActivityLogsError(
+            error instanceof Error
+              ? error.message
+              : "Impossible de charger les données distantes.",
+          );
+        }
+      })
       .finally(() => {
         if (!cancelled) setActivityLogsLoading(false);
       });
@@ -646,8 +650,8 @@ export default function App() {
       return;
     }
     setActivityLogsError(null);
-    void saveActivityLogToDb(activity, currentUser.agencyId).then(
-      (activityResult) => {
+    void saveActivityLogToDb(activity, currentUser.agencyId)
+      .then((activityResult) => {
         const savedActivity = activityResult.data;
         if (!activityResult.success || !savedActivity) {
           throw new Error(
@@ -659,23 +663,25 @@ export default function App() {
           savedActivity,
           ...previous.filter((entry) => entry.id !== savedActivity.id),
         ]);
+      })
+      .catch((error: unknown) => {
+        console.error("Erreur d'enregistrement du journal d'activité:", error);
+        setActivityLogsError(
+          error instanceof Error
+            ? error.message
+            : "Impossible d'enregistrer l'activité dans Supabase.",
+        );
+      });
+    void logSystemAudit(newLog, currentUser.agencyId).catch(
+      (error: unknown) => {
+        console.error("Erreur d'enregistrement de l'audit:", error);
+        setActivityLogsError(
+          error instanceof Error
+            ? error.message
+            : "Impossible d'enregistrer l'audit de cette action.",
+        );
       },
-    ).catch((error: unknown) => {
-      console.error("Erreur d'enregistrement du journal d'activité:", error);
-      setActivityLogsError(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'enregistrer l'activité dans Supabase.",
-      );
-    });
-    void logSystemAudit(newLog, currentUser.agencyId).catch((error: unknown) => {
-      console.error("Erreur d'enregistrement de l'audit:", error);
-      setActivityLogsError(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'enregistrer l'audit de cette action.",
-      );
-    });
+    );
   };
 
   const checkAccessPermission = (
@@ -952,26 +958,28 @@ export default function App() {
       return;
     }
     setActivityLogsError(null);
-    void saveActivityLogToDb(activity, currentUser.agencyId).then((result) => {
-      const savedActivity = result.data;
-      if (!result.success || !savedActivity) {
-        throw new Error(
-          result.error || "L'activité n'a pas été enregistrée dans Supabase.",
+    void saveActivityLogToDb(activity, currentUser.agencyId)
+      .then((result) => {
+        const savedActivity = result.data;
+        if (!result.success || !savedActivity) {
+          throw new Error(
+            result.error || "L'activité n'a pas été enregistrée dans Supabase.",
+          );
+        }
+        setActivityLogs((previous) => [
+          savedActivity,
+          ...previous.filter((entry) => entry.id !== savedActivity.id),
+        ]);
+        setActivityLogsError(null);
+      })
+      .catch((error: unknown) => {
+        console.error("Échec de l'enregistrement de l'activité:", error);
+        setActivityLogsError(
+          error instanceof Error
+            ? error.message
+            : "Impossible d'enregistrer l'activité dans Supabase.",
         );
-      }
-      setActivityLogs((previous) => [
-        savedActivity,
-        ...previous.filter((entry) => entry.id !== savedActivity.id),
-      ]);
-      setActivityLogsError(null);
-    }).catch((error: unknown) => {
-      console.error("Échec de l'enregistrement de l'activité:", error);
-      setActivityLogsError(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'enregistrer l'activité dans Supabase.",
-      );
-    });
+      });
   };
 
   // ============================================================
@@ -1958,7 +1966,10 @@ export default function App() {
     };
     let invoiceToUse = enrichedInvoice;
     if (currentUser?.agencyId) {
-      const result = await saveInvoiceToDb(enrichedInvoice, currentUser.agencyId);
+      const result = await saveInvoiceToDb(
+        enrichedInvoice,
+        currentUser.agencyId,
+      );
       if (!result.success) {
         throw new Error(result.error || "Impossible d'enregistrer la facture.");
       }
@@ -2620,6 +2631,7 @@ export default function App() {
               <LazyActivityLogView
                 activities={activityLogs}
                 currentUser={currentUser}
+                settings={agencySettings}
                 loading={activityLogsLoading}
                 error={activityLogsError}
               />
