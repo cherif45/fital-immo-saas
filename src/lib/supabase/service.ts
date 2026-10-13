@@ -1817,11 +1817,22 @@ export async function deleteBuildingFromDb(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase
+    // 1. Supprimer d'abord toutes les unités liées à cet immeuble
+    const { error: unitsError } = await supabase
+      .from("units")
+      .delete()
+      .eq("building_id", buildingId);
+
+    if (unitsError) throw unitsError;
+
+    // 2. Ensuite supprimer l'immeuble
+    const { error: buildingError } = await supabase
       .from("buildings")
       .delete()
       .eq("id", buildingId);
-    if (error) throw error;
+
+    if (buildingError) throw buildingError;
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
