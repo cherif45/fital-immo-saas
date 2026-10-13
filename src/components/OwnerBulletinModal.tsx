@@ -44,15 +44,59 @@ interface OwnerBulletinModalProps {
 function nombreEnLettres(n: number): string {
   if (n === 0) return "zéro";
   if (n < 0) return "moins " + nombreEnLettres(Math.abs(n));
-  const unites = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
-  const dizaines = ["", "dix", "vingt", "trente", "quarante", "cinquante", "soixante", "soixante-dix", "quatre-vingt", "quatre-vingt-dix"];
-  const centaines = ["", "cent", "deux cent", "trois cent", "quatre cent", "cinq cent", "six cent", "sept cent", "huit cent", "neuf cent"];
+  const unites = [
+    "",
+    "un",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+  ];
+  const dizaines = [
+    "",
+    "dix",
+    "vingt",
+    "trente",
+    "quarante",
+    "cinquante",
+    "soixante",
+    "soixante-dix",
+    "quatre-vingt",
+    "quatre-vingt-dix",
+  ];
+  const centaines = [
+    "",
+    "cent",
+    "deux cent",
+    "trois cent",
+    "quatre cent",
+    "cinq cent",
+    "six cent",
+    "sept cent",
+    "huit cent",
+    "neuf cent",
+  ];
 
   function convert(num: number): string {
     if (num === 0) return "";
     if (num < 10) return unites[num];
     if (num < 20) {
-      const speciaux = ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"];
+      const speciaux = [
+        "dix",
+        "onze",
+        "douze",
+        "treize",
+        "quatorze",
+        "quinze",
+        "seize",
+        "dix-sept",
+        "dix-huit",
+        "dix-neuf",
+      ];
       return speciaux[num - 10];
     }
     if (num < 100) {
@@ -75,9 +119,13 @@ function nombreEnLettres(n: number): string {
   const reste = n % 1000;
 
   let result = "";
-  if (milliards > 0) result += convert(milliards) + " milliard" + (milliards > 1 ? "s" : "") + " ";
-  if (millions > 0) result += convert(millions) + " million" + (millions > 1 ? "s" : "") + " ";
-  if (milliers > 0) result += (milliers === 1 ? "mille" : convert(milliers) + " mille") + " ";
+  if (milliards > 0)
+    result +=
+      convert(milliards) + " milliard" + (milliards > 1 ? "s" : "") + " ";
+  if (millions > 0)
+    result += convert(millions) + " million" + (millions > 1 ? "s" : "") + " ";
+  if (milliers > 0)
+    result += (milliers === 1 ? "mille" : convert(milliers) + " mille") + " ";
   if (reste > 0) result += convert(reste);
 
   return result.trim();
@@ -169,7 +217,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
   const [serverPayments, setServerPayments] = useState<Payment[]>([]);
   const [serverOwnerProps, setServerOwnerProps] = useState<Property[]>([]);
-  const [serverOwnerBuildings, setServerOwnerBuildings] = useState<Building[]>([]);
+  const [serverOwnerBuildings, setServerOwnerBuildings] = useState<Building[]>(
+    [],
+  );
   const [serverOwnerUnits, setServerOwnerUnits] = useState<Unit[]>([]);
   const [serverOwnerTenants, setServerOwnerTenants] = useState<Tenant[]>([]);
 
@@ -178,54 +228,64 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     (async () => {
       try {
         const data = await getOwnerBulletinData(currentUser.agencyId, owner.id);
-        const mappedPayments: Payment[] = (data.payments || []).map((r: any) => ({
-          ...r,
-          id: r.id,
-          montantPaye: Number(r.montant_paye) || 0,
-          montantTotal: Number(r.montant_total) || 0,
-          montantRestant: Number(r.montant_restant) || 0,
-          loyerBase: Number(r.loyer_base) || 0,
-          charges: Number(r.charges) || 0,
-          tva: Number(r.tva) || 0,
-          penalites: Number(r.penalites) || 0,
-          datePaiement: r.date_paiement,
-          periode: r.periode,
-          statut: r.statut,
-          modePaiement: r.mode_paiement,
-          locataireId: r.locataire_id,
-          bienId: r.bien_id,
-          proprietaireId: r.proprietaire_id,
-          contratId: r.contrat_id,
-          locataireNom: r.locataire_nom_calc
-            ? `${r.locataire_prenom_calc || ""} ${r.locataire_nom_calc}`.trim()
-            : r.locataire_nom,
-          bienNom: r.bien_nom_calc || r.bien_nom,
-        }));
+        const mappedPayments: Payment[] = (data.payments || []).map(
+          (r: any) => ({
+            ...r,
+            id: r.id,
+            montantPaye: Number(r.montant_paye) || 0,
+            montantTotal: Number(r.montant_total) || 0,
+            montantRestant: Number(r.montant_restant) || 0,
+            loyerBase: Number(r.loyer_base) || 0,
+            charges: Number(r.charges) || 0,
+            tva: Number(r.tva) || 0,
+            penalites: Number(r.penalites) || 0,
+            datePaiement: r.date_paiement,
+            periode: r.periode,
+            statut: r.statut,
+            modePaiement: r.mode_paiement,
+            locataireId: r.locataire_id,
+            bienId: r.bien_id,
+            proprietaireId: r.proprietaire_id,
+            contratId: r.contrat_id,
+            locataireNom: r.locataire_nom_calc
+              ? `${r.locataire_prenom_calc || ""} ${r.locataire_nom_calc}`.trim()
+              : r.locataire_nom,
+            bienNom: r.bien_nom_calc || r.bien_nom,
+          }),
+        );
         setServerPayments(mappedPayments);
-        setServerOwnerProps((data.properties || []).map((p: any) => ({
-          ...p,
-          proprietaireId: p.proprietaire_id || p.proprietaireId,
-          buildingId: p.building_id || p.buildingId,
-          loyerBase: Number(p.loyer_base) || Number(p.loyerBase) || 0,
-        })));
-        setServerOwnerBuildings((data.buildings || []).map((b: any) => ({
-          ...b,
-          proprietaireId: b.proprietaire_id || b.proprietaireId,
-        })));
-        setServerOwnerUnits((data.units || []).map((u: any) => ({
-          ...u,
-          proprietaireId: u.proprietaire_id || u.proprietaireId,
-          buildingId: u.building_id || u.buildingId,
-          loyerBase: Number(u.loyer_base) || Number(u.loyerBase) || 0,
-          bienId: u.bien_id || u.bienId,
-        })));
-        setServerOwnerTenants((data.tenants || []).map((t: any) => ({
-          ...t,
-          bienId: t.bien_id || t.bienId,
-          proprietaireId: t.proprietaire_id || t.proprietaireId,
-          dateSortie: t.date_sortie || t.dateSortie,
-          dateEntree: t.date_entree || t.dateEntree,
-        })));
+        setServerOwnerProps(
+          (data.properties || []).map((p: any) => ({
+            ...p,
+            proprietaireId: p.proprietaire_id || p.proprietaireId,
+            buildingId: p.building_id || p.buildingId,
+            loyerBase: Number(p.loyer_base) || Number(p.loyerBase) || 0,
+          })),
+        );
+        setServerOwnerBuildings(
+          (data.buildings || []).map((b: any) => ({
+            ...b,
+            proprietaireId: b.proprietaire_id || b.proprietaireId,
+          })),
+        );
+        setServerOwnerUnits(
+          (data.units || []).map((u: any) => ({
+            ...u,
+            proprietaireId: u.proprietaire_id || u.proprietaireId,
+            buildingId: u.building_id || u.buildingId,
+            loyerBase: Number(u.loyer_base) || Number(u.loyerBase) || 0,
+            bienId: u.id || u.bien_id || u.bienId,
+          })),
+        );
+        setServerOwnerTenants(
+          (data.tenants || []).map((t: any) => ({
+            ...t,
+            bienId: t.bien_id || t.bienId,
+            proprietaireId: t.proprietaire_id || t.proprietaireId,
+            dateSortie: t.date_sortie || t.dateSortie,
+            dateEntree: t.date_entree || t.dateEntree,
+          })),
+        );
       } catch (e) {
         console.warn("loadBulletinData:", e);
       }
@@ -233,32 +293,60 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   }, [currentUser?.agencyId, owner?.id, selectedPeriod]);
 
   const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
-  const displayProperties = serverOwnerProps.length > 0 ? serverOwnerProps : properties;
-  const displayBuildings = serverOwnerBuildings.length > 0 ? serverOwnerBuildings : buildings;
+  const displayProperties =
+    serverOwnerProps.length > 0 ? serverOwnerProps : properties;
+  const displayBuildings =
+    serverOwnerBuildings.length > 0 ? serverOwnerBuildings : buildings;
   const displayUnits = serverOwnerUnits.length > 0 ? serverOwnerUnits : units;
-  const displayTenants = serverOwnerTenants.length > 0 ? serverOwnerTenants : tenants;
+  const displayTenants =
+    serverOwnerTenants.length > 0 ? serverOwnerTenants : tenants;
 
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [deductionLibelle, setDeductionLibelle] = useState("");
   const [deductionMontant, setDeductionMontant] = useState(0);
-  const [observationsSaisies, setObservationsSaisies] = useState<Record<string, string>>({});
+  const [observationsSaisies, setObservationsSaisies] = useState<
+    Record<string, string>
+  >({});
 
-  const ownerProperties = displayProperties.filter((p) => p.proprietaireId === owner.id);
-  const ownerBuildings = displayBuildings.filter((b) => b.proprietaireId === owner.id);
-  const ownerUnits = displayUnits.filter((u) => u.proprietaireId === owner.id);
+  const ownerProperties = displayProperties.filter(
+    (p) => p.proprietaireId === owner.id,
+  );
+  const ownerBuildings = displayBuildings.filter(
+    (b) => b.proprietaireId === owner.id,
+  );
+  const ownerUnits = displayUnits.filter((u) => {
+    // Unit direct propriétaire
+    if (u.proprietaireId === owner.id) return true;
+    // Fallback : via le bâtiment (pour les units dont le proprietaireId est cassé)
+    const b = displayBuildings.find((bb) => bb.id === u.buildingId);
+    return b?.proprietaireId === owner.id;
+  });
   const tauxCommission = owner.tauxCommission || 10;
 
   const normalizePeriod = (s: string) => (s || "").toLowerCase().trim();
-  const isSamePeriod = (a: string, b: string) => normalizePeriod(a) === normalizePeriod(b);
+  const isSamePeriod = (a: string, b: string) =>
+    normalizePeriod(a) === normalizePeriod(b);
 
   const getObservationPeriode = (paymentPeriode: string): string => {
     if (!paymentPeriode) return "";
     if (isSamePeriod(paymentPeriode, selectedPeriod)) return "";
 
     const moisOrdre: Record<string, number> = {
-      janvier: 1, février: 2, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6,
-      juillet: 7, août: 8, aout: 8, septembre: 9, octobre: 10, novembre: 11,
-      décembre: 12, decembre: 12,
+      janvier: 1,
+      février: 2,
+      fevrier: 2,
+      mars: 3,
+      avril: 4,
+      mai: 5,
+      juin: 6,
+      juillet: 7,
+      août: 8,
+      aout: 8,
+      septembre: 9,
+      octobre: 10,
+      novembre: 11,
+      décembre: 12,
+      decembre: 12,
     };
 
     const extract = (s: string) => {
@@ -296,7 +384,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           p.bienId === bienId &&
           p.locataireId === locataireId &&
           isSamePeriod(p.periode, selectedPeriod) &&
-          p.statut === "Payé"
+          p.statut === "Payé",
       );
 
     const buildLine = (
@@ -308,7 +396,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       adresse: string,
       etage: string,
       ordre: number,
-      loyerBase: number
+      loyerBase: number,
     ): LoyerLigne | null => {
       const tenant = findActiveTenant(unitId);
       if (!tenant) return null;
@@ -317,11 +405,14 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       const estNonPayeur = !payment;
 
       const loyerFinal = estNonPayeur ? 0 : loyerBase;
-      const netFinal = estNonPayeur ? 0 : Math.round(loyerBase * (1 - tauxCommission / 100));
+      const netFinal = estNonPayeur
+        ? 0
+        : Math.round(loyerBase * (1 - tauxCommission / 100));
 
       const dateEntree = tenant.dateEntree ? new Date(tenant.dateEntree) : null;
       const estNouveau = dateEntree
-        ? dateEntree.getMonth() === moisCourant && dateEntree.getFullYear() === anneeCourante
+        ? dateEntree.getMonth() === moisCourant &&
+          dateEntree.getFullYear() === anneeCourante
         : false;
 
       const refCourte = getRefCourte((tenant as any).ref);
@@ -340,7 +431,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         locataireRef: refCourte,
         loyer: loyerFinal,
         net: netFinal,
-        observation: estNonPayeur ? "NON PAYER" : estNouveau ? "NOUVEAU LOCATAIRE" : "",
+        observation: estNonPayeur
+          ? "NON PAYER"
+          : estNouveau
+            ? "NOUVEAU LOCATAIRE"
+            : "",
         estNonPayeur,
         ordre,
       };
@@ -357,7 +452,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         batiment?.adresse || "—",
         unit.etage || "RDC",
         getOrdreEtage(unit.etage || "RDC"),
-        unit.loyerBase || 0
+        unit.loyerBase || 0,
       );
       if (line) lines.push(line);
     });
@@ -372,18 +467,27 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         prop.adresse || "—",
         "RDC",
         1000,
-        prop.loyerBase || 0
+        prop.loyerBase || 0,
       );
       if (line) lines.push(line);
     });
 
     lines.sort((a, b) => {
-      if (a.immeubleNom !== b.immeubleNom) return a.immeubleNom.localeCompare(b.immeubleNom);
+      if (a.immeubleNom !== b.immeubleNom)
+        return a.immeubleNom.localeCompare(b.immeubleNom);
       return a.ordre - b.ordre;
     });
 
     return lines;
-  }, [ownerUnits, ownerProperties, tenants, payments, buildings, selectedPeriod, tauxCommission]);
+  }, [
+    ownerUnits,
+    ownerProperties,
+    tenants,
+    payments,
+    buildings,
+    selectedPeriod,
+    tauxCommission,
+  ]);
 
   const totalLoyer = loyersData.reduce((sum, l) => sum + l.loyer, 0);
   const totalNet = loyersData.reduce((sum, l) => sum + l.net, 0);
@@ -411,19 +515,27 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         observations: getObservationPeriode(p.periode),
       };
     });
-  }, [payments, owner, ownerUnits, ownerProperties, tenants, selectedPeriod, tauxCommission]);
+  }, [
+    payments,
+    owner,
+    ownerUnits,
+    ownerProperties,
+    tenants,
+    selectedPeriod,
+    tauxCommission,
+  ]);
 
   const totalArrieres = arrieresData.reduce((sum, a) => sum + a.reglement, 0);
   const totalArrieresNet = arrieresData.reduce((sum, a) => sum + a.net, 0);
 
   const ownerDeductions = deductions.filter(
-    (d) => d.proprietaireId === owner.id && d.periode === selectedPeriod
+    (d) => d.proprietaireId === owner.id && d.periode === selectedPeriod,
   );
   const ownerInvoices = invoices.filter(
-    (inv) => inv.proprietaireId === owner.id && inv.statut !== "Payée"
+    (inv) => inv.proprietaireId === owner.id && inv.statut !== "Payée",
   );
   const ownerMaintenance = maintenance.filter(
-    (m) => m.proprietaireId === owner.id && m.imputableA === "Propriétaire"
+    (m) => m.proprietaireId === owner.id && m.imputableA === "Propriétaire",
   );
 
   const decaissementsLignes: DecaissementLigne[] = [
@@ -447,14 +559,21 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     })),
   ];
 
-  const totalDecaissement = decaissementsLignes.reduce((sum, d) => sum + d.montant, 0);
+  const totalDecaissement = decaissementsLignes.reduce(
+    (sum, d) => sum + d.montant,
+    0,
+  );
 
   const encaissementsLignes: EncaissementLigne[] = useMemo(() => {
     const cautions = displayPayments.filter((p) => {
       if (p.proprietaireId !== owner.id) return false;
       if (p.statut !== "Payé") return false;
       const obs = (p.observation || "").toLowerCase();
-      return obs.includes("caution") || obs.includes("avance") || obs.includes("dossier");
+      return (
+        obs.includes("caution") ||
+        obs.includes("avance") ||
+        obs.includes("dossier")
+      );
     });
 
     return cautions.map((p) => ({
@@ -464,9 +583,13 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     }));
   }, [payments, owner]);
 
-  const totalEncaissement = encaissementsLignes.reduce((sum, e) => sum + e.montant, 0);
+  const totalEncaissement = encaissementsLignes.reduce(
+    (sum, e) => sum + e.montant,
+    0,
+  );
 
-  const netAReverser = totalNet + totalArrieresNet - totalDecaissement + totalEncaissement;
+  const netAReverser =
+    totalNet + totalArrieresNet - totalDecaissement + totalEncaissement;
 
   const agency = settings || agencySettings || null;
   const gerantNom = agency?.gerantNom || "Le Gérant";
@@ -475,7 +598,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
   const dateNow = new Date();
   const dateFormatee = `${String(dateNow.getDate()).padStart(2, "0")}/${String(
-    dateNow.getMonth() + 1
+    dateNow.getMonth() + 1,
   ).padStart(2, "0")}/${dateNow.getFullYear()}`;
 
   const handleAddDeduction = (e: React.FormEvent) => {
@@ -573,7 +696,6 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
         {/* Document imprimable */}
         <div className="bulletin-print-container print-container bg-white text-neutral-900 p-8 max-w-[210mm] mx-auto relative">
-
           {/* EN-TÊTE AGENCE - Logo à gauche, texte centré à droite */}
           <div className="flex items-start gap-4 border-b-2 border-neutral-800 pb-3 mb-4">
             {/* Logo à sa place (gauche) */}
@@ -621,33 +743,69 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             <table className="w-full text-[11px] border-collapse mb-3">
               <thead>
                 <tr className="bg-neutral-200">
-                  <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">Ref_Im.</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold">Nom_Immeuble</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold w-[90px]">Type</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold">Adresse</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold w-[160px]">Propriétaire</th>
-                  <th className="p-2 border border-neutral-700 text-center font-bold w-[70px]">Taux Com</th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">
+                    Ref_Im.
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold">
+                    Nom_Immeuble
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold w-[90px]">
+                    Type
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold">
+                    Adresse
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold w-[160px]">
+                    Propriétaire
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-center font-bold w-[70px]">
+                    Taux Com
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {ownerBuildings.map((b) => (
                   <tr key={b.id}>
-                    <td className="p-2 border border-neutral-700 font-mono">{getRefCourte(b.ref)}</td>
-                    <td className="p-2 border border-neutral-700 font-bold uppercase">{b.nom}</td>
-                    <td className="p-2 border border-neutral-700">{b.type || "Immeuble"}</td>
-                    <td className="p-2 border border-neutral-700">{b.adresse || b.quartier || "—"}</td>
-                    <td className="p-2 border border-neutral-700 uppercase">{owner.prenom} {owner.nom}</td>
-                    <td className="p-2 border border-neutral-700 text-center font-mono">{tauxCommission}%</td>
+                    <td className="p-2 border border-neutral-700 font-mono">
+                      {getRefCourte(b.ref)}
+                    </td>
+                    <td className="p-2 border border-neutral-700 font-bold uppercase">
+                      {b.nom}
+                    </td>
+                    <td className="p-2 border border-neutral-700">
+                      {b.type || "Immeuble"}
+                    </td>
+                    <td className="p-2 border border-neutral-700">
+                      {b.adresse || b.quartier || "—"}
+                    </td>
+                    <td className="p-2 border border-neutral-700 uppercase">
+                      {owner.prenom} {owner.nom}
+                    </td>
+                    <td className="p-2 border border-neutral-700 text-center font-mono">
+                      {tauxCommission}%
+                    </td>
                   </tr>
                 ))}
                 {ownerProperties.map((p) => (
                   <tr key={p.id}>
-                    <td className="p-2 border border-neutral-700 font-mono">{getRefCourte(p.ref)}</td>
-                    <td className="p-2 border border-neutral-700 font-bold uppercase">{p.nom}</td>
-                    <td className="p-2 border border-neutral-700">{p.type || "Bien"}</td>
-                    <td className="p-2 border border-neutral-700">{p.adresse || p.quartier || "—"}</td>
-                    <td className="p-2 border border-neutral-700 uppercase">{owner.prenom} {owner.nom}</td>
-                    <td className="p-2 border border-neutral-700 text-center font-mono">{tauxCommission}%</td>
+                    <td className="p-2 border border-neutral-700 font-mono">
+                      {getRefCourte(p.ref)}
+                    </td>
+                    <td className="p-2 border border-neutral-700 font-bold uppercase">
+                      {p.nom}
+                    </td>
+                    <td className="p-2 border border-neutral-700">
+                      {p.type || "Bien"}
+                    </td>
+                    <td className="p-2 border border-neutral-700">
+                      {p.adresse || p.quartier || "—"}
+                    </td>
+                    <td className="p-2 border border-neutral-700 uppercase">
+                      {owner.prenom} {owner.nom}
+                    </td>
+                    <td className="p-2 border border-neutral-700 text-center font-mono">
+                      {tauxCommission}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -658,27 +816,51 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           <table className="w-full text-[11px] border-collapse mb-3">
             <thead>
               <tr className="bg-neutral-200">
-                <th className="p-2 border border-neutral-700 text-left font-bold w-[180px]">Locataire</th>
-                <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">Ref</th>
-                <th className="p-2 border border-neutral-700 text-left font-bold">Bien Loué</th>
-                <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">Loyer</th>
-                <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">Net</th>
-                <th className="p-2 border border-neutral-700 text-left font-bold w-[140px]">Observations</th>
+                <th className="p-2 border border-neutral-700 text-left font-bold w-[180px]">
+                  Locataire
+                </th>
+                <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">
+                  Ref
+                </th>
+                <th className="p-2 border border-neutral-700 text-left font-bold">
+                  Bien Loué
+                </th>
+                <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">
+                  Loyer
+                </th>
+                <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">
+                  Net
+                </th>
+                <th className="p-2 border border-neutral-700 text-left font-bold w-[140px]">
+                  Observations
+                </th>
               </tr>
             </thead>
             <tbody>
               {loyersData.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-4 text-center text-neutral-500 italic text-[11px]">
+                  <td
+                    colSpan={6}
+                    className="p-4 text-center text-neutral-500 italic text-[11px]"
+                  >
                     Aucun locataire pour cette période
                   </td>
                 </tr>
               ) : (
                 loyersData.map((l, idx) => (
-                  <tr key={l.unitId} className={idx % 2 === 0 ? "bg-white" : "bg-neutral-50"}>
-                    <td className="p-2 border border-neutral-700 font-bold text-neutral-900 uppercase">{l.locataire}</td>
-                    <td className="p-2 border border-neutral-700 font-mono">{l.locataireRef}</td>
-                    <td className="p-2 border border-neutral-700">{l.unitNom}</td>
+                  <tr
+                    key={l.unitId}
+                    className={idx % 2 === 0 ? "bg-white" : "bg-neutral-50"}
+                  >
+                    <td className="p-2 border border-neutral-700 font-bold text-neutral-900 uppercase">
+                      {l.locataire}
+                    </td>
+                    <td className="p-2 border border-neutral-700 font-mono">
+                      {l.locataireRef}
+                    </td>
+                    <td className="p-2 border border-neutral-700">
+                      {l.unitNom}
+                    </td>
                     <td className="p-2 border border-neutral-700 text-right font-mono">
                       {l.estNonPayeur ? "" : formatNumber(l.loyer)}
                     </td>
@@ -691,7 +873,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                           type="text"
                           value={observationsSaisies[l.unitId] || l.observation}
                           onChange={(e) =>
-                            setObservationsSaisies({ ...observationsSaisies, [l.unitId]: e.target.value })
+                            setObservationsSaisies({
+                              ...observationsSaisies,
+                              [l.unitId]: e.target.value,
+                            })
                           }
                           className="w-full bg-transparent border-none outline-none text-[10px] italic"
                           placeholder="—"
@@ -708,8 +893,12 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             <tfoot>
               <tr className="bg-neutral-100 font-bold">
                 <td colSpan={3} className="p-2 border border-neutral-700"></td>
-                <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(totalLoyer)}</td>
-                <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(totalNet)}</td>
+                <td className="p-2 border border-neutral-700 text-right font-mono">
+                  {formatNumber(totalLoyer)}
+                </td>
+                <td className="p-2 border border-neutral-700 text-right font-mono">
+                  {formatNumber(totalNet)}
+                </td>
                 <td className="p-2 border border-neutral-700"></td>
               </tr>
             </tfoot>
@@ -720,30 +909,63 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             <table className="w-full text-[11px] border-collapse mb-3">
               <thead>
                 <tr className="bg-neutral-200">
-                  <th className="p-2 border border-neutral-700 text-left font-bold w-[180px]">Locataire</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">Ref</th>
-                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">Règlement</th>
-                  <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">Arriérés</th>
-                  <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">Net</th>
-                  <th className="p-2 border border-neutral-700 text-left font-bold">Observations</th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold w-[180px]">
+                    Locataire
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold w-[70px]">
+                    Ref
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">
+                    Règlement
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">
+                    Arriérés
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-right font-bold w-[90px]">
+                    Net
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold">
+                    Observations
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {arrieresData.map((a, idx) => (
                   <tr key={idx}>
-                    <td className="p-2 border border-neutral-700 font-bold uppercase">{a.locataire}</td>
-                    <td className="p-2 border border-neutral-700 font-mono">{a.ref}</td>
-                    <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(a.reglement)}</td>
-                    <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(a.arrieres)}</td>
-                    <td className="p-2 border border-neutral-700 text-right font-mono font-bold">{formatNumber(a.net)}</td>
-                    <td className="p-2 border border-neutral-700 italic text-[10px]">{a.observations}</td>
+                    <td className="p-2 border border-neutral-700 font-bold uppercase">
+                      {a.locataire}
+                    </td>
+                    <td className="p-2 border border-neutral-700 font-mono">
+                      {a.ref}
+                    </td>
+                    <td className="p-2 border border-neutral-700 text-right font-mono">
+                      {formatNumber(a.reglement)}
+                    </td>
+                    <td className="p-2 border border-neutral-700 text-right font-mono">
+                      {formatNumber(a.arrieres)}
+                    </td>
+                    <td className="p-2 border border-neutral-700 text-right font-mono font-bold">
+                      {formatNumber(a.net)}
+                    </td>
+                    <td className="p-2 border border-neutral-700 italic text-[10px]">
+                      {a.observations}
+                    </td>
                   </tr>
                 ))}
                 <tr className="bg-neutral-100 font-bold">
-                  <td colSpan={2} className="p-2 border border-neutral-700"></td>
-                  <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(totalArrieres)}</td>
-                  <td className="p-2 border border-neutral-700 text-right font-mono">0</td>
-                  <td className="p-2 border border-neutral-700 text-right font-mono">{formatNumber(totalArrieresNet)}</td>
+                  <td
+                    colSpan={2}
+                    className="p-2 border border-neutral-700"
+                  ></td>
+                  <td className="p-2 border border-neutral-700 text-right font-mono">
+                    {formatNumber(totalArrieres)}
+                  </td>
+                  <td className="p-2 border border-neutral-700 text-right font-mono">
+                    0
+                  </td>
+                  <td className="p-2 border border-neutral-700 text-right font-mono">
+                    {formatNumber(totalArrieresNet)}
+                  </td>
                   <td className="p-2 border border-neutral-700"></td>
                 </tr>
               </tbody>
@@ -755,22 +977,31 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             <table className="w-full text-[11px] border-collapse">
               <thead>
                 <tr className="bg-neutral-200">
-                  <th className="p-2 border border-neutral-700 text-left font-bold">Décaissement</th>
-                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">Montant</th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold">
+                    Décaissement
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">
+                    Montant
+                  </th>
                   <th className="p-2 border border-neutral-700 text-center font-bold w-[30px] print:hidden"></th>
                 </tr>
               </thead>
               <tbody>
                 {decaissementsLignes.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="p-3 text-center text-neutral-500 italic text-[11px]">
+                    <td
+                      colSpan={3}
+                      className="p-3 text-center text-neutral-500 italic text-[11px]"
+                    >
                       Aucun décaissement
                     </td>
                   </tr>
                 ) : (
                   decaissementsLignes.map((d) => (
                     <tr key={d.id}>
-                      <td className="p-2 border border-neutral-700 text-[10px]">{d.libelle}</td>
+                      <td className="p-2 border border-neutral-700 text-[10px]">
+                        {d.libelle}
+                      </td>
                       <td className="p-2 border border-neutral-700 text-right font-mono text-[10px]">
                         {formatNumber(d.montant)}
                       </td>
@@ -788,7 +1019,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               </tbody>
               <tfoot>
                 <tr className="font-bold bg-neutral-100">
-                  <td className="p-2 border border-neutral-700 text-right text-[11px]">Total</td>
+                  <td className="p-2 border border-neutral-700 text-right text-[11px]">
+                    Total
+                  </td>
                   <td className="p-2 border border-neutral-700 text-right font-mono text-[11px]">
                     {formatNumber(totalDecaissement)}
                   </td>
@@ -800,21 +1033,30 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             <table className="w-full text-[11px] border-collapse">
               <thead>
                 <tr className="bg-neutral-200">
-                  <th className="p-2 border border-neutral-700 text-left font-bold">Encaissement</th>
-                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">Montant_pro</th>
+                  <th className="p-2 border border-neutral-700 text-left font-bold">
+                    Encaissement
+                  </th>
+                  <th className="p-2 border border-neutral-700 text-right font-bold w-[110px]">
+                    Montant_pro
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {encaissementsLignes.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="p-3 text-center text-neutral-500 italic text-[11px]">
+                    <td
+                      colSpan={2}
+                      className="p-3 text-center text-neutral-500 italic text-[11px]"
+                    >
                       Aucun encaissement
                     </td>
                   </tr>
                 ) : (
                   encaissementsLignes.map((e) => (
                     <tr key={e.id}>
-                      <td className="p-2 border border-neutral-700 text-[10px]">{e.libelle}</td>
+                      <td className="p-2 border border-neutral-700 text-[10px]">
+                        {e.libelle}
+                      </td>
                       <td className="p-2 border border-neutral-700 text-right font-mono text-[10px]">
                         {formatNumber(e.montant)}
                       </td>
@@ -824,7 +1066,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               </tbody>
               <tfoot>
                 <tr className="font-bold bg-neutral-100">
-                  <td className="p-2 border border-neutral-700 text-right text-[11px]">Total :</td>
+                  <td className="p-2 border border-neutral-700 text-right text-[11px]">
+                    Total :
+                  </td>
                   <td className="p-2 border border-neutral-700 text-right font-mono text-[11px]">
                     {formatNumber(totalEncaissement)}
                   </td>
@@ -870,7 +1114,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               <div className="font-bold text-neutral-900">Le {gerantTitre}</div>
               <div className="text-neutral-700 mb-2 italic">{gerantNom}</div>
               {agency?.cachetUrl ? (
-                <img src={agency.cachetUrl} alt="Cachet" className="h-20 object-contain" />
+                <img
+                  src={agency.cachetUrl}
+                  alt="Cachet"
+                  className="h-20 object-contain"
+                />
               ) : (
                 <div className="h-20 border-b border-dotted border-neutral-500"></div>
               )}
@@ -964,7 +1212,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                   <input
                     type="number"
                     value={deductionMontant || ""}
-                    onChange={(e) => setDeductionMontant(Number(e.target.value))}
+                    onChange={(e) =>
+                      setDeductionMontant(Number(e.target.value))
+                    }
                     required
                     min={1}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
