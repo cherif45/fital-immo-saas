@@ -138,6 +138,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   }
 
   const filteredProperties = displayableProperties.filter((p) => {
+    if (p.statut === "Archivé" || p.statut === "Archiv?") return false;
     if (typeFilter !== "all" && p.type !== typeFilter) return false;
     if (statusFilter !== "all" && p.statut !== statusFilter) return false;
     if (search) {

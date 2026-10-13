@@ -3481,7 +3481,7 @@ export async function softDeleteRecord(
   try {
     const { error } = await supabase
       .from(table)
-      .update({ statut: "Archiv?" })
+      .update({ statut: "Archivé" })
       .eq("id", id);
     if (error) throw error;
     return { success: true };
