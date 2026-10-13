@@ -2431,7 +2431,24 @@ export async function fetchAgencyArchiveData(
     table: string,
     mapper: (row: any) => T,
     orderBy = "created_at",
+    limit?: number,
   ): Promise<T[]> => {
+    // Si une limite est spécifiée, on utilise une requête directe rapide
+    if (limit) {
+      const { data, error } = await supabase!
+        .from(table)
+        .select("*")
+        .eq("agency_id", agencyId)
+        .order(orderBy, { ascending: false })
+        .limit(limit);
+      if (error) {
+        throw new Error(
+          `Impossible de charger ${table} pour les archives : ${error.message}`,
+        );
+      }
+      return (data || []).map(mapper);
+    }
+    // Sinon, on charge tout (pour les petites tables)
     const result = await fetchAllRows(table, agencyId, (query) =>
       query.order(orderBy, { ascending: false }),
     );
@@ -2460,9 +2477,7 @@ export async function fetchAgencyArchiveData(
     ownerDeductions,
     archives,
     activityLogs,
-    penalties,
     reminders,
-    cashMovements,
     cashClosings,
     cashVoucherRows,
   ] = await Promise.all([
@@ -2482,9 +2497,9 @@ export async function fetchAgencyArchiveData(
     fetchMapped("owner_deductions", mapOwnerDeductionFromDb),
     fetchMapped("archives", mapArchiveFromDb, "archived_at"),
     fetchAgencyActivityLogs(agencyId),
-    fetchMapped("penalties", mapPenaltyFromDb),
+    Promise.resolve([] as Penalty[]),
     fetchMapped("tenant_reminders", mapReminderFromDb, "date_creation"),
-    fetchMapped("cash_movements", mapCashMovementFromDb),
+    Promise.resolve([] as CashMovement[]),
     fetchMapped("cash_closings", mapCashClosingFromDb),
     fetchMapped(
       "cash_vouchers",
@@ -2507,6 +2522,19 @@ export async function fetchAgencyArchiveData(
       }),
     ),
   ]);
+
+  // Chargement séquentiel des grosses tables (évite le timeout du Promise.all)
+  const penaltiesResult = await fetchAllRows("penalties", agencyId, (q) =>
+    q.order("created_at", { ascending: false }),
+  );
+  const penalties = penaltiesResult.data.map(mapPenaltyFromDb);
+
+  const cashMovementsResult = await fetchAllRows(
+    "cash_movements",
+    agencyId,
+    (q) => q.order("created_at", { ascending: false }),
+  );
+  const cashMovements = cashMovementsResult.data.map(mapCashMovementFromDb);
 
   return {
     tenants,
@@ -4686,5 +4714,65 @@ export async function restoreAgency(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+}
+// ============================================================
+// CHARGEMENT PROGRESSIF D'UNE TABLE (streaming par lots)
+// ============================================================
+export async function fetchTableProgressive<T>(
+  table: string,
+  agencyId: string,
+  mapper: (row: any) => T,
+  onBatch: (
+    rows: T[],
+    progress: { loaded: number; total: number | null },
+  ) => void,
+  orderBy = "created_at",
+  batchSize = 1000,
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+
+  // 1. Compter d'abord le total (rapide)
+  let total: number | null = null;
+  try {
+    const { count } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", agencyId);
+    total = count ?? null;
+  } catch (e) {
+    console.warn(`Count ${table} échoué:`, e);
+  }
+
+  // 2. Charger par lots
+  let page = 0;
+  let loaded = 0;
+  const MAX_PAGES = 100; // garde-fou : 100 000 lignes
+
+  while (page < MAX_PAGES) {
+    const from = page * batchSize;
+    const to = from + batchSize - 1;
+
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .eq("agency_id", agencyId)
+      .order(orderBy, { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.warn(`fetchTableProgressive ${table} page ${page}:`, error);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    const mapped = data.map(mapper);
+    loaded += mapped.length;
+    onBatch(mapped, { loaded, total });
+
+    // Si on a reçu moins que batchSize, c'est la dernière page
+    if (data.length < batchSize) break;
+    page++;
   }
 }

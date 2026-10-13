@@ -596,6 +596,7 @@ export default function App() {
     setActivityLogsError(null);
     const loadRecords = async () => {
       if (activeTab === "archives") {
+        // Charger les petites tables d'abord (rapide)
         const data = await fetchAgencyArchiveData(currentUser.agencyId);
         if (cancelled) return;
         setTenants(data.tenants);
