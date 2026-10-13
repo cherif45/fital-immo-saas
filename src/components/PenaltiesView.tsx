@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   AlertTriangle,
   Calculator,
@@ -14,10 +14,11 @@ import {
   DollarSign,
   Calendar,
   User,
-} from 'lucide-react';
-import { Penalty, Tenant, Payment, UserAccount } from '../types';
-import { formatCurrency, formatNumber, formatDate } from '../lib/utils';
-import { paginateTable } from '../lib/supabase/service';
+} from "lucide-react";
+import { Penalty, Tenant, Payment, UserAccount } from "../types";
+import { formatCurrency, formatNumber, formatDate } from "../lib/utils";
+import { paginateTable } from "../lib/supabase/service";
+import { supabase } from "../lib/supabase/client";
 
 interface PenaltiesViewProps {
   penalties: Penalty[];
@@ -38,9 +39,9 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   onDeletePenalty,
   onUpdatePenalty,
 }) => {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  // 🆕 Pagination serveur
+  // Pagination serveur
   const [serverPenalties, setServerPenalties] = useState<Penalty[]>([]);
   const [serverTotal, setServerTotal] = useState(0);
   const [serverPage, setServerPage] = useState(0);
@@ -55,7 +56,12 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   const loadPenaltiesPage = async (page: number) => {
     if (!currentUser?.agencyId) return;
     setIsLoadingMore(true);
-    const result = await paginateTable<any>('penalties', currentUser.agencyId, page, PAGE_SIZE);
+    const result = await paginateTable<any>(
+      "penalties",
+      currentUser.agencyId,
+      page,
+      PAGE_SIZE,
+    );
     const mapped: Penalty[] = (result.data || []).map((r: any) => ({
       id: r.id,
       agencyId: r.agency_id,
@@ -69,42 +75,83 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       tauxPenalite: Number(r.taux_penalite ?? 10),
       montantBase: Number(r.montant_base ?? 0),
       montantPenalite: Number(r.montant_penalite ?? 0),
-      statut: r.statut || 'En attente',
-      dateCalcul: r.date_calcul || new Date().toISOString().split('T')[0],
+      statut: r.statut || "En attente",
+      dateCalcul: r.date_calcul || new Date().toISOString().split("T")[0],
       dateApplication: r.date_application,
-      notes: r.notes || '',
+      notes: r.notes || "",
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     }));
     if (page === 0) {
       setServerPenalties(mapped);
     } else {
-      setServerPenalties(prev => [...prev, ...mapped]);
+      setServerPenalties((prev) => [...prev, ...mapped]);
     }
     setServerTotal(result.total);
     setServerPage(page);
     setIsLoadingMore(false);
   };
 
-  const displayPenalties = serverPenalties.length > 0 ? serverPenalties : penalties;
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const displayPenalties =
+    serverPenalties.length > 0 ? serverPenalties : penalties;
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isNewPenaltyModalOpen, setIsNewPenaltyModalOpen] = useState(false);
 
   // Form state
-  const [selectedTenantId, setSelectedTenantId] = useState('');
+  const [selectedTenantId, setSelectedTenantId] = useState("");
   const [periode, setPeriode] = useState<string>(
-    new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
   );
   const [joursRetard, setJoursRetard] = useState(15);
   const [tauxPenalite, setTauxPenalite] = useState(10);
   const [montantBase, setMontantBase] = useState(0);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState("");
+
+  // ============================================================
+  // RECALCUL MANUEL DES STATUTS
+  // ============================================================
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const handleRecalculate = async () => {
+    if (!currentUser?.agencyId) return;
+    if (
+      !window.confirm(
+        "Recalculer les statuts de tous les locataires ?\n\n" +
+          "Cette action va mettre à jour les locataires en retard/impayé.",
+      )
+    )
+      return;
+
+    setIsRecalculating(true);
+    try {
+      const { error } = await supabase.rpc("recalculate_tenant_statuses", {
+        p_agency_id: currentUser.agencyId,
+      });
+
+      if (error) {
+        alert(`Erreur : ${error.message}`);
+        return;
+      }
+
+      alert("✅ Statuts recalculés avec succès. Rechargement de la page...");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      alert("Erreur lors du recalcul : " + String(err));
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
 
   // ============================================================
   // PERMISSIONS
   // ============================================================
-  const role = currentUser?.role || 'ADMIN';
-  const canManage = ['ADMIN', 'SUPER_ADMIN', 'GESTIONNAIRE', 'CAISSIER'].includes(role);
+  const role = currentUser?.role || "ADMIN";
+  const canManage = [
+    "ADMIN",
+    "SUPER_ADMIN",
+    "GESTIONNAIRE",
+    "CAISSIER",
+  ].includes(role);
 
   // ============================================================
   // CALCULS
@@ -116,13 +163,13 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   // ============================================================
   const filteredPenalties = React.useMemo(() => {
     return displayPenalties.filter((p) => {
-      if (statusFilter !== 'all' && p.statut !== statusFilter) return false;
+      if (statusFilter !== "all" && p.statut !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
-          (p.locataireNom || '').toLowerCase().includes(q) ||
-          (p.bienNom || '').toLowerCase().includes(q) ||
-          (p.periode || '').toLowerCase().includes(q)
+          (p.locataireNom || "").toLowerCase().includes(q) ||
+          (p.bienNom || "").toLowerCase().includes(q) ||
+          (p.periode || "").toLowerCase().includes(q)
         );
       }
       return true;
@@ -132,12 +179,15 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   // ============================================================
   // STATS
   // ============================================================
-  const totalPenalites = penalties.reduce((sum, p) => sum + p.montantPenalite, 0);
+  const totalPenalites = penalties.reduce(
+    (sum, p) => sum + p.montantPenalite,
+    0,
+  );
   const totalEnAttente = penalties
-    .filter((p) => p.statut === 'En attente')
+    .filter((p) => p.statut === "En attente")
     .reduce((sum, p) => sum + p.montantPenalite, 0);
   const totalAppliquees = penalties
-    .filter((p) => p.statut === 'Appliquée' || p.statut === 'Payée')
+    .filter((p) => p.statut === "Appliquée" || p.statut === "Payée")
     .reduce((sum, p) => sum + p.montantPenalite, 0);
 
   // ============================================================
@@ -158,7 +208,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     e.preventDefault();
     if (!canManage) return;
     if (!selectedTenantId || montantBase <= 0) {
-      alert('Veuillez sélectionner un locataire et un montant.');
+      alert("Veuillez sélectionner un locataire et un montant.");
       return;
     }
 
@@ -177,8 +227,8 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       tauxPenalite: Number(tauxPenalite),
       montantBase: Number(montantBase),
       montantPenalite,
-      statut: 'En attente',
-      dateCalcul: new Date().toISOString().split('T')[0],
+      statut: "En attente",
+      dateCalcul: new Date().toISOString().split("T")[0],
       notes: notes || undefined,
     };
 
@@ -188,12 +238,11 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     setServerTotal((prev) => prev + 1);
     setIsNewPenaltyModalOpen(false);
 
-    // Reset
-    setSelectedTenantId('');
+    setSelectedTenantId("");
     setJoursRetard(15);
     setTauxPenalite(10);
     setMontantBase(0);
-    setNotes('');
+    setNotes("");
   };
 
   const handleApplyPenalty = async (penalty: Penalty) => {
@@ -201,8 +250,8 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     if (!canManage) return;
     const updated: Penalty = {
       ...penalty,
-      statut: 'Appliquée',
-      dateApplication: new Date().toISOString().split('T')[0],
+      statut: "Appliquée",
+      dateApplication: new Date().toISOString().split("T")[0],
     };
     if (await onUpdatePenalty(updated)) {
       setServerPenalties((prev) =>
@@ -225,11 +274,16 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
 
   const getStatusColor = (statut: string) => {
     switch (statut) {
-      case 'En attente': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-      case 'Appliquée': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-      case 'Payée': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      case 'Annulée': return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+      case "En attente":
+        return "bg-amber-500/20 text-amber-300 border-amber-500/30";
+      case "Appliquée":
+        return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+      case "Payée":
+        return "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      case "Annulée":
+        return "bg-slate-500/20 text-slate-300 border-slate-500/30";
+      default:
+        return "bg-slate-500/20 text-slate-300 border-slate-500/30";
     }
   };
 
@@ -246,19 +300,33 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               Pénalités de Retard & Indemnités
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {penalties.length} pénalité(s) · {formatNumber(totalPenalites)} FCFA au total
+              {penalties.length} pénalité(s) · {formatNumber(totalPenalites)}{" "}
+              FCFA au total
             </div>
           </div>
         </div>
 
         {canManage && (
-          <button
-            onClick={() => setIsNewPenaltyModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouvelle Pénalité</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRecalculate}
+              disabled={isRecalculating}
+              className="px-4 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#E8D5B0] font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+              title="Recalculer les statuts des locataires en retard/impayé"
+            >
+              <Calculator className="w-4 h-4" />
+              <span>
+                {isRecalculating ? "Recalcul..." : "Recalculer statuts"}
+              </span>
+            </button>
+            <button
+              onClick={() => setIsNewPenaltyModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouvelle Pénalité</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -266,7 +334,9 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/20">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] text-[#A8B4C4] uppercase font-semibold">Total Pénalités</div>
+            <div className="text-[11px] text-[#A8B4C4] uppercase font-semibold">
+              Total Pénalités
+            </div>
             <DollarSign className="w-4 h-4 text-[#C9A96E]" />
           </div>
           <div className="text-2xl font-bold text-[#E8D5B0] mt-2 font-mono">
@@ -276,7 +346,9 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
 
         <div className="p-4 rounded-2xl bg-[#162133] border border-amber-500/20">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] text-amber-300 uppercase font-semibold">En Attente</div>
+            <div className="text-[11px] text-amber-300 uppercase font-semibold">
+              En Attente
+            </div>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-bold text-amber-400 mt-2 font-mono">
@@ -286,11 +358,14 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
 
         <div className="p-4 rounded-2xl bg-[#162133] border border-emerald-500/20">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] text-emerald-300 uppercase font-semibold">Appliquées</div>
+            <div className="text-[11px] text-emerald-300 uppercase font-semibold">
+              Appliquées
+            </div>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-bold text-emerald-400 mt-2 font-mono">
-            {formatNumber(totalAppliquees)} <span className="text-xs">FCFA</span>
+            {formatNumber(totalAppliquees)}{" "}
+            <span className="text-xs">FCFA</span>
           </div>
         </div>
       </div>
@@ -299,28 +374,46 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/15 flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setStatusFilter('all')}
+            onClick={() => setStatusFilter("all")}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              statusFilter === 'all' ? 'bg-[#C9A96E] text-[#0F1B2D] font-bold' : 'bg-[#1E2E45] text-[#A8B4C4] hover:text-white'
+              statusFilter === "all"
+                ? "bg-[#C9A96E] text-[#0F1B2D] font-bold"
+                : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
             }`}
           >
             Toutes ({penalties.length})
           </button>
           <button
-            onClick={() => setStatusFilter('En attente')}
+            onClick={() => setStatusFilter("En attente")}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              statusFilter === 'En attente' ? 'bg-amber-500 text-white font-bold' : 'bg-[#1E2E45] text-amber-400 hover:text-white'
+              statusFilter === "En attente"
+                ? "bg-amber-500 text-white font-bold"
+                : "bg-[#1E2E45] text-amber-400 hover:text-white"
             }`}
           >
-            En attente ({serverTotal ? displayPenalties.filter((p) => p.statut === 'En attente').length : penalties.filter((p) => p.statut === 'En attente').length})
+            En attente (
+            {serverTotal
+              ? displayPenalties.filter((p) => p.statut === "En attente").length
+              : penalties.filter((p) => p.statut === "En attente").length}
+            )
           </button>
           <button
-            onClick={() => setStatusFilter('Appliquée')}
+            onClick={() => setStatusFilter("Appliquée")}
             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              statusFilter === 'Appliquée' ? 'bg-emerald-500 text-white font-bold' : 'bg-[#1E2E45] text-emerald-400 hover:text-white'
+              statusFilter === "Appliquée"
+                ? "bg-emerald-500 text-white font-bold"
+                : "bg-[#1E2E45] text-emerald-400 hover:text-white"
             }`}
           >
-            Appliquées ({serverTotal ? displayPenalties.filter((p) => p.statut === 'Appliquée' || p.statut === 'Payée').length : penalties.filter((p) => p.statut === 'Appliquée' || p.statut === 'Payée').length})
+            Appliquées (
+            {serverTotal
+              ? displayPenalties.filter(
+                  (p) => p.statut === "Appliquée" || p.statut === "Payée",
+                ).length
+              : penalties.filter(
+                  (p) => p.statut === "Appliquée" || p.statut === "Payée",
+                ).length}
+            )
           </button>
         </div>
 
@@ -357,7 +450,9 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-[#6B7C94]">
                     <AlertTriangle className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
-                    <p className="text-xs font-semibold text-white">Aucune pénalité</p>
+                    <p className="text-xs font-semibold text-white">
+                      Aucune pénalité
+                    </p>
                     <p className="text-[11px] text-[#6B7C94] mt-1">
                       Créez une pénalité pour un locataire en retard.
                     </p>
@@ -365,7 +460,10 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 </tr>
               ) : (
                 filteredPenalties.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#1E2E45]/40 transition-colors">
+                  <tr
+                    key={p.id}
+                    className="hover:bg-[#1E2E45]/40 transition-colors"
+                  >
                     <td className="py-3 px-4 font-bold text-white">
                       {p.locataireNom}
                     </td>
@@ -383,13 +481,15 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                       {formatNumber(p.montantPenalite)} F
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${getStatusColor(p.statut)}`}>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${getStatusColor(p.statut)}`}
+                      >
                         {p.statut}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {canManage && p.statut === 'En attente' && (
+                        {canManage && p.statut === "En attente" && (
                           <button
                             onClick={() => handleApplyPenalty(p)}
                             className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all cursor-pointer"
@@ -415,15 +515,18 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
             </tbody>
           </table>
 
-            {/* 🆕 Bouton Charger plus */}
-            {serverPenalties.length > 0 && serverPenalties.length < serverTotal && (
+          {/* Bouton Charger plus */}
+          {serverPenalties.length > 0 &&
+            serverPenalties.length < serverTotal && (
               <div className="flex justify-center mt-4 mb-6">
                 <button
                   onClick={() => loadPenaltiesPage(serverPage + 1)}
                   disabled={isLoadingMore}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50"
                 >
-                  {isLoadingMore ? '⏳ Chargement...' : `📥 Charger plus (${serverPenalties.length} / ${serverTotal})`}
+                  {isLoadingMore
+                    ? "⏳ Chargement..."
+                    : `📥 Charger plus (${serverPenalties.length} / ${serverTotal})`}
                 </button>
               </div>
             )}
@@ -464,7 +567,8 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                     .filter((t) => !t.dateSortie)
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.prenom} {t.nom} — {t.bienNom} ({formatNumber(t.loyerMensuel)} FCFA)
+                        {t.prenom} {t.nom} — {t.bienNom} (
+                        {formatNumber(t.loyerMensuel)} FCFA)
                       </option>
                     ))}
                 </select>
@@ -534,7 +638,9 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               {/* Calcul auto */}
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-amber-300">Montant Pénalité Calculé :</span>
+                  <span className="text-xs text-amber-300">
+                    Montant Pénalité Calculé :
+                  </span>
                   <span className="text-lg font-bold font-mono text-amber-300">
                     {formatNumber(montantPenalite)} FCFA
                   </span>

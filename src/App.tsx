@@ -209,6 +209,62 @@ export default function App() {
 
   const { settings: agencySettings, reload: reloadAgencySettings } =
     useAgencySettings(currentUser?.agencyId);
+  // ============================================================
+  // RECALCUL AUTOMATIQUE DES STATUTS AU CHARGEMENT
+  // ============================================================
+  React.useEffect(() => {
+    if (!currentUser?.agencyId || !isSupabaseConfigured) return;
+
+    const runRecalc = async () => {
+      try {
+        console.log("🔄 Recalcul des statuts locataires...");
+        const { error } = await supabase.rpc("recalculate_tenant_statuses", {
+          p_agency_id: currentUser.agencyId,
+        });
+
+        if (error) {
+          console.warn("⚠️ Recalcul échoué:", error.message);
+          return;
+        }
+
+        console.log("✅ Statuts recalculés");
+
+        // Recharger les tenants pour rafraîchir le dashboard
+        const { data: refreshedTenants } = await supabase
+          .from("tenants")
+          .select("*")
+          .eq("agency_id", currentUser.agencyId)
+          .is("deleted_at", null);
+
+        if (refreshedTenants && refreshedTenants.length > 0) {
+          // Mapper au format Tenant (adapter si nécessaire)
+          setTenants((prev) => {
+            // Si on a déjà les tenants chargés, on met à jour juste les statuts
+            const updates = new Map(
+              refreshedTenants.map((t: any) => [t.id, t]),
+            );
+            return prev.map((t) => {
+              const fresh = updates.get(t.id);
+              if (fresh) {
+                return {
+                  ...t,
+                  statut: fresh.statut || t.statut,
+                  joursRetard: Number(fresh.jours_retard ?? t.joursRetard ?? 0),
+                };
+              }
+              return t;
+            });
+          });
+        }
+      } catch (err) {
+        console.warn("⚠️ Erreur recalcul:", err);
+      }
+    };
+
+    // Délai pour laisser le temps à l'app de charger
+    const timer = setTimeout(runRecalc, 2000);
+    return () => clearTimeout(timer);
+  }, [currentUser?.agencyId]);
   useTheme();
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
