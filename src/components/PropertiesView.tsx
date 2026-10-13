@@ -74,7 +74,6 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const [proprietaireId, setProprietaireId] = useState<string>(
     owners[0]?.id || "",
   );
-  const [ownerSearch, setOwnerSearch] = useState<string>("");
   const [pieces, setPieces] = useState<number>(3);
   const [superficie, setSuperficie] = useState<number>(110);
   const [tauxGerance, setTauxGerance] = useState<number>(10);
@@ -918,34 +917,16 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                     Propriétaire Mandant
                   </label>
-                  <input
-                    type="text"
-                    value={ownerSearch}
-                    onChange={(e) => setOwnerSearch(e.target.value)}
-                    placeholder="🔍 Rechercher un propriétaire..."
-                    className="w-full mb-2 p-2 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/30 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
-                  />
                   <select
                     value={proprietaireId}
                     onChange={(e) => setProprietaireId(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                   >
-                    {owners
-                      .filter((o) => {
-                        if (!ownerSearch.trim()) return true;
-                        const q = ownerSearch.toLowerCase().trim();
-                        return (
-                          `${o.prenom} ${o.nom}`.toLowerCase().includes(q) ||
-                          (o.telephone || "").includes(q) ||
-                          (o.email || "").toLowerCase().includes(q) ||
-                          (o.mandatGerance || "").toLowerCase().includes(q)
-                        );
-                      })
-                      .map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.prenom} {o.nom} ({o.mandatGerance})
-                        </option>
-                      ))}
+                    {owners.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.prenom} {o.nom} ({o.mandatGerance})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

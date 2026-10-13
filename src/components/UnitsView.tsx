@@ -64,7 +64,6 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     "Occupé" | "Vacant" | "Maintenance" | "En litige"
   >("Vacant");
   const [locataireActuelId, setLocataireActuelId] = useState<string>("");
-  const [tenantSearch, setTenantSearch] = useState<string>("");
   const [description, setDescription] = useState("");
 
   // 🔒 Permissions
@@ -166,7 +165,6 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setLoyerBase(150000);
     setStatut("Vacant");
     setLocataireActuelId("");
-    setTenantSearch("");
     setDescription("");
   };
 
@@ -717,35 +715,17 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                     Locataire actuel
                   </label>
-                  <input
-                    type="text"
-                    value={tenantSearch}
-                    onChange={(e) => setTenantSearch(e.target.value)}
-                    placeholder="🔍 Rechercher un locataire..."
-                    className="w-full mb-2 p-2 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/30 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
-                  />
                   <select
                     value={locataireActuelId}
                     onChange={(e) => setLocataireActuelId(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   >
                     <option value="">— Aucun —</option>
-                    {tenants
-                      .filter((t) => {
-                        if (!tenantSearch.trim()) return true;
-                        const q = tenantSearch.toLowerCase().trim();
-                        return (
-                          `${t.prenom} ${t.nom}`.toLowerCase().includes(q) ||
-                          (t.telephone || "").includes(q) ||
-                          (t.email || "").toLowerCase().includes(q) ||
-                          (t.cni || "").toLowerCase().includes(q)
-                        );
-                      })
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.prenom} {t.nom}
-                        </option>
-                      ))}
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.prenom} {t.nom}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

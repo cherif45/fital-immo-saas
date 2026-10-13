@@ -59,7 +59,6 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   const [customType, setCustomType] = useState<string>("");
   const [nombreEtages, setNombreEtages] = useState(0);
   const [proprietaireId, setProprietaireId] = useState(owners[0]?.id || "");
-  const [ownerSearch, setOwnerSearch] = useState<string>("");
   const [description, setDescription] = useState("");
 
   // 🔒 Permissions
@@ -150,7 +149,6 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     setAdresse("");
     setQuartier("");
     setCustomType("");
-    setOwnerSearch("");
     setDescription("");
     setIsNewBuildingModalOpen(false);
   };
@@ -442,35 +440,17 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Propriétaire *
                 </label>
-                <input
-                  type="text"
-                  value={ownerSearch}
-                  onChange={(e) => setOwnerSearch(e.target.value)}
-                  placeholder="🔍 Rechercher un propriétaire..."
-                  className="w-full mb-2 p-2 rounded-xl bg-[#0F1B2D] border border-[#C9A96E]/30 text-white focus:outline-none focus:border-[#C9A96E] text-[11px]"
-                />
                 <select
                   value={proprietaireId}
                   onChange={(e) => setProprietaireId(e.target.value)}
                   required
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                 >
-                  {owners
-                    .filter((o) => {
-                      if (!ownerSearch.trim()) return true;
-                      const q = ownerSearch.toLowerCase().trim();
-                      return (
-                        `${o.prenom} ${o.nom}`.toLowerCase().includes(q) ||
-                        (o.telephone || "").includes(q) ||
-                        (o.email || "").toLowerCase().includes(q) ||
-                        (o.mandatGerance || "").toLowerCase().includes(q)
-                      );
-                    })
-                    .map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.prenom} {o.nom}
-                      </option>
-                    ))}
+                  {owners.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.prenom} {o.nom}
+                    </option>
+                  ))}
                 </select>
               </div>
 
