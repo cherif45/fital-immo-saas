@@ -872,6 +872,31 @@ export default function App() {
   };
 
   // ============================================================
+  // RATTACHER une unité orpheline à un immeuble existant
+  // ============================================================
+  const handleReattachUnit = (unitId: string, newBuildingId: string) => {
+    setUnits((prev) => {
+      const next = prev.map((u) =>
+        u.id === unitId ? { ...u, buildingId: newBuildingId } : u,
+      );
+      persistCollection("units", next);
+      return next;
+    });
+
+    if (currentUser?.agencyId) {
+      // Mise à jour en base
+      supabase
+        .from("units")
+        .update({ building_id: newBuildingId })
+        .eq("id", unitId)
+        .then(({ error }) => {
+          if (error) console.warn("Erreur rattachement:", error);
+          else console.log("✅ Unité rattachée");
+        });
+    }
+  };
+
+  // ============================================================
   // HANDLERS : UNITS
   // ============================================================
   const handleAddUnit = (newUnit: Unit) => {
@@ -2843,6 +2868,7 @@ export default function App() {
                 currentUser={currentUser}
                 onAddUnit={handleAddUnit}
                 onUpdateUnit={handleUpdateUnit}
+                onReattachUnit={handleReattachUnit}
                 onDeleteUnit={handleDeleteUnit}
               />
             </ViewLoader>

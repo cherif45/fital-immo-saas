@@ -29,6 +29,7 @@ interface UnitsViewProps {
   onUpdateUnit: (unit: Unit) => void;
   onDeleteUnit: (unitId: string) => void;
   initialBuildingId?: string;
+  onReattachUnit?: (unitId: string, newBuildingId: string) => void;
 }
 
 export const UnitsView: React.FC<UnitsViewProps> = ({
@@ -41,6 +42,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
   onUpdateUnit,
   onDeleteUnit,
   initialBuildingId,
+  onReattachUnit,
 }) => {
   const [search, setSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<string>(
@@ -49,6 +51,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
   const [statutFilter, setStatutFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [reattachUnit, setReattachUnit] = useState<Unit | null>(null);
   const [isNewUnitModalOpen, setIsNewUnitModalOpen] = useState(false);
 
   // Form state
@@ -456,6 +459,18 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                         <div className="flex items-center justify-center gap-1.5">
                           {canManage && (
                             <>
+                              {onReattachUnit &&
+                                !buildings.find(
+                                  (b) => b.id === u.buildingId,
+                                ) && (
+                                  <button
+                                    onClick={() => setReattachUnit(u)}
+                                    className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#C9A96E]/20 text-[#C9A96E] hover:text-[#E8D5B0] transition-colors cursor-pointer"
+                                    title="Rattacher à un immeuble"
+                                  >
+                                    <Layers className="w-4 h-4" />
+                                  </button>
+                                )}
                               <button
                                 onClick={() => handleOpenEdit(u)}
                                 className="p-1.5 rounded-lg bg-[#1E2E45] hover:bg-[#2A3F5C] text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
@@ -763,6 +778,69 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal : Rattacher à un immeuble */}
+      {reattachUnit && onReattachUnit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Layers className="w-5 h-5 text-[#C9A96E]" />
+                <span>Rattacher à un immeuble</span>
+              </div>
+              <button
+                onClick={() => setReattachUnit(null)}
+                className="text-[#A8B4C4] hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/20">
+                <div className="text-[10px] text-[#6B7C94] uppercase font-bold mb-1">
+                  Espace à rattacher
+                </div>
+                <div className="text-white font-bold">{reattachUnit.nom}</div>
+                <div className="text-[#A8B4C4] text-[11px]">
+                  {reattachUnit.type} · {reattachUnit.etage || "—"}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-2">
+                  Choisir l'immeuble *
+                </label>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {buildings.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => {
+                        onReattachUnit(reattachUnit.id, b.id);
+                        setReattachUnit(null);
+                      }}
+                      className="w-full p-3 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/20 hover:border-[#C9A96E]/50 text-left transition-all cursor-pointer"
+                    >
+                      <div className="font-bold text-white">{b.nom}</div>
+                      <div className="text-[10px] text-[#A8B4C4] mt-0.5">
+                        {b.type} · {b.adresse || "—"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#C9A96E]/15 flex justify-end">
+                <button
+                  onClick={() => setReattachUnit(null)}
+                  className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:text-white cursor-pointer"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
