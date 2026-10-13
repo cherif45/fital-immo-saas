@@ -40,6 +40,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   onUpdatePenalty,
 }) => {
   const [search, setSearch] = useState("");
+  const [showOldPenalties, setShowOldPenalties] = useState(false);
 
   // Pagination serveur
   const [serverPenalties, setServerPenalties] = useState<Penalty[]>([]);
@@ -163,6 +164,18 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   // ============================================================
   const filteredPenalties = React.useMemo(() => {
     return displayPenalties.filter((p) => {
+      // Filtre : n'afficher que les pénalités récentes sauf si "Voir anciennes"
+      if (!showOldPenalties) {
+        const periodeStr = String(p.periode || "").trim();
+        const dateCalculStr = String(p.dateCalcul || "");
+        // Est "ancienne" si la période est un nombre pur (pas un nom de mois)
+        const isOld =
+          /^\d+$/.test(periodeStr) &&
+          !dateCalculStr.startsWith("2026") &&
+          !dateCalculStr.startsWith("2025");
+        if (isOld) return false;
+      }
+
       if (statusFilter !== "all" && p.statut !== statusFilter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -174,19 +187,19 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
       }
       return true;
     });
-  }, [displayPenalties, statusFilter, search]);
+  }, [displayPenalties, statusFilter, search, showOldPenalties]);
 
   // ============================================================
-  // STATS
+  // STATS (sur les pénalités filtrées)
   // ============================================================
-  const totalPenalites = penalties.reduce(
+  const totalPenalites = filteredPenalties.reduce(
     (sum, p) => sum + p.montantPenalite,
     0,
   );
-  const totalEnAttente = penalties
+  const totalEnAttente = filteredPenalties
     .filter((p) => p.statut === "En attente")
     .reduce((sum, p) => sum + p.montantPenalite, 0);
-  const totalAppliquees = penalties
+  const totalAppliquees = filteredPenalties
     .filter((p) => p.statut === "Appliquée" || p.statut === "Payée")
     .reduce((sum, p) => sum + p.montantPenalite, 0);
 
@@ -300,8 +313,8 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               Pénalités de Retard & Indemnités
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {penalties.length} pénalité(s) · {formatNumber(totalPenalites)}{" "}
-              FCFA au total
+              {filteredPenalties.length} pénalité(s) ·{" "}
+              {formatNumber(totalPenalites)} FCFA affichés
             </div>
           </div>
         </div>
@@ -381,7 +394,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 : "bg-[#1E2E45] text-[#A8B4C4] hover:text-white"
             }`}
           >
-            Toutes ({penalties.length})
+            Toutes ({filteredPenalties.length})
           </button>
           <button
             onClick={() => setStatusFilter("En attente")}
@@ -392,10 +405,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
             }`}
           >
             En attente (
-            {serverTotal
-              ? displayPenalties.filter((p) => p.statut === "En attente").length
-              : penalties.filter((p) => p.statut === "En attente").length}
-            )
+            {filteredPenalties.filter((p) => p.statut === "En attente").length})
           </button>
           <button
             onClick={() => setStatusFilter("Appliquée")}
@@ -406,14 +416,22 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
             }`}
           >
             Appliquées (
-            {serverTotal
-              ? displayPenalties.filter(
-                  (p) => p.statut === "Appliquée" || p.statut === "Payée",
-                ).length
-              : penalties.filter(
-                  (p) => p.statut === "Appliquée" || p.statut === "Payée",
-                ).length}
+            {
+              filteredPenalties.filter(
+                (p) => p.statut === "Appliquée" || p.statut === "Payée",
+              ).length
+            }
             )
+          </button>
+          <button
+            onClick={() => setShowOldPenalties(!showOldPenalties)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              showOldPenalties
+                ? "bg-slate-500 text-white font-bold"
+                : "bg-[#1E2E45] text-slate-400 hover:text-white"
+            }`}
+          >
+            {showOldPenalties ? "Masquer anciennes" : "Voir anciennes"}
           </button>
         </div>
 
@@ -551,7 +569,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-              {/* Locataire */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Locataire concerné *
@@ -574,7 +591,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 </select>
               </div>
 
-              {/* Période */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Période *
@@ -589,7 +605,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 />
               </div>
 
-              {/* Jours retard */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Jours de retard *
@@ -604,7 +619,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 />
               </div>
 
-              {/* Montant base + Taux */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -635,7 +649,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 </div>
               </div>
 
-              {/* Calcul auto */}
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-amber-300">
@@ -647,7 +660,6 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                   Notes / Observation
