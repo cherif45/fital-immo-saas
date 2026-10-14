@@ -162,16 +162,15 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
           </div>
 
           {/* EN-TÊTE DYNAMIQUE */}
-          <PrintHeader
-            agency={agencySettings || null}
-            documentType="MANDAT DE GÉRANCE"
-          />
+          <PrintHeader agency={agencySettings || null} />
 
           {/* Titre encadré */}
-          <div className="mt-3 inline-block border-2 border-neutral-900 px-8 py-1">
-            <span className="text-base font-black uppercase tracking-widest text-neutral-900">
-              MANDAT DE GÉRANCE
-            </span>
+          <div className="mt-3 text-center">
+            <div className="inline-block border-2 border-neutral-900 px-8 py-1">
+              <span className="text-base font-black uppercase tracking-widest text-neutral-900">
+                MANDAT DE GÉRANCE
+              </span>
+            </div>
           </div>
 
           {/* ============================================================ */}

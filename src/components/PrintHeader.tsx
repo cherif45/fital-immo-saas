@@ -33,169 +33,97 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
         </div>
       )}
 
-      {/* En-tête standard (si pas d'image personnalisée) */}
+      {/* En-tête standard centré */}
       {!agency.enteteUrl && (
-        <div
-          className={`flex items-start justify-between border-b border-[#C9A96E] ${compact ? "pb-1.5 mb-2" : "border-b-2 pb-4 mb-4"}`}
-        >
-          <div className="flex items-center gap-3">
-            {agency.logoUrl && (
-              <img
-                src={agency.logoUrl}
-                alt="Logo"
-                className={`object-contain ${compact ? "w-12 h-12" : "w-20 h-20"}`}
-              />
-            )}
-            <div>
-              <h1
-                className={`font-bold text-[#0F1B2D] ${compact ? "text-sm" : "text-2xl"}`}
-              >
-                {agency.nomAgence || "MON AGENCE"}
-              </h1>
-              {agency.slogan1 && (
-                <p
-                  className={`text-[#C9A96E] font-semibold ${compact ? "text-[9px]" : "text-sm"}`}
-                >
-                  {agency.slogan1}
-                </p>
-              )}
-              {agency.slogan2 && (
-                <p
-                  className={`text-[#0F1B2D]/70 ${compact ? "text-[8px]" : "text-xs"}`}
-                >
-                  {agency.slogan2}
-                </p>
-              )}
-            </div>
-          </div>
-
+        <>
           <div
-            className={`text-right space-y-0.5 ${compact ? "text-[8px]" : "text-xs space-y-1"}`}
+            className={`text-center border-b-2 border-neutral-900 ${
+              compact ? "pb-2 mb-2" : "pb-4 mb-4"
+            }`}
           >
-            {agency.adresse && <div>📍 {agency.adresse}</div>}
-            {agency.telephone && <div>📞 {agency.telephone}</div>}
-            {agency.email && <div>✉️ {agency.email}</div>}
-            {agency.rcNumero && <div>RC : {agency.rcNumero}</div>}
-            {agency.nineaNumero && <div>NINEA : {agency.nineaNumero}</div>}
-            {agency.boitePostale && <div>B.P. : {agency.boitePostale}</div>}
-            {agency.siteWeb && <div>🌐 {agency.siteWeb}</div>}
-          </div>
-        </div>
-      )}
-
-      {/* Titre du document (ignoré si compact et documentType non demandé) */}
-      {(documentType || documentRef) && (
-        <div className={`text-center ${compact ? "my-1.5" : "my-4"}`}>
-          {documentType && (
-            <h2
-              className={`font-bold text-[#0F1B2D] uppercase tracking-wider ${compact ? "text-xs" : "text-xl"}`}
-            >
-              {documentType}
-            </h2>
-          )}
-          {documentRef && (
-            <p
-              className={`text-[#C9A96E] font-mono font-bold ${compact ? "text-xs" : "text-sm"}`}
-            >
-              N° {documentRef}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* ─── TITRE DU DOCUMENT ─────────────────────────── */}
-      {documentType && (
-        <div className="mt-4 mb-4 text-center">
-          <h1
-            className={`font-black uppercase tracking-[0.15em] text-[#0F1B2D] border-b-2 border-[#C9A96E] pb-2 ${compact ? "text-lg" : "text-3xl"}`}
-          >
-            {documentType}
-          </h1>
-          {documentRef && (
-            <p className="text-xs text-neutral-600 mt-1 font-mono">
-              Réf : {documentRef}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================
-// PIED DE PAGE
-
-// ============================================================
-// PIED DE PAGE — Signature + cachet + pied personnalisé
-// ============================================================
-interface PrintFooterProps {
-  agency: AgencySettings | null;
-  showSignature?: boolean;
-  showStamp?: boolean;
-}
-
-export const PrintFooter: React.FC<PrintFooterProps> = ({
-  agency,
-  showSignature = true,
-  showStamp = true,
-}) => {
-  if (!agency) return null;
-
-  return (
-    <div className="print-footer mt-8">
-      {/* Signature et cachet */}
-      {(showSignature || showStamp) && (
-        <div className="flex justify-between items-end mt-12 mb-4">
-          <div className="text-center">
-            <p className="text-xs text-[#0F1B2D] mb-2">Le Client</p>
-            <div className="border-b border-[#0F1B2D] w-40 h-16"></div>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xs text-[#0F1B2D] mb-2">
-              {agency.gerantTitre || "Le Gérant"}
-            </p>
-            <div className="relative w-40 h-16">
-              {showStamp && agency.cachetUrl && (
+            {/* Ligne 1 : Logo + Nom agence */}
+            <div className="flex items-center justify-center gap-4">
+              {agency.logoUrl && (
                 <img
-                  src={agency.cachetUrl}
-                  alt="Cachet"
-                  className="absolute inset-0 m-auto w-24 h-24 object-contain opacity-90"
+                  src={agency.logoUrl}
+                  alt="Logo"
+                  className={`object-contain ${compact ? "w-12 h-12" : "w-20 h-20"}`}
                 />
               )}
-              {showSignature && agency.gerantSignatureUrl && (
-                <img
-                  src={agency.gerantSignatureUrl}
-                  alt="Signature"
-                  className="absolute inset-0 m-auto w-32 h-12 object-contain"
-                />
+              <div>
+                <h1
+                  className={`font-black uppercase text-[#0F1B2D] tracking-wide ${
+                    compact ? "text-base" : "text-2xl"
+                  }`}
+                >
+                  {agency.nomAgence || "MON AGENCE"}
+                </h1>
+                {agency.slogan1 && (
+                  <p
+                    className={`text-[#C9A96E] font-semibold uppercase tracking-wider ${
+                      compact ? "text-[9px]" : "text-xs"
+                    }`}
+                  >
+                    {agency.slogan1}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Ligne 2 : Coordonnées centrées */}
+            <div
+              className={`mt-2 text-neutral-700 ${
+                compact ? "text-[8px] space-y-0.5" : "text-[11px] space-y-0.5"
+              }`}
+            >
+              {agency.adresse && (
+                <div>
+                  📍 {agency.adresse}
+                  {agency.ville ? ` – ${agency.ville}` : ""}
+                  {agency.pays ? `, ${agency.pays}` : ""}
+                </div>
+              )}
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-0.5">
+                {agency.telephone && <span>📞 {agency.telephone}</span>}
+                {agency.email && <span>✉️ {agency.email}</span>}
+              </div>
+              {(agency.rcNumero ||
+                agency.nineaNumero ||
+                agency.boitePostale) && (
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-0.5">
+                  {agency.rcNumero && <span>RC : {agency.rcNumero}</span>}
+                  {agency.nineaNumero && (
+                    <span>NINEA : {agency.nineaNumero}</span>
+                  )}
+                  {agency.boitePostale && (
+                    <span>B.P. : {agency.boitePostale}</span>
+                  )}
+                </div>
+              )}
+              {agency.siteWeb && <div>🌐 {agency.siteWeb}</div>}
+            </div>
+          </div>
+
+          {/* Titre du document (optionnel) */}
+          {(documentType || documentRef) && (
+            <div className="text-center mb-4">
+              {documentType && (
+                <h2
+                  className={`font-black uppercase tracking-widest text-neutral-900 ${
+                    compact ? "text-sm" : "text-lg"
+                  }`}
+                >
+                  {documentType}
+                </h2>
+              )}
+              {documentRef && (
+                <p className="text-xs text-neutral-600 mt-1 font-mono">
+                  Réf. : {documentRef}
+                </p>
               )}
             </div>
-            <p className="text-xs font-bold text-[#0F1B2D] mt-1">
-              {agency.gerantNom || "____________________"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Pied de page personnalisé */}
-      {agency.piedPageUrl ? (
-        <div className="border-t border-[#C9A96E]/30 pt-2">
-          <img
-            src={agency.piedPageUrl}
-            alt="Pied de page"
-            className="w-full max-h-16 object-contain"
-          />
-        </div>
-      ) : (
-        <div className="border-t-2 border-[#C9A96E] pt-3 text-center text-[10px] text-[#0F1B2D]/70">
-          <p className="font-bold">{agency.nomAgence || "MON AGENCE"}</p>
-          <p>
-            {agency.adresse} {agency.telephone && `— Tél : ${agency.telephone}`}{" "}
-            {agency.rcNumero && `— RC : ${agency.rcNumero}`}{" "}
-            {agency.nineaNumero && `— NINEA : ${agency.nineaNumero}`}
-          </p>
-        </div>
+          )}
+        </>
       )}
     </div>
   );

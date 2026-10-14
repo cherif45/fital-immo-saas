@@ -836,14 +836,32 @@ export default function App() {
   // ============================================================
   // HANDLERS : BUILDINGS
   // ============================================================
-  const handleAddBuilding = (newBuilding: Building) => {
+  const handleAddBuilding = async (newBuilding: Building) => {
+    // Insertion optimiste (affiche tout de suite)
     setBuildings((prev) => {
       const next = [newBuilding, ...prev];
       persistCollection("buildings", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      saveBuildingToDb(newBuilding, currentUser.agencyId).catch(console.warn);
+
+    // Persistance serveur + récupération de l'ID réel
+    if (currentUser?.agencyId) {
+      try {
+        const res = await saveBuildingToDb(newBuilding, currentUser.agencyId);
+        if (res.success && res.data) {
+          // Remplace le bâtiment optimiste par celui du serveur (avec le vrai ID)
+          setBuildings((prev) => {
+            const next = prev.map((b) =>
+              b.id === newBuilding.id ? { ...b, ...res.data! } : b,
+            );
+            persistCollection("buildings", next);
+            return next;
+          });
+        }
+      } catch (err) {
+        console.warn("Erreur saveBuildingToDb:", err);
+      }
+    }
   };
   const handleUpdateBuilding = (updatedBuilding: Building) => {
     setBuildings((prev) => {
@@ -900,14 +918,29 @@ export default function App() {
   // ============================================================
   // HANDLERS : UNITS
   // ============================================================
-  const handleAddUnit = (newUnit: Unit) => {
+  const handleAddUnit = async (newUnit: Unit) => {
     setUnits((prev) => {
       const next = [newUnit, ...prev];
       persistCollection("units", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      saveUnitToDb(newUnit, currentUser.agencyId).catch(console.warn);
+
+    if (currentUser?.agencyId) {
+      try {
+        const res = await saveUnitToDb(newUnit, currentUser.agencyId);
+        if (res.success && res.data) {
+          setUnits((prev) => {
+            const next = prev.map((u) =>
+              u.id === newUnit.id ? { ...u, ...res.data! } : u,
+            );
+            persistCollection("units", next);
+            return next;
+          });
+        }
+      } catch (err) {
+        console.warn("Erreur saveUnitToDb:", err);
+      }
+    }
   };
   const handleUpdateUnit = (updatedUnit: Unit) => {
     setUnits((prev) => {
