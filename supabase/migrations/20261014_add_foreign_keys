@@ -1,0 +1,46 @@
+-- ============================================================
+-- 2026-10-14 : Ajout des contraintes FK pour empêcher les
+-- proprietaire_id / building_id / locataire_id invalides.
+-- NOT VALID : protège les nouvelles insertions, ne bloque
+-- pas les orphelins historiques (à nettoyer séparément).
+-- ============================================================
+
+ALTER TABLE units
+  ADD CONSTRAINT units_building_id_fkey
+  FOREIGN KEY (building_id) REFERENCES buildings(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE units
+  ADD CONSTRAINT units_proprietaire_id_fkey
+  FOREIGN KEY (proprietaire_id) REFERENCES owners(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE buildings
+  ADD CONSTRAINT buildings_proprietaire_id_fkey
+  FOREIGN KEY (proprietaire_id) REFERENCES owners(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE tenants
+  ADD CONSTRAINT tenants_proprietaire_id_fkey
+  FOREIGN KEY (proprietaire_id) REFERENCES owners(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE contracts
+  ADD CONSTRAINT contracts_proprietaire_id_fkey
+  FOREIGN KEY (proprietaire_id) REFERENCES owners(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE contracts
+  ADD CONSTRAINT contracts_locataire_id_fkey
+  FOREIGN KEY (locataire_id) REFERENCES tenants(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE payments
+  ADD CONSTRAINT payments_proprietaire_id_fkey
+  FOREIGN KEY (proprietaire_id) REFERENCES owners(id)
+  ON DELETE SET NULL NOT VALID;
+
+ALTER TABLE payments
+  ADD CONSTRAINT payments_locataire_id_fkey
+  FOREIGN KEY (locataire_id) REFERENCES tenants(id)
+  ON DELETE SET NULL NOT VALID;
