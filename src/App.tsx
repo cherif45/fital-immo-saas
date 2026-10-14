@@ -304,7 +304,8 @@ export default function App() {
   );
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>([]);
-
+  const [isSavingBuilding, setIsSavingBuilding] = useState(false);
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
@@ -837,6 +838,15 @@ export default function App() {
   // HANDLERS : BUILDINGS
   // ============================================================
   const handleAddBuilding = async (newBuilding: Building) => {
+    // 🔒 Protection : bloque si une sauvegarde est déjà en cours
+    if (isSavingBuilding) {
+      alert(
+        "Une sauvegarde est déjà en cours. Merci de patienter quelques secondes.",
+      );
+      return;
+    }
+    setIsSavingBuilding(true);
+
     // Insertion optimiste (affiche tout de suite)
     setBuildings((prev) => {
       const next = [newBuilding, ...prev];
@@ -857,11 +867,31 @@ export default function App() {
             persistCollection("buildings", next);
             return next;
           });
+        } else {
+          // Échec : on retire le bâtiment optimiste
+          alert(
+            `Impossible de créer l'immeuble : ${res.error || "erreur inconnue"}`,
+          );
+          setBuildings((prev) => {
+            const next = prev.filter((b) => b.id !== newBuilding.id);
+            persistCollection("buildings", next);
+            return next;
+          });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn("Erreur saveBuildingToDb:", err);
+        alert(
+          `Erreur réseau. L'immeuble n'a pas été créé. Réessayez.\n\n${err?.message || ""}`,
+        );
+        setBuildings((prev) => {
+          const next = prev.filter((b) => b.id !== newBuilding.id);
+          persistCollection("buildings", next);
+          return next;
+        });
       }
     }
+
+    setIsSavingBuilding(false);
   };
   const handleUpdateBuilding = (updatedBuilding: Building) => {
     setBuildings((prev) => {
@@ -919,6 +949,15 @@ export default function App() {
   // HANDLERS : UNITS
   // ============================================================
   const handleAddUnit = async (newUnit: Unit) => {
+    // 🔒 Protection : bloque si une sauvegarde est déjà en cours
+    if (isSavingUnit) {
+      alert(
+        "Une sauvegarde est déjà en cours. Merci de patienter quelques secondes.",
+      );
+      return;
+    }
+    setIsSavingUnit(true);
+
     setUnits((prev) => {
       const next = [newUnit, ...prev];
       persistCollection("units", next);
@@ -936,11 +975,31 @@ export default function App() {
             persistCollection("units", next);
             return next;
           });
+        } else {
+          // Échec : on retire l'unit optimiste
+          alert(
+            `Impossible de créer l'espace : ${res.error || "erreur inconnue"}`,
+          );
+          setUnits((prev) => {
+            const next = prev.filter((u) => u.id !== newUnit.id);
+            persistCollection("units", next);
+            return next;
+          });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn("Erreur saveUnitToDb:", err);
+        alert(
+          `Erreur réseau. L'espace n'a pas été créé. Réessayez.\n\n${err?.message || ""}`,
+        );
+        setUnits((prev) => {
+          const next = prev.filter((u) => u.id !== newUnit.id);
+          persistCollection("units", next);
+          return next;
+        });
       }
     }
+
+    setIsSavingUnit(false);
   };
   const handleUpdateUnit = (updatedUnit: Unit) => {
     setUnits((prev) => {
