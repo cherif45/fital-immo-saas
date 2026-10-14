@@ -2682,6 +2682,32 @@ export async function saveOwnerToDb(
 // -----------------------------------------------------------
 // CRUD : TENANTS
 // -----------------------------------------------------------
+
+async function generateNextTenantRef(agencyId: string): Promise<string> {
+  // Trouve le plus grand numéro existant sur 4 chiffres
+  const { data } = await supabase!
+    .from("tenants")
+    .select("ref")
+    .eq("agency_id", agencyId)
+    .not("ref", "is", null)
+    .order("ref", { ascending: false })
+    .limit(1);
+
+  const lastRef = data?.[0]?.ref || "0000";
+  // Si la dernière ref est au format 4 chiffres
+  if (/^\d{4}$/.test(lastRef)) {
+    const next = String(parseInt(lastRef, 10) + 1).padStart(4, "0");
+    return next;
+  }
+  // Sinon on compte et on prend le prochain
+  const { count } = await supabase!
+    .from("tenants")
+    .select("id", { count: "exact", head: true })
+    .eq("agency_id", agencyId)
+    .is("deleted_at", null);
+  return String((count || 0) + 1).padStart(4, "0");
+}
+
 export async function saveTenantToDb(
   tenant: Partial<Tenant>,
   agencyId: string,
@@ -2691,7 +2717,7 @@ export async function saveTenantToDb(
   try {
     const record = {
       agency_id: agencyId,
-      ref: tenant.ref || `LOC-${Date.now()}`,
+      ref: tenant.ref || (await generateNextTenantRef(agencyId)),
       nom: tenant.nom,
       prenom: tenant.prenom,
       telephone: tenant.telephone,
