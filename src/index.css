@@ -2281,12 +2281,12 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     padding: 6mm 8mm !important;
   }
 
-  /* ─── EN-TÊTE AGENCE : fond noir + texte blanc ──────── */
+  /* ─── EN-TÊTE AGENCE : fond blanc + texte noir ──────── */
   body:has(.bulletin-print-modal) .bulletin-print-container > div:first-child {
-    background: #171717 !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     padding: 5mm 8mm !important;
-    border-bottom: none !important;
+    border-bottom: 2px solid #999 !important;
     border-radius: 0 !important;
   }
 
@@ -2304,7 +2304,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:first-child
     span {
-    color: #ffffff !important;
+    color: #000000 !important;
     font-weight: 700 !important;
   }
 
@@ -2323,8 +2323,8 @@ html.theme-light [class*="text-[#F0EDE8]"] {
 
   /* ─── TITRE BULLETIN : fond doré ────────────────────── */
   body:has(.bulletin-print-modal) .bulletin-print-container > div:nth-child(2) {
-    background: #c9a96e !important;
-    color: #171717 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     padding: 4mm 8mm !important;
     border-radius: 0 !important;
     text-align: center !important;
@@ -2353,15 +2353,14 @@ html.theme-light [class*="text-[#F0EDE8]"] {
   /* ─── TABLEAUX : en-tête noir, lignes alternées ─────── */
   body:has(.bulletin-print-modal) .bulletin-print-container table thead,
   body:has(.bulletin-print-modal) .bulletin-print-container table thead tr {
-    background: #171717 !important;
+    background: #e5e5e5 !important;
   }
 
   body:has(.bulletin-print-modal) .bulletin-print-container table thead th,
   body:has(.bulletin-print-modal) .bulletin-print-container table thead * {
-    background: #171717 !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    border-color: #444 !important;
+    background: #e5e5e5 !important;
+    color: #000000 !important;
+    font-weight: 900 !important;
   }
 
   body:has(.bulletin-print-modal) .bulletin-print-container table td {
@@ -2392,8 +2391,8 @@ html.theme-light [class*="text-[#F0EDE8]"] {
   body:has(.bulletin-print-modal)
     .bulletin-print-container
     [class*="text-[32px]"] {
-    background: #171717 !important;
-    color: #c9a96e !important;
+    background: #e5e5e5 !important;
+    color: #000000 !important;
     padding: 4mm 8mm !important;
     font-weight: 900 !important;
     border-radius: 4px !important;
@@ -2417,20 +2416,20 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     border-bottom-width: 2px !important;
   }
 
-  /* ─── PIED DE PAGE : bandeau noir ───────────────────── */
+  /* ─── PIED DE PAGE : fond blanc, texte noir ─────────── */
   body:has(.bulletin-print-modal) .bulletin-print-container .print-footer,
   body:has(.bulletin-print-modal) .bulletin-print-container .border-t-2 {
-    background: #171717 !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     padding: 4mm 8mm !important;
-    border-top: none !important;
+    border-top: 1px solid #999 !important;
     border-radius: 0 !important;
     text-align: center !important;
   }
 
   body:has(.bulletin-print-modal) .bulletin-print-container .print-footer *,
   body:has(.bulletin-print-modal) .bulletin-print-container .border-t-2 * {
-    color: #ffffff !important;
+    color: #000000 !important;
     font-weight: 700 !important;
   }
 
@@ -2442,7 +2441,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     .border-t-2
     .font-bold {
-    color: #c9a96e !important;
+    color: #000000 !important;
     font-weight: 900 !important;
   }
 
@@ -2490,7 +2489,9 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:first-child
     [class*="text-[18px]"] {
-    font-size: 14px !important;
+    font-size: 42px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.15em !important;
   }
 
   body:has(.bulletin-print-modal)
@@ -2501,7 +2502,8 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:first-child
     [class*="text-[12px]"] {
-    font-size: 10px !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
   }
 
   /* ─── TITRE BULLETIN PLUS COMPACT ──────────────────── */
@@ -2517,16 +2519,18 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:nth-child(2)
     .text-\[22px\] {
-    font-size: 16px !important;
-    letter-spacing: 0.1em !important;
+    font-size: 32px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.15em !important;
   }
 
   body:has(.bulletin-print-modal)
     .bulletin-print-container
     > div:nth-child(2)
     .text-\[13px\] {
-    font-size: 10px !important;
-    margin-top: 1mm !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    margin-top: 1.5mm !important;
   }
 
   /* ─── NET À REVERSER PLUS COMPACT ──────────────────── */
@@ -2535,7 +2539,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     [class*="text-[32px]"] {
     padding: 2mm 6mm !important;
-    font-size: 22px !important;
+    font-size: 36px !important;
     font-weight: 900 !important;
   }
 

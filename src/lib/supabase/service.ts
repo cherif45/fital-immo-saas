@@ -526,6 +526,7 @@ export function mapBuildingFromDb(r: any): Building {
     nbUnitesOccupees: Number(r.nb_unites_occupees ?? 0),
     nbUnitesVacantes: Number(r.nb_unites_vacantes ?? 0),
     loyerTotalMensuel: Number(r.loyer_total_mensuel ?? 0),
+    tauxCommission: Number(r.taux_commission ?? 10),
   };
 }
 
@@ -1782,6 +1783,7 @@ export async function saveBuildingToDb(
       nombre_etages: building.nombreEtages || 0,
       description: building.description || "",
       statut: building.statut || "Vacant",
+      taux_commission: building.tauxCommission ?? 10,
       updated_at: new Date().toISOString(),
     };
     const exists = building.id

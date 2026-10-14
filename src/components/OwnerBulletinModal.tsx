@@ -307,6 +307,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const [observationsSaisies, setObservationsSaisies] = useState<
     Record<string, string>
   >({});
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
 
   const ownerProperties = displayProperties.filter(
     (p) => p.proprietaireId === owner.id,
@@ -314,10 +315,18 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const ownerBuildings = displayBuildings.filter(
     (b) => b.proprietaireId === owner.id,
   );
+  // Auto-sélection du premier immeuble si rien n'est choisi
+  React.useEffect(() => {
+    if (!selectedBuildingId && ownerBuildings.length > 0) {
+      setSelectedBuildingId(ownerBuildings[0].id);
+    }
+  }, [ownerBuildings.length, selectedBuildingId]);
   const ownerUnits = displayUnits.filter((u) => {
+    // Filtrer par bâtiment sélectionné
+    if (selectedBuildingId && u.buildingId !== selectedBuildingId) return false;
     // Unit direct propriétaire
     if (u.proprietaireId === owner.id) return true;
-    // Fallback : via le bâtiment (pour les units dont le proprietaireId est cassé)
+    // Fallback : via le bâtiment
     const b = displayBuildings.find((bb) => bb.id === u.buildingId);
     return b?.proprietaireId === owner.id;
   });
@@ -739,6 +748,24 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           </div>
 
           {/* TABLEAU 1 : IMMEUBLES */}
+          {ownerBuildings.length > 1 && (
+            <div className="mb-4 flex items-center gap-3 print:hidden">
+              <label className="text-sm font-semibold text-neutral-700">
+                Immeuble :
+              </label>
+              <select
+                value={selectedBuildingId}
+                onChange={(e) => setSelectedBuildingId(e.target.value)}
+                className="px-3 py-2 border border-neutral-400 rounded text-sm bg-white text-neutral-900"
+              >
+                {ownerBuildings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.nom} {b.ref ? `(${b.ref})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {(ownerBuildings.length > 0 || ownerProperties.length > 0) && (
             <table className="w-full text-[11px] border-collapse mb-3">
               <thead>
@@ -764,50 +791,58 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {ownerBuildings.map((b) => (
-                  <tr key={b.id}>
-                    <td className="p-2 border border-neutral-700 font-mono">
-                      {getRefCourte(b.ref)}
-                    </td>
-                    <td className="p-2 border border-neutral-700 font-bold uppercase">
-                      {b.nom}
-                    </td>
-                    <td className="p-2 border border-neutral-700">
-                      {b.type || "Immeuble"}
-                    </td>
-                    <td className="p-2 border border-neutral-700">
-                      {b.adresse || b.quartier || "—"}
-                    </td>
-                    <td className="p-2 border border-neutral-700 uppercase">
-                      {owner.prenom} {owner.nom}
-                    </td>
-                    <td className="p-2 border border-neutral-700 text-center font-mono">
-                      {tauxCommission}%
-                    </td>
-                  </tr>
-                ))}
-                {ownerProperties.map((p) => (
-                  <tr key={p.id}>
-                    <td className="p-2 border border-neutral-700 font-mono">
-                      {getRefCourte(p.ref)}
-                    </td>
-                    <td className="p-2 border border-neutral-700 font-bold uppercase">
-                      {p.nom}
-                    </td>
-                    <td className="p-2 border border-neutral-700">
-                      {p.type || "Bien"}
-                    </td>
-                    <td className="p-2 border border-neutral-700">
-                      {p.adresse || p.quartier || "—"}
-                    </td>
-                    <td className="p-2 border border-neutral-700 uppercase">
-                      {owner.prenom} {owner.nom}
-                    </td>
-                    <td className="p-2 border border-neutral-700 text-center font-mono">
-                      {tauxCommission}%
-                    </td>
-                  </tr>
-                ))}
+                {ownerBuildings
+                  .filter(
+                    (b) => !selectedBuildingId || b.id === selectedBuildingId,
+                  )
+                  .map((b) => (
+                    <tr key={b.id}>
+                      <td className="p-2 border border-neutral-700 font-mono">
+                        {getRefCourte(b.ref)}
+                      </td>
+                      <td className="p-2 border border-neutral-700 font-bold uppercase">
+                        {b.nom}
+                      </td>
+                      <td className="p-2 border border-neutral-700">
+                        {b.type || "Immeuble"}
+                      </td>
+                      <td className="p-2 border border-neutral-700">
+                        {b.adresse || b.quartier || "—"}
+                      </td>
+                      <td className="p-2 border border-neutral-700 uppercase">
+                        {owner.prenom} {owner.nom}
+                      </td>
+                      <td className="p-2 border border-neutral-700 text-center font-mono">
+                        {tauxCommission}%
+                      </td>
+                    </tr>
+                  ))}
+                {ownerProperties
+                  .filter(
+                    (p) => !selectedBuildingId || p.id === selectedBuildingId,
+                  )
+                  .map((p) => (
+                    <tr key={p.id}>
+                      <td className="p-2 border border-neutral-700 font-mono">
+                        {getRefCourte(p.ref)}
+                      </td>
+                      <td className="p-2 border border-neutral-700 font-bold uppercase">
+                        {p.nom}
+                      </td>
+                      <td className="p-2 border border-neutral-700">
+                        {p.type || "Bien"}
+                      </td>
+                      <td className="p-2 border border-neutral-700">
+                        {p.adresse || p.quartier || "—"}
+                      </td>
+                      <td className="p-2 border border-neutral-700 uppercase">
+                        {owner.prenom} {owner.nom}
+                      </td>
+                      <td className="p-2 border border-neutral-700 text-center font-mono">
+                        {tauxCommission}%
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           )}

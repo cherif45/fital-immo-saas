@@ -60,6 +60,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   const [nombreEtages, setNombreEtages] = useState(0);
   const [proprietaireId, setProprietaireId] = useState(owners[0]?.id || "");
   const [description, setDescription] = useState("");
+  const [tauxCommission, setTauxCommission] = useState<number>(10);
 
   // 🔒 Permissions
   const role = currentUser?.role || "ADMIN";
@@ -135,6 +136,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
       description,
       statut: "Actif",
       dateCreation: new Date().toISOString().split("T")[0],
+      tauxCommission: Number(tauxCommission) || 10,
     };
 
     if (editingBuilding) {
@@ -150,6 +152,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     setQuartier("");
     setCustomType("");
     setDescription("");
+    setTauxCommission(10);
     setIsNewBuildingModalOpen(false);
   };
 
@@ -163,6 +166,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
     setNombreEtages(building.nombreEtages);
     setProprietaireId(building.proprietaireId);
     setDescription(building.description || "");
+    setTauxCommission(building.tauxCommission ?? 10);
     setIsNewBuildingModalOpen(true);
   };
 
@@ -452,6 +456,22 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Taux de commission (%)
+                </label>
+                <input
+                  type="number"
+                  value={tauxCommission}
+                  onChange={(e) => setTauxCommission(Number(e.target.value))}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
+                  placeholder="Ex: 10"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

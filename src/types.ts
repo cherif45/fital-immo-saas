@@ -170,6 +170,7 @@ export interface Building {
   nbUnitesOccupees?: number;
   nbUnitesVacantes?: number;
   loyerTotalMensuel?: number;
+  tauxCommission?: number;
   unites?: Unit[];
 }
 
