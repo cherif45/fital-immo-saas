@@ -669,8 +669,36 @@ export default function App() {
       localStorage.removeItem("fital_immo_user");
       localStorage.removeItem("fital_immo_current_user");
     } catch (e) {}
+
+    // 🔒 VIDER TOUT L'ÉTAT AVANT DÉCONNEXION (évite les fuites visuelles entre agences)
     setCurrentUser(null);
     setIsProfileModalOpen(false);
+    setProperties([]);
+    setBuildings([]);
+    setUnits([]);
+    setOwners([]);
+    setTenants([]);
+    setContracts([]);
+    setPayments([]);
+    setReminders([]);
+    setInspections([]);
+    setMaintenance([]);
+    setDisbursements([]);
+    setInvoices([]);
+    setCashVouchers([]);
+    setNotifications([]);
+    setAuditLogs([]);
+    setUsers([]);
+    setCashMovements([]);
+    setCashClosings([]);
+    setPaymentMethods([]);
+    setOwnerDeductions([]);
+    setBulletinsVersements([]);
+    setArchives([]);
+    setActivityLogs([]);
+    setPenalties([]);
+    setOwnerCharges([]);
+    setAgencyStats(null);
   };
 
   const handleTriggerAuditLog = (
@@ -831,6 +859,35 @@ export default function App() {
       alert("Ce compte est suspendu ou désactivé et ne peut pas être ouvert.");
       return;
     }
+
+    // 🔒 Vider tout l'état avant de changer d'utilisateur
+    setProperties([]);
+    setBuildings([]);
+    setUnits([]);
+    setOwners([]);
+    setTenants([]);
+    setContracts([]);
+    setPayments([]);
+    setReminders([]);
+    setInspections([]);
+    setMaintenance([]);
+    setDisbursements([]);
+    setInvoices([]);
+    setCashVouchers([]);
+    setNotifications([]);
+    setAuditLogs([]);
+    setUsers([]);
+    setCashMovements([]);
+    setCashClosings([]);
+    setPaymentMethods([]);
+    setOwnerDeductions([]);
+    setBulletinsVersements([]);
+    setArchives([]);
+    setActivityLogs([]);
+    setPenalties([]);
+    setOwnerCharges([]);
+    setAgencyStats(null);
+
     setCurrentUser(newUser);
     persistCollection("current_user", newUser);
     localStorage.setItem("fital_immo_user", JSON.stringify(newUser));
