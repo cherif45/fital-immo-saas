@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Lock,
   Mail,
@@ -10,23 +10,27 @@ import {
   EyeOff,
   RefreshCw,
   Globe,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   supabase,
   isSupabaseConfigured,
   supabaseUrl,
   testSupabaseConnection,
   SupabaseHealthCheckResult,
-} from '../lib/supabase/client';
-import { UserAccount, UserRole } from '../types';
-import { initialUsers } from '../data/mockData';
+} from "../lib/supabase/client";
+import { UserAccount, UserRole } from "../types";
+import { initialUsers } from "../data/mockData";
 import {
   fetchPublicAgencyLoginBranding,
   loadLocalCollection,
-} from '../lib/supabase/service';
+} from "../lib/supabase/service";
 
-const getAgencyLoginRoute = (): { isAgencyRoute: boolean; slug: string | null } => {
-  if (typeof window === 'undefined') return { isAgencyRoute: false, slug: null };
+const getAgencyLoginRoute = (): {
+  isAgencyRoute: boolean;
+  slug: string | null;
+} => {
+  if (typeof window === "undefined")
+    return { isAgencyRoute: false, slug: null };
   const match = window.location.pathname.match(/^\/login\/(.*?)\/?$/i);
   if (!match) return { isAgencyRoute: false, slug: null };
   const slug = match[1].toLowerCase();
@@ -44,13 +48,13 @@ const getContrastColor = (hexColor: string): string => {
     .slice(1)
     .match(/.{2}/g)
     ?.map((channel) => parseInt(channel, 16) / 255);
-  if (!channels || channels.length !== 3) return '#0F1B2D';
+  if (!channels || channels.length !== 3) return "#0F1B2D";
   const [red, green, blue] = channels.map((channel) =>
     channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
   );
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue > 0.45
-    ? '#0F1B2D'
-    : '#FFFFFF';
+    ? "#0F1B2D"
+    : "#FFFFFF";
 };
 
 interface LoginViewProps {
@@ -58,11 +62,19 @@ interface LoginViewProps {
   availableUsers?: UserAccount[];
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableUsers }) => {
+export const LoginView: React.FC<LoginViewProps> = ({
+  onLoginSuccess,
+  availableUsers,
+}) => {
   const [agencyRoute] = useState(getAgencyLoginRoute);
-  const [agencyBranding, setAgencyBranding] = useState<Awaited<ReturnType<typeof fetchPublicAgencyLoginBranding>>>(null);
-  const [agencyBrandingLoading, setAgencyBrandingLoading] = useState(agencyRoute.isAgencyRoute);
-  const [agencyBrandingError, setAgencyBrandingError] = useState<string | null>(null);
+  const [agencyBranding, setAgencyBranding] =
+    useState<Awaited<ReturnType<typeof fetchPublicAgencyLoginBranding>>>(null);
+  const [agencyBrandingLoading, setAgencyBrandingLoading] = useState(
+    agencyRoute.isAgencyRoute,
+  );
+  const [agencyBrandingError, setAgencyBrandingError] = useState<string | null>(
+    null,
+  );
   const [agencyLogoError, setAgencyLogoError] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -70,11 +82,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [healthResult, setHealthResult] = useState<SupabaseHealthCheckResult | null>(null);
+  const [healthResult, setHealthResult] =
+    useState<SupabaseHealthCheckResult | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState<boolean>(false);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     runConnectionDiagnostic();
@@ -83,7 +96,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
   useEffect(() => {
     if (!agencyRoute.isAgencyRoute) return;
     if (!agencyRoute.slug) {
-      setAgencyBrandingError('Le lien de connexion de cette agence est invalide.');
+      setAgencyBrandingError(
+        "Le lien de connexion de cette agence est invalide.",
+      );
       setAgencyBrandingLoading(false);
       return;
     }
@@ -94,7 +109,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
       .then((branding) => {
         if (cancelled) return;
         if (!branding) {
-          setAgencyBrandingError('Cette agence est introuvable ou inactive.');
+          setAgencyBrandingError("Cette agence est introuvable ou inactive.");
           return;
         }
         setAgencyBranding(branding);
@@ -118,18 +133,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     };
   }, [agencyRoute]);
 
-  const brandColor = safeThemeColor(agencyBranding?.primaryColor, '#C9A96E');
+  const brandColor = safeThemeColor(agencyBranding?.primaryColor, "#C9A96E");
   const backgroundColor = safeThemeColor(
     agencyBranding?.backgroundColor,
-    '#0A111D',
+    "#0A111D",
   );
-  const cardColor = safeThemeColor(agencyBranding?.cardColor, '#162133');
-  const surfaceColor = safeThemeColor(
-    agencyBranding?.surfaceColor,
-    '#0A111D',
-  );
-  const textColor = safeThemeColor(agencyBranding?.textColor, '#F0EDE8');
-  const mutedColor = safeThemeColor(agencyBranding?.mutedColor, '#A8B4C4');
+  const cardColor = safeThemeColor(agencyBranding?.cardColor, "#162133");
+  const surfaceColor = safeThemeColor(agencyBranding?.surfaceColor, "#0A111D");
+  const textColor = safeThemeColor(agencyBranding?.textColor, "#F0EDE8");
+  const mutedColor = safeThemeColor(agencyBranding?.mutedColor, "#A8B4C4");
   const contrastColor = getContrastColor(brandColor);
 
   const runConnectionDiagnostic = async () => {
@@ -140,10 +152,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     } catch (e: any) {
       setHealthResult({
         connected: false,
-        status: 'error',
-        url: supabaseUrl || 'Non définie',
+        status: "error",
+        url: supabaseUrl || "Non définie",
         sslActive: false,
-        message: 'Erreur lors du test de connexion.',
+        message: "Erreur lors du test de connexion.",
         details: e.message,
       });
     } finally {
@@ -153,7 +165,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
 
   const getUsersPool = (): UserAccount[] => {
     if (availableUsers && availableUsers.length > 0) return availableUsers;
-    const stored = loadLocalCollection<UserAccount[]>('users', initialUsers);
+    const stored = loadLocalCollection<UserAccount[]>("users", initialUsers);
     return stored && stored.length > 0 ? stored : initialUsers;
   };
 
@@ -161,8 +173,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     if (supabase) {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Impossible de fermer la session du compte bloqué :', error);
-        setErrorMsg(`${message} La fermeture de session a échoué : ${error.message}`);
+        console.error(
+          "Impossible de fermer la session du compte bloqué :",
+          error,
+        );
+        setErrorMsg(
+          `${message} La fermeture de session a échoué : ${error.message}`,
+        );
         setLoading(false);
         return;
       }
@@ -178,12 +195,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !password) {
-      setErrorMsg('Veuillez renseigner votre adresse email et votre mot de passe.');
+      setErrorMsg(
+        "Veuillez renseigner votre adresse email et votre mot de passe.",
+      );
       return;
     }
 
     if (agencyRoute.isAgencyRoute && (!agencyRoute.slug || !agencyBranding)) {
-      setErrorMsg(agencyBrandingError || "La page de connexion de l'agence n'est pas disponible.");
+      setErrorMsg(
+        agencyBrandingError ||
+          "La page de connexion de l'agence n'est pas disponible.",
+      );
       return;
     }
 
@@ -192,16 +214,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
     try {
       // 1. Authentification cloud
       if (isSupabaseConfigured && supabase && healthResult?.connected) {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+        const { data: authData, error: authError } =
+          await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
 
         if (authError) {
           setErrorMsg(
-            authError.message === 'Invalid login credentials'
-              ? 'Email ou mot de passe incorrect.'
-              : authError.message
+            authError.message === "Invalid login credentials"
+              ? "Email ou mot de passe incorrect."
+              : authError.message,
           );
           setLoading(false);
           return;
@@ -213,24 +236,26 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
 
           // 1. Charger le profil SANS la jointure
           let { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authData.user.id)
+            .from("profiles")
+            .select("*")
+            .eq("id", authData.user.id)
             .maybeSingle();
 
           // 🆕 Si le profil n'est pas trouvé, réessayer une fois
           if (!profile) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             const retry = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', authData.user.id)
+              .from("profiles")
+              .select("*")
+              .eq("id", authData.user.id)
               .maybeSingle();
             profile = retry.data;
           }
 
           if (!profile) {
-            await rejectAuthenticatedLogin('Compte valide mais profil absent. Contactez l\'administrateur.');
+            await rejectAuthenticatedLogin(
+              "Compte valide mais profil absent. Contactez l'administrateur.",
+            );
             return;
           }
 
@@ -239,33 +264,41 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
             profile.agency_id !== agencyBranding?.id
           ) {
             await rejectAuthenticatedLogin(
-              'Ce compte ne correspond pas à cette agence. Utilisez le lien de connexion de votre agence.',
+              "Ce compte ne correspond pas à cette agence. Utilisez le lien de connexion de votre agence.",
             );
             return;
           }
 
-          if (profile.statut === 'suspendu' || profile.statut === 'desactive') {
-            await rejectAuthenticatedLogin('Ce compte est suspendu ou désactivé. Contactez votre administrateur.');
+          if (profile.statut === "suspendu" || profile.statut === "desactive") {
+            await rejectAuthenticatedLogin(
+              "Ce compte est suspendu ou désactivé. Contactez votre administrateur.",
+            );
             return;
           }
 
           // 2. Charger l'agence séparément
           const { data: agencyData, error: agencyError } = await supabase
-            .from('agencies')
-            .select('name, slug, status')
-            .eq('id', profile.agency_id)
+            .from("agencies")
+            .select("name, slug, status")
+            .eq("id", profile.agency_id)
             .maybeSingle();
 
           if (agencyError) {
-            await rejectAuthenticatedLogin(`Impossible de vérifier le statut de l'agence : ${agencyError.message}`);
+            await rejectAuthenticatedLogin(
+              `Impossible de vérifier le statut de l'agence : ${agencyError.message}`,
+            );
             return;
           }
           if (!agencyData) {
-            await rejectAuthenticatedLogin('Agence introuvable. Contactez votre administrateur.');
+            await rejectAuthenticatedLogin(
+              "Agence introuvable. Contactez votre administrateur.",
+            );
             return;
           }
-          if (!['active', 'trial'].includes(agencyData.status)) {
-            await rejectAuthenticatedLogin('Cette agence est suspendue ou inactive. Contactez votre administrateur.');
+          if (!["active", "trial"].includes(agencyData.status)) {
+            await rejectAuthenticatedLogin(
+              "Cette agence est suspendue ou inactive. Contactez votre administrateur.",
+            );
             return;
           }
 
@@ -274,17 +307,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
             id: authData.user.id,
             agencyId: profile.agency_id,
             email: authData.user.email || cleanEmail,
-            nom: profile.nom || 'Utilisateur',
-            prenom: profile.prenom || '',
-            telephone: profile.telephone || '+221 77 000 00 00',
-            role: (profile.role as UserRole) || 'ADMIN',
-            statut: profile.statut || 'actif',
+            nom: profile.nom || "Utilisateur",
+            prenom: profile.prenom || "",
+            telephone: profile.telephone || "+221 77 000 00 00",
+            role: (profile.role as UserRole) || "ADMIN",
+            statut: profile.statut || "actif",
             proprietaireId: profile.proprietaire_id,
             locataireId: profile.locataire_id,
-            permissions: profile.permissions || ['*'],
-            organisation: agencyData?.name || 'FITAL-IMMO Agence',
+            permissions: profile.permissions || ["*"],
+            organisation: agencyData?.name || "Agence",
             createdAt: authData.user.created_at || new Date().toISOString(),
-            derniereConnexion: 'À l\'instant',
+            derniereConnexion: "À l'instant",
           };
 
           onLoginSuccess(userAccount);
@@ -293,36 +326,47 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
       }
 
       if (agencyRoute.isAgencyRoute) {
-        setErrorMsg('La connexion à une agence nécessite une connexion au service en ligne.');
+        setErrorMsg(
+          "La connexion à une agence nécessite une connexion au service en ligne.",
+        );
         setLoading(false);
         return;
       }
 
       // 2. Mode local (fallback)
       const pool = getUsersPool();
-      const matchedUser = pool.find((u) => u.email.trim().toLowerCase() === cleanEmail);
+      const matchedUser = pool.find(
+        (u) => u.email.trim().toLowerCase() === cleanEmail,
+      );
 
       if (matchedUser) {
         if (matchedUser.password && matchedUser.password !== password) {
-          setErrorMsg('Mot de passe incorrect pour ce compte.');
+          setErrorMsg("Mot de passe incorrect pour ce compte.");
           setLoading(false);
           return;
         }
 
-        if (matchedUser.statut === 'suspendu' || matchedUser.statut === 'desactive') {
-          setErrorMsg('Ce compte est actuellement inactif ou suspendu. Contactez votre administrateur.');
+        if (
+          matchedUser.statut === "suspendu" ||
+          matchedUser.statut === "desactive"
+        ) {
+          setErrorMsg(
+            "Ce compte est actuellement inactif ou suspendu. Contactez votre administrateur.",
+          );
           setLoading(false);
           return;
         }
 
-        onLoginSuccess({ ...matchedUser, derniereConnexion: 'À l\'instant' });
+        onLoginSuccess({ ...matchedUser, derniereConnexion: "À l'instant" });
         return;
       }
 
-      setErrorMsg('Identifiants non reconnus. Vérifiez votre email et mot de passe.');
+      setErrorMsg(
+        "Identifiants non reconnus. Vérifiez votre email et mot de passe.",
+      );
     } catch (err: any) {
-      console.error('Erreur authentification:', err);
-      setErrorMsg(err.message || 'Impossible de se connecter pour le moment.');
+      console.error("Erreur authentification:", err);
+      setErrorMsg(err.message || "Impossible de se connecter pour le moment.");
     } finally {
       setLoading(false);
     }
@@ -331,21 +375,29 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setErrorMsg('Veuillez saisir votre adresse email.');
+      setErrorMsg("Veuillez saisir votre adresse email.");
       return;
     }
 
     setLoading(true);
     try {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim(),
+        );
         if (error) throw error;
-        setSuccessMsg('Un lien de réinitialisation sécurisé a été transmis par email.');
+        setSuccessMsg(
+          "Un lien de réinitialisation sécurisé a été transmis par email.",
+        );
       } else {
-        setSuccessMsg('Contactez l\'administrateur pour réinitialiser votre accès.');
+        setSuccessMsg(
+          "Contactez l'administrateur pour réinitialiser votre accès.",
+        );
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Impossible d\'envoyer le lien de réinitialisation.');
+      setErrorMsg(
+        err.message || "Impossible d'envoyer le lien de réinitialisation.",
+      );
     } finally {
       setLoading(false);
     }
@@ -378,7 +430,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         <div className="text-center mb-6">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border shadow-xl mb-4 p-2.5"
-            style={{ borderColor: `${brandColor}66`, backgroundColor: surfaceColor }}
+            style={{
+              borderColor: `${brandColor}66`,
+              backgroundColor: surfaceColor,
+            }}
           >
             {agencyRoute.isAgencyRoute ? (
               agencyBranding?.logoUrl && !agencyLogoError ? (
@@ -390,44 +445,61 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
                 />
               ) : (
                 <span
-                  aria-label={agencyLogoError ? 'Logo inaccessible' : 'Aucun logo défini'}
-                  title={agencyLogoError ? 'Le logo est inaccessible' : 'Aucun logo défini'}
+                  aria-label={
+                    agencyLogoError ? "Logo inaccessible" : "Aucun logo défini"
+                  }
+                  title={
+                    agencyLogoError
+                      ? "Le logo est inaccessible"
+                      : "Aucun logo défini"
+                  }
                   className="text-2xl font-black"
                   style={{ color: brandColor }}
                 >
-                  {agencyBranding?.name.trim().charAt(0).toUpperCase() || '?'}
+                  {agencyBranding?.name.trim().charAt(0).toUpperCase() || "?"}
                 </span>
               )
             ) : (
-              <img src="/favicon.svg" alt="FITAL-IMMO" className="w-full h-full object-contain" />
+              <img
+                src="/favicon.svg"
+                alt="Logo agence"
+                className="w-full h-full object-contain"
+              />
             )}
           </div>
           {agencyRoute.isAgencyRoute &&
             agencyBranding &&
             (agencyLogoError || !agencyBranding.logoUrl) && (
-            <p className="mt-1 text-[10px]" style={{ color: agencyLogoError ? '#FDA4AF' : mutedColor }}>
-              {agencyLogoError
-                ? "Logo inaccessible : vérifiez l'URL publique et le bucket agency-logos."
-                : "Aucun logo n'est encore enregistré pour cette agence."}
-            </p>
-          )}
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: textColor }}>
+              <p
+                className="mt-1 text-[10px]"
+                style={{ color: agencyLogoError ? "#FDA4AF" : mutedColor }}
+              >
+                {agencyLogoError
+                  ? "Logo inaccessible : vérifiez l'URL publique et le bucket agency-logos."
+                  : "Aucun logo n'est encore enregistré pour cette agence."}
+              </p>
+            )}
+          <h1
+            className="text-2xl font-black tracking-tight"
+            style={{ color: textColor }}
+          >
             {agencyRoute.isAgencyRoute
-              ? agencyBranding?.name || 'Connexion agence'
-              : 'FITAL-IMMO'}
+              ? agencyBranding?.name || "Connexion agence"
+              : "Agence"}
           </h1>
           <p className="text-xs mt-1 font-medium" style={{ color: mutedColor }}>
-            {agencyBranding?.slogan || 'Plateforme Professionnelle de Gestion Locative & Loyers'}
+            {agencyBranding?.slogan ||
+              "Plateforme Professionnelle de Gestion Locative & Loyers"}
           </p>
         </div>
 
         {agencyRoute.isAgencyRoute && (
           <div
-            role={agencyBrandingError ? 'alert' : 'status'}
+            role={agencyBrandingError ? "alert" : "status"}
             className={`mb-4 rounded-xl border p-3 text-xs ${
               agencyBrandingError
-                ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
-                : 'border-white/10 text-slate-300'
+                ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                : "border-white/10 text-slate-300"
             }`}
             style={
               agencyBrandingError
@@ -441,16 +513,23 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           >
             {agencyBrandingLoading
               ? "Chargement de l'espace de connexion..."
-              : agencyBrandingError || `Connexion sécurisée à ${agencyBranding?.name}.`}
+              : agencyBrandingError ||
+                `Connexion sécurisée à ${agencyBranding?.name}.`}
           </div>
         )}
 
         <div
           className="mb-5 rounded-2xl border p-3 text-[11px] space-y-2"
-          style={{ backgroundColor: surfaceColor, borderColor: `${brandColor}33` }}
+          style={{
+            backgroundColor: surfaceColor,
+            borderColor: `${brandColor}33`,
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="font-medium flex items-center gap-1.5" style={{ color: textColor }}>
+            <span
+              className="font-medium flex items-center gap-1.5"
+              style={{ color: textColor }}
+            >
               <Globe className="w-3.5 h-3.5" style={{ color: brandColor }} />
               Statut du service :
             </span>
@@ -467,8 +546,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
             )}
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
-            <span className="truncate max-w-[240px]" style={{ color: mutedColor }}>
-              {isSupabaseConfigured ? 'Accès sécurisé multi-utilisateurs' : 'Accès local sécurisé'}
+            <span
+              className="truncate max-w-[240px]"
+              style={{ color: mutedColor }}
+            >
+              {isSupabaseConfigured
+                ? "Accès sécurisé multi-utilisateurs"
+                : "Accès local sécurisé"}
             </span>
             <button
               type="button"
@@ -477,8 +561,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               className="font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
               style={{ color: brandColor }}
             >
-              <RefreshCw className={`w-3 h-3 ${isCheckingHealth ? 'animate-spin' : ''}`} />
-              <span>{isCheckingHealth ? 'Test...' : 'Vérifier'}</span>
+              <RefreshCw
+                className={`w-3 h-3 ${isCheckingHealth ? "animate-spin" : ""}`}
+              />
+              <span>{isCheckingHealth ? "Test..." : "Vérifier"}</span>
             </button>
           </div>
         </div>
@@ -501,7 +587,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
           className="mb-5 pb-3 border-b text-center"
           style={{ borderColor: `${brandColor}33` }}
         >
-          <h2 className="text-base font-bold flex items-center justify-center gap-2" style={{ color: textColor }}>
+          <h2
+            className="text-base font-bold flex items-center justify-center gap-2"
+            style={{ color: textColor }}
+          >
             <ShieldCheck className="w-4 h-4" style={{ color: brandColor }} />
             Connexion à votre Espace
           </h2>
@@ -513,11 +602,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         {isForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: textColor }}>
+              <label
+                className="block text-xs font-semibold mb-1"
+                style={{ color: textColor }}
+              >
                 Adresse email associée à votre compte
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: mutedColor }} />
+                <Mail
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
+                  style={{ color: mutedColor }}
+                />
                 <input
                   type="email"
                   required
@@ -525,7 +620,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre-email@domaine.sn"
                   className="w-full pl-10 pr-3.5 py-2.5 border rounded-xl text-xs focus:outline-none"
-                  style={{ backgroundColor: surfaceColor, borderColor: `${brandColor}55`, color: textColor }}
+                  style={{
+                    backgroundColor: surfaceColor,
+                    borderColor: `${brandColor}55`,
+                    color: textColor,
+                  }}
                 />
               </div>
             </div>
@@ -534,9 +633,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
               type="submit"
               disabled={loading}
               className="w-full py-2.5 rounded-xl font-bold text-xs shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
-              style={{ backgroundColor: brandColor, color: contrastColor, boxShadow: `0 10px 24px ${brandColor}33` }}
+              style={{
+                backgroundColor: brandColor,
+                color: contrastColor,
+                boxShadow: `0 10px 24px ${brandColor}33`,
+              }}
             >
-              {loading ? 'Envoi en cours...' : 'Envoyer les instructions'}
+              {loading ? "Envoi en cours..." : "Envoyer les instructions"}
             </button>
 
             <div className="text-center pt-2">
@@ -556,26 +659,39 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: textColor }}>
+              <label
+                className="block text-xs font-semibold mb-1"
+                style={{ color: textColor }}
+              >
                 Adresse Email Professionnelle ou Personnelle
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: mutedColor }} />
+                <Mail
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
+                  style={{ color: mutedColor }}
+                />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@fital-immo.sn"
+                  placeholder="votre@email.com"
                   className="w-full pl-10 pr-3.5 py-2.5 border rounded-xl text-xs focus:outline-none"
-                  style={{ backgroundColor: surfaceColor, borderColor: `${brandColor}55`, color: textColor }}
+                  style={{
+                    backgroundColor: surfaceColor,
+                    borderColor: `${brandColor}55`,
+                    color: textColor,
+                  }}
                 />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-semibold" style={{ color: textColor }}>
+                <label
+                  className="block text-xs font-semibold"
+                  style={{ color: textColor }}
+                >
                   Mot de passe
                 </label>
                 <button
@@ -588,15 +704,22 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
                 </button>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: mutedColor }} />
+                <Lock
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
+                  style={{ color: mutedColor }}
+                />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full pl-10 pr-10 py-2.5 border rounded-xl text-xs focus:outline-none"
-                  style={{ backgroundColor: surfaceColor, borderColor: `${brandColor}55`, color: textColor }}
+                  style={{
+                    backgroundColor: surfaceColor,
+                    borderColor: `${brandColor}55`,
+                    color: textColor,
+                  }}
                 />
                 <button
                   type="button"
@@ -604,18 +727,35 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, availableU
                   className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
                   style={{ color: mutedColor }}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading || agencyBrandingLoading || (agencyRoute.isAgencyRoute && !agencyBranding)}
+              disabled={
+                loading ||
+                agencyBrandingLoading ||
+                (agencyRoute.isAgencyRoute && !agencyBranding)
+              }
               className={`w-full py-2.5 mt-2 rounded-xl text-[#0F1B2D] font-bold text-xs shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
-                agencyBranding ? '' : 'bg-gradient-to-r from-[#C9A96E] to-[#A07840] shadow-[#C9A96E]/20 hover:shadow-[#C9A96E]/40'
+                agencyBranding
+                  ? ""
+                  : "bg-gradient-to-r from-[#C9A96E] to-[#A07840] shadow-[#C9A96E]/20 hover:shadow-[#C9A96E]/40"
               }`}
-              style={agencyBranding ? { backgroundColor: brandColor, boxShadow: `0 10px 24px ${brandColor}33` } : undefined}
+              style={
+                agencyBranding
+                  ? {
+                      backgroundColor: brandColor,
+                      boxShadow: `0 10px 24px ${brandColor}33`,
+                    }
+                  : undefined
+              }
             >
               {loading ? (
                 <>

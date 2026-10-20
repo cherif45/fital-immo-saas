@@ -210,6 +210,17 @@ export default function App() {
   const { settings: agencySettings, reload: reloadAgencySettings } =
     useAgencySettings(currentUser?.agencyId);
   // ============================================================
+  // TITRE DYNAMIQUE DU NAVIGATEUR (par agence)
+  // ============================================================
+  React.useEffect(() => {
+    const agencyName = agencySettings?.nomAgence?.trim();
+    if (agencyName) {
+      document.title = `${agencyName} — Gestion Locative`;
+    } else {
+      document.title = "Gestion Locative";
+    }
+  }, [agencySettings?.nomAgence]);
+  // ============================================================
   // RECALCUL AUTOMATIQUE DES STATUTS AU CHARGEMENT
   // ============================================================
   React.useEffect(() => {
