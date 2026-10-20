@@ -1184,7 +1184,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           {/* PIED DE PAGE */}
           <div className="print-footer border-t-2 border-neutral-800 pt-3 mt-6 text-[10px] text-neutral-700 text-center leading-relaxed">
             <div className="font-bold uppercase">
-              {agency?.nomAgence || "FITAL-IMMO SAS"}
+              {agency?.nomAgence || "Agence"}
               {agency?.rcNumero && ` RC : ${agency.rcNumero}`}
               {agency?.nineaNumero && ` N.I.N.E.A : ${agency.nineaNumero}`}
             </div>

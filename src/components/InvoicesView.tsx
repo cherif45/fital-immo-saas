@@ -1336,7 +1336,7 @@ export function InvoicesView({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="font-black uppercase text-[#C9A96E] mb-1">
-                      {settings?.nomAgence || "FITAL-IMMO SAS"}
+                      {settings?.nomAgence || "Agence"}
                     </div>
                     <div className="text-white/70">
                       {settings?.adresse && (

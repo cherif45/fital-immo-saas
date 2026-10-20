@@ -1,6 +1,6 @@
 {
-  "name": "FITAL-IMMO — Gestion Locative & Loyers",
-  "short_name": "FITAL-IMMO",
+  "name": "Gestion Locative",
+  "short_name": "Gestion",
   "description": "Plateforme SaaS professionnelle de gestion locative, quittances, caisse, baux et recouvrement.",
   "start_url": "/",
   "scope": "/",

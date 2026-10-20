@@ -136,9 +136,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
         <div className="p-4 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 no-print">
           <div className="flex items-center gap-2 text-white font-bold text-sm">
             <FileCheck className="w-5 h-5 text-[#C9A96E]" />
-            <span>
-              Bulletin de Versement Propriétaire (Réf Document FITAL-IMMO P.18)
-            </span>
+            <span>Bulletin de Versement Propriétaire</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -332,7 +330,7 @@ export const PaymentBulletinModal: React.FC<PaymentBulletinModalProps> = ({
             <div className="text-right flex flex-col justify-between">
               <div>
                 <div className="font-bold text-neutral-800">
-                  Pour {settings?.nomAgence || "FITAL IMMO"}
+                  Pour {settings?.nomAgence || "Agence"}
                 </div>
                 <div className="text-[10px] text-neutral-500">
                   {settings?.ville || "Dakar"}, le{" "}

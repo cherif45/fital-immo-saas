@@ -321,7 +321,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
 
     {/* Pied de page */}
     <div className="quittance-foot mt-1 pt-0.5 border-t border-neutral-200 text-center text-[9px] text-neutral-600">
-      <span className="font-bold">{settings?.nomAgence || "FITAL-IMMO"}</span>
+      <span className="font-bold">{settings?.nomAgence || "Agence"}</span>
       {settings?.telephone && <span> — Tél : {settings.telephone}</span>}
       {settings?.rcNumero && <span> — RC : {settings.rcNumero}</span>}
       {settings?.nineaNumero && <span> — NINEA : {settings.nineaNumero}</span>}
