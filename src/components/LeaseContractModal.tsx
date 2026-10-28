@@ -298,7 +298,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <p className="mt-2 pl-4">
                   ❖ Avance :{" "}
                   <strong>
-                    .................... FCFA (.................... mille
+                    {formatNumber(loyerBase)} FCFA ({nombreEnLettres(loyerBase)}{" "}
                     francs)
                   </strong>
                 </p>
@@ -308,11 +308,12 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <div className="font-bold underline mb-1">Article 2</div>
                 <p>
                   Le locataire (M. {locataireNom}) accepte de payer les 12/12ème
-                  de la caution...................... FCFA. Cette caution n'est
-                  pas consommable et est remboursable après avoir rendu le local
-                  à l'état primitif. Après désistement, l'avance et la caution
-                  ne seront restituées qu'après avoir redonné le local. La
-                  commission ne peut en aucun manière être remboursée.
+                  de la caution{" "}
+                  <strong>{formatNumber(cautionMontant)} FCFA</strong>. Cette
+                  caution n'est pas consommable et est remboursable après avoir
+                  rendu le local à l'état primitif. Après désistement, l'avance
+                  et la caution ne seront restituées qu'après avoir redonné le
+                  local. La commission ne peut en aucun manière être remboursée.
                 </p>
               </div>
 
