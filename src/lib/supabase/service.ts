@@ -664,7 +664,9 @@ export function mapContractFromDb(r: any): LeaseContract {
     cautionElectricite: Number(
       r.caution_electricite ?? r.cautionElectricite ?? 0,
     ),
-    cautionMontant: Number(r.caution_montant ?? r.cautionMontant ?? 0),
+    cautionMontant: Number(
+      r.montant_caution ?? r.caution_montant ?? r.cautionMontant ?? 0,
+    ),
     cautionMois: Number(r.caution_mois ?? r.cautionMois ?? 2),
     fraisAdhesion: Number(r.frais_adhesion ?? r.fraisAdhesion ?? 0),
     dateDebut: r.date_debut || r.dateDebut || "",
