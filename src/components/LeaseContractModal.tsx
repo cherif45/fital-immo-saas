@@ -181,7 +181,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   const loyerBase = contract.loyerBase || 0;
   const charges = contract.charges || 0;
   const loyerTotal = loyerBase + charges;
-  const cautionMois = contract.cautionMois || 2;
+  const cautionMois = contract.cautionMois || 1;
   const cautionMontant = contract.cautionMontant || loyerBase * cautionMois;
 
   const locataireNom = (
