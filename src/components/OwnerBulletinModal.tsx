@@ -330,8 +330,13 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     const b = displayBuildings.find((bb) => bb.id === u.buildingId);
     return b?.proprietaireId === owner.id;
   });
-  const tauxCommission = owner.tauxCommission || 10;
-
+  // Le taux de commission prioritaire est celui de l'immeuble sélectionné.
+  // Si l'immeuble n'en a pas, on retombe sur le taux du propriétaire.
+  const selectedBuildingForCommission = selectedBuildingId
+    ? displayBuildings.find((b) => b.id === selectedBuildingId)
+    : null;
+  const tauxCommission =
+    buildings.find((b) => b.id === selectedBuildingId)?.tauxCommission ?? owner.tauxCommission ?? 10;
   const normalizePeriod = (s: string) => (s || "").toLowerCase().trim();
   const isSamePeriod = (a: string, b: string) =>
     normalizePeriod(a) === normalizePeriod(b);
