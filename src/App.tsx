@@ -2885,6 +2885,8 @@ export default function App() {
               <LazyPenaltiesView
                 penalties={penalties}
                 tenants={scopedTenants}
+                properties={scopedProperties}
+                units={scopedUnits}
                 payments={scopedPayments}
                 currentUser={currentUser}
                 onAddPenalty={handleAddPenalty}
@@ -3525,3 +3527,7 @@ export default function App() {
     </div>
   );
 }
+
+
+
+

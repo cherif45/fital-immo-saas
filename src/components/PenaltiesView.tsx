@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import {
   AlertTriangle,
   Calculator,
@@ -15,7 +15,14 @@ import {
   Calendar,
   User,
 } from "lucide-react";
-import { Penalty, Tenant, Payment, UserAccount } from "../types";
+import {
+  Penalty,
+  Tenant,
+  Payment,
+  UserAccount,
+  Property,
+  Unit,
+} from "../types";
 import { formatCurrency, formatNumber, formatDate } from "../lib/utils";
 import { paginateTable } from "../lib/supabase/service";
 import { supabase } from "../lib/supabase/client";
@@ -23,6 +30,8 @@ import { supabase } from "../lib/supabase/client";
 interface PenaltiesViewProps {
   penalties: Penalty[];
   tenants: Tenant[];
+  properties: Property[];
+  units: Unit[];
   payments: Payment[];
   currentUser?: UserAccount;
   onAddPenalty: (penalty: Penalty) => Promise<boolean>;
@@ -33,6 +42,8 @@ interface PenaltiesViewProps {
 export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
   penalties,
   tenants,
+  properties,
+  units = [],
   payments,
   currentUser,
   onAddPenalty,
@@ -93,8 +104,46 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     setIsLoadingMore(false);
   };
 
-  const displayPenalties =
-    serverPenalties.length > 0 ? serverPenalties : penalties;
+  const displayPenalties = React.useMemo(() => {
+    const sourcePenalties =
+      serverPenalties.length > 0 ? serverPenalties : penalties;
+
+    const tenantsById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
+    const propertiesById = new Map(properties.map((property) => [property.id, property]));
+    const unitsById = new Map(units.map((unit) => [unit.id, unit]));
+
+    return sourcePenalties.map((penalty) => {
+      const tenant = penalty.locataireId
+        ? tenantsById.get(penalty.locataireId)
+        : undefined;
+
+      const propertyId = penalty.bienId || tenant?.bienId;
+      const unit = propertyId ? unitsById.get(propertyId) : undefined;
+      const property = propertyId ? propertiesById.get(propertyId) : undefined;
+
+      const tenantName = tenant
+        ? `${tenant.prenom || ""} ${tenant.nom || ""}`.trim()
+        : "";
+
+      const unitName = unit
+        ? [unit.buildingNom, unit.nom].filter(Boolean).join(" - ")
+        : "";
+
+      return {
+        ...penalty,
+        locataireNom:
+          tenantName ||
+          String(penalty.locataireNom || "").trim() ||
+          "Locataire introuvable",
+        bienNom:
+          unitName ||
+          String(property?.nom || "").trim() ||
+          String(tenant?.bienNom || "").trim() ||
+          String(penalty.bienNom || "").trim() ||
+          "Bien non renseigné",
+      };
+    });
+  }, [serverPenalties, penalties, tenants, properties, units]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isNewPenaltyModalOpen, setIsNewPenaltyModalOpen] = useState(false);
 
@@ -134,7 +183,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
         return;
       }
 
-      alert("✅ Statuts recalculés avec succès. Rechargement de la page...");
+      alert("OK - Statuts recalculés avec succès. Rechargement de la page...");
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       alert("Erreur lors du recalcul : " + String(err));
@@ -313,7 +362,7 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
               Pénalités de Retard & Indemnités
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {filteredPenalties.length} pénalité(s) ·{" "}
+              {filteredPenalties.length} pénalité(s) -{" "}
               {formatNumber(totalPenalites)} FCFA affichés
             </div>
           </div>
@@ -543,8 +592,8 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50"
                 >
                   {isLoadingMore
-                    ? "⏳ Chargement..."
-                    : `📥 Charger plus (${serverPenalties.length} / ${serverTotal})`}
+                    ? "Chargement..."
+                    : `Charger plus (${serverPenalties.length} / ${serverTotal})`}
                 </button>
               </div>
             )}
@@ -579,12 +628,12 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
                   required
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                 >
-                  <option value="">— Choisir un locataire —</option>
+                  <option value="">- Choisir un locataire -</option>
                   {tenants
                     .filter((t) => !t.dateSortie)
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.prenom} {t.nom} — {t.bienNom} (
+                        {t.prenom} {t.nom} - {t.bienNom} (
                         {formatNumber(t.loyerMensuel)} FCFA)
                       </option>
                     ))}
@@ -696,3 +745,5 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     </div>
   );
 };
+
+
