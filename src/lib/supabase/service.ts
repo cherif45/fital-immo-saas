@@ -1334,6 +1334,44 @@ export async function loadFullApplicationData(
       Promise.resolve({ data: [], error: null }), // owner_charges : charge lazy
     ]);
 
+
+// CONTRÔLE DES ERREURS DE SYNCHRONISATION
+    const syncResults: Record<string, PromiseSettledResult<any>> = {
+      agency: agencyRes,
+      properties: propsRes,
+      owners: ownersRes,
+      tenants: tenantsRes,
+      contracts: contractsRes,
+      payments: paymentsRes,
+      cashMovements: cashMovRes,
+      cashClosings: cashCloseRes,
+      maintenance: maintRes,
+      inspections: inspRes,
+      disbursements: disbRes,
+      invoices: invRes,
+      reminders: remindRes,
+      auditLogs: auditRes,
+      notifications: notifRes,
+      paymentMethods: pmRes,
+      settings: settingsRes,
+      users: usersRes,
+      buildings: buildingsRes,
+      units: unitsRes,
+      ownerDeductions: deductionsRes,
+      bulletinVersements: bulletinsRes,
+      archives: archivesRes,
+      activityLogs: activitiesRes,
+      penalties: penaltiesRes,
+      ownerCharges: ownerChargesRes,
+    };
+
+    for (const [name, result] of Object.entries(syncResults)) {
+      if (result.status === "rejected") {
+        console.error(`[FITAL-IMMO] Échec de chargement : ${name}`, result.reason);
+      } else if (result.value?.error) {
+        console.error(`[FITAL-IMMO] Erreur Supabase : ${name}`, result.value.error);
+      }
+    }
     if (agencyRes.status === "fulfilled" && agencyRes.value.data) {
       state.agency = agencyRes.value.data as unknown as Agency;
       persistCollection("agency", state.agency);
@@ -1342,7 +1380,7 @@ export async function loadFullApplicationData(
     if (
       ownersRes.status === "fulfilled" &&
       ownersRes.value.data &&
-      ownersRes.value.data.length > 0
+      Array.isArray(ownersRes.value.data) && !ownersRes.value.error
     ) {
       state.owners = ownersRes.value.data.map(mapOwnerFromDb);
       persistCollection("owners", state.owners);
@@ -1350,7 +1388,7 @@ export async function loadFullApplicationData(
     if (
       propsRes.status === "fulfilled" &&
       propsRes.value.data &&
-      propsRes.value.data.length > 0
+      Array.isArray(propsRes.value.data) && !propsRes.value.error
     ) {
       state.properties = propsRes.value.data.map((r: any) => {
         const mapped = mapPropertyFromDb(r);
@@ -1372,7 +1410,7 @@ export async function loadFullApplicationData(
     if (
       tenantsRes.status === "fulfilled" &&
       tenantsRes.value.data &&
-      tenantsRes.value.data.length > 0
+      Array.isArray(tenantsRes.value.data) && !tenantsRes.value.error
     ) {
       state.tenants = tenantsRes.value.data.map(mapTenantFromDb);
       persistCollection("tenants", state.tenants);
@@ -1380,7 +1418,7 @@ export async function loadFullApplicationData(
     if (
       contractsRes.status === "fulfilled" &&
       contractsRes.value.data &&
-      contractsRes.value.data.length > 0
+      Array.isArray(contractsRes.value.data) && !contractsRes.value.error
     ) {
       state.contracts = contractsRes.value.data.map(mapContractFromDb);
       persistCollection("contracts", state.contracts);
@@ -1388,7 +1426,7 @@ export async function loadFullApplicationData(
     if (
       paymentsRes.status === "fulfilled" &&
       paymentsRes.value.data &&
-      paymentsRes.value.data.length > 0
+      Array.isArray(paymentsRes.value.data) && !paymentsRes.value.error
     ) {
       state.payments = paymentsRes.value.data.map(mapPaymentFromDb);
       persistCollection("payments", state.payments);
@@ -1404,7 +1442,7 @@ export async function loadFullApplicationData(
     if (
       cashCloseRes.status === "fulfilled" &&
       cashCloseRes.value.data &&
-      cashCloseRes.value.data.length > 0
+      Array.isArray(cashCloseRes.value.data) && !cashCloseRes.value.error
     ) {
       state.cashClosings = cashCloseRes.value.data.map(mapCashClosingFromDb);
       persistCollection("cash_closings", state.cashClosings);
@@ -1412,7 +1450,7 @@ export async function loadFullApplicationData(
     if (
       maintRes.status === "fulfilled" &&
       maintRes.value.data &&
-      maintRes.value.data.length > 0
+      Array.isArray(maintRes.value.data) && !maintRes.value.error
     ) {
       state.maintenance = maintRes.value.data.map(mapMaintenanceFromDb);
       persistCollection("maintenance", state.maintenance);
@@ -1420,7 +1458,7 @@ export async function loadFullApplicationData(
     if (
       inspRes.status === "fulfilled" &&
       inspRes.value.data &&
-      inspRes.value.data.length > 0
+      Array.isArray(inspRes.value.data) && !inspRes.value.error
     ) {
       state.inspections = inspRes.value.data.map(mapInspectionFromDb);
       persistCollection("inspections", state.inspections);
@@ -1428,7 +1466,7 @@ export async function loadFullApplicationData(
     if (
       disbRes.status === "fulfilled" &&
       disbRes.value.data &&
-      disbRes.value.data.length > 0
+      Array.isArray(disbRes.value.data) && !disbRes.value.error
     ) {
       state.disbursements = disbRes.value.data.map((d: any) => {
         const mapped = mapDisbursementFromDb(d);
@@ -1464,7 +1502,7 @@ export async function loadFullApplicationData(
     if (
       remindRes.status === "fulfilled" &&
       remindRes.value.data &&
-      remindRes.value.data.length > 0
+      Array.isArray(remindRes.value.data) && !remindRes.value.error
     ) {
       state.reminders = remindRes.value.data.map(mapReminderFromDb);
       persistCollection("reminders", state.reminders);
@@ -1472,7 +1510,7 @@ export async function loadFullApplicationData(
     if (
       auditRes.status === "fulfilled" &&
       auditRes.value.data &&
-      auditRes.value.data.length > 0
+      Array.isArray(auditRes.value.data) && !auditRes.value.error
     ) {
       state.auditLogs = auditRes.value.data as unknown as AuditLog[];
       persistCollection("audit_logs", state.auditLogs);
@@ -1480,7 +1518,7 @@ export async function loadFullApplicationData(
     if (
       notifRes.status === "fulfilled" &&
       notifRes.value.data &&
-      notifRes.value.data.length > 0
+      Array.isArray(notifRes.value.data) && !notifRes.value.error
     ) {
       state.notifications = notifRes.value
         .data as unknown as NotificationItem[];
@@ -1489,7 +1527,7 @@ export async function loadFullApplicationData(
     if (
       pmRes.status === "fulfilled" &&
       pmRes.value.data &&
-      pmRes.value.data.length > 0
+      Array.isArray(pmRes.value.data) && !pmRes.value.error
     ) {
       state.paymentMethods = pmRes.value
         .data as unknown as PaymentMethodConfig[];
@@ -1498,7 +1536,7 @@ export async function loadFullApplicationData(
     if (
       buildingsRes.status === "fulfilled" &&
       buildingsRes.value.data &&
-      buildingsRes.value.data.length > 0
+      Array.isArray(buildingsRes.value.data) && !buildingsRes.value.error
     ) {
       state.buildings = buildingsRes.value.data.map((r: any) => {
         const mapped = mapBuildingFromDb(r);
@@ -1519,7 +1557,7 @@ export async function loadFullApplicationData(
     if (
       unitsRes.status === "fulfilled" &&
       unitsRes.value.data &&
-      unitsRes.value.data.length > 0
+      Array.isArray(unitsRes.value.data) && !unitsRes.value.error
     ) {
       state.units = unitsRes.value.data.map((r: any) => {
         const mapped = mapUnitFromDb(r);
@@ -1547,7 +1585,7 @@ export async function loadFullApplicationData(
     if (
       deductionsRes.status === "fulfilled" &&
       deductionsRes.value.data &&
-      deductionsRes.value.data.length > 0
+      Array.isArray(deductionsRes.value.data) && !deductionsRes.value.error
     ) {
       state.ownerDeductions = deductionsRes.value.data.map(
         mapOwnerDeductionFromDb,
@@ -1557,7 +1595,7 @@ export async function loadFullApplicationData(
     if (
       bulletinsRes.status === "fulfilled" &&
       bulletinsRes.value.data &&
-      bulletinsRes.value.data.length > 0
+      Array.isArray(bulletinsRes.value.data) && !bulletinsRes.value.error
     ) {
       state.bulletinVersements = bulletinsRes.value.data.map(
         mapBulletinVersementFromDb,
@@ -1635,7 +1673,7 @@ export async function loadFullApplicationData(
     if (
       usersRes.status === "fulfilled" &&
       usersRes.value.data &&
-      usersRes.value.data.length > 0
+      Array.isArray(usersRes.value.data) && !usersRes.value.error
     ) {
       state.users = usersRes.value.data.map((p: any) => ({
         id: p.id,
