@@ -3136,6 +3136,8 @@ export default function App() {
                 contracts={scopedContracts}
                 tenants={tenants}
                 properties={scopedProperties}
+                units={scopedUnits}
+                buildings={scopedBuildings}
                 owners={owners}
                 currentUser={currentUser}
                 settings={agencySettings}
@@ -3527,7 +3529,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-

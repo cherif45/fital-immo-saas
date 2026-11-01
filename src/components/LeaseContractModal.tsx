@@ -182,7 +182,15 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   const charges = contract.charges || 0;
   const loyerTotal = loyerBase + charges;
   const cautionMois = contract.cautionMois || 1;
-  const cautionMontant = contract.cautionMontant || loyerBase * cautionMois;
+  const cautionDetaillee =
+    (contract.cautionLoyer || 0) +
+    (contract.cautionEau || 0) +
+    (contract.cautionElectricite || 0);
+  const cautionMontant =
+    contract.cautionMontant ||
+    contract.montantCaution ||
+    cautionDetaillee ||
+    loyerBase * cautionMois;
 
   const locataireNom = (
     contract.locataireNom || (tenant ? `${tenant.prenom} ${tenant.nom}` : "—")
