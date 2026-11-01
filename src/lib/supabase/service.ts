@@ -1,4 +1,4 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -1306,7 +1306,7 @@ export async function loadFullApplicationData(
       agencyFilter(supabase.from("payment_methods_config").select("*")),
       supabase
         .from("agency_settings")
-        .select("*")
+        .select("id, agency_id, nom_agence, slogan, telephone, email, adresse, ville, pays, ninea, devise, taux_gerance_defaut, penalite_defaut, tva_taux, prefix_facture, prefix_quittance, prefix_paiement, prefix_contrat, prefix_bon_caisse, updated_at, wave_numero, orange_money_code, whatsapp_business, standard_telephone, logo_url, primary_color, website, wave_enabled, orange_money_enabled, paydunya_mode, paydunya_enabled, payments_enabled, payments_provider, gerant_nom, gerant_titre, gerant_signature_url, slogan_1, slogan_2, cachet_url, entete_url, pied_page_url, rc_numero, ninea_numero, boite_postale, site_web, wave_configured, orange_money_configured, paydunya_configured, login_background_color, login_card_color, login_surface_color, login_text_color, login_muted_color")
         .eq("agency_id", agencyId)
         .maybeSingle(),
       agencyFilter(supabase.from("profiles").select("*")),
@@ -2539,9 +2539,7 @@ export async function fetchAgencyArchiveData(
     fetchMapped("owner_deductions", mapOwnerDeductionFromDb),
     fetchMapped("archives", mapArchiveFromDb, "archived_at"),
     fetchAgencyActivityLogs(agencyId),
-    Promise.resolve([] as Penalty[]),
     fetchMapped("tenant_reminders", mapReminderFromDb, "date_creation"),
-    Promise.resolve([] as CashMovement[]),
     fetchMapped("cash_closings", mapCashClosingFromDb),
     fetchMapped(
       "cash_vouchers",
@@ -4703,9 +4701,17 @@ export async function resetUserPassword(
   userId: string,
 ): Promise<{ success: boolean; error?: string; email?: string }> {
   try {
+    if (!supabase) return { success: false, error: "Supabase non configuré." };
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) {
+      return { success: false, error: "Session expirée. Reconnectez-vous." };
+    }
     const res = await fetch("/api/admin/reset-password", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
       body: JSON.stringify({ userId }),
     });
     const data = await res.json();

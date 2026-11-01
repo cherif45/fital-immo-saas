@@ -3,7 +3,7 @@ import { Printer, X } from "lucide-react";
 import { Payment, AgencySettings, ReceiptType, Unit, Building } from "../types";
 import { formatNumber, formatDate } from "../lib/utils";
 import { UserSignatureBlock } from "./UserSignatureBlock";
-import { PrintHeader, PrintFooter } from "./PrintHeader";
+import { PrintHeader } from "./PrintHeader";
 import { printElementById } from "../lib/printDocument";
 import { createDocumentNumber } from "../lib/documentNumber";
 

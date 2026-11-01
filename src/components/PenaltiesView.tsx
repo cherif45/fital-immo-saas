@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   AlertTriangle,
   Calculator,
@@ -108,9 +108,15 @@ export const PenaltiesView: React.FC<PenaltiesViewProps> = ({
     const sourcePenalties =
       serverPenalties.length > 0 ? serverPenalties : penalties;
 
-    const tenantsById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
-    const propertiesById = new Map(properties.map((property) => [property.id, property]));
-    const unitsById = new Map(units.map((unit) => [unit.id, unit]));
+    const tenantsById = new Map<string, Tenant>(
+      tenants.map((tenant): [string, Tenant] => [tenant.id, tenant]),
+    );
+    const propertiesById = new Map<string, Property>(
+      properties.map((property): [string, Property] => [property.id, property]),
+    );
+    const unitsById = new Map<string, Unit>(
+      units.map((unit): [string, Unit] => [unit.id, unit]),
+    );
 
     return sourcePenalties.map((penalty) => {
       const tenant = penalty.locataireId

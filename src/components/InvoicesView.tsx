@@ -35,7 +35,7 @@ import {
   numberToWordsFrench,
 } from "../lib/calculations/financial";
 import { formatNumber, formatDate } from "../lib/utils";
-import { PrintFooter, PrintHeader } from "./PrintHeader";
+import { PrintHeader } from "./PrintHeader";
 
 interface InvoicesViewProps {
   invoices: Invoice[];

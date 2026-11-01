@@ -4,12 +4,13 @@ import {
   savePaymentTransaction,
   checkDuplicatePayment,
   PaymentAlreadyExistsError,
+  requireAgencyUser,
 } from '../_lib/supabaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -20,8 +21,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       locataireEmail, locataireTelephone, periode, customData,
     } = req.body;
 
-    if (!amount || !agencyId || !locataireId) {
+    if (!amount || !agencyId || !locataireId || !periode) {
       return res.status(400).json({ error: 'Paramètres manquants.' });
+    }
+
+    await requireAgencyUser(req, agencyId, locataireId);
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Montant invalide.' });
     }
 
     const isDuplicate = await checkDuplicatePayment(agencyId, locataireId, periode);
@@ -93,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error('Erreur PayDunya create-session:', err);
-    return res.status(err instanceof PaymentAlreadyExistsError ? 409 : 500).json({
+    return res.status(err.statusCode || (err instanceof PaymentAlreadyExistsError ? 409 : 500)).json({
       error: err.message || 'Erreur serveur.',
     });
   }

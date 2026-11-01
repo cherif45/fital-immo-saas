@@ -49,7 +49,7 @@ export function useAgencySettings(agencyId?: string) {
     try {
       const { data, error: fetchError } = await supabase
         .from('agency_settings')
-        .select('*')
+        .select('id, agency_id, nom_agence, slogan, telephone, email, adresse, ville, pays, ninea, devise, taux_gerance_defaut, penalite_defaut, tva_taux, prefix_facture, prefix_quittance, prefix_paiement, prefix_contrat, prefix_bon_caisse, updated_at, wave_numero, orange_money_code, whatsapp_business, standard_telephone, logo_url, primary_color, website, wave_enabled, orange_money_enabled, paydunya_mode, paydunya_enabled, payments_enabled, payments_provider, gerant_nom, gerant_titre, gerant_signature_url, slogan_1, slogan_2, cachet_url, entete_url, pied_page_url, rc_numero, ninea_numero, boite_postale, site_web, wave_configured, orange_money_configured, paydunya_configured, login_background_color, login_card_color, login_surface_color, login_text_color, login_muted_color')
         .eq('agency_id', agencyId)
         .maybeSingle();
 

@@ -1,5 +1,13 @@
 import { AgencySettings } from "../../types";
 import { createDocumentNumber } from "../documentNumber";
+import { supabase } from "../supabase/client";
+
+async function getPaymentAuthHeaders(): Promise<Record<string, string>> {
+  if (!supabase) throw new Error("Authentification Supabase indisponible.");
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) throw new Error("Connectez-vous avant de lancer un paiement.");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` };
+}
 
 export type PaymentProvider = "WAVE" | "ORANGE_MONEY" | "PAYDUNYA";
 
@@ -72,7 +80,7 @@ async function createWaveCheckout(
   try {
     const res = await fetch("/api/wave/create-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getPaymentAuthHeaders(),
       body: JSON.stringify({
         amount: request.montant,
         currency: "XOF",
@@ -115,7 +123,7 @@ async function createOrangeMoneyCheckout(
   try {
     const res = await fetch("/api/orange-money/create-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getPaymentAuthHeaders(),
       body: JSON.stringify({
         amount: request.montant,
         currency: "XOF",
@@ -157,7 +165,7 @@ async function createPayDunyaCheckout(
   try {
     const res = await fetch("/api/paydunya/create-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getPaymentAuthHeaders(),
       body: JSON.stringify({
         amount: request.montant,
         description: request.description,

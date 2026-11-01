@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest } from '@vercel/node';
 import { createDocumentNumber } from '../../src/lib/documentNumber.js';
 import { getPeriodDueDate } from '../../src/lib/payments/dueDate.js';
 
 // ⚠️ Ces variables doivent être dans .env.local ET dans Vercel Environment Variables
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.warn('⚠️ Supabase admin non configuré (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)');
@@ -29,15 +31,83 @@ export class PaymentAlreadyExistsError extends Error {
  * Récupère les settings d'une agence avec ses clés API
  */
 export async function getAgencySettings(agencyId: string) {
-  const { data, error } = await supabaseAdmin
-    .from('agency_settings')
-    .select('*')
-    .eq('agency_id', agencyId)
-    .maybeSingle();
+  const [{ data, error }, { data: secrets, error: secretsError }] = await Promise.all([
+    supabaseAdmin.from('agency_settings').select('*').eq('agency_id', agencyId).maybeSingle(),
+    supabaseAdmin.from('agency_payment_secrets').select('*').eq('agency_id', agencyId).maybeSingle(),
+  ]);
 
   if (error) throw new Error(`Erreur récupération settings: ${error.message}`);
+  if (secretsError) throw new Error(`Erreur récupération secrets de paiement: ${secretsError.message}`);
   if (!data) throw new Error('Agence introuvable.');
-  return data;
+  return {
+    ...data,
+    wave_api_key: secrets?.wave_api_key || '',
+    wave_webhook_secret: secrets?.wave_webhook_secret || '',
+    orange_money_api_key: secrets?.orange_money_api_key || '',
+    orange_money_merchant_id: secrets?.orange_money_merchant_id || '',
+    paydunya_master_key: secrets?.paydunya_master_key || '',
+    paydunya_private_key: secrets?.paydunya_private_key || '',
+    paydunya_public_key: secrets?.paydunya_public_key || '',
+    paydunya_token: secrets?.paydunya_token || '',
+  };
+}
+
+export async function requireAgencyUser(
+  req: VercelRequest,
+  agencyId: string,
+  locataireId?: string,
+) {
+  const rawAuthorization = req.headers.authorization;
+  const authorization = Array.isArray(rawAuthorization) ? (rawAuthorization[0] || '') : (rawAuthorization || '');
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  if (!token || !supabaseUrl || !supabaseAnonKey) {
+    const error = new Error('Authentification requise.');
+    (error as any).statusCode = 401;
+    throw error;
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: authData, error: authError } = await authClient.auth.getUser(token);
+  if (authError || !authData.user) {
+    const error = new Error('Session invalide ou expirée.');
+    (error as any).statusCode = 401;
+    throw error;
+  }
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, agency_id, role, statut, locataire_id')
+    .eq('id', authData.user.id)
+    .maybeSingle();
+
+  if (profileError || !profile || profile.statut !== 'actif') {
+    const error = new Error('Compte inactif ou profil introuvable.');
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  if (profile.role !== 'SUPER_ADMIN_SAAS' && profile.agency_id !== agencyId) {
+    const error = new Error('Accès interdit à cette agence.');
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  const allowedRoles = ['SUPER_ADMIN_SAAS', 'SUPER_ADMIN', 'ADMIN', 'CAISSIER', 'LOCATAIRE'];
+  if (!allowedRoles.includes(profile.role)) {
+    const error = new Error('Rôle non autorisé à initier un paiement.');
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  if (profile.role === 'LOCATAIRE' && (!locataireId || profile.locataire_id !== locataireId)) {
+    const error = new Error('Un locataire ne peut initier que son propre paiement.');
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  return profile;
 }
 
 /**
