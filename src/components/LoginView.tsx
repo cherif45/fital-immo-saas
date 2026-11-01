@@ -213,7 +213,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
     try {
       // 1. Authentification cloud
-      if (isSupabaseConfigured && supabase && healthResult?.connected) {
+      if (isSupabaseConfigured && supabase) {
         const { data: authData, error: authError } =
           await supabase.auth.signInWithPassword({
             email: cleanEmail,
