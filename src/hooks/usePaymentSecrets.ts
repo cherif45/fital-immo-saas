@@ -1,16 +1,5 @@
-// ============================================================
-// HOOK — Gestion des secrets de paiement (Wave, OM, PayDunya)
-// ============================================================
-// ⚠️ SÉCURITÉ : Ce hook ne doit être appelé QUE par des écrans
-// accessibles aux rôles ADMIN / SUPER_ADMIN_SAAS.
-// La RLS Supabase bloque tout autre rôle côté DB.
-// ============================================================
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase/client";
-import { UserAccount, UserRole } from "../types";
-
-// ---------- TYPES ----------
 
 export interface PaymentSecrets {
   waveApiKey: string;
@@ -25,6 +14,8 @@ export interface PaymentSecrets {
 
 export type PaymentSecretsPatch = Partial<PaymentSecrets>;
 
+export type PaymentSecretsConfigured = Record<keyof PaymentSecrets, boolean>;
+
 const EMPTY_SECRETS: PaymentSecrets = {
   waveApiKey: "",
   waveWebhookSecret: "",
@@ -36,66 +27,24 @@ const EMPTY_SECRETS: PaymentSecrets = {
   paydunyaToken: "",
 };
 
-// Rôles autorisés à voir/modifier les secrets
-const ALLOWED_ROLES: UserRole[] = ["ADMIN", "SUPER_ADMIN_SAAS", "SUPER_ADMIN"];
-
-// ---------- MAPPING DB <-> API ----------
-
-interface DbPaymentSecrets {
-  wave_api_key: string | null;
-  wave_webhook_secret: string | null;
-  orange_money_api_key: string | null;
-  orange_money_merchant_id: string | null;
-  paydunya_master_key: string | null;
-  paydunya_private_key: string | null;
-  paydunya_public_key: string | null;
-  paydunya_token: string | null;
-}
-
-function fromDb(row: DbPaymentSecrets | null): PaymentSecrets {
-  if (!row) return EMPTY_SECRETS;
-  return {
-    waveApiKey: row.wave_api_key ?? "",
-    waveWebhookSecret: row.wave_webhook_secret ?? "",
-    orangeMoneyApiKey: row.orange_money_api_key ?? "",
-    orangeMoneyMerchantId: row.orange_money_merchant_id ?? "",
-    paydunyaMasterKey: row.paydunya_master_key ?? "",
-    paydunyaPrivateKey: row.paydunya_private_key ?? "",
-    paydunyaPublicKey: row.paydunya_public_key ?? "",
-    paydunyaToken: row.paydunya_token ?? "",
-  };
-}
-
-function toDb(patch: PaymentSecretsPatch): Record<string, string | null> {
-  const out: Record<string, string | null> = {};
-  if (patch.waveApiKey !== undefined)
-    out.wave_api_key = patch.waveApiKey || null;
-  if (patch.waveWebhookSecret !== undefined)
-    out.wave_webhook_secret = patch.waveWebhookSecret || null;
-  if (patch.orangeMoneyApiKey !== undefined)
-    out.orange_money_api_key = patch.orangeMoneyApiKey || null;
-  if (patch.orangeMoneyMerchantId !== undefined)
-    out.orange_money_merchant_id = patch.orangeMoneyMerchantId || null;
-  if (patch.paydunyaMasterKey !== undefined)
-    out.paydunya_master_key = patch.paydunyaMasterKey || null;
-  if (patch.paydunyaPrivateKey !== undefined)
-    out.paydunya_private_key = patch.paydunyaPrivateKey || null;
-  if (patch.paydunyaPublicKey !== undefined)
-    out.paydunya_public_key = patch.paydunyaPublicKey || null;
-  if (patch.paydunyaToken !== undefined)
-    out.paydunya_token = patch.paydunyaToken || null;
-  return out;
-}
-
-// ---------- HOOK ----------
+const EMPTY_CONFIGURED: PaymentSecretsConfigured = {
+  waveApiKey: false,
+  waveWebhookSecret: false,
+  orangeMoneyApiKey: false,
+  orangeMoneyMerchantId: false,
+  paydunyaMasterKey: false,
+  paydunyaPrivateKey: false,
+  paydunyaPublicKey: false,
+  paydunyaToken: false,
+};
 
 interface UsePaymentSecretsOptions {
   agencyId: string | undefined;
-  currentUser: UserAccount | null;
 }
 
 interface UsePaymentSecretsResult {
   secrets: PaymentSecrets;
+  configured: PaymentSecretsConfigured;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -106,69 +55,118 @@ interface UsePaymentSecretsResult {
 
 export function usePaymentSecrets({
   agencyId,
-  currentUser,
 }: UsePaymentSecretsOptions): UsePaymentSecretsResult {
   const [secrets, setSecrets] = useState<PaymentSecrets>(EMPTY_SECRETS);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [configured, setConfigured] =
+    useState<PaymentSecretsConfigured>(EMPTY_CONFIGURED);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canManage, setCanManage] = useState(false);
 
-  const canManage = !!currentUser && ALLOWED_ROLES.includes(currentUser.role);
-
-  // ---------- LOAD ----------
-  const load = useCallback(
-    async (force = false) => {
-      if (!agencyId || !supabase || !canManage) {
-        setSecrets(EMPTY_SECRETS);
-        setLoading(false);
-        setError(null);
-        return;
+  const request = useCallback(
+    async (method: "GET" | "POST", patch?: PaymentSecretsPatch) => {
+      if (!supabase || !agencyId) {
+        throw new Error("Agence ou connexion Supabase introuvable.");
       }
 
-      setLoading(true);
-      setError(null);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("agency_payment_secrets")
-          .select(
-            "wave_api_key, wave_webhook_secret, orange_money_api_key, orange_money_merchant_id, paydunya_master_key, paydunya_private_key, paydunya_public_key, paydunya_token",
-          )
-          .eq("agency_id", agencyId)
-          .maybeSingle();
+      if (sessionError || !session?.access_token) {
+        throw new Error("Session expirée. Reconnectez-vous.");
+      }
 
-        if (fetchError) {
-          setError(fetchError.message);
-          setSecrets(EMPTY_SECRETS);
-          setLoading(false);
-          return;
-        }
+      const response = await fetch(
+        `/api/admin/payment-settings?agencyId=${encodeURIComponent(agencyId)}`,
+        {
+          method,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          ...(method === "POST"
+            ? {
+                body: JSON.stringify({
+                  agencyId,
+                  ...(patch ?? {}),
+                }),
+              }
+            : {}),
+        },
+      );
 
-        setSecrets(fromDb(data as DbPaymentSecrets | null));
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Erreur de chargement des secrets",
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Erreur de communication avec le serveur.",
         );
-        setSecrets(EMPTY_SECRETS);
-      } finally {
-        setLoading(false);
       }
+
+      return result;
     },
-    [agencyId, canManage],
+    [agencyId],
   );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const refresh = useCallback(async () => {
+    if (!agencyId) {
+      setSecrets(EMPTY_SECRETS);
+      setConfigured(EMPTY_CONFIGURED);
+      setCanManage(false);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
-  // ---------- UPDATE ----------
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await request("GET");
+
+      setConfigured({
+        ...EMPTY_CONFIGURED,
+        ...(result.configured ?? {}),
+      });
+
+      // Les clés secrètes ne sont jamais renvoyées au navigateur.
+      setSecrets(EMPTY_SECRETS);
+
+      // Le GET a été accepté par l'API qui vérifie les autorisations.
+      setCanManage(true);
+    } catch (e) {
+      setConfigured(EMPTY_CONFIGURED);
+      setSecrets(EMPTY_SECRETS);
+      setCanManage(false);
+
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Erreur de chargement des paramètres de paiement.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [agencyId, request]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
   const update = useCallback(
     async (patch: PaymentSecretsPatch): Promise<boolean> => {
       if (!canManage) {
         setError("Vous n'avez pas la permission de modifier ces paramètres.");
         return false;
       }
-      if (!agencyId || !supabase) {
+
+      if (!agencyId) {
         setError("Agence introuvable.");
         return false;
       }
@@ -177,36 +175,32 @@ export function usePaymentSecrets({
       setError(null);
 
       try {
-        const dbPatch = toDb(patch);
-        const { error: upsertError } = await supabase
-          .from("agency_payment_secrets")
-          .upsert(
-            { agency_id: agencyId, ...dbPatch },
-            { onConflict: "agency_id" },
-          );
+        await request("POST", patch);
 
-        if (upsertError) {
-          setError(upsertError.message);
-          setSaving(false);
-          return false;
-        }
+        await refresh();
 
-        // Mettre à jour l'état local
-        setSecrets((prev) => ({ ...prev, ...patch }));
-        setSaving(false);
         return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur de sauvegarde");
-        setSaving(false);
+        setError(
+          e instanceof Error ? e.message : "Erreur de sauvegarde des clés.",
+        );
+
         return false;
+      } finally {
+        setSaving(false);
       }
     },
-    [agencyId, canManage],
+    [agencyId, canManage, request, refresh],
   );
 
-  const refresh = useCallback(async () => {
-    await load(true);
-  }, [load]);
-
-  return { secrets, loading, saving, error, canManage, update, refresh };
+  return {
+    secrets,
+    configured,
+    loading,
+    saving,
+    error,
+    canManage,
+    update,
+    refresh,
+  };
 }
