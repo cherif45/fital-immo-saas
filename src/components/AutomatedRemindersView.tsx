@@ -75,8 +75,9 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
       const currentMonthPayments = payments.filter(
         (payment) =>
           payment.locataireId === tenant.id &&
-          normalizePaymentPeriod(payment.periodeNormalisee || payment.periode) ===
-            moisActuel,
+          normalizePaymentPeriod(
+            payment.periodeNormalisee || payment.periode,
+          ) === moisActuel,
       );
       const validatedPayments = currentMonthPayments.filter(
         (payment) =>
@@ -90,7 +91,9 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
       );
       const totalDue = Math.max(
         Number(tenant.loyerMensuel) || 0,
-        ...currentMonthPayments.map((payment) => Number(payment.montantTotal) || 0),
+        ...currentMonthPayments.map(
+          (payment) => Number(payment.montantTotal) || 0,
+        ),
       );
       const rentBalance = Math.max(0, totalDue - totalPaid);
       const arrears = Math.max(0, Number(tenant.arrieresCumules) || 0);
@@ -112,11 +115,12 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         entryDate > dueDate;
       const isCurrentRentOverdue =
         rentBalance > 0 && daysPastDue > 0 && !enteredAfterDueDate;
-      if (!arrears && !isCurrentRentOverdue) return [];
+      const isStoredOverdue =
+        tenant.statut === "Retard" || tenant.statut === "Impayé";
 
-      const daysLate = arrears
-        ? Math.max(1, Number(tenant.joursRetard) || daysPastDue)
-        : daysPastDue;
+      if (!arrears && !isCurrentRentOverdue && !isStoredOverdue) return [];
+
+      const daysLate = Math.max(1, Number(tenant.joursRetard) || daysPastDue);
       const amountDue = arrears + (isCurrentRentOverdue ? rentBalance : 0);
       return [
         {
@@ -127,12 +131,22 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         },
       ];
     });
-  }, [tenants, payments, moisActuel, now.getFullYear(), now.getMonth(), now.getDate()]);
+  }, [
+    tenants,
+    payments,
+    moisActuel,
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ]);
   const [selectedTenantId, setSelectedTenantId] = useState<string>(
     overdueTenants[0]?.id || tenants[0]?.id || "",
   );
   useEffect(() => {
-    if (overdueTenants.length > 0 && !overdueTenants.some((tenant) => tenant.id === selectedTenantId)) {
+    if (
+      overdueTenants.length > 0 &&
+      !overdueTenants.some((tenant) => tenant.id === selectedTenantId)
+    ) {
       setSelectedTenantId(overdueTenants[0].id);
     }
   }, [overdueTenants, selectedTenantId]);
@@ -683,7 +697,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                       if (!activeTenantIsOverdue) event.preventDefault();
                     }}
                     aria-disabled={!activeTenantIsOverdue}
-                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white font-bold text-xs shadow-lg shadow-sky-900/40 flex items-center gap-2 transition-all ${!activeTenantIsOverdue ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 text-white font-bold text-xs shadow-lg shadow-sky-900/40 flex items-center gap-2 transition-all ${!activeTenantIsOverdue ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     <Send className="w-4 h-4" />
                     <span>Envoyer par SMS</span>
@@ -699,7 +713,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                       if (!activeTenantIsOverdue) event.preventDefault();
                     }}
                     aria-disabled={!activeTenantIsOverdue}
-                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg shadow-[#C9A96E]/30 flex items-center gap-2 transition-all hover:scale-105 ${!activeTenantIsOverdue ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-lg shadow-[#C9A96E]/30 flex items-center gap-2 transition-all hover:scale-105 ${!activeTenantIsOverdue ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     <Mail className="w-4 h-4" />
                     <span>Ouvrir dans Messagerie</span>
