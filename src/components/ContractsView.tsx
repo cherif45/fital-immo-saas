@@ -358,6 +358,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         return d.toISOString().split("T")[0];
       })(),
       loyerBase: lb,
+      avanceLoyer: Number(montantCaution || 0),
       charges: 0, // ⚠️ Supprimé (règle client)
       tva: montantTVA,
       tom: montantTOM,
@@ -746,9 +747,10 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     <input
                       type="number"
                       value={montantCaution || ""}
-                      onChange={(e) =>
-                        setMontantCaution(Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        setMontantCaution(Number(e.target.value));
+                        setAvanceLoyer(Number(e.target.value));
+                      }}
                       min={0}
                       className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                     />

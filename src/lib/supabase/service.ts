@@ -655,6 +655,7 @@ export function mapContractFromDb(r: any): LeaseContract {
     proprietaireId: r.proprietaire_id || r.proprietaireId || "",
     proprietaireNom: r.proprietaire_nom || r.proprietaireNom || "",
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
+    avanceLoyer: Number(r.avance_loyer ?? r.avanceLoyer ?? 0),
     charges: Number(r.charges ?? 0),
     tva: Number(r.tva ?? 0),
     tom: Number(r.tom ?? 0),
@@ -2820,6 +2821,7 @@ export async function saveContractToDb(
       bien_id: contract.bienId,
       proprietaire_id: contract.proprietaireId,
       loyer_base: contract.loyerBase,
+      avance_loyer: Number(contract.avanceLoyer ?? 0),
       charges: contract.charges || 0,
       caution_loyer: contract.cautionLoyer || 0,
       caution_eau: contract.cautionEau || 0,
@@ -2846,7 +2848,7 @@ export async function saveContractToDb(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, data: data as unknown as LeaseContract };
+      return { success: true, data: mapContractFromDb(data) };
     } else {
       const { data, error } = await supabase
         .from("contracts")
@@ -2854,7 +2856,7 @@ export async function saveContractToDb(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, data: data as unknown as LeaseContract };
+      return { success: true, data: mapContractFromDb(data) };
     }
   } catch (err: any) {
     return { success: false, error: err.message || "Impossible." };
