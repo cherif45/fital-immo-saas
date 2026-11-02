@@ -119,7 +119,7 @@ export function NewTenantWizardModal({
   const [montantCaution, setMontantCaution] = useState((selectedBien?.loyerBase || 300000) * 2);
   const [acompteCaution, setAcompteCaution] = useState(0);
   const [montantCommission, setMontantCommission] = useState(0);
-  const [avanceLoyer, setAvanceLoyer] = useState(0);
+  const [avanceLoyer, setAvanceLoyer] = useState((selectedBien?.loyerBase || 300000) * 2);
   const [cautionEau, setCautionEau] = useState(0);
   const [cautionElectricite, setCautionElectricite] = useState(0);
   const [chargesDiverses, setChargesDiverses] = useState(0);
@@ -154,6 +154,7 @@ export function NewTenantWizardModal({
       const baseLoyer = selectedBien.loyerBase || 0;
       setLb(baseLoyer);
       setMontantCaution(baseLoyer * 2);
+      setAvanceLoyer(baseLoyer * 2);
     }
   }, [selectedBienId]);
 
@@ -257,7 +258,7 @@ export function NewTenantWizardModal({
       montantCaution,
       acompteCaution,
       montantCommission,
-      avanceLoyer,
+      avanceLoyer: Number(montantCaution || 0),
       lb,
       cautionEau,
       cautionElectricite,
@@ -564,7 +565,7 @@ export function NewTenantWizardModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Montant Caution</label>
-                  <input type="number" value={montantCaution} onChange={(e) => setMontantCaution(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <input type="number" value={montantCaution} onChange={(e) => { setMontantCaution(Number(e.target.value)); setAvanceLoyer(Number(e.target.value)); }} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Acompte Caution</label>
