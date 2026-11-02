@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -1396,8 +1396,6 @@ export default function App() {
         let newStatut: "À jour" | "Retard" | "Impayé";
         if (percent >= 100) {
           newStatut = "À jour";
-        } else if (percent >= 50) {
-          newStatut = "À jour";
         } else if (percent > 0) {
           newStatut = "Retard";
         } else {
@@ -2200,9 +2198,7 @@ export default function App() {
     );
 
     if (!result.success || !result.data) {
-      throw new Error(
-        result.error || "Le reversement n'a pas été enregistré.",
-      );
+      throw new Error(result.error || "Le reversement n'a pas été enregistré.");
     }
 
     const savedDisbursement = result.data;
