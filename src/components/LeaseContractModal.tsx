@@ -12,7 +12,7 @@ import {
   AgencySettings,
 } from "../types";
 import { formatCurrency, formatNumber, formatDate } from "../lib/utils";
-import { PrintHeader, PrintFooter } from "./PrintHeader";
+import { PrintHeader } from "./PrintHeader";
 import { printElementById } from "../lib/printDocument";
 
 interface LeaseContractModalProps {

@@ -138,7 +138,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     (t) => t.statut === 'Impayé' || t.statut === 'Retard'
   );
   const totalUnpaid = overdueTenants.reduce((sum, tenant) => {
-    const balance = tenant.arrieresCumules ?? tenant.loyerMensuel;
+    const balance = Number(tenant.arrieresCumules ?? 0);
     return sum + (Number.isFinite(balance) ? Math.max(0, balance) : 0);
   }, 0);
 
@@ -501,7 +501,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span className="font-bold text-white text-xs truncate">{t.prenom} {t.nom}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/30">{t.joursRetard}j</span>
                   </div>
-                  <div className="text-xs font-bold text-rose-400 mt-1">Arriéré : {formatCurrency(t.arrieresCumules || t.loyerMensuel)}</div>
+                  <div className="text-xs font-bold text-rose-400 mt-1">Arriéré : {formatCurrency(t.arrieresCumules ?? 0)}</div>
                 </div>
                 <button onClick={() => onOpenQuickReminder(t)} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5">
                   <Send className="w-3.5 h-3.5" /> Relancer
