@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -221,61 +221,8 @@ export default function App() {
     }
   }, [agencySettings?.nomAgence]);
   // ============================================================
-  // RECALCUL AUTOMATIQUE DES STATUTS AU CHARGEMENT
-  // ============================================================
-  React.useEffect(() => {
-    if (!currentUser?.agencyId || !isSupabaseConfigured) return;
-
-    const runRecalc = async () => {
-      try {
-        console.log("🔄 Recalcul des statuts locataires...");
-        const { error } = await supabase.rpc("recalculate_tenant_statuses", {
-          p_agency_id: currentUser.agencyId,
-        });
-
-        if (error) {
-          console.warn("⚠️ Recalcul échoué:", error.message);
-          return;
-        }
-
-        console.log("✅ Statuts recalculés");
-
-        // Recharger les tenants pour rafraîchir le dashboard
-        const { data: refreshedTenants } = await supabase
-          .from("tenants")
-          .select("*")
-          .eq("agency_id", currentUser.agencyId)
-          .is("deleted_at", null);
-
-        if (refreshedTenants && refreshedTenants.length > 0) {
-          // Mapper au format Tenant (adapter si nécessaire)
-          setTenants((prev) => {
-            // Si on a déjà les tenants chargés, on met à jour juste les statuts
-            const updates = new Map(
-              refreshedTenants.map((t: any) => [t.id, t]),
-            );
-            return prev.map((t) => {
-              const fresh = updates.get(t.id);
-              if (fresh) {
-                return {
-                  ...t,
-                  statut: fresh.statut || t.statut,
-                  joursRetard: Number(fresh.jours_retard ?? t.joursRetard ?? 0),
-                };
-              }
-              return t;
-            });
-          });
-        }
-      } catch (err) {
-        console.warn("⚠️ Erreur recalcul:", err);
-      }
-    };
-
-    // Délai pour laisser le temps à l'app de charger
-    const timer = setTimeout(runRecalc, 2000);
-    return () => clearTimeout(timer);
-  }, [currentUser?.agencyId]);
+  // Recalcul automatique des statuts désactivé temporairement.
+  // Ne pas réactiver avant validation de la logique financière.
   useTheme();
   const [agencyStats, setAgencyStats] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -1379,40 +1326,8 @@ export default function App() {
         );
     }
 
-    setTenants((prev) => {
-      if (
-        newPayment.statut === "En attente" ||
-        newPayment.verificationStatut === "en_attente"
-      ) {
-        return prev;
-      }
-      const next = prev.map((t) => {
-        if (t.id !== newPayment.locataireId) return t;
-
-        const total = newPayment.montantTotal || 0;
-        const paye = newPayment.montantPaye || 0;
-        const percent = total > 0 ? (paye / total) * 100 : 0;
-
-        let newStatut: "À jour" | "Retard" | "Impayé";
-        if (percent >= 100) {
-          newStatut = "À jour";
-        } else if (percent > 0) {
-          newStatut = "Retard";
-        } else {
-          newStatut = "Impayé";
-        }
-
-        return {
-          ...t,
-          statut: newStatut,
-          joursRetard: newStatut === "À jour" ? 0 : t.joursRetard,
-          arrieresCumules: Math.max(0, total - paye),
-        };
-      });
-      persistCollection("tenants", next);
-      return next;
-    });
-
+    // Le statut et les arriérés du locataire ne sont pas recalculés
+    // à partir d'un paiement isolé. Le solde antérieur est préservé.
     const activityEntry: ActivityLog = {
       id: crypto.randomUUID(),
       agencyId: currentUser?.agencyId || "local",

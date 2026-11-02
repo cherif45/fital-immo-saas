@@ -43,6 +43,7 @@ import {
 } from "../lib/utils";
 import { lazy, Suspense } from "react";
 import { createDocumentNumber } from "../lib/documentNumber";
+import { normalizePaymentPeriod } from "../lib/payments/period";
 import { createPendingMobilePayment } from "../lib/payments/createPendingMobilePayment";
 
 // Lazy import pour reduire le bundle de cette vue
@@ -209,29 +210,34 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     percent: number;
   } => {
     const now = new Date();
-    const mois = now
-      .toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
-      .toLowerCase()
-      .trim();
+    const monthKey = normalizePaymentPeriod(
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    );
 
-    const allThisMonth = payments.filter((p: any) => {
-      if (p.locataireId !== t.id) return false;
-      const per = (p.periode || "").toLowerCase().trim();
+    const normalizeText = (value: unknown) =>
+      String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+    const currentMonthRows = payments.filter((p: any) =>
+      p.locataireId === t.id &&
+      normalizePaymentPeriod(p.periodeNormalisee || p.periode) === monthKey
+    );
+
+    const validPayments = currentMonthRows.filter((p: any) => {
+      const status = normalizeText(p.statut);
+      const verification = normalizeText(p.verificationStatut);
+
       return (
-        per === mois &&
-        (p.statut === "Payé" ||
-          p.statut === "Partiel" ||
-          p.statut === "En attente")
+        status !== "en attente" &&
+        verification !== "en attente" &&
+        verification !== "rejete"
       );
     });
 
-    const found = allThisMonth.sort((a: any, b: any) => {
-      if (a.statut === "Payé" && b.statut !== "Payé") return -1;
-      if (b.statut === "Payé" && a.statut !== "Payé") return 1;
-      return (b.montantPaye || 0) - (a.montantPaye || 0);
-    })[0];
-
-    if (!found) {
+    if (validPayments.length === 0) {
       return {
         status: "none",
         paymentRef: "",
@@ -241,35 +247,57 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       };
     }
 
-    const total = found.montantTotal || t.loyerMensuel || 0;
-    const paye = found.montantPaye || 0;
-    const reste = Math.max(0, total - paye);
-    const percent = total > 0 ? Math.round((paye / total) * 100) : 0;
+    const total = Math.max(
+      Number(t.loyerMensuel) || 0,
+      ...validPayments.map((p: any) => Number(p.montantTotal) || 0),
+    );
 
-    if (found.statut === "Payé" && reste === 0) {
+    const paid = validPayments.reduce(
+      (sum: number, p: any) =>
+        sum + Math.max(0, Number(p.montantPaye) || 0),
+      0,
+    );
+
+    const remaining = Math.max(0, total - paid);
+    const percent = total > 0
+      ? Math.min(100, Math.round((paid / total) * 100))
+      : 0;
+
+    const latestPayment = [...validPayments].sort(
+      (a: any, b: any) =>
+        String(b.datePaiement || "").localeCompare(
+          String(a.datePaiement || ""),
+        ),
+    )[0];
+
+    const paymentRef = latestPayment?.quittanceNumero || "";
+
+    if (total > 0 && remaining === 0) {
       return {
         status: "paid",
-        paymentRef: found.quittanceNumero,
-        amount: paye,
+        paymentRef,
+        amount: paid,
         remaining: 0,
         percent: 100,
       };
     }
-    if (percent >= 50) {
+
+    if (paid > 0) {
       return {
         status: "partial",
-        paymentRef: found.quittanceNumero,
-        amount: paye,
-        remaining: reste,
+        paymentRef,
+        amount: paid,
+        remaining,
         percent,
       };
     }
+
     return {
       status: "unpaid",
-      paymentRef: found.quittanceNumero,
-      amount: paye,
-      remaining: reste,
-      percent,
+      paymentRef,
+      amount: 0,
+      remaining: total,
+      percent: 0,
     };
   };
 

@@ -64,7 +64,6 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   );
   const overdueTenants = useMemo(() => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const fallbackDueDate = new Date(now.getFullYear(), now.getMonth(), 5);
     return tenants.flatMap((tenant) => {
       if (tenant.dateSortie || tenant.statut === "Parti") return [];
       const entryDate = tenant.dateEntree
@@ -96,14 +95,14 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         ),
       );
       const rentBalance = Math.max(0, totalDue - totalPaid);
-      const arrears = Math.max(0, Number(tenant.arrieresCumules) || 0);
       const paymentDueDates = currentMonthPayments
         .map((payment) => payment.dateEcheance)
         .filter((date): date is string => !!date)
         .map((date) => new Date(`${date.slice(0, 10)}T00:00:00`))
         .filter((date) => Number.isFinite(date.getTime()))
         .sort((a, b) => a.getTime() - b.getTime());
-      const dueDate = paymentDueDates[0] || fallbackDueDate;
+      const dueDate = paymentDueDates[0];
+      if (!dueDate) return [];
       const daysPastDue = Math.max(
         0,
         Math.floor((today.getTime() - dueDate.getTime()) / 86400000),
@@ -115,13 +114,15 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         entryDate > dueDate;
       const isCurrentRentOverdue =
         rentBalance > 0 && daysPastDue > 0 && !enteredAfterDueDate;
-      const isStoredOverdue =
-        tenant.statut === "Retard" || tenant.statut === "Impayé";
+      // Une ancienne etiquette de statut ne suffit pas a declencher
+      // une relance : un montant reellement du doit etre etabli.
+      if (!isCurrentRentOverdue) return [];
 
-      if (!arrears && !isCurrentRentOverdue && !isStoredOverdue) return [];
+      const daysLate = daysPastDue;
 
-      const daysLate = Math.max(1, Number(tenant.joursRetard) || daysPastDue);
-      const amountDue = arrears + (isCurrentRentOverdue ? rentBalance : 0);
+      const amountDue = rentBalance;
+
+      if (amountDue <= 0) return [];
       return [
         {
           ...tenant,
@@ -199,14 +200,14 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         body: JSON.stringify({
           locataireNom: `${t.prenom} ${t.nom}`,
           bienNom: p?.nom || t.bienNom,
-          montantDu: t.arrieresCumules || t.loyerMensuel,
-          joursRetard: t.joursRetard || 7,
+          montantDu: Number(t.arrieresCumules) || 0,
+          joursRetard: Number(t.joursRetard) || 0,
           niveau: targetLevel,
           canal: targetChannel,
           dateEcheance:
             overdueTenants.find((tenant) => tenant.id === t.id)
-              ?.dateEcheanceRelance || "5 du mois courant",
-          penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
+              ?.dateEcheanceRelance || "",
+          penalites: 0,
         }),
       });
       const data = await res.json();
@@ -232,15 +233,13 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
   ): string => {
     const nom = `${t.prenom} ${t.nom}`;
     const bien = p?.nom || t.bienNom || "FITAL-IMMO";
-    const montant = (t.arrieresCumules || t.loyerMensuel).toLocaleString(
-      "fr-FR",
-    );
-    const jours = t.joursRetard || 7;
+    const montant = (Number(t.arrieresCumules) || 0).toLocaleString("fr-FR");
+    const jours = Math.max(0, Number(t.joursRetard) || 0);
     const penalites =
       jours > 10
-        ? Math.round(
-            (t.arrieresCumules || t.loyerMensuel) * 0.1,
-          ).toLocaleString("fr-FR")
+        ? Math.round((Number(t.arrieresCumules) || 0) * 0.1).toLocaleString(
+            "fr-FR",
+          )
         : "0";
 
     switch (level) {
@@ -294,11 +293,8 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
       telephone: activeTenant.telephone,
       email: activeTenant.email,
       bienNom: activeTenant.bienNom,
-      montantDu: activeTenant.arrieresCumules || activeTenant.loyerMensuel,
-      penalites:
-        activeTenant.joursRetard > 10
-          ? Math.round(activeTenant.loyerMensuel * 0.1)
-          : 0,
+      montantDu: Number(activeTenant.arrieresCumules) || 0,
+      penalites: 0,
       joursRetard: activeTenant.joursRetard,
       niveau: selectedLevel,
       canal: "WhatsApp",
@@ -326,12 +322,12 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
         telephone: t.telephone,
         email: t.email,
         bienNom: t.bienNom,
-        montantDu: t.arrieresCumules || t.loyerMensuel,
-        penalites: t.joursRetard > 10 ? Math.round(t.loyerMensuel * 0.1) : 0,
+        montantDu: Number(t.arrieresCumules) || 0,
+        penalites: 0,
         joursRetard: t.joursRetard,
         niveau: level,
         canal: "WhatsApp",
-        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(t.arrieresCumules || t.loyerMensuel).toLocaleString("fr-FR")} FCFA (${t.joursRetard}j de retard, échéance ${t.dateEcheanceRelance}). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
+        message: `Rappel de loyer pour ${t.bienNom} : montant de ${(Number(t.arrieresCumules) || 0).toLocaleString("fr-FR")} FCFA (${t.joursRetard}j de retard, échéance ${t.dateEcheanceRelance}). Merci de régulariser. - Service Recouvrement FITAL-IMMO`,
         statut: "Envoyé",
         dateCreation: new Date().toISOString().split("T")[0],
         dateEnvoi: new Date().toLocaleTimeString("fr-FR", {
@@ -423,7 +419,7 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
                         {t.bienNom}
                       </div>
                       <div className="text-[10px] text-rose-400 font-semibold mt-0.5">
-                        {formatCurrency(t.arrieresCumules || t.loyerMensuel)} ·{" "}
+                        {formatCurrency(Number(t.arrieresCumules) || 0)} ·{" "}
                         {t.joursRetard}j de retard
                       </div>
                     </div>
@@ -798,13 +794,9 @@ export const AutomatedRemindersView: React.FC<AutomatedRemindersViewProps> = ({
           tenant={activeTenant}
           property={activeProperty}
           settings={undefined}
-          montantDu={activeTenant.arrieresCumules || activeTenant.loyerMensuel}
-          penalites={
-            activeTenant.joursRetard > 10
-              ? Math.round(activeTenant.loyerMensuel * 0.1)
-              : 0
-          }
-          joursRetard={activeTenant.joursRetard || 25}
+          montantDu={Number(activeTenant.arrieresCumules) || 0}
+          penalites={0}
+          joursRetard={activeTenant.joursRetard || 0}
           periode={new Date().toLocaleDateString("fr-FR", {
             month: "long",
             year: "numeric",
