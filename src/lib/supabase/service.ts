@@ -3205,8 +3205,12 @@ export async function saveDisbursementToDb(
   disb: Partial<OwnerDisbursement>,
   agencyId: string,
 ): Promise<{ success: boolean; data?: OwnerDisbursement; error?: string }> {
-  if (!isSupabaseConfigured || !supabase)
-    return { success: true, data: disb as OwnerDisbursement };
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      error: "Supabase n'est pas configuré. Reversement non enregistré.",
+    };
+  }
   try {
     const record = {
       agency_id: agencyId,
@@ -4283,6 +4287,7 @@ export interface PaginatedResult<T> {
   page: number;
   page_size: number;
   data: T[];
+  error?: string;
 }
 
 export async function paginateTable<T = any>(
@@ -4292,7 +4297,7 @@ export async function paginateTable<T = any>(
   pageSize: number = 50,
 ): Promise<PaginatedResult<T>> {
   if (!supabase) {
-    return { total: 0, page: 0, page_size: pageSize, data: [] };
+    return { total: 0, page, page_size: pageSize, data: [], error: "Supabase non configuré." };
   }
   try {
     const { data, error } = await supabase.rpc("paginate_table", {
@@ -4303,12 +4308,21 @@ export async function paginateTable<T = any>(
     });
     if (error) {
       console.warn("paginateTable:", error);
-      return { total: 0, page, page_size: pageSize, data: [] };
+      return { total: 0, page, page_size: pageSize, data: [], error: error.message };
+    }
+    if (!data || !Array.isArray(data.data)) {
+      return { total: 0, page, page_size: pageSize, data: [], error: "Réponse de pagination Supabase invalide." };
     }
     return data as PaginatedResult<T>;
   } catch (e) {
     console.warn("paginateTable exception:", e);
-    return { total: 0, page, page_size: pageSize, data: [] };
+    return {
+      total: 0,
+      page,
+      page_size: pageSize,
+      data: [],
+      error: e instanceof Error ? e.message : "Erreur inconnue de pagination.",
+    };
   }
 }
 

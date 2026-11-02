@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -2178,24 +2178,42 @@ export default function App() {
         console.warn,
       );
   };
-  const handleAddDisbursement = (newDisbursement: OwnerDisbursement) => {
+  const handleAddDisbursement = async (
+    newDisbursement: OwnerDisbursement,
+  ): Promise<OwnerDisbursement> => {
+    if (!currentUser?.agencyId) {
+      throw new Error("Aucune agence associée à votre session.");
+    }
+
     const enrichedDisbursement: OwnerDisbursement = {
       ...newDisbursement,
-      createdById: newDisbursement.createdById || currentUser?.id,
+      createdById: newDisbursement.createdById || currentUser.id,
       createdByNom:
         newDisbursement.createdByNom ||
-        (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
-      createdByRole: newDisbursement.createdByRole || currentUser?.role,
+        `${currentUser.prenom} ${currentUser.nom}`,
+      createdByRole: newDisbursement.createdByRole || currentUser.role,
     };
+
+    const result = await saveDisbursementToDb(
+      enrichedDisbursement,
+      currentUser.agencyId,
+    );
+
+    if (!result.success || !result.data) {
+      throw new Error(
+        result.error || "Le reversement n'a pas été enregistré.",
+      );
+    }
+
+    const savedDisbursement = result.data;
+
     setDisbursements((prev) => {
-      const next = [enrichedDisbursement, ...prev];
+      const next = [savedDisbursement, ...prev];
       persistCollection("disbursements", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      saveDisbursementToDb(enrichedDisbursement, currentUser.agencyId).catch(
-        console.warn,
-      );
+
+    return savedDisbursement;
   };
   const handleAddInvoice = async (newInvoice: Invoice): Promise<void> => {
     const enrichedInvoice: Invoice = {

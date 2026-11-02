@@ -41,7 +41,9 @@ interface FinanceViewProps {
   invoices?: Invoice[];
   maintenance?: MaintenanceTicket[];
   ownerDeductions?: OwnerDeduction[];
-  onAddDisbursement: (disbursement: OwnerDisbursement) => void;
+  onAddDisbursement: (
+    disbursement: OwnerDisbursement
+  ) => Promise<OwnerDisbursement>;
   onOpenBulletin?: (owner: Owner) => void;
   currentUser?: { agencyId?: string } | null;
 }
@@ -92,6 +94,12 @@ export function FinanceView({
         paginateTable<any>('payments', currentUser.agencyId, page, PAGE_SIZE),
         paginateTable<any>('disbursements', currentUser.agencyId, page, PAGE_SIZE),
       ]);
+      if (paymentsResult.error) {
+        throw new Error("Chargement des paiements : " + paymentsResult.error);
+      }
+      if (disbursementsResult.error) {
+        throw new Error("Chargement des reversements : " + disbursementsResult.error);
+      }
       const mappedPayments: Payment[] = paymentsResult.data.map((r: any) => ({
         ...r,
         id: r.id,
@@ -125,8 +133,8 @@ export function FinanceView({
     }
   };
 
-  const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
-  const displayDisbursements = serverDisbursements.length > 0 ? serverDisbursements : disbursements;
+  const displayPayments = currentUser?.agencyId ? serverPayments : payments;
+  const displayDisbursements = currentUser?.agencyId ? serverDisbursements : disbursements;
   const [search, setSearch] = useState('');
   const [selectedOwner, setSelectedOwner] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('Mai 2026');
@@ -141,7 +149,7 @@ export function FinanceView({
       (p) =>
         p.statut === 'Payé' &&
         p.proprietaireId &&
-        !disbursements.some(
+        !displayDisbursements.some(
           (d) =>
             d.proprietaireId === p.proprietaireId &&
             d.periode === p.periode &&
@@ -208,7 +216,7 @@ export function FinanceView({
   const totalLoyersBruts = previews.reduce((sum, p) => sum + p.loyersBruts, 0);
   const totalCommissions = previews.reduce((sum, p) => sum + p.commissionAgence, 0);
   const totalNetAPayer = previews.reduce((sum, p) => sum + p.montantNetPaye, 0);
-  const totalReverses = disbursements
+  const totalReverses = displayDisbursements
     .filter((d) => d.statut === 'Effectué')
     .reduce((sum, d) => sum + (d.montantNetPaye || d.montantNet || 0), 0);
 
@@ -250,7 +258,7 @@ export function FinanceView({
               Comptabilité & Reversements Propriétaires
             </div>
             <div className="text-xs text-[#A8B4C4] mt-0.5">
-              {previews.length} propriétaire(s) à reverser · {disbursements.length} reversement(s) effectué(s)
+              {previews.length} propriétaire(s) à reverser · {displayDisbursements.filter((d) => d.statut === 'Effectué').length} reversement(s) effectué(s)
             </div>
           </div>
         </div>
@@ -402,32 +410,43 @@ export function FinanceView({
                           </button>
                         )}
                         <button
-                          onClick={() => {
-                            const newDisbursement: OwnerDisbursement = {
-                              id: crypto.randomUUID(),
-                              ref: `REV-${Date.now()}`,
-                              proprietaireId: p.proprietaire.id,
-                              proprietaireNom: `${p.proprietaire.prenom} ${p.proprietaire.nom}`,
-                              periode: selectedPeriod,
-                              loyersBruts: p.loyersBruts,
-                              montantBrut: p.loyersBruts,
-                              tauxCommission: p.proprietaire.tauxCommission || 10,
-                              commissionAgence: p.commissionAgence,
-                              retenueTVA: p.retenueTVA,
-                              montantNetPaye: p.montantNetPaye,
-                              montantNet: p.montantNetPaye,
-                              statut: 'Effectué',
-                              modeReglement: 'Virement',
-                              dateReglement: new Date().toISOString().split('T')[0],
-                            };
-                            onAddDisbursement(newDisbursement);
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all flex items-center gap-1 cursor-pointer"
-                          title="Marquer comme reversé"
-                        >
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Marquer Reversé</span>
-                        </button>
+  onClick={async () => {
+    try {
+      const newDisbursement: OwnerDisbursement = {
+        id: crypto.randomUUID(),
+        ref: `REV-${Date.now()}`,
+        proprietaireId: p.proprietaire.id,
+        proprietaireNom: `${p.proprietaire.prenom} ${p.proprietaire.nom}`,
+        periode: selectedPeriod,
+        loyersBruts: p.loyersBruts,
+        montantBrut: p.loyersBruts,
+        tauxCommission: p.proprietaire.tauxCommission || 10,
+        commissionAgence: p.commissionAgence,
+        retenueTVA: p.retenueTVA,
+        montantNetPaye: p.montantNetPaye,
+        montantNet: p.montantNetPaye,
+        statut: "Effectué",
+        modeReglement: "Virement",
+        dateReglement: new Date().toISOString().split("T")[0],
+      };
+
+      await onAddDisbursement(newDisbursement);
+      alert("Reversement enregistré avec succès.");
+    } catch (error) {
+      console.error("Erreur reversement :", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer le reversement."
+      );
+    }
+  }}
+  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-all flex items-center gap-1 cursor-pointer"
+  title="Marquer comme reversé"
+>
+  <CheckCircle2 className="w-3 h-3" />
+  <span>Marquer Reversé</span>
+</button>
                       </div>
                     </td>
                   </tr>
@@ -462,14 +481,14 @@ export function FinanceView({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#C9A96E]/10">
-              {disbursements.length === 0 ? (
+              {displayDisbursements.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-[#6B7C94] italic">
                     Aucun reversement effectué pour le moment
                   </td>
                 </tr>
               ) : (
-                disbursements.slice(0, 20).map((d) => (
+                displayDisbursements.slice(0, 20).map((d) => (
                   <tr key={d.id} className="hover:bg-[#1E2E45]/40 transition-colors">
                     <td className="py-3 px-4 font-mono text-[10px] text-[#C9A96E]">
                       {d.ref}
