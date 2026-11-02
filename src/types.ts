@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // TYPES GLOBAUX — FITAL-IMMO
 // ============================================================
 
@@ -289,6 +289,7 @@ export interface Tenant {
   email?: string;
   cni?: string;
   typePiece?: string;
+  dateDelivrancePiece?: string;
   fonction?: string;
   profession?: string;
   employeur?: string;
@@ -394,12 +395,16 @@ export interface Payment extends AuditSignature {
   periode: string;
   loyerBase: number;
   charges: number;
+  chargesEau?: number;
+  chargesElectricite?: number;
+  chargesNettoyage?: number;
   tva: number;
   tom: number;
   penalites: number;
   indemnitesOccupation?: number;
   montantTotal: number;
   montantPaye: number;
+  montantVersement?: number;
   montantRestant: number;
   statut: PaymentStatus;
   modePaiement: PaymentMethod;
@@ -450,6 +455,30 @@ export interface Penalty {
   dateCalcul: string;
   dateApplication?: string;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ============================================================
+// CHARGES VARIABLES LOCATAIRE
+// ============================================================
+export type TenantChargeCategory = "Eau" | "Électricité" | "Nettoyage";
+export type TenantChargeStatus = "En attente" | "Payé" | "Partiel" | "Annulé";
+
+export interface TenantCharge {
+  id: string;
+  agencyId?: string;
+  locataireId: string;
+  locataireNom?: string;
+  bienId: string;
+  bienNom?: string;
+  categorie: TenantChargeCategory;
+  montant: number;
+  dateOperation: string;
+  periode: string;
+  description?: string;
+  statut?: TenantChargeStatus;
+  paymentId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -30,6 +30,7 @@ export const LazyFinanceView = lazy(() => import('../components/FinanceView').th
 export const LazyInvoicesView = lazy(() => import('../components/InvoicesView').then(m => ({ default: m.InvoicesView })));
 export const LazyPenaltiesView = lazy(() => import('../components/PenaltiesView').then(m => ({ default: m.PenaltiesView })));
 export const LazyOwnerChargesView = lazy(() => import('../components/OwnerChargesView').then(m => ({ default: m.OwnerChargesView })));
+export const LazyTenantChargesModal = lazy(() => import('../components/TenantChargesModal').then(m => ({ default: m.TenantChargesModal })));
 export const LazyDocumentsView = lazy(() => import('../components/DocumentsView').then(m => ({ default: m.DocumentsView })));
 export const LazyReportsView = lazy(() => import('../components/ReportsView').then(m => ({ default: m.ReportsView })));
 export const LazyAgencySettingsView = lazy(() => import('../components/AgencySettingsView').then(m => ({ default: m.AgencySettingsView })));

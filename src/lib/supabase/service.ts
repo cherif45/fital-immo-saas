@@ -34,6 +34,8 @@ import {
   ActivityLog,
   Penalty,
   OwnerCharge,
+  TenantCharge,
+  TenantChargeCategory,
   PublicAgencyLoginBranding,
 } from "../../types";
 import { createDocumentNumber } from "../documentNumber";
@@ -66,6 +68,7 @@ export interface AppStateData {
   activityLogs?: ActivityLog[];
   penalties?: Penalty[];
   ownerCharges?: OwnerCharge[];
+  tenantCharges?: TenantCharge[];
 }
 
 export type AgencyArchiveData = Pick<
@@ -321,6 +324,7 @@ function filterByAgency<T>(key: string, data: T): T {
     "activity_logs",
     "penalties",
     "owner_charges",
+    "tenant_charges",
   ];
 
   if (!ISOLATED_KEYS.includes(key)) {
@@ -624,8 +628,10 @@ export function mapTenantFromDb(r: any): Tenant {
     telephone: r.telephone || "",
     email: r.email || "",
     cni: r.cni || "",
-    fonction: r.fonction || "",
-    profession: r.profession || r.fonction || "",
+    typePiece: r.type_piece || r.typePiece || "CNI",
+    dateDelivrancePiece: r.date_delivrance_piece || r.dateDelivrancePiece || undefined,
+    fonction: r.fonction || r.profession || "",
+    profession: r.fonction || r.profession || "",
     employeur: r.employeur || "",
     revenuMensuel: Number(r.revenu_mensuel ?? r.revenuMensuel ?? 0),
     statut: r.statut || "? jour",
@@ -714,6 +720,7 @@ export function mapPaymentFromDb(r: any): Payment {
                 normalizedMode.includes("cheque")
               ? "CHEQUE"
               : "ESPECES");
+  const rawMontantVersement = r.montant_versement ?? r.montantVersement;
   return {
     id: r.id,
     ref: r.ref || `PAY-${r.id.slice(0, 6)}`,
@@ -728,12 +735,19 @@ export function mapPaymentFromDb(r: any): Payment {
     periode: r.periode || "Ce mois",
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
+    chargesEau: Number(r.charges_eau ?? r.chargesEau ?? 0),
+    chargesElectricite: Number(r.charges_electricite ?? r.chargesElectricite ?? 0),
+    chargesNettoyage: Number(r.charges_nettoyage ?? r.chargesNettoyage ?? 0),
     tva: Number(r.tva ?? 0),
     tom: Number(r.tom ?? 0),
     penalites: Number(r.penalites ?? 0),
     montantTotal,
     montantPaye:
       montantPaye === 0 && statut === "Payé" ? montantTotal : montantPaye,
+    montantVersement:
+      rawMontantVersement == null
+        ? undefined
+        : Number(rawMontantVersement),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
     statut,
     modePaiement,
@@ -1172,6 +1186,10 @@ export async function loadFullApplicationData(
     "owner_charges",
     [],
   );
+  const localTenantCharges = loadLocalCollection<TenantCharge[]>(
+    "tenant_charges",
+    [],
+  );
 
   const state: AppStateData = {
     agency: localAgency,
@@ -1201,6 +1219,7 @@ export async function loadFullApplicationData(
     activityLogs: [],
     penalties: localPenalties,
     ownerCharges: localOwnerCharges,
+    tenantCharges: localTenantCharges,
   };
 
   if (!isSupabaseConfigured || !supabase) return state;
@@ -1635,6 +1654,26 @@ export async function loadFullApplicationData(
       persistCollection("owner_charges", state.ownerCharges);
     }
 
+    try {
+      const { data: tcData, error: tcError } = await agencyFilter(
+        supabase
+          .from("tenant_charges")
+          .select("*")
+          .order("date_operation", { ascending: false })
+      );
+      if (tcError) {
+        console.error(
+          "Impossible de charger les charges locataires. Vérifiez que la migration tenant_identity_and_charges est appliquée :",
+          tcError,
+        );
+      } else if (tcData && Array.isArray(tcData)) {
+        state.tenantCharges = tcData.map(mapTenantChargeFromDb);
+        persistCollection("tenant_charges", state.tenantCharges);
+      }
+    } catch (tcError) {
+      console.error("Erreur de chargement des charges locataires:", tcError);
+    }
+
     if (settingsRes.status === "fulfilled" && settingsRes.value.data) {
       const dbSettings = settingsRes.value.data;
       state.settings = {
@@ -2044,6 +2083,125 @@ export async function deleteOwnerChargeFromDb(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+}
+
+// -----------------------------------------------------------
+// CRUD : TENANT CHARGES (Charges Variables Locataires)
+// -----------------------------------------------------------
+export function mapTenantChargeFromDb(r: any): TenantCharge {
+  return {
+    id: r.id,
+    agencyId: r.agency_id || r.agencyId,
+    locataireId: r.locataire_id || r.locataireId,
+    locataireNom: r.locataire_nom || r.locataireNom,
+    bienId: r.bien_id || r.bienId || "",
+    bienNom: r.bien_nom || r.bienNom,
+    categorie: (r.categorie as TenantChargeCategory) || "Eau",
+    montant: Number(r.montant ?? 0),
+    dateOperation:
+      r.date_operation || r.dateOperation || new Date().toISOString().split("T")[0],
+    periode: r.periode || "",
+    description: r.description || "",
+    statut: r.statut || "En attente",
+    paymentId: r.payment_id || r.paymentId,
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
+  };
+}
+
+export async function saveTenantChargeToDb(
+  charge: Partial<TenantCharge>,
+  agencyId: string,
+): Promise<{ success: boolean; data?: TenantCharge; error?: string }> {
+  if (!isSupabaseConfigured || !supabase)
+    return { success: true, data: charge as TenantCharge };
+  try {
+    const record = {
+      agency_id: agencyId,
+      locataire_id: charge.locataireId,
+      bien_id: charge.bienId || null,
+      categorie: charge.categorie || "Eau",
+      montant: Number(charge.montant || 0),
+      date_operation:
+        charge.dateOperation || new Date().toISOString().split("T")[0],
+      periode: charge.periode || "",
+      description: charge.description || "",
+      statut: charge.statut || "En attente",
+      payment_id: charge.paymentId || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const exists = charge.id
+      ? await recordExists("tenant_charges", charge.id, agencyId)
+      : false;
+
+    if (exists && charge.id) {
+      const { data, error } = await supabase
+        .from("tenant_charges")
+        .update(record)
+        .eq("id", charge.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, data: mapTenantChargeFromDb(data) };
+    } else {
+      const { data, error } = await supabase
+        .from("tenant_charges")
+        .insert([record])
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, data: mapTenantChargeFromDb(data) };
+    }
+  } catch (err: any) {
+    console.error("saveTenantChargeToDb error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteTenantChargeFromDb(
+  chargeId: string,
+  agencyId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
+  try {
+    const { error } = await supabase
+      .from("tenant_charges")
+      .delete()
+      .eq("id", chargeId)
+      .eq("agency_id", agencyId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("deleteTenantChargeFromDb error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function fetchTenantCharges(
+  agencyId: string,
+): Promise<TenantCharge[]> {
+  if (!isSupabaseConfigured || !supabase || !agencyId) {
+    return loadLocalCollection<TenantCharge[]>("tenant_charges", []);
+  }
+  try {
+    const { data, error } = await supabase
+      .from("tenant_charges")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .order("date_operation", { ascending: false });
+    if (error) {
+      console.warn("fetchTenantCharges error:", error);
+      return loadLocalCollection<TenantCharge[]>("tenant_charges", []);
+    }
+    const mapped = (data || []).map(mapTenantChargeFromDb);
+    persistCollection("tenant_charges", mapped);
+    return mapped;
+  } catch (err) {
+    console.warn("fetchTenantCharges exception:", err);
+    return loadLocalCollection<TenantCharge[]>("tenant_charges", []);
   }
 }
 
@@ -2754,49 +2912,87 @@ export async function saveTenantToDb(
   if (!isSupabaseConfigured || !supabase)
     return { success: true, data: tenant as Tenant };
   try {
-    const record = {
-      agency_id: agencyId,
-      ref: tenant.ref || (await generateNextTenantRef(agencyId)),
-      nom: tenant.nom,
-      prenom: tenant.prenom,
-      telephone: tenant.telephone,
-      email: tenant.email,
-      cni: tenant.cni || "",
-      fonction: tenant.fonction || "",
-      employeur: tenant.employeur || "",
-      revenu_mensuel: tenant.revenuMensuel || 0,
-      statut: tenant.statut || "? jour",
-      score_solvabilite: tenant.scoreSolvabilite || 85,
-      bien_id: tenant.bienId || null,
-      proprietaire_id: tenant.proprietaireId || null,
-      date_entree: tenant.dateEntree || new Date().toISOString().split("T")[0],
-      date_sortie: tenant.dateSortie || null,
-      loyer_mensuel: tenant.loyerMensuel || 0,
-      arrieres_cumules: tenant.arrieresCumules || 0,
-      jours_retard: tenant.joursRetard || 0,
-      observations: tenant.observations || "",
-    };
     const exists = tenant.id
       ? await recordExists("tenants", tenant.id, agencyId)
       : false;
-    if (exists) {
+
+    if (exists && tenant.id) {
+      // Pour une modification, on ne remplace pas les données existantes par des valeurs vides
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (tenant.nom !== undefined) updateData.nom = tenant.nom;
+      if (tenant.prenom !== undefined) updateData.prenom = tenant.prenom;
+      if (tenant.telephone !== undefined) updateData.telephone = tenant.telephone;
+      if (tenant.email !== undefined) updateData.email = tenant.email;
+      if (tenant.cni !== undefined) updateData.cni = tenant.cni;
+      if (tenant.typePiece !== undefined) updateData.type_piece = tenant.typePiece;
+      if (tenant.dateDelivrancePiece !== undefined)
+        updateData.date_delivrance_piece = tenant.dateDelivrancePiece || null;
+      if (tenant.fonction !== undefined || tenant.profession !== undefined)
+        updateData.fonction = tenant.fonction ?? tenant.profession ?? "";
+      if (tenant.employeur !== undefined) updateData.employeur = tenant.employeur;
+      if (tenant.revenuMensuel !== undefined)
+        updateData.revenu_mensuel = tenant.revenuMensuel;
+      if (tenant.statut !== undefined) updateData.statut = tenant.statut;
+      if (tenant.scoreSolvabilite !== undefined)
+        updateData.score_solvabilite = tenant.scoreSolvabilite;
+      if (tenant.bienId !== undefined) updateData.bien_id = tenant.bienId || null;
+      if (tenant.proprietaireId !== undefined)
+        updateData.proprietaire_id = tenant.proprietaireId || null;
+      if (tenant.dateEntree !== undefined) updateData.date_entree = tenant.dateEntree;
+      if (tenant.dateSortie !== undefined)
+        updateData.date_sortie = tenant.dateSortie || null;
+      if (tenant.loyerMensuel !== undefined)
+        updateData.loyer_mensuel = tenant.loyerMensuel;
+      if (tenant.arrieresCumules !== undefined)
+        updateData.arrieres_cumules = tenant.arrieresCumules;
+      if (tenant.joursRetard !== undefined)
+        updateData.jours_retard = tenant.joursRetard;
+      if (tenant.observations !== undefined)
+        updateData.observations = tenant.observations;
+
       const { data, error } = await supabase
         .from("tenants")
-        .update(record)
+        .update(updateData)
         .eq("id", tenant.id)
         .eq("agency_id", agencyId)
         .select()
         .single();
       if (error) throw error;
-      return { success: true, data: data as unknown as Tenant };
+      return { success: true, data: mapTenantFromDb(data) };
     } else {
+      const record = {
+        agency_id: agencyId,
+        ref: tenant.ref || (await generateNextTenantRef(agencyId)),
+        nom: tenant.nom,
+        prenom: tenant.prenom,
+        telephone: tenant.telephone,
+        email: tenant.email,
+        cni: tenant.cni || "",
+        type_piece: tenant.typePiece || "CNI",
+        date_delivrance_piece: tenant.dateDelivrancePiece || null,
+        fonction: tenant.fonction || tenant.profession || "",
+        employeur: tenant.employeur || "",
+        revenu_mensuel: tenant.revenuMensuel || 0,
+        statut: tenant.statut || "À jour",
+        score_solvabilite: tenant.scoreSolvabilite || 85,
+        bien_id: tenant.bienId || null,
+        proprietaire_id: tenant.proprietaireId || null,
+        date_entree: tenant.dateEntree || new Date().toISOString().split("T")[0],
+        date_sortie: tenant.dateSortie || null,
+        loyer_mensuel: tenant.loyerMensuel || 0,
+        arrieres_cumules: tenant.arrieresCumules || 0,
+        jours_retard: tenant.joursRetard || 0,
+        observations: tenant.observations || "",
+      };
       const { data, error } = await supabase
         .from("tenants")
         .insert([record])
         .select()
         .single();
       if (error) throw error;
-      return { success: true, data: data as unknown as Tenant };
+      return { success: true, data: mapTenantFromDb(data) };
     }
   } catch (err: any) {
     return { success: false, error: err.message || "Impossible." };
@@ -2873,11 +3069,14 @@ export async function savePaymentToDb(
   payment: Partial<Payment>,
   agencyId: string,
   authorId?: string,
+  chargeIds: string[] = [],
 ): Promise<{ success: boolean; data?: Payment; error?: string }> {
   if (!isSupabaseConfigured || !supabase)
     return { success: true, data: payment as Payment };
   try {
+    const paymentId = payment.id || crypto.randomUUID();
     const record = {
+      id: paymentId,
       agency_id: agencyId,
       ref: payment.ref || createDocumentNumber(undefined, "PAY-"),
       quittance_numero:
@@ -2890,11 +3089,15 @@ export async function savePaymentToDb(
       periode: payment.periode,
       loyer_base: payment.loyerBase,
       charges: payment.charges || 0,
+      charges_eau: payment.chargesEau || 0,
+      charges_electricite: payment.chargesElectricite || 0,
+      charges_nettoyage: payment.chargesNettoyage || 0,
       tva: payment.tva || 0,
       tom: payment.tom || 0,
       penalites: payment.penalites || 0,
       montant_total: payment.montantTotal,
       montant_paye: payment.montantPaye,
+      montant_versement: payment.montantVersement ?? null,
       montant_restant: payment.montantRestant || 0,
       statut: payment.statut || "Payé",
       mode_paiement: payment.modePaiement,
@@ -2919,6 +3122,19 @@ export async function savePaymentToDb(
       detail_total_du: payment.detailTotalDu || null,
       periode_normalisee: payment.periodeNormalisee || payment.periode || null,
     };
+    if (chargeIds.length > 0) {
+      const { data, error } = await supabase.rpc(
+        "record_payment_with_tenant_charges",
+        {
+          p_payment: record,
+          p_agency_id: agencyId,
+          p_charge_ids: chargeIds,
+        },
+      );
+      if (error) throw error;
+      return { success: true, data: mapPaymentFromDb(data) };
+    }
+
     const exists = payment.id
       ? await recordExists("payments", payment.id, agencyId)
       : false;
@@ -2954,21 +3170,19 @@ export async function validatePendingPaymentInDb(
   paymentId: string,
   agencyId: string,
   validatedBy: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: Payment; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase
-      .from("payments")
-      .update({
-        statut: "Payé",
-        verification_statut: "valide",
-        validated_by: validatedBy,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", paymentId)
-      .eq("agency_id", agencyId);
+    const { data, error } = await supabase.rpc(
+      "validate_pending_payment_with_charges",
+      {
+        p_payment_id: paymentId,
+        p_agency_id: agencyId,
+        p_validated_by: validatedBy,
+      },
+    );
     if (error) throw error;
-    return { success: true };
+    return { success: true, data: mapPaymentFromDb(data) };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -2981,16 +3195,14 @@ export async function rejectPendingPaymentInDb(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) return { success: true };
   try {
-    const { error } = await supabase
-      .from("payments")
-      .update({
-        statut: "Impay?",
-        verification_statut: "rejete",
-        observation: motif || "Paiement rejet?",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", paymentId)
-      .eq("agency_id", agencyId);
+    const { error } = await supabase.rpc(
+      "reject_pending_payment_with_charges",
+      {
+        p_payment_id: paymentId,
+        p_agency_id: agencyId,
+        p_motif: motif || "Paiement rejeté",
+      },
+    );
     if (error) throw error;
     return { success: true };
   } catch (err: any) {
@@ -4552,13 +4764,14 @@ export async function savePaymentToDbWithLog(
   payment: any,
   agencyId: string,
   authorId?: string,
+  chargeIds: string[] = [],
 ) {
   return logAndRun(
     "PAYMENT_ENCAISSE",
     "Paiements",
     `Encaissement : ${payment.locataireNom || ""} - ${payment.periode || ""} - ${payment.montantPaye || 0} FCFA`.trim(),
     agencyId,
-    () => savePaymentToDb(payment, agencyId, authorId),
+    () => savePaymentToDb(payment, agencyId, authorId, chargeIds),
     payment.ref,
     payment.montantPaye,
   );

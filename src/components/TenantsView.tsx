@@ -24,6 +24,8 @@ import {
   Smartphone,
   LogOut,
   X,
+  Edit2,
+  Zap,
 } from "lucide-react";
 import {
   Tenant,
@@ -34,6 +36,7 @@ import {
   Payment,
   Owner,
   AgencySettings,
+  TenantCharge,
 } from "../types";
 import {
   formatCurrency,
@@ -65,12 +68,15 @@ interface TenantsViewProps {
   units?: any[];
   payments?: Payment[];
   owners?: Owner[];
+  tenantCharges?: TenantCharge[];
   selectedPeriod: string;
   settings?: AgencySettings;
   currentUser?: UserAccount;
   onOpenQuickReminder: (tenant: Tenant) => void;
   onOpenNewPayment: (tenant?: Tenant) => void;
   onAddTenant: (tenant: Tenant) => void;
+  onUpdateTenant?: (tenant: Tenant) => boolean | void | Promise<boolean | void>;
+  onOpenTenantCharges?: (tenant?: Tenant) => void;
   onOpenMobileMoney?: (tenant: Tenant) => void;
   onAddPayment?: (payment: Payment) => boolean | Promise<boolean>;
   onInitiateExit?: (tenant: Tenant) => void;
@@ -96,12 +102,15 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   units = [],
   payments = [],
   owners = [],
+  tenantCharges = [],
   selectedPeriod,
   settings,
   currentUser,
   onOpenQuickReminder,
   onOpenNewPayment,
   onAddTenant,
+  onUpdateTenant,
+  onOpenTenantCharges,
   onOpenMobileMoney,
   onAddPayment,
   onInitiateExit,
@@ -126,6 +135,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [prenom, setPrenom] = useState("");
   const [cni, setCni] = useState("");
   const [typePiece, setTypePiece] = useState<string>("CNI"); // 🆕
+  const [dateDelivrancePiece, setDateDelivrancePiece] = useState("");
   const [telephone, setTelephone] = useState("+221 77 ");
   const [email, setEmail] = useState("");
   const [profession, setProfession] = useState("");
@@ -135,6 +145,19 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   const [loyerMensuel, setLoyerMensuel] = useState<number>(0);
   const [conjointNom, setConjointNom] = useState("");
   const [conjointTelephone, setConjointTelephone] = useState("");
+
+  // État de modification des informations d'identité et de contact
+  const [isEditingTenantInfo, setIsEditingTenantInfo] = useState(false);
+  const [editNom, setEditNom] = useState("");
+  const [editPrenom, setEditPrenom] = useState("");
+  const [editTelephone, setEditTelephone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editTypePiece, setEditTypePiece] = useState<string>("CNI");
+  const [editCni, setEditCni] = useState<string>("");
+  const [editDateDelivrancePiece, setEditDateDelivrancePiece] = useState<string>("");
+  const [isSavingTenantInfo, setIsSavingTenantInfo] = useState(false);
+  const [tenantInfoError, setTenantInfoError] = useState("");
+  const [tenantInfoSuccess, setTenantInfoSuccess] = useState("");
 
   // ============================================================
   // 🔒 MATRICE DE PERMISSIONS
@@ -425,6 +448,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       prenom,
       cni,
       typePiece, // 🆕
+      dateDelivrancePiece: dateDelivrancePiece || undefined,
       telephone,
       email: email || `${prenom.toLowerCase()}.${nom.toLowerCase()}@gmail.com`,
       profession,
@@ -451,6 +475,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
     setPrenom("");
     setCni("");
     setTypePiece("CNI"); // 🆕
+    setDateDelivrancePiece("");
     setTelephone("+221 77 ");
     setEmail("");
     setProfession("");
@@ -549,6 +574,17 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>Excel</span>
           </button>
+          {onOpenTenantCharges && canManageTenants && (
+            <button
+              type="button"
+              onClick={() => onOpenTenantCharges()}
+              className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Gérer les charges variables des locataires (Eau, Électricité, Nettoyage)"
+            >
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Charges Variables</span>
+            </button>
+          )}
           {canManageTenants && (
             <button
               onClick={() => setIsAddTenantModalOpen(true)}
@@ -831,6 +867,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
+                          {onOpenTenantCharges && (
+                            <button
+                              onClick={() => onOpenTenantCharges(t)}
+                              className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition-all cursor-pointer"
+                              title="Charges variables (Eau, Électricité, Nettoyage)"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           {!sorted && (
                             <>
                               {!isOwner && (
@@ -1026,6 +1072,21 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                 <span>Fiche de Renseignements Locataire</span>
               </div>
               <div className="flex items-center gap-2">
+                {onOpenTenantCharges && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = selectedTenantForDetails;
+                      setSelectedTenantForDetails(null);
+                      onOpenTenantCharges(t);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    title="Gérer les charges du locataire (Eau, Électricité, Nettoyage)"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Charges</span>
+                  </button>
+                )}
                 <button
                   onClick={() => window.print()}
                   className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
@@ -1074,6 +1135,16 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       </strong>
                     </div>
                     <div>
+                      <span className="text-neutral-500">
+                        Date de délivrance :{" "}
+                      </span>
+                      <strong className="text-neutral-900">
+                        {selectedTenantForDetails.dateDelivrancePiece
+                          ? formatDate(selectedTenantForDetails.dateDelivrancePiece)
+                          : "Non renseignée"}
+                      </strong>
+                    </div>
+                    <div>
                       <span className="text-neutral-500">Téléphone : </span>
                       <strong className="text-neutral-900">
                         {selectedTenantForDetails.telephone || "—"}
@@ -1113,6 +1184,212 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                         {getSolvabilite(selectedTenantForDetails)}/100
                       </strong>
                     </div>
+
+                    {canManageTenants && (
+                      <div className="col-span-2 pt-3 border-t border-neutral-200 no-print">
+                        {isEditingTenantInfo ? (
+                          <div className="p-4 bg-neutral-100 rounded-xl border border-neutral-300 space-y-3">
+                            <div className="font-bold text-neutral-800 text-sm flex items-center justify-between">
+                              <span>Modifier les informations du locataire</span>
+                              <button
+                                type="button"
+                                disabled={isSavingTenantInfo}
+                                onClick={() => {
+                                  setTenantInfoError("");
+                                  setIsEditingTenantInfo(false);
+                                }}
+                                className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50"
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Prénom
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editPrenom}
+                                  onChange={(e) => setEditPrenom(e.target.value)}
+                                  required
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Nom
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editNom}
+                                  onChange={(e) => setEditNom(e.target.value)}
+                                  required
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Téléphone
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={editTelephone}
+                                  onChange={(e) => setEditTelephone(e.target.value)}
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Adresse e-mail
+                                </label>
+                                <input
+                                  type="email"
+                                  value={editEmail}
+                                  onChange={(e) => setEditEmail(e.target.value)}
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Type de pièce d'identité
+                                </label>
+                                <select
+                                  value={editTypePiece}
+                                  onChange={(e) => setEditTypePiece(e.target.value)}
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                >
+                                  <option value="CNI">CNI</option>
+                                  <option value="PASSEPORT">Passeport</option>
+                                  <option value="CARTE_CONSULAIRE">Carte Consulaire</option>
+                                  <option value="AUTRE">Autre</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-600 font-bold mb-1">
+                                  Numéro de pièce d'identité
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editCni}
+                                  onChange={(e) => setEditCni(e.target.value)}
+                                  className="w-full p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="rounded-lg border border-[#C9A96E]/60 bg-white p-3">
+                              <label
+                                htmlFor="tenant-identity-issue-date"
+                                className="block text-xs text-neutral-800 font-bold mb-1.5"
+                              >
+                                Date de délivrance de la pièce d'identité
+                                <span className="ml-1 font-normal text-neutral-500">
+                                  (facultative)
+                                </span>
+                              </label>
+                              <input
+                                id="tenant-identity-issue-date"
+                                name="dateDelivrancePiece"
+                                type="date"
+                                value={editDateDelivrancePiece}
+                                onChange={(e) =>
+                                  setEditDateDelivrancePiece(e.target.value)
+                                }
+                                className="block w-full min-h-10 p-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 text-sm"
+                              />
+                            </div>
+                            {tenantInfoError && (
+                              <p role="alert" className="text-xs font-semibold text-red-700">
+                                {tenantInfoError}
+                              </p>
+                            )}
+                            <div className="flex justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={isSavingTenantInfo}
+                                onClick={() => {
+                                  setTenantInfoError("");
+                                  setIsEditingTenantInfo(false);
+                                }}
+                                className="px-3 py-2 rounded-lg bg-neutral-200 text-neutral-700 text-xs hover:bg-neutral-300 disabled:opacity-50"
+                              >
+                                Annuler
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isSavingTenantInfo || !editNom.trim() || !editPrenom.trim()}
+                                onClick={async () => {
+                                  if (!selectedTenantForDetails || !onUpdateTenant) {
+                                    setTenantInfoError("La modification n'est pas disponible pour ce compte.");
+                                    return;
+                                  }
+                                  setIsSavingTenantInfo(true);
+                                  setTenantInfoError("");
+                                  try {
+                                    const updatedTenant: Tenant = {
+                                      ...selectedTenantForDetails,
+                                      nom: editNom.trim(),
+                                      prenom: editPrenom.trim(),
+                                      telephone: editTelephone.trim(),
+                                      email: editEmail.trim(),
+                                      typePiece: editTypePiece,
+                                      cni: editCni.trim(),
+                                      dateDelivrancePiece: editDateDelivrancePiece || undefined,
+                                    };
+                                    const saved = await onUpdateTenant(updatedTenant);
+                                    if (saved === false) {
+                                      setTenantInfoError("Les informations n'ont pas pu être enregistrées. Vérifiez vos permissions et réessayez.");
+                                      return;
+                                    }
+                                    setSelectedTenantForDetails(updatedTenant);
+                                    setIsEditingTenantInfo(false);
+                                    setTenantInfoSuccess("Les informations du locataire ont été enregistrées.");
+                                  } catch (error) {
+                                    setTenantInfoError(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Une erreur est survenue pendant l'enregistrement.",
+                                    );
+                                  } finally {
+                                    setIsSavingTenantInfo(false);
+                                  }
+                                }}
+                                className="px-4 py-2 rounded-lg bg-[#C9A96E] hover:bg-[#B38A50] text-[#0F1B2D] font-bold text-xs disabled:opacity-50"
+                              >
+                                {isSavingTenantInfo ? "Enregistrement..." : "Enregistrer les informations"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditNom(selectedTenantForDetails.nom || "");
+                                setEditPrenom(selectedTenantForDetails.prenom || "");
+                                setEditTelephone(selectedTenantForDetails.telephone || "");
+                                setEditEmail(selectedTenantForDetails.email || "");
+                                setEditTypePiece(selectedTenantForDetails.typePiece || "CNI");
+                                setEditCni(selectedTenantForDetails.cni || "");
+                                setEditDateDelivrancePiece(selectedTenantForDetails.dateDelivrancePiece || "");
+                                setTenantInfoError("");
+                                setTenantInfoSuccess("");
+                                setIsEditingTenantInfo(true);
+                              }}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C9A96E] hover:bg-[#B38A50] text-[#0F1B2D] font-bold text-xs shadow-sm cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Modifier les informations</span>
+                            </button>
+                            {tenantInfoSuccess && (
+                              <p role="status" className="text-xs font-semibold text-emerald-700">
+                                {tenantInfoSuccess}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1296,6 +1573,21 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                           ? "SN1234567"
                           : "..."
                     }
+                  />
+                </div>
+              </div>
+
+              {/* Date de délivrance pièce */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                    Date de délivrance (facultative)
+                  </label>
+                  <input
+                    type="date"
+                    value={dateDelivrancePiece}
+                    onChange={(e) => setDateDelivrancePiece(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white"
                   />
                 </div>
               </div>

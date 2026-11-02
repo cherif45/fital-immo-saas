@@ -39,6 +39,7 @@ import {
   LazyInvoicesView,
   LazyPenaltiesView,
   LazyOwnerChargesView,
+  LazyTenantChargesModal,
   LazyDocumentsView,
   LazyReportsView,
   LazyAgencySettingsView,
@@ -100,6 +101,7 @@ import {
   ActivityLog,
   Penalty,
   OwnerCharge,
+  TenantCharge,
 } from "./types";
 import {
   initialProperties,
@@ -170,6 +172,8 @@ import {
   saveOwnerChargeToDb,
   deletePenaltyFromDb,
   deleteOwnerChargeFromDb,
+  saveTenantChargeToDb,
+  deleteTenantChargeFromDb,
 } from "./lib/supabase/service";
 
 // Force le nettoyage du cache si la version change
@@ -262,6 +266,7 @@ export default function App() {
   );
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [ownerCharges, setOwnerCharges] = useState<OwnerCharge[]>([]);
+  const [tenantCharges, setTenantCharges] = useState<TenantCharge[]>([]);
   const [isSavingBuilding, setIsSavingBuilding] = useState(false);
   const [isSavingUnit, setIsSavingUnit] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
@@ -288,6 +293,10 @@ export default function App() {
     useState<boolean>(false);
   const [isNewTenantWizardOpen, setIsNewTenantWizardOpen] =
     useState<boolean>(false);
+  const [isTenantChargesModalOpen, setIsTenantChargesModalOpen] =
+    useState(false);
+  const [initialTenantForCharges, setInitialTenantForCharges] =
+    useState<Tenant | null>(null);
   const [tenantExitTarget, setTenantExitTarget] = useState<Tenant | null>(null);
   const [initialTenantForPayment, setInitialTenantForPayment] =
     useState<Tenant | null>(null);
@@ -524,6 +533,23 @@ export default function App() {
         setActivityLogs(data.activityLogs || []);
         setPenalties(data.penalties || []);
         setOwnerCharges(data.ownerCharges || []);
+        setTenantCharges(
+          (data.tenantCharges || []).map((charge) => {
+            const tenant = data.tenants?.find(
+              (item) => item.id === charge.locataireId,
+            );
+            const property = data.properties?.find(
+              (item) => item.id === charge.bienId,
+            );
+            return {
+              ...charge,
+              locataireNom: tenant
+                ? `${tenant.prenom} ${tenant.nom}`.trim()
+                : charge.locataireNom,
+              bienNom: property?.nom || tenant?.bienNom || charge.bienNom,
+            };
+          }),
+        );
       } catch (err) {
         console.error("Erreur chargement:", err);
       } finally {
@@ -645,6 +671,7 @@ export default function App() {
     setActivityLogs([]);
     setPenalties([]);
     setOwnerCharges([]);
+    setTenantCharges([]);
     setAgencyStats(null);
   };
 
@@ -833,6 +860,7 @@ export default function App() {
     setActivityLogs([]);
     setPenalties([]);
     setOwnerCharges([]);
+    setTenantCharges([]);
     setAgencyStats(null);
 
     setCurrentUser(newUser);
@@ -1061,6 +1089,112 @@ export default function App() {
       charge?.referenceDocument || chargeId,
     );
   };
+
+  const handleOpenTenantCharges = (tenant?: Tenant) => {
+    setInitialTenantForCharges(tenant || null);
+    setIsTenantChargesModalOpen(true);
+  };
+
+  const enrichTenantChargeNames = (
+    charge: TenantCharge,
+  ): TenantCharge => {
+    const tenant = tenants.find((item) => item.id === charge.locataireId);
+    const property = properties.find((item) => item.id === charge.bienId);
+    return {
+      ...charge,
+      locataireNom: tenant
+        ? `${tenant.prenom} ${tenant.nom}`.trim()
+        : charge.locataireNom,
+      bienNom: property?.nom || tenant?.bienNom || charge.bienNom,
+    };
+  };
+
+  const handleAddTenantCharge = async (
+    charge: Partial<TenantCharge>,
+  ): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible d'enregistrer la charge : agence non identifiée.");
+      return false;
+    }
+
+    const result = await saveTenantChargeToDb(
+      { ...charge, agencyId: currentUser.agencyId },
+      currentUser.agencyId,
+    );
+    if (!result.success || !result.data) {
+      alert(
+        `Impossible d'enregistrer la charge : ${result.error || "aucune donnée retournée."}`,
+      );
+      return false;
+    }
+    const savedCharge = enrichTenantChargeNames(result.data);
+
+    setTenantCharges((previous) => {
+      const next = [
+        savedCharge,
+        ...previous.filter((item) => item.id !== savedCharge.id),
+      ];
+      persistCollection("tenant_charges", next);
+      return next;
+    });
+    return true;
+  };
+
+  const handleUpdateTenantCharge = async (
+    charge: TenantCharge,
+  ): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible de modifier la charge : agence non identifiée.");
+      return false;
+    }
+
+    const result = await saveTenantChargeToDb(
+      { ...charge, agencyId: currentUser.agencyId },
+      currentUser.agencyId,
+    );
+    if (!result.success || !result.data) {
+      alert(
+        `Impossible de modifier la charge : ${result.error || "aucune donnée retournée."}`,
+      );
+      return false;
+    }
+    const savedCharge = enrichTenantChargeNames(result.data);
+
+    setTenantCharges((previous) => {
+      const next = previous.map((item) =>
+        item.id === savedCharge.id ? savedCharge : item,
+      );
+      persistCollection("tenant_charges", next);
+      return next;
+    });
+    return true;
+  };
+
+  const handleDeleteTenantCharge = async (
+    chargeId: string,
+  ): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible de supprimer la charge : agence non identifiée.");
+      return false;
+    }
+
+    const result = await deleteTenantChargeFromDb(
+      chargeId,
+      currentUser.agencyId,
+    );
+    if (!result.success) {
+      alert(`Impossible de supprimer la charge : ${result.error || ""}`);
+      return false;
+    }
+
+    setTenantCharges((previous) => {
+      const next = previous.filter((item) => item.id !== chargeId);
+      persistCollection("tenant_charges", next);
+      return next;
+    });
+    return true;
+  };
+
   const handleAddPenalty = async (penalty: Penalty): Promise<boolean> => {
     if (currentUser?.agencyId) {
       const result = await savePenaltyToDb(penalty, currentUser.agencyId);
@@ -1237,6 +1371,14 @@ export default function App() {
       existingPayment?.statut === "En attente" ||
       existingPayment?.verificationStatut === "en_attente";
     const isUpdatingExistingPayment = existingPayment?.id === newPayment.id;
+    const isLinkedContinuation = payments.some(
+      (payment) =>
+        payment.id === newPayment.parentPaymentId &&
+        payment.locataireId === newPayment.locataireId &&
+        payment.periode.trim().toLocaleLowerCase("fr-FR") ===
+          newPayment.periode.trim().toLocaleLowerCase("fr-FR") &&
+        payment.verificationStatut !== "rejete",
+    );
 
     if (
       existingPayment &&
@@ -1251,7 +1393,11 @@ export default function App() {
       return false;
     }
 
-    if (existingPayment && !isUpdatingExistingPayment) {
+    if (
+      existingPayment &&
+      !isUpdatingExistingPayment &&
+      !isLinkedContinuation
+    ) {
       alert(
         `DOUBLON DÉTECTÉ - Paiement refusé\n\n` +
           `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ce locataire (${existingPayment.periode}).\n\n` +
@@ -1270,33 +1416,82 @@ export default function App() {
 
     const enrichedPayment: Payment = {
       ...newPayment,
+      montantVersement:
+        newPayment.montantVersement ?? newPayment.montantPaye,
       createdById: newPayment.createdById || currentUser?.id,
       createdByNom:
         newPayment.createdByNom ||
         (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: newPayment.createdByRole || currentUser?.role,
     };
+    const chargesToLink =
+      currentUser?.role === "LOCATAIRE"
+        ? []
+        : tenantCharges.filter(
+            (charge) =>
+              charge.locataireId === enrichedPayment.locataireId &&
+              charge.periode.trim().toLocaleLowerCase("fr-FR") ===
+                enrichedPayment.periode.trim().toLocaleLowerCase("fr-FR") &&
+              charge.statut !== "Payé" &&
+              charge.statut !== "Payé" &&
+              charge.statut !== "Annulé",
+          );
+    let persistedPayment = enrichedPayment;
     if (currentUser?.agencyId) {
       const result = await savePaymentToDbWithLog(
         enrichedPayment,
         currentUser.agencyId,
         currentUser.id,
+        chargesToLink.map((charge) => charge.id),
       );
       if (!result.success) {
         alert(result.error || "Le paiement n'a pas pu être enregistré.");
         return false;
       }
+      if (result.data) {
+        persistedPayment = {
+          ...enrichedPayment,
+          statut: result.data.statut || enrichedPayment.statut,
+          montantRestant:
+            result.data.montantRestant ?? enrichedPayment.montantRestant,
+          montantVersement:
+            result.data.montantVersement ?? enrichedPayment.montantVersement,
+        };
+      }
     }
     setPayments((prev) => {
-      const exists = prev.some((payment) => payment.id === enrichedPayment.id);
+      const exists = prev.some((payment) => payment.id === persistedPayment.id);
       const next = exists
         ? prev.map((payment) =>
-            payment.id === enrichedPayment.id ? enrichedPayment : payment,
+            payment.id === persistedPayment.id ? persistedPayment : payment,
           )
-        : [enrichedPayment, ...prev];
+        : [persistedPayment, ...prev];
       persistCollection("payments", next);
       return next;
     });
+
+    const chargeStatus =
+      persistedPayment.statut === "Payé"
+        ? "Payé"
+        : persistedPayment.statut === "En attente"
+          ? "En attente"
+          : "Partiel";
+    if (chargesToLink.length > 0) {
+      const chargeIds = new Set(chargesToLink.map((charge) => charge.id));
+      setTenantCharges((previous) => {
+        const next = previous.map((charge) =>
+          chargeIds.has(charge.id)
+            ? {
+                ...charge,
+                paymentId: charge.paymentId || persistedPayment.id,
+                statut: chargeStatus,
+              }
+            : charge,
+        );
+        persistCollection("tenant_charges", next);
+        return next;
+      });
+    }
 
     if (
       newPayment.modePaiement === "Espèces" ||
@@ -1414,22 +1609,14 @@ export default function App() {
     payment: Partial<Payment>,
   ): Payment["statut"] => {
     const paid = Number(payment.montantPaye ?? 0);
-    const totalFromBreakdown =
-      (payment.loyerBase ?? 0) +
-      (payment.charges ?? 0) +
-      (payment.penalites ?? 0) +
-      (payment.tva ?? 0) +
-      (payment.tom ?? 0);
-    const total = Number(
-      payment.montantTotal ??
-        (totalFromBreakdown > 0 ? totalFromBreakdown : paid),
-    );
 
     if (payment.verificationStatut === "en_attente") return "En attente";
     if (payment.verificationStatut === "rejete") return "Impayé";
-    if (total > 0 && paid >= total) return "Payé";
-    if (paid > 0) return "Partiel";
-    if (payment.statut === "Impayé") return "Impayé";
+    const remaining = Number.isFinite(Number(payment.montantRestant))
+      ? Number(payment.montantRestant)
+      : Math.max(0, Number(payment.montantTotal ?? 0) - paid);
+    if (remaining > 0) return paid > 0 ? "Partiel" : "Impayé";
+    if (paid > 0 && Number(payment.montantTotal ?? 0) > 0) return "Payé";
     return "Impayé";
   };
 
@@ -1502,46 +1689,112 @@ export default function App() {
     return saved;
   };
 
-  const handleValidatePendingPayment = (paymentId: string) => {
+  const handleValidatePendingPayment = async (paymentId: string) => {
+    const pendingPayment = payments.find((payment) => payment.id === paymentId);
+    if (!pendingPayment) return;
+    let validatedPayment = {
+      ...pendingPayment,
+      verificationStatut: "valide" as const,
+      statut: resolvePaymentStatus({
+        ...pendingPayment,
+        verificationStatut: "valide",
+      }),
+    };
+    if (currentUser?.agencyId) {
+      const result = await validatePendingPaymentInDb(
+        paymentId,
+        currentUser.agencyId,
+        currentUser.id,
+      );
+      if (!result.success) {
+        alert(result.error || "La validation du paiement a échoué.");
+        return;
+      }
+      if (result.data) validatedPayment = { ...validatedPayment, ...result.data };
+    }
     setPayments((prev) => {
       const next = prev.map((p) => {
         if (p.id !== paymentId) return p;
-
-        const finalStatus = resolvePaymentStatus({
-          ...p,
-          verificationStatut: "valide",
-          montantPaye: Number(p.montantPaye ?? 0),
-          montantTotal: Number(p.montantTotal ?? p.montantPaye ?? 0),
-        });
-
         return {
           ...p,
           verificationStatut: "valide" as const,
-          statut: finalStatus,
+          statut: validatedPayment.statut,
           dateValidation: new Date().toISOString().split("T")[0],
           valideParId: currentUser?.id,
           valideParNom: currentUser
             ? `${currentUser.prenom} ${currentUser.nom}`
             : "Système",
-          montantRestant: Math.max(
-            0,
-            Number(p.montantTotal ?? p.montantPaye ?? 0) -
-              Number(p.montantPaye ?? 0),
-          ),
+          montantRestant: Math.max(0, Number(validatedPayment.montantRestant ?? 0)),
+          montantVersement:
+            validatedPayment.montantVersement ??
+            Number(p.montantVersement ?? p.montantPaye ?? 0),
         };
       });
       persistCollection("payments", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      validatePendingPaymentInDb(
-        paymentId,
-        currentUser.agencyId,
-        currentUser.id,
-      ).catch(console.warn);
+    const chargePaymentId =
+      pendingPayment.parentPaymentId || pendingPayment.id;
+    const linkedCharges = tenantCharges.filter(
+      (charge) =>
+        (charge.paymentId === paymentId ||
+          charge.paymentId === chargePaymentId ||
+          (!charge.paymentId &&
+            charge.locataireId === pendingPayment.locataireId &&
+            charge.periode.trim().toLocaleLowerCase("fr-FR") ===
+              pendingPayment.periode.trim().toLocaleLowerCase("fr-FR"))) &&
+        charge.statut !== "Annulé",
+    );
+    if (linkedCharges.length > 0) {
+      const chargeIds = new Set(linkedCharges.map((charge) => charge.id));
+      setTenantCharges((previous) => {
+        const next = previous.map((charge) =>
+          chargeIds.has(charge.id)
+            ? {
+                ...charge,
+                paymentId: charge.paymentId || paymentId,
+                  statut:
+                    validatedPayment.statut === "Payé"
+                      ? "Payé"
+                      : validatedPayment.statut === "Partiel"
+                        ? "Partiel"
+                        : "En attente",
+                }
+            : charge,
+        );
+        persistCollection("tenant_charges", next);
+        return next;
+      });
+    }
   };
 
-  const handleRejectPendingPayment = (paymentId: string, reason: string) => {
+  const handleRejectPendingPayment = async (
+    paymentId: string,
+    reason: string,
+  ) => {
+    if (currentUser?.agencyId) {
+      const result = await rejectPendingPaymentInDb(
+        paymentId,
+        currentUser.agencyId,
+        reason,
+      );
+      if (!result.success) {
+        alert(result.error || "Le rejet du paiement a échoué.");
+        return;
+      }
+    }
+
+    setTenantCharges((previous) => {
+      const next = previous.map((charge) =>
+        charge.paymentId === paymentId &&
+        charge.statut !== "Payé" &&
+        charge.statut !== "Annulé"
+          ? { ...charge, statut: "En attente", paymentId: undefined }
+          : charge,
+      );
+      persistCollection("tenant_charges", next);
+      return next;
+    });
     setPayments((prev) => {
       const next = prev.map((p) =>
         p.id === paymentId
@@ -1550,17 +1803,15 @@ export default function App() {
               verificationStatut: "rejete" as const,
               statut: "Impayé" as const,
               motifRejet: reason,
-              montantRestant: Number(p.montantTotal ?? p.montantPaye ?? 0),
+              montantRestant: Number(
+                p.montantVersement ?? p.montantPaye ?? 0,
+              ),
             }
           : p,
       );
       persistCollection("payments", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      rejectPendingPaymentInDb(paymentId, currentUser.agencyId, reason).catch(
-        console.warn,
-      );
   };
 
   const handleAddCashMovement = (mov: CashMovement) => {
@@ -1852,6 +2103,31 @@ export default function App() {
         });
       }
     }
+  };
+
+  const handleUpdateTenant = async (updatedTenant: Tenant): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible de modifier le locataire : agence non identifiée.");
+      return false;
+    }
+
+    const result = await saveTenantToDb(updatedTenant, currentUser.agencyId);
+    if (!result.success) {
+      alert(
+        `Impossible de modifier le locataire : ${result.error || "erreur inconnue."}`,
+      );
+      return false;
+    }
+
+    const savedTenant = result.data || updatedTenant;
+    setTenants((previous) => {
+      const next = previous.map((tenant) =>
+        tenant.id === savedTenant.id ? savedTenant : tenant,
+      );
+      persistCollection("tenants", next);
+      return next;
+    });
+    return true;
   };
 
   const handleCompleteNewTenantWizard = async (data: {
@@ -2923,6 +3199,9 @@ export default function App() {
                 tenants={scopedTenants}
                 properties={scopedProperties}
                 owners={owners}
+                tenantCharges={tenantCharges.filter((charge) =>
+                  scopedTenants.some((tenant) => tenant.id === charge.locataireId),
+                )}
                 currentUser={currentUser || undefined}
                 settings={agencySettings}
                 onAddPayment={handleAddPayment}
@@ -2931,6 +3210,7 @@ export default function App() {
                 setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
                 initialTenantForPayment={initialTenantForPayment}
                 onValidatePendingPayment={handleValidatePendingPayment}
+                onOpenTenantCharges={handleOpenTenantCharges}
               />
             </ViewLoader>
           )}
@@ -3009,9 +3289,14 @@ export default function App() {
                   selectedPeriod={selectedPeriod}
                   settings={agencySettings}
                   currentUser={currentUser}
+                  tenantCharges={tenantCharges.filter((charge) =>
+                    scopedTenants.some((tenant) => tenant.id === charge.locataireId),
+                  )}
                   onOpenQuickReminder={handleOpenQuickComms}
                   onOpenNewPayment={handleOpenNewPaymentForTenant}
                   onAddTenant={handleAddTenant}
+                  onUpdateTenant={handleUpdateTenant}
+                  onOpenTenantCharges={handleOpenTenantCharges}
                   onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
                   onAddPayment={handleAddPayment}
                   onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
@@ -3269,6 +3554,28 @@ export default function App() {
             </ViewLoader>
           );
         })()}
+
+      {isTenantChargesModalOpen && (
+        <ViewLoader variant="form">
+          <LazyTenantChargesModal
+            isOpen={isTenantChargesModalOpen}
+            onClose={() => {
+              setIsTenantChargesModalOpen(false);
+              setInitialTenantForCharges(null);
+            }}
+            tenants={scopedTenants}
+            properties={scopedProperties}
+            tenantCharges={tenantCharges.filter((charge) =>
+              scopedTenants.some((tenant) => tenant.id === charge.locataireId),
+            )}
+            currentUser={currentUser || undefined}
+            initialTenant={initialTenantForCharges}
+            onAddCharge={handleAddTenantCharge}
+            onUpdateCharge={handleUpdateTenantCharge}
+            onDeleteCharge={handleDeleteTenantCharge}
+          />
+        </ViewLoader>
+      )}
 
       {isNewTenantWizardOpen && (
         <ViewLoader variant="form">

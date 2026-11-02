@@ -196,7 +196,11 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
   const locataireNom = (
     contract.locataireNom || (tenant ? `${tenant.prenom} ${tenant.nom}` : "—")
   ).toUpperCase();
+  const locatairePieceType = tenant?.typePiece || "CNI";
   const locataireCNI = tenant?.cni || "—";
+  const locataireDateDelivrance = tenant?.dateDelivrancePiece
+    ? formatDate(tenant.dateDelivrancePiece)
+    : "";
   const locataireTel = tenant?.telephone || "—";
 
   const bienType =
@@ -276,8 +280,11 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <strong>D'une part, Et</strong>
               </div>
               <div>
-                Mr / Mme <strong>{locataireNom}</strong> CNI N°{" "}
+                Mr / Mme <strong>{locataireNom}</strong> {locatairePieceType} N°{" "}
                 <strong>{locataireCNI}</strong>
+                {locataireDateDelivrance && (
+                  <> délivrée le <strong>{locataireDateDelivrance}</strong></>
+                )}
               </div>
               <div>
                 <strong>D'autre part, il a été convenu ce qui suit :</strong>

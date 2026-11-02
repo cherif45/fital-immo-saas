@@ -82,6 +82,7 @@ export function NewTenantWizardModal({
   const [email, setEmail] = useState('');
   const [typePiece, setTypePiece] = useState<string>('CNI');
   const [cni, setCni] = useState('');
+  const [dateDelivrancePiece, setDateDelivrancePiece] = useState('');
   const [profession, setProfession] = useState('');
   const [employeur, setEmployeur] = useState('');
   const [revenuMensuel, setRevenuMensuel] = useState(600000);
@@ -202,6 +203,7 @@ export function NewTenantWizardModal({
       email,
       cni,
       typePiece,
+      dateDelivrancePiece: dateDelivrancePiece || undefined,
       fonction: profession,
       profession,
       employeur,
@@ -393,6 +395,10 @@ export function NewTenantWizardModal({
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">N° de la Pièce</label>
                   <input type="text" value={cni} onChange={(e) => setCni(e.target.value)} placeholder={typePiece === 'CNI' ? '1 254 1990 00214' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs text-[#A0AEC0] mb-1">Date de délivrance pièce</label>
+                  <input type="date" value={dateDelivrancePiece} onChange={(e) => setDateDelivrancePiece(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Profession</label>
@@ -644,6 +650,9 @@ export function NewTenantWizardModal({
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">Téléphone :</span><span className="font-mono">{telephone}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">Type pièce :</span><span className="font-mono">{typePiece}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">N° pièce :</span><span className="font-mono">{cni || '—'}</span></div>
+                {dateDelivrancePiece && (
+                  <div className="flex justify-between"><span className="text-[#A0AEC0]">Délivrée le :</span><span className="font-mono">{dateDelivrancePiece}</span></div>
+                )}
                 <hr className="border-[#2A3447] my-2" />
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">Bien :</span><span className="font-bold text-[#C9A96E]">{selectedBien?.nom}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">Ref contrat :</span><span className="font-mono">{refLocatif}</span></div>

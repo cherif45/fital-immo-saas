@@ -14,6 +14,8 @@ import {
   Building,
   Printer,
   Sparkles,
+  Zap,
+  Droplets,
   PhoneCall,
   Send,
   MessageSquare,
@@ -29,6 +31,7 @@ import {
   UserAccount,
   AgencySettings,
   ReceiptType,
+  TenantCharge,
 } from "../types";
 import {
   formatCurrency,
@@ -54,6 +57,7 @@ interface PaymentsViewProps {
   tenants: Tenant[];
   properties: Property[];
   owners: Owner[];
+  tenantCharges?: TenantCharge[];
   currentUser?: UserAccount;
   settings?: AgencySettings;
   onAddPayment: (payment: Payment) => Promise<boolean>;
@@ -62,6 +66,7 @@ interface PaymentsViewProps {
   setIsNewPaymentModalOpen: (open: boolean) => void;
   initialTenantForPayment?: Tenant | null;
   onValidatePendingPayment?: (paymentId: string) => void;
+  onOpenTenantCharges?: (tenant?: Tenant) => void;
 }
 
 export const PaymentsView: React.FC<PaymentsViewProps> = ({
@@ -69,6 +74,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   tenants,
   properties,
   owners,
+  tenantCharges = [],
   currentUser,
   settings,
   onAddPayment,
@@ -77,6 +83,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   setIsNewPaymentModalOpen,
   initialTenantForPayment,
   onValidatePendingPayment,
+  onOpenTenantCharges,
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "Payé" | "Impayé">(
@@ -125,11 +132,17 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         : r.locataire_nom || "—",
       bienNom: r.bien_nom_calc || r.bien_nom || "—",
       montantPaye: Number(r.montant_paye) || 0,
+      montantVersement:
+        r.montant_versement == null
+          ? undefined
+          : Number(r.montant_versement),
       montantTotal: Number(r.montant_total) || 0,
       montantRestant: Number(r.montant_restant) || 0,
       modePaiement: r.mode_paiement || "Espèces",
       datePaiement: r.date_paiement || r.created_at,
       statut: r.statut || "Payé",
+      verificationStatut:
+        r.verification_statut || r.verificationStatut,
       periode: r.periode || "",
       loyerBase: Number(r.loyer_base) || 0,
       // Champs supplémentaires pour cohérence
@@ -137,6 +150,12 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       bienId: r.bien_id,
       quittanceNumero: r.quittance_numero || r.numero_quittance,
       moyenPaiementCode: r.moyen_paiement_code,
+      montantInitialDu: Number(
+        r.montant_initial_du ?? r.montantInitialDu ?? 0,
+      ),
+      parentPaymentId: r.parent_payment_id || r.parentPaymentId,
+      referencePaiementInitial:
+        r.reference_paiement_initial || r.referencePaiementInitial,
       montant: Number(r.montant_paye) || 0,
     }));
     if (page === 0) {
@@ -211,6 +230,59 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     role === "LOCATAIRE";
   const canSeeOthers = !isLocataire;
   // ============================================================
+  // 🆕 DÉTECTION DES CHARGES VARIABLES (EAU, ÉLEC, NETTOYAGE)
+  // ============================================================
+  const itemizedCharges = useMemo(() => {
+    if (!selectedTenantId || !periode) {
+      return {
+        eau: 0,
+        electricite: 0,
+        nettoyage: 0,
+        total: 0,
+        count: 0,
+        items: [],
+        allItems: [],
+      };
+    }
+    const normPeriode = (periode || "").trim().toLowerCase();
+    const allItems = (tenantCharges || []).filter(
+      (c) =>
+        c.locataireId === selectedTenantId &&
+        (c.periode || "").trim().toLowerCase() === normPeriode &&
+        c.statut !== "Annulé",
+    );
+    const items = allItems.filter((charge) => charge.statut !== "Payé");
+    const eau = items
+      .filter((c) => c.categorie === "Eau")
+      .reduce((sum, c) => sum + Number(c.montant || 0), 0);
+    const electricite = items
+      .filter((c) => c.categorie === "Électricité")
+      .reduce((sum, c) => sum + Number(c.montant || 0), 0);
+    const nettoyage = items
+      .filter((c) => c.categorie === "Nettoyage")
+      .reduce((sum, c) => sum + Number(c.montant || 0), 0);
+    const total = eau + electricite + nettoyage;
+    return {
+      eau,
+      electricite,
+      nettoyage,
+      total,
+      count: items.length,
+      items,
+      allItems,
+    };
+  }, [selectedTenantId, periode, tenantCharges]);
+
+  const effectiveCharges = charges + itemizedCharges.total;
+  const totalCalculated =
+    (tenants.find((tenant) => tenant.id === selectedTenantId)?.loyerMensuel ||
+      0) +
+    effectiveCharges +
+    tva +
+    tom +
+    penalites;
+
+  // ============================================================
   // 🆕 DÉTECTION AUTOMATIQUE DU CONTEXTE DE PAIEMENT
   // ============================================================
   const paymentContext = useMemo(() => {
@@ -230,29 +302,81 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           p.statut === "En attente"),
     );
 
-    // 2. Cumul payé (exclure "En attente" du cumul)
-    const alreadyPaid = existing
-      .filter((p) => p.verificationStatut !== "en_attente")
-      .reduce((sum, p) => sum + Number(p.montantPaye || 0), 0);
+    // Les anciennes lignes de solde stockaient un cumul; les nouvelles stockent
+    // le versement reçu. Garder les deux formats lisibles sans compter deux fois.
+    const paymentsById = new Map(existing.map((payment) => [payment.id, payment]));
+    const paidByRoot = new Map<
+      string,
+      { legacyCumulative: number; newInstallments: number }
+    >();
+    existing
+      .filter(
+        (payment) =>
+          payment.statut !== "En attente" &&
+          payment.verificationStatut !== "en_attente",
+      )
+      .forEach((payment) => {
+        let rootPayment = payment;
+        const visitedIds = new Set([payment.id]);
+        while (
+          rootPayment.parentPaymentId &&
+          paymentsById.has(rootPayment.parentPaymentId) &&
+          !visitedIds.has(rootPayment.parentPaymentId)
+        ) {
+          visitedIds.add(rootPayment.parentPaymentId);
+          const nextParent = paymentsById.get(rootPayment.parentPaymentId);
+          if (!nextParent) break;
+          rootPayment = nextParent;
+        }
 
-    // 3. Total dû (courant + charges + tva + tom + pénalités)
+        const group = paidByRoot.get(rootPayment.id) || {
+          legacyCumulative: 0,
+          newInstallments: 0,
+        };
+        if (Number.isFinite(payment.montantVersement)) {
+          group.newInstallments += Math.max(0, payment.montantVersement || 0);
+        } else {
+          group.legacyCumulative = Math.max(
+            group.legacyCumulative,
+            Number(payment.montantPaye || 0),
+          );
+        }
+        paidByRoot.set(rootPayment.id, group);
+      });
+    const alreadyPaid = Array.from(paidByRoot.values()).reduce(
+      (sum, group) => sum + group.legacyCumulative + group.newInstallments,
+      0,
+    );
+
+    // 3. Total dû (loyer contractuel + charges variables + taxes + pénalités)
+    const contractRent =
+      tenants.find((t) => t.id === selectedTenantId)?.loyerMensuel || 0;
+    // RÈGLE ANTI-DOUBLE COMPTAGE : si un acompte/paiement initial existe déjà pour cette période,
+    // son montantTotal initialement calculé fait foi. Les charges créées depuis
+    // sont ajoutées seulement si elles ne sont pas déjà rattachées à ce paiement.
+    const parent =
+      existing.find((payment) => !payment.parentPaymentId) ||
+      existing.slice().sort((a, b) =>
+        (a.datePaiement || "").localeCompare(b.datePaiement || ""),
+      )[0] ||
+      null;
+    const initialTotalDue =
+      parent?.montantTotal
+        ? Number(parent.montantInitialDu || parent.montantTotal)
+        : contractRent + effectiveCharges + tva + tom + penalites;
+    const additionalCharges = itemizedCharges.allItems
+      .filter(
+        (charge) =>
+          !charge.paymentId || charge.paymentId !== parent?.id,
+      )
+      .reduce((sum, charge) => sum + Number(charge.montant || 0), 0);
     const totalDue =
-      (tenants.find((t) => t.id === selectedTenantId)?.loyerMensuel || 0) +
-      charges +
-      tva +
-      tom +
-      penalites;
+      existing.length > 0
+        ? initialTotalDue + additionalCharges
+        : initialTotalDue;
 
     // 4. Reste à payer
     const remaining = Math.max(0, totalDue - alreadyPaid);
-
-    // 5. Parent = le plus ancien paiement
-    const parent =
-      existing.length > 0
-        ? existing.sort((a, b) =>
-            (a.datePaiement || "").localeCompare(b.datePaiement || ""),
-          )[0]
-        : null;
 
     return {
       hasExisting: existing.length > 0,
@@ -269,6 +393,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     periode,
     allKnownPayments,
     charges,
+    itemizedCharges.total,
+    itemizedCharges.allItems,
     tva,
     tom,
     penalites,
@@ -277,11 +403,17 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   // 🆕 Auto-remplir le montant avec le RESTE À PAYER si un acompte existe
   React.useEffect(() => {
     if (!paymentContext || !paymentContext.hasExisting) return;
-    if (settlingPayment) return;
     if (paymentContext.remaining > 0) {
       setMontantPaye(paymentContext.remaining);
     }
-  }, [paymentContext, settlingPayment]);
+  }, [paymentContext]);
+
+  React.useEffect(() => {
+    if (!selectedTenantId || settlingPayment || paymentContext?.hasExisting) {
+      return;
+    }
+    setMontantPaye(totalCalculated);
+  }, [selectedTenantId, settlingPayment, paymentContext, totalCalculated]);
 
   // Auto-remplir le formulaire quand on change de locataire
   React.useEffect(() => {
@@ -297,11 +429,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           base +
           (p?.charges || 0) +
           (t.joursRetard > 10 ? Math.round(base * 0.1) : 0);
-        setMontantPaye(fullAmount);
+        if (!paymentContext?.hasExisting) {
+          setMontantPaye(fullAmount);
+        }
         // Le paymentContext calculera le "reste à payer" via un useEffect dédié
       }
     }
-  }, [selectedTenantId]);
+  }, [selectedTenantId, paymentContext?.hasExisting]);
 
   React.useEffect(() => {
     if (isLocataire && isNewPaymentModalOpen) {
@@ -398,7 +532,14 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         periode,
       );
 
-      if (dejaPaye) {
+      const hasAdditionalCharges = itemizedCharges.allItems.some(
+        (charge) =>
+          (!charge.paymentId ||
+            charge.paymentId !== paymentContext?.parentId) &&
+          charge.statut !== "Payé" &&
+          charge.statut !== "Annulé",
+      );
+      if (dejaPaye && !hasAdditionalCharges) {
         const isPending =
           dejaPaye.statut === "En attente" ||
           dejaPaye.verificationStatut === "en_attente";
@@ -428,9 +569,6 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       (owner) => owner.id === (p?.proprietaireId || t.proprietaireId),
     );
 
-    const totalCalculated =
-      (t.loyerMensuel || 0) + charges + tva + tom + penalites;
-
     // ⬇️ Récupérer le paiement initial si lié
     const initialPayment = referencePaiementInitial
       ? payments.find((pay) => pay.ref === referencePaiementInitial)
@@ -458,10 +596,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
     if (settlingPayment) {
       // 🎯 BUGS 4, 22, 27 : Règlement du solde d'un acompte partiel existant
-      const priorPaid = Number(settlingPayment.montantPaye || 0);
+      const priorPaid =
+        paymentContext?.alreadyPaid ??
+        Number(settlingPayment.montantPaye || 0);
       const newCumulativePaid = priorPaid + Number(montantPaye);
       const targetTotal = Number(
-        settlingPayment.montantTotal ||
+        paymentContext?.totalDue ||
+          settlingPayment.montantTotal ||
           priorPaid + (settlingPayment.montantRestant || 0),
       );
       const newMontantRestant = Math.max(0, targetTotal - newCumulativePaid);
@@ -475,8 +616,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           settings?.prefixQuittance,
           "QUI-",
         ), // 🆕 Nouvelle quittance
-        montantPaye: newCumulativePaid,
+        montantPaye: Number(montantPaye),
+        montantVersement: Number(montantPaye),
         montantRestant: newMontantRestant,
+        montantTotal: targetTotal,
         statut: isFull ? "Payé" : "Partiel",
         typeRecu: isFull ? "QUITTANCE_SOLDE" : "RECU_ACOMPTE",
         datePaiement,
@@ -487,10 +630,27 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           `Solde loyer ${settlingPayment.periode} réglé (Acompte: ${settlingPayment.ref})`,
         referencePaiementInitial: settlingPayment.ref,
         montantInitialDu: targetTotal,
-        parentPaymentId: settlingPayment.id, // 🆕 Lien vers l'acompte
+        parentPaymentId:
+          paymentContext?.parentId ||
+          settlingPayment.parentPaymentId ||
+          settlingPayment.id,
+        charges: effectiveCharges,
+        chargesEau: itemizedCharges.eau,
+        chargesElectricite: itemizedCharges.electricite,
+        chargesNettoyage: itemizedCharges.nettoyage,
+        loyerBase: t.loyerMensuel || 0,
+        tva,
+        tom,
+        penalites,
       };
     } else {
-      const isFull = Number(montantPaye) >= totalCalculated;
+      const amountDue = paymentContext?.hasExisting
+        ? paymentContext.remaining
+        : totalCalculated;
+      const paymentTotalDue = paymentContext?.hasExisting
+        ? paymentContext.totalDue
+        : totalCalculated;
+      const isFull = Number(montantPaye) >= amountDue;
       const autoTypeRecu =
         referencePaiementInitial && isFull
           ? "QUITTANCE_SOLDE"
@@ -515,14 +675,20 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         proprietaireNom: o ? `${o.prenom} ${o.nom}` : "Propriétaire",
         periode,
         loyerBase: t.loyerMensuel || 0,
-        charges,
+        charges: effectiveCharges,
+        chargesEau: itemizedCharges.total > 0 ? itemizedCharges.eau : 0,
+        chargesElectricite:
+          itemizedCharges.total > 0 ? itemizedCharges.electricite : 0,
+        chargesNettoyage:
+          itemizedCharges.total > 0 ? itemizedCharges.nettoyage : 0,
         tva,
         tom,
         penalites,
         indemnitesOccupation: 0,
-        montantTotal: totalCalculated,
+        montantTotal: paymentTotalDue,
         montantPaye: Number(montantPaye),
-        montantRestant: Math.max(0, totalCalculated - Number(montantPaye)),
+        montantVersement: Number(montantPaye),
+        montantRestant: Math.max(0, amountDue - Number(montantPaye)),
         statut: isMobileMoney ? "En attente" : isFull ? "Payé" : "Partiel",
         modePaiement,
         moyenPaiementCode: moyenCode,
@@ -535,7 +701,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         observation,
         typeRecu,
         referencePaiementInitial: referencePaiementInitial || undefined,
-        montantInitialDu: initialPayment?.montantTotal || totalCalculated,
+        montantInitialDu: paymentTotalDue || initialPayment?.montantTotal || totalCalculated,
         parentPaymentId:
           settlingPayment?.id || paymentContext?.parentId || undefined,
       };
@@ -818,18 +984,34 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                       <td className="py-3 px-3 text-[#A8B4C4] max-w-[200px] truncate">
                         {p.bienNom}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-bold">
-                        <span
-                          className={
+                      <td className="py-3 px-3 text-right">
+                        <div
+                          className={`font-mono font-bold ${
                             isPaid
                               ? "text-[#C9A96E]"
                               : isAcompte
                                 ? "text-blue-400"
                                 : "text-rose-400"
-                          }
+                          }`}
                         >
                           {formatCurrency(p.montantPaye)}
-                        </span>
+                        </div>
+                        <div className="text-[10px] text-[#A8B4C4] font-mono leading-tight">
+                          {(p.charges || 0) > 0 ||
+                          (p.chargesEau || 0) > 0 ||
+                          (p.chargesElectricite || 0) > 0 ||
+                          (p.chargesNettoyage || 0) > 0 ? (
+                            <span
+                              title={`Loyer: ${formatNumber(p.loyerBase)} F | Eau: ${formatNumber(p.chargesEau || 0)} F | Élec: ${formatNumber(p.chargesElectricite || 0)} F | Nett: ${formatNumber(p.chargesNettoyage || 0)} F`}
+                              className="text-[#E8D5B0]"
+                            >
+                              Loyer {formatNumber(p.loyerBase)} + Chg{" "}
+                              {formatNumber(p.charges || 0)}
+                            </span>
+                          ) : (
+                            <span>Loyer {formatNumber(p.loyerBase)} F</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <span
@@ -1164,39 +1346,139 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#1E2E45]/40 border border-[#C9A96E]/15">
-                <div>
-                  <label className="block text-[10px] text-[#6B7C94] uppercase">
-                    Charges
-                  </label>
-                  <input
-                    type="number"
-                    value={charges || 0}
-                    onChange={(e) => setCharges(Number(e.target.value))}
-                    className="w-full p-1.5 rounded-lg bg-[#0F1B2D] border border-[#C9A96E]/20 text-white text-xs font-mono"
-                  />
+              {/* 🆕 DÉCOMPOSITION DU MONTANT DÛ (LOYER + EAU + ÉLEC + NETTOYAGE) */}
+              <div className="p-3.5 rounded-2xl bg-[#0F1B2D]/80 border border-[#C9A96E]/25 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#E8D5B0] uppercase">
+                    <DollarSign className="w-3.5 h-3.5 text-[#C9A96E]" />
+                    <span>Décomposition du Loyer & Charges ({periode || "Période"})</span>
+                  </div>
+                  {onOpenTenantCharges && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const t = tenants.find((item) => item.id === selectedTenantId);
+                        setIsNewPaymentModalOpen(false);
+                        onOpenTenantCharges(t || undefined);
+                      }}
+                      className="text-[10px] text-[#C9A96E] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Zap className="w-3 h-3" />
+                      <span>Gérer les charges</span>
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[10px] text-[#6B7C94] uppercase">
-                    Pénalités
-                  </label>
-                  <input
-                    type="number"
-                    value={penalites || 0}
-                    onChange={(e) => setPenalites(Number(e.target.value))}
-                    className="w-full p-1.5 rounded-lg bg-[#0F1B2D] border border-rose-500/30 text-rose-300 text-xs font-mono"
-                  />
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  {/* Loyer de base (fixe contractuel) */}
+                  <div className="p-2 rounded-xl bg-[#162133] border border-[#2A3F5C]">
+                    <div className="text-[10px] text-[#A8B4C4]">Loyer contractuel</div>
+                    <div className="font-mono font-bold text-white text-xs">
+                      {formatNumber(
+                        tenants.find((item) => item.id === selectedTenantId)
+                          ?.loyerMensuel || 0,
+                      )}{" "}
+                      F
+                    </div>
+                  </div>
+
+                  {/* Eau */}
+                  <div className="p-2 rounded-xl bg-[#162133] border border-sky-500/20">
+                    <div className="text-[10px] text-sky-400 flex items-center gap-1">
+                      <Droplets className="w-3 h-3" /> Eau
+                    </div>
+                    <div className="font-mono font-bold text-white text-xs">
+                      {formatNumber(
+                        itemizedCharges.total > 0 ? itemizedCharges.eau : 0,
+                      )}{" "}
+                      F
+                    </div>
+                  </div>
+
+                  {/* Électricité */}
+                  <div className="p-2 rounded-xl bg-[#162133] border border-amber-500/20">
+                    <div className="text-[10px] text-amber-400 flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Électricité
+                    </div>
+                    <div className="font-mono font-bold text-white text-xs">
+                      {formatNumber(
+                        itemizedCharges.total > 0
+                          ? itemizedCharges.electricite
+                          : 0,
+                      )}{" "}
+                      F
+                    </div>
+                  </div>
+
+                  {/* Nettoyage */}
+                  <div className="p-2 rounded-xl bg-[#162133] border border-emerald-500/20">
+                    <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Nettoyage
+                    </div>
+                    <div className="font-mono font-bold text-white text-xs">
+                      {formatNumber(
+                        itemizedCharges.total > 0
+                          ? itemizedCharges.nettoyage
+                          : 0,
+                      )}{" "}
+                      F
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] text-[#6B7C94] uppercase">
-                    Taxes (TVA/TOM)
-                  </label>
-                  <input
-                    type="number"
-                    value={tva + tom || 0}
-                    onChange={(e) => setTva(Number(e.target.value))}
-                    className="w-full p-1.5 rounded-lg bg-[#0F1B2D] border border-[#C9A96E]/20 text-white text-xs font-mono"
-                  />
+
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#C9A96E]/15">
+                  <div>
+                    <label className="block text-[10px] text-[#6B7C94] uppercase">
+                      Total Charges
+                    </label>
+                    <input
+                      type="number"
+                      value={effectiveCharges}
+                      onChange={(e) =>
+                        setCharges(
+                          Math.max(
+                            0,
+                            Number(e.target.value) - itemizedCharges.total,
+                          ),
+                        )
+                      }
+                      className="w-full p-1.5 rounded-lg bg-[#162133] border border-[#C9A96E]/20 text-white text-xs font-mono disabled:opacity-75"
+                    />
+                    {itemizedCharges.total > 0 && (
+                      <span className="text-[9px] text-[#C9A96E]">
+                        Dont {formatNumber(itemizedCharges.total)} F de charges variables
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#6B7C94] uppercase">
+                      Pénalités
+                    </label>
+                    <input
+                      type="number"
+                      value={penalites || 0}
+                      onChange={(e) => setPenalites(Number(e.target.value))}
+                      className="w-full p-1.5 rounded-lg bg-[#162133] border border-rose-500/30 text-rose-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#6B7C94] uppercase">
+                      Taxes (TVA/TOM)
+                    </label>
+                    <input
+                      type="number"
+                      value={tva + tom || 0}
+                      onChange={(e) => setTva(Number(e.target.value))}
+                      className="w-full p-1.5 rounded-lg bg-[#162133] border border-[#C9A96E]/20 text-white text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 px-1 text-xs">
+                  <span className="text-[#A8B4C4] font-medium">Total dû calculé :</span>
+                  <span className="text-sm font-black font-mono text-[#E8D5B0]">
+                    {formatNumber(paymentContext?.totalDue ?? totalCalculated)} FCFA
+                  </span>
                 </div>
               </div>
 

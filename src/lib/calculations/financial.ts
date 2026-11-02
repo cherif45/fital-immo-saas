@@ -6,6 +6,9 @@
 export interface RentCalculationInput {
   loyerBase: number;
   charges?: number;
+  chargesEau?: number;
+  chargesElectricite?: number;
+  chargesNettoyage?: number;
   taxes?: number;
   penalites?: number;
 }
@@ -13,6 +16,9 @@ export interface RentCalculationInput {
 export interface RentCalculationResult {
   loyerBase: number;
   charges: number;
+  chargesEau: number;
+  chargesElectricite: number;
+  chargesNettoyage: number;
   taxes: number;
   penalites: number;
   totalDu: number;
@@ -20,19 +26,28 @@ export interface RentCalculationResult {
 
 /**
  * Calcul du montant total dû pour une échéance de loyer
- * TOTAL_DU = LOYER + CHARGES + TAXES + PENALITES
+ * TOTAL_DU = LOYER + CHARGES (Eau, Électricité, Nettoyage) + TAXES + PENALITES
  */
 export function calculateRent(input: RentCalculationInput): RentCalculationResult {
   const loyerBase = Math.max(0, Number(input.loyerBase) || 0);
-  const charges = Math.max(0, Number(input.charges) || 0);
+  const chargesEau = Math.max(0, Number(input.chargesEau) || 0);
+  const chargesElectricite = Math.max(0, Number(input.chargesElectricite) || 0);
+  const chargesNettoyage = Math.max(0, Number(input.chargesNettoyage) || 0);
+  const totalItemizedCharges = chargesEau + chargesElectricite + chargesNettoyage;
+  const charges = input.charges !== undefined && input.charges !== null
+    ? Math.max(0, Number(input.charges) || 0)
+    : totalItemizedCharges;
   const taxes = Math.max(0, Number(input.taxes) || 0);
   const penalites = Math.max(0, Number(input.penalites) || 0);
 
-  const totalDu = loyerBase + taxes + penalites;
+  const totalDu = loyerBase + charges + taxes + penalites;
 
   return {
     loyerBase,
     charges,
+    chargesEau,
+    chargesElectricite,
+    chargesNettoyage,
     taxes,
     penalites,
     totalDu,
