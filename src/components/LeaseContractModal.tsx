@@ -276,14 +276,14 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <strong>D'une part, Et</strong>
               </div>
               <div>
-                M. / Mme <strong>{locataireNom}</strong> CNI N°{" "}
+                Mr / Mme <strong>{locataireNom}</strong> CNI N°{" "}
                 <strong>{locataireCNI}</strong>
               </div>
               <div>
                 <strong>D'autre part, il a été convenu ce qui suit :</strong>
               </div>
               <div>
-                M. / Mme <strong>{locataireNom}</strong> accepte un local à usage
+                Mr / Mme <strong>{locataireNom}</strong> accepte un local à usage
                 d'habitation : <strong>{bienType}</strong>
               </div>
               <div>
@@ -316,7 +316,7 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
               <div>
                 <div className="font-bold underline mb-1">Article 2</div>
                 <p>
-                  Le locataire (M. / Mme {locataireNom}) accepte de payer les 12/12ème
+                  Le locataire (Mr / Mme {locataireNom}) accepte de payer les 12/12ème
                   de la caution{" "}
                   <strong>{formatNumber(cautionMontant)} FCFA</strong>. Cette
                   caution n'est pas consommable et est remboursable après avoir
@@ -550,14 +550,14 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <div>
                   <div className="font-bold mb-2">Le Gérant :</div>
                   <div className="font-bold">
-                    M. <span className="underline">{GERANT_NOM}</span>
+                    Mr <span className="underline">{GERANT_NOM}</span>
                   </div>
                   <div className="h-10 border-b border-dotted border-neutral-400 mt-2"></div>
                 </div>
                 <div>
                   <div className="font-bold mb-2">Le Locataire :</div>
                   <div className="font-bold">
-                    M. / Mme <span className="underline">{locataireNom}</span>
+                    Mr / Mme <span className="underline">{locataireNom}</span>
                   </div>
                   <div className="h-10 border-b border-dotted border-neutral-400 mt-2"></div>
                 </div>

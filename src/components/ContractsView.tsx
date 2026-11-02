@@ -304,7 +304,10 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     setBienId(pId);
     const p = properties.find((item) => item.id === pId);
     if (p) {
-      setLb(p.loyerBase || 0);
+      const loyer = Number(p.loyerBase || 0);
+      setLb(loyer);
+      setMontantCaution(loyer);
+      setAvanceLoyer(loyer);
     }
   };
 
@@ -320,10 +323,10 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         year: "numeric",
       }),
     );
-    setMontantCaution(0);
+    setMontantCaution(properties[0]?.loyerBase || 0);
     setAcompteCaution(0);
     setMontantCommission(0);
-    setAvanceLoyer(0);
+    setAvanceLoyer(properties[0]?.loyerBase || 0);
     setLb(properties[0]?.loyerBase || 0);
     setCautionEau(0);
     setCautionElectricite(0);
@@ -341,6 +344,8 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
     const o =
       owners.find((owner) => owner.id === p?.proprietaireId) || owners[0];
 
+    const loyerContractuel = Number(lb || 0);
+
     const contractData: LeaseContract = {
       id: editingContract?.id || crypto.randomUUID(),
       ref: refLocatif,
@@ -357,13 +362,14 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
         d.setFullYear(d.getFullYear() + 1);
         return d.toISOString().split("T")[0];
       })(),
-      loyerBase: lb,
-      avanceLoyer: Number(montantCaution || 0),
+      loyerBase: loyerContractuel,
+      avanceLoyer: loyerContractuel,
       charges: 0, // ⚠️ Supprimé (règle client)
       tva: montantTVA,
       tom: montantTOM,
       tlv: montantTLV,
-      cautionMontant: montantCaution,
+      cautionLoyer: loyerContractuel,
+      cautionMontant: loyerContractuel,
       cautionMois: 1,
       fraisAdhesion: 0,
       statut: "En cours",
@@ -734,7 +740,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     <input
                       type="number"
                       value={lb || ""}
-                      onChange={(e) => setLb(Number(e.target.value))}
+                      onChange={(e) => { const value = Number(e.target.value); setLb(value); setMontantCaution(value); setAvanceLoyer(value); }}
                       required
                       min={0}
                       className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
@@ -744,16 +750,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                       Montant caution
                     </label>
-                    <input
-                      type="number"
-                      value={montantCaution || ""}
-                      onChange={(e) => {
-                        setMontantCaution(Number(e.target.value));
-                        setAvanceLoyer(Number(e.target.value));
-                      }}
-                      min={0}
-                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
-                    />
+                    <input type="number" value={lb || ""} readOnly min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
@@ -789,13 +786,7 @@ export const ContractsView: React.FC<ContractsViewProps> = ({
                     <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
                       Avance Loyer
                     </label>
-                    <input
-                      type="number"
-                      value={avanceLoyer || ""}
-                      onChange={(e) => setAvanceLoyer(Number(e.target.value))}
-                      min={0}
-                      className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
-                    />
+                    <input type="number" value={lb || ""} readOnly min={0} className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">

@@ -116,7 +116,7 @@ export function NewTenantWizardModal({
   // ============================================================
   // ÉTAPE 4 : Cautions & Frais (tous les champs)
   // ============================================================
-  const [montantCaution, setMontantCaution] = useState((selectedBien?.loyerBase || 300000) * 2);
+  const [montantCaution, setMontantCaution] = useState(selectedBien?.loyerBase || 0);
   const [acompteCaution, setAcompteCaution] = useState(0);
   const [montantCommission, setMontantCommission] = useState(0);
   const [avanceLoyer, setAvanceLoyer] = useState((selectedBien?.loyerBase || 300000) * 2);
@@ -153,8 +153,8 @@ export function NewTenantWizardModal({
     if (selectedBien) {
       const baseLoyer = selectedBien.loyerBase || 0;
       setLb(baseLoyer);
-      setMontantCaution(baseLoyer * 2);
-      setAvanceLoyer(baseLoyer * 2);
+      setMontantCaution(baseLoyer);
+      setAvanceLoyer(baseLoyer);
     }
   }, [selectedBienId]);
 
@@ -228,6 +228,8 @@ export function NewTenantWizardModal({
       return d.toISOString().split('T')[0];
     })();
 
+    const loyerContractuel = Number(lb || 0);
+
     const newContract: LeaseContract = {
       id: contractId,
       ref: refLocatif,
@@ -238,13 +240,13 @@ export function NewTenantWizardModal({
       bienNom: selectedBien.nom,
       proprietaireId: selectedBien.proprietaireId,
       proprietaireNom: selectedBien.proprietaireNom || 'Bailleur',
-      loyerBase: lb,
+      loyerBase: loyerContractuel,
       charges: 0,
       tva: tvaManuel,
       tom: tomManuel,
       tlv: tlvManuel,
-      cautionLoyer: montantCaution,
-      cautionMontant: montantCaution,
+      cautionLoyer: loyerContractuel,
+      cautionMontant: loyerContractuel,
       cautionMois: 2,
       fraisAdhesion,
       dateDebut: debutContrat,
@@ -255,10 +257,10 @@ export function NewTenantWizardModal({
       dateContrat,
       debutContrat,
       refPeriode,
-      montantCaution,
+      montantCaution: loyerContractuel,
       acompteCaution,
       montantCommission,
-      avanceLoyer: Number(montantCaution || 0),
+      avanceLoyer: loyerContractuel,
       lb,
       cautionEau,
       cautionElectricite,
@@ -285,7 +287,7 @@ export function NewTenantWizardModal({
       ],
       coutDegradations: 0,
       retenueCaution: 0,
-      montantRestitueCaution: montantCaution,
+      montantRestitueCaution: loyerContractuel,
       statut: 'Validé',
       remarques: `${etatGeneral}. Compteur eau: ${compteurEau}. Élec: ${compteurElec}.`,
     };
@@ -565,7 +567,7 @@ export function NewTenantWizardModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Montant Caution</label>
-                  <input type="number" value={montantCaution} onChange={(e) => { setMontantCaution(Number(e.target.value)); setAvanceLoyer(Number(e.target.value)); }} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <input type="number" value={lb} readOnly min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Acompte Caution</label>
@@ -577,7 +579,7 @@ export function NewTenantWizardModal({
                 </div>
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Avance Loyer</label>
-                  <input type="number" value={avanceLoyer} onChange={(e) => setAvanceLoyer(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <input type="number" value={lb} readOnly min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs text-[#A0AEC0] mb-1">Caution Eau</label>
@@ -648,7 +650,7 @@ export function NewTenantWizardModal({
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">Type règlement :</span><span className="font-bold">{typeReglement}</span></div>
                 <hr className="border-[#2A3447] my-2" />
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">LB (Loyer Base) :</span><span className="font-mono font-bold text-[#10B981]">{formatCurrencyFCFA(lb)}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Caution :</span><span className="font-mono font-bold text-[#E8D5B0]">{formatCurrencyFCFA(montantCaution)}</span></div>
+                <div className="flex justify-between"><span className="text-[#A0AEC0]">Caution :</span><span className="font-mono font-bold text-[#E8D5B0]">{formatCurrencyFCFA(lb)}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">TOM :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tomManuel)}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">TVA :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tvaManuel)}</span></div>
                 <div className="flex justify-between"><span className="text-[#A0AEC0]">TLV :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tlvManuel)}</span></div>

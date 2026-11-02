@@ -2813,6 +2813,8 @@ export async function saveContractToDb(
   if (!isSupabaseConfigured || !supabase)
     return { success: true, data: contract as LeaseContract };
   try {
+    const loyerContractuel = Number(contract.loyerBase ?? 0);
+
     const record = {
       agency_id: agencyId,
       ref: contract.ref || `BAIL-${Date.now()}`,
@@ -2820,10 +2822,11 @@ export async function saveContractToDb(
       locataire_id: contract.locataireId,
       bien_id: contract.bienId,
       proprietaire_id: contract.proprietaireId,
-      loyer_base: contract.loyerBase,
-      avance_loyer: Number(contract.avanceLoyer ?? 0),
+      loyer_base: loyerContractuel,
+      avance_loyer: loyerContractuel,
       charges: contract.charges || 0,
-      caution_loyer: contract.cautionLoyer || 0,
+      caution_loyer: loyerContractuel,
+      montant_caution: loyerContractuel,
       caution_eau: contract.cautionEau || 0,
       caution_electricite: contract.cautionElectricite || 0,
       frais_adhesion: contract.fraisAdhesion || 0,
