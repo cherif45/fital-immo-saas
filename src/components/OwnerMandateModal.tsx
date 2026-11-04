@@ -1,6 +1,6 @@
 import React from "react";
 import { FileText, Printer, X } from "lucide-react";
-import { Owner, Property, AgencySettings } from "../types";
+import { Owner, Property, Building, Unit, AgencySettings } from "../types";
 import { PrintHeader } from "./PrintHeader";
 import { printElementById } from "../lib/printDocument";
 import { UserSignatureBlock } from "./UserSignatureBlock";
@@ -9,6 +9,8 @@ import { formatDate } from "../lib/utils";
 interface OwnerMandateModalProps {
   owner: Owner | null;
   properties: Property[];
+  buildings: Building[];
+  units: Unit[];
   agencySettings?: AgencySettings;
   currentUser?: { nom: string; prenom: string; role?: string } | null;
   onClose: () => void;
@@ -33,15 +35,66 @@ const FALLBACK = {
 export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
   owner,
   properties,
+  buildings,
+  units,
   agencySettings,
   currentUser,
   onClose,
 }) => {
   if (!owner) return null;
 
+  // Biens classiques du propriétaire
   const ownerProperties = properties.filter(
     (p) => p.proprietaireId === owner.id,
   );
+
+  // Immeubles appartenant au propriétaire sélectionné
+  const ownerBuildings = buildings.filter(
+    (building) => building.proprietaireId === owner.id,
+  );
+
+  const ownerBuildingIds = new Set(
+    ownerBuildings.map((building) => building.id),
+  );
+
+  // Unités liées au propriétaire ou à ses immeubles
+  const ownerUnits: Unit[] = [];
+
+  // Adresses et unités de chaque immeuble
+  const buildingAddresses = ownerBuildings.map((building) => {
+    const location = [
+      building.adresse,
+      building.quartier,
+      building.ville,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const buildingUnits = ownerUnits
+      .filter((unit) => unit.buildingId === building.id)
+      .map((unit) => unit.nom);
+
+    return `${building.nom}${location ? ` — ${location}` : ""}${
+      buildingUnits.length
+        ? ` (Unités : ${buildingUnits.join(", ")})`
+        : ""
+    }`;
+  });
+
+  // Compatibilité avec les anciens biens
+  const adresseBien =
+    buildingAddresses.length > 0
+      ? buildingAddresses.join(" / ")
+      : ownerUnits.length > 0
+        ? ownerUnits.map((unit) => unit.nom).join(" / ")
+        : ownerProperties.length > 0
+          ? ownerProperties
+              .map((property) =>
+                `${property.nom} — ${property.adresse || property.quartier || ""}`,
+              )
+              .join(" / ")
+          : "________________________________";
+
   const tauxCommission = owner.tauxCommission || 10;
 
   // ============================================================
@@ -73,12 +126,7 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
   // ============================================================
   // ADRESSE DU BIEN
   // ============================================================
-  const adresseBien =
-    ownerProperties.length > 0
-      ? ownerProperties
-          .map((p) => `${p.nom} — ${p.adresse || p.quartier || ""}`)
-          .join(" / ")
-      : "________________________________";
+  
 
   // ============================================================
   // IMPRESSION ISOLÉE : fenêtre dédiée (contenu seul, fond blanc

@@ -283,15 +283,18 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 Mr / Mme <strong>{locataireNom}</strong> {locatairePieceType} N°{" "}
                 <strong>{locataireCNI}</strong>
                 {locataireDateDelivrance && (
-                  <> délivrée le <strong>{locataireDateDelivrance}</strong></>
+                  <>
+                    {" "}
+                    délivrée le <strong>{locataireDateDelivrance}</strong>
+                  </>
                 )}
               </div>
               <div>
                 <strong>D'autre part, il a été convenu ce qui suit :</strong>
               </div>
               <div>
-                Mr / Mme <strong>{locataireNom}</strong> accepte un local à usage
-                d'habitation : <strong>{bienType}</strong>
+                Mr / Mme <strong>{locataireNom}</strong> accepte un local à
+                usage d'habitation : <strong>{bienType}</strong>
               </div>
               <div>
                 Sis <strong>{adresseComplete}</strong>
@@ -314,8 +317,8 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
                 <p className="mt-2 pl-4">
                   ❖ Avance :{" "}
                   <strong>
-                    {formatNumber(avanceLoyer)} FCFA ({nombreEnLettres(avanceLoyer)}{" "}
-                    francs)
+                    {formatNumber(avanceLoyer)} FCFA (
+                    {nombreEnLettres(avanceLoyer)} francs)
                   </strong>
                 </p>
               </div>
@@ -323,13 +326,13 @@ export const LeaseContractModal: React.FC<LeaseContractModalProps> = ({
               <div>
                 <div className="font-bold underline mb-1">Article 2</div>
                 <p>
-                  Le locataire (Mr / Mme {locataireNom}) accepte de payer les 12/12ème
-                  de la caution{" "}
-                  <strong>{formatNumber(cautionMontant)} FCFA</strong>. Cette
-                  caution n'est pas consommable et est remboursable après avoir
-                  rendu le local à l'état primitif. Après désistement, l'avance
-                  et la caution ne seront restituées qu'après avoir redonné le
-                  local. La commission ne peut en aucun manière être remboursée.
+                  Le locataire (Mr / Mme {locataireNom}) accepte de payer la
+                  caution <strong>{formatNumber(cautionMontant)} FCFA</strong>.
+                  Cette caution n'est pas consommable et est remboursable après
+                  avoir rendu le local à l'état primitif. Après désistement,
+                  l'avance et la caution ne seront restituées qu'après avoir
+                  redonné le local. La commission ne peut en aucun manière être
+                  remboursée.
                 </p>
               </div>
 

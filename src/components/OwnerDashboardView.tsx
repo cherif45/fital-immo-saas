@@ -8,7 +8,9 @@ import {
   OwnerDisbursement,
   CashVoucher,
   UserAccount
-, AgencySettings } from '../types';
+, AgencySettings,
+  Building,
+  Unit,} from '../types';
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 import { 
   Building2, 
@@ -36,6 +38,8 @@ interface OwnerDashboardViewProps {
   currentUser: UserAccount;
   owner: Owner;
   properties: Property[];
+  buildings: Building[];
+  units: Unit[];
   tenants: Tenant[];
   payments: Payment[];
   maintenance: MaintenanceTicket[];
@@ -50,6 +54,8 @@ export function OwnerDashboardView({
   currentUser,
   owner,
   properties,
+  buildings,
+  units,
   tenants,
   payments,
   maintenance,
@@ -515,6 +521,8 @@ export function OwnerDashboardView({
         <OwnerMandateModal
           owner={owner}
           properties={properties}
+  buildings={buildings}
+  units={units}
           agencySettings={settings}
           onClose={() => setIsMandateModalOpen(false)}
         />

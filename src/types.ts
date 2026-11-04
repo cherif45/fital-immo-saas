@@ -1,5 +1,5 @@
 // ============================================================
-// TYPES GLOBAUX — FITAL-IMMO
+// TYPES GLOBAUX â€” FITAL-IMMO
 // ============================================================
 
 export type UserRole =
@@ -106,7 +106,7 @@ export type ActiveTab =
   | "saas-admin";
 
 // ============================================================
-// SIGNATURE / TRAÇABILITÉ
+// SIGNATURE / TRAÃ‡ABILITÃ‰
 // ============================================================
 export interface AuditSignature {
   createdById?: string;
@@ -115,9 +115,10 @@ export interface AuditSignature {
 }
 
 // ============================================================
-// PROPRIÉTAIRES
+// PROPRIÃ‰TAIRES
 // ============================================================
 export interface Owner {
+    dateEmissionPiece?: string;
   id: string;
   ref?: string;
   nom: string;
@@ -145,8 +146,8 @@ export interface Owner {
 export type BuildingType =
   | "Immeuble"
   | "Villa"
-  | "Résidence"
-  | "Cité"
+  | "RÃ©sidence"
+  | "CitÃ©"
   | "Duplex"
   | "Autre";
 export type BuildingStatus = "Actif" | "Inactif" | "En travaux";
@@ -192,7 +193,7 @@ export type UnitType =
   | "Magasin"
   | "Bureau"
   | "Terrasse"
-  | "Entrepôt"
+  | "EntrepÃ´t"
   | "Autre";
 
 export type UnitStatus = "Occupé" | "Vacant" | "Maintenance" | "En litige";
@@ -237,7 +238,7 @@ export type PropertyType =
   | "Appartement"
   | "Magasin"
   | "Bureau"
-  | "Entrepôt"
+  | "EntrepÃ´t"
   | "Terrain"
   | "Immeuble";
 
@@ -313,7 +314,7 @@ export interface Tenant {
 // ============================================================
 // CONTRATS
 // ============================================================
-export type ContractStatus = "En cours" | "Terminé" | "Résilié" | "Archivé";
+export type ContractStatus = "En cours" | "Terminé" | "RÃ©siliÃ©" | "Archivé";
 
 export interface LeaseContract extends AuditSignature {
   id: string;
@@ -434,7 +435,7 @@ export interface Payment extends AuditSignature {
 }
 
 // ============================================================
-// PÉNALITÉS
+// PÃ‰NALITÃ‰S
 // ============================================================
 export type PenaltyStatus = "En attente" | "Appliquée" | "Annulée" | "Payée";
 
@@ -484,7 +485,7 @@ export interface TenantCharge {
 }
 
 // ============================================================
-// CHARGES PROPRIÉTAIRE
+// CHARGES PROPRIÃ‰TAIRE
 // ============================================================
 export type OwnerChargeType =
   | "FACTURE"
@@ -514,7 +515,7 @@ export interface OwnerCharge {
 }
 
 // ============================================================
-// DÉDUCTIONS PROPRIÉTAIRE
+// DÃ‰DUCTIONS PROPRIÃ‰TAIRE
 // ============================================================
 export type DeductionType =
   | "FACTURE"
@@ -742,7 +743,7 @@ export interface Invoice extends AuditSignature {
   id: string;
   ref: string;
   numero?: string;
-  type: "Adhésion" | "Travaux" | "Frais de dossier" | "Autre";
+  type: "AdhÃ©sion" | "Travaux" | "Frais de dossier" | "Autre";
   proprietaireId?: string;
   proprietaireNom?: string;
   locataireId?: string;
@@ -888,7 +889,7 @@ export interface AuditLog {
 }
 
 // ============================================================
-// PARAMÈTRES AGENCE
+// PARAMÃˆTRES AGENCE
 // ============================================================
 export interface AgencySettings {
   nomAgence: string;
@@ -1012,7 +1013,7 @@ export interface ArchiveRecord {
 }
 
 // ============================================================
-// ACTIVITÉS
+// ACTIVITÃ‰S
 // ============================================================
 export interface ActivityLog {
   id: string;
@@ -1043,7 +1044,7 @@ export interface ActivityLog {
 }
 
 // ============================================================
-// DONNÉES DE L'APPLICATION
+// DONNÃ‰ES DE L'APPLICATION
 // ============================================================
 export interface AppStateData {
   agency: Agency | null;
@@ -1100,7 +1101,7 @@ export interface DocumentSignature {
 }
 
 // ============================================================
-// TYPES COMPLÉMENTAIRES
+// TYPES COMPLÃ‰MENTAIRES
 // ============================================================
 export interface PropertyInspection {
   type?: string;

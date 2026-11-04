@@ -2868,6 +2868,8 @@ export default function App() {
                   owners[0]
                 }
                 properties={scopedProperties}
+  buildings={buildings}
+  units={units}
                 tenants={scopedTenants}
                 payments={scopedPayments}
                 maintenance={scopedMaintenance}
@@ -3451,6 +3453,8 @@ export default function App() {
                 tenants={scopedTenants}
                 contracts={scopedContracts}
                 properties={scopedProperties}
+buildings={buildings}
+units={units}
                 currentUser={currentUser}
                 settings={agencySettings}
                 onOpenReceipt={(payment) => setReceiptModalPayment(payment)}

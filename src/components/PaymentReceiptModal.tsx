@@ -162,11 +162,13 @@ function getPeriodeDates(periode: string): { debut: string; fin: string } {
   const debut = new Date(annee, mois, 1);
   const fin = new Date(annee, mois + 1, 0);
   const fmt = (d: Date) =>
-    d.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    d
+      .toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+      .replace(/^./, (lettre) => lettre.toUpperCase());
   return { debut: fmt(debut), fin: fmt(fin) };
 }
 
