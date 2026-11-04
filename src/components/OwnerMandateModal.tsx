@@ -61,39 +61,22 @@ export const OwnerMandateModal: React.FC<OwnerMandateModalProps> = ({
   const ownerUnits: Unit[] = [];
 
   // Adresses et unités de chaque immeuble
-  const buildingAddresses = ownerBuildings.map((building) => {
-    const location = [
+  // Adresses uniquement, sans les noms des immeubles
+  const buildingAddresses = ownerBuildings.map((building) =>
+    [
       building.adresse,
       building.quartier,
       building.ville,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    ].filter(Boolean).join(", ")
+  );
 
-    const buildingUnits = ownerUnits
-      .filter((unit) => unit.buildingId === building.id)
-      .map((unit) => unit.nom);
-
-    return `${building.nom}${location ? ` — ${location}` : ""}${
-      buildingUnits.length
-        ? ` (Unités : ${buildingUnits.join(", ")})`
-        : ""
-    }`;
-  });
-
-  // Compatibilité avec les anciens biens
   const adresseBien =
-    buildingAddresses.length > 0
-      ? buildingAddresses.join(" / ")
-      : ownerUnits.length > 0
-        ? ownerUnits.map((unit) => unit.nom).join(" / ")
-        : ownerProperties.length > 0
-          ? ownerProperties
-              .map((property) =>
-                `${property.nom} — ${property.adresse || property.quartier || ""}`,
-              )
-              .join(" / ")
-          : "________________________________";
+    buildingAddresses.filter(Boolean).join(" / ") ||
+    ownerProperties
+      .map((property) => property.adresse || property.quartier || "")
+      .filter(Boolean)
+      .join(" / ") ||
+    "________________________________";
 
   const tauxCommission = owner.tauxCommission || 10;
 

@@ -243,38 +243,48 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* Corps */}
-    <div className="text-[14px] text-neutral-900 leading-snug space-y-1 px-4">
-      <div>
-        Reçu de Mr (mme) :{" "}
-        <strong className="underline">{payment.locataireNom}</strong>
-      </div>
-      <div>
-        {isRecu ? "la somme de : " : "La somme de : "}
-        <strong>{nombreEnLettres(montantPaye)}</strong> Francs CFA
-      </div>
-      <div>
-        {isRecu ? "Désignation : " : "pour la Location de : "}
-        <strong>{nomUnite}</strong>
-      </div>
-      <div>
-        Lieux qu'il occupe dans l'immeuble situé :{" "}
-        <strong>{adresseImmeuble}</strong>
-      </div>
-      {!isRecu ? (
-        <div>
-          Période : du <strong>{dateDebut}</strong> au{" "}
-          <strong>{dateFin}</strong>
-        </div>
-      ) : (
-        <div>
-          Dakar, le <strong>{datePaiement}</strong>
-        </div>
+    <div className="flex items-start gap-3 px-4">
+      {settings?.logoUrl && (
+        <img
+          src={settings.logoUrl}
+          alt="Logo agence"
+          className="w-14 h-14 object-contain flex-shrink-0"
+        />
       )}
-      {observation && (
+
+      <div className="flex-1 min-w-0 text-[14px] text-neutral-900 leading-snug space-y-1">
         <div>
-          Observation : <strong>{observation}</strong>
+          <strong>Reçu de Mr (mme) :</strong>{" "}
+          <strong className="underline">{payment.locataireNom}</strong>
         </div>
-      )}
+        <div>
+          <strong>La somme de :</strong>{" "}
+          <strong>{nombreEnLettres(montantPaye)}</strong> Francs CFA
+        </div>
+        <div>
+          <strong>pour la Location de :</strong>{" "}
+          <strong>{nomUnite}</strong>
+        </div>
+        <div>
+          <strong>Lieux qu'il occupe dans l'immeuble situé :</strong>{" "}
+          <strong>{adresseImmeuble}</strong>
+        </div>
+        {!isRecu ? (
+          <div>
+            <strong>Période :</strong> du <strong>{dateDebut}</strong> au{" "}
+            <strong>{dateFin}</strong>
+          </div>
+        ) : (
+          <div>
+            Dakar, le <strong>{datePaiement}</strong>
+          </div>
+        )}
+        {observation && (
+          <div>
+            <strong>Observation :</strong> <strong>{observation}</strong>
+          </div>
+        )}
+      </div>
     </div>
 
     {/* Signature et Réf Caissier */}
@@ -300,7 +310,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* NOTA */}
-    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[10px] text-neutral-700 leading-tight px-4">
+    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[8px] text-neutral-700 leading-tight px-4">
       <div className="font-black uppercase mb-1">NOTA</div>
       <div>- Un locataire ne peut déménager sans :</div>
       <div className="pl-3">
