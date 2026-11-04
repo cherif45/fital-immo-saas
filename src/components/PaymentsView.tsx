@@ -896,11 +896,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             className="px-3 py-1.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-xs text-white focus:outline-none focus:border-[#C9A96E]"
           >
             <option value="all">Tous les Modes</option>
-            <option value="Virement">Virement bancaire</option>
-            <option value="Mobile Money">Mobile Money (Wave / OM)</option>
-            <option value="Espèces">Espèces (Caisse)</option>
-            <option value="Chèque">Chèque</option>
-          </select>
+                  <option value="Espèces">Espèces (Caisse)</option>
+                  <option value="Mobile Money">Mobile Money (Wave / OM)</option>
+                  <option value="Virement">Virement bancaire</option>
+                  <option value="Chèque">Chèque</option>
+                </select>
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
@@ -1494,15 +1494,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     }
                     className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white focus:outline-none focus:border-[#C9A96E]"
                   >
-                    <option value="Virement">Virement bancaire</option>
-                    <option value="Mobile Money">
-                      Mobile Money (Wave / Orange Money)
-                    </option>
                     <option value="Espèces">
                       Espèces (Dépôt direct en caisse)
                     </option>
-                    <option value="Chèque">Chèque bancaire</option>
-                  </select>
+                  <option value="Mobile Money">
+                      Mobile Money (Wave / Orange Money)
+                    </option>
+                  <option value="Virement">Virement bancaire</option>
+                  <option value="Chèque">Chèque bancaire</option>
+                </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
