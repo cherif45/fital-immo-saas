@@ -3302,6 +3302,8 @@ export default function App() {
                   onOpenMobileMoney={(tenant) => handleOpenMobileMoney(tenant)}
                   onAddPayment={handleAddPayment}
                   onInitiateExit={(tenant) => setTenantExitTarget(tenant)}
+
+                  buildings={buildings}
                 />
               </ViewLoader>
             </div>

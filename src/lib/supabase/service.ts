@@ -558,13 +558,14 @@ export function mapUnitFromDb(r: any): Unit {
   };
 }
 
-export function mapPropertyFromDb(r: any): Property {
+export function mapPropertyFromDb(r: any): Property & { buildingId?: string } {
   return {
     id: r.id,
     ref: r.ref || `BIEN-${r.id.slice(0, 6)}`,
     nom: r.nom || "Bien Immobilier",
     type: r.type || "Appartement",
     adresse: r.adresse || "",
+    buildingId: r.building_id || r.buildingId || "",
     quartier: r.quartier || "Dakar",
     ville: r.ville || "Dakar",
     proprietaireId: r.proprietaire_id || r.proprietaireId || "",
@@ -1442,6 +1443,31 @@ export async function loadFullApplicationData(
     ) {
       state.contracts = contractsRes.value.data.map(mapContractFromDb);
       persistCollection("contracts", state.contracts);
+      // FITAL_TENANT_CONTRACT_FALLBACK
+      state.tenants = state.tenants.map((tenant) => {
+        if (tenant.bienId) return tenant;
+
+        const tenantContracts = state.contracts.filter((contract: any) =>
+          String(contract.locataireId || "") === String(tenant.id)
+        );
+
+        const activeContract =
+          tenantContracts.find((contract: any) =>
+            ["en cours", "actif"].includes(
+              String(contract.statut || "").toLowerCase()
+            )
+          ) || tenantContracts[0];
+
+        if (!activeContract?.bienId) return tenant;
+
+        return {
+          ...tenant,
+          bienId: activeContract.bienId,
+          bienNom: tenant.bienNom || activeContract.bienNom || "",
+        };
+      });
+      persistCollection("tenants", state.tenants);
+
     }
     if (
       paymentsRes.status === "fulfilled" &&

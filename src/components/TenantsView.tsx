@@ -80,6 +80,7 @@ interface TenantsViewProps {
   onOpenMobileMoney?: (tenant: Tenant) => void;
   onAddPayment?: (payment: Payment) => boolean | Promise<boolean>;
   onInitiateExit?: (tenant: Tenant) => void;
+  buildings?: any[];
 }
 
 // Helper : libellé du type de pièce
@@ -114,6 +115,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
   onOpenMobileMoney,
   onAddPayment,
   onInitiateExit,
+  buildings = [],
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -677,11 +679,12 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
       {/* Tenants Table */}
       <div className="rounded-2xl bg-[#162133] border border-[#C9A96E]/20 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[900px]">
+          <table className="w-full text-left text-xs border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-[#1E2E45]/80 text-[#A8B4C4] font-semibold uppercase tracking-wider text-[10px] border-b border-[#C9A96E]/20">
                 <th className="py-3 px-4">Locataire</th>
                 <th className="py-3 px-3">Bien Loué</th>
+                <th className="py-3 px-3">Immeuble</th>
                 <th className="py-3 px-3">Contact & Pièce</th>
                 <th className="py-3 px-3 text-right">Loyer Mensuel</th>
                 <th className="py-3 px-3 text-center">Solvabilité</th>
@@ -692,7 +695,7 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
             <tbody className="divide-y divide-[#C9A96E]/10">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[#6B7C94]">
+                  <td colSpan={8} className="py-12 text-center text-[#6B7C94]">
                     <UserCheck className="w-8 h-8 mx-auto text-[#6B7C94]/50 mb-2" />
                     <p className="text-xs font-semibold text-white">
                       Aucun locataire trouvé
@@ -737,21 +740,62 @@ export const TenantsView: React.FC<TenantsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-3">
-                        <div className="font-medium text-white max-w-[180px] truncate">
-                          {t.bienNom ||
-                            properties.find((p) => p.id === t.bienId)?.nom ||
-                            (units as any[]).find((u: any) => u.id === t.bienId)
-                              ?.nom ||
-                            "—"}
-                        </div>
-                        <div className="text-[10px] text-[#6B7C94]">
-                          Entrée : {formatDate(t.dateEntree)}
-                          {sorted &&
-                            t.dateSortie &&
-                            ` · Sortie : ${formatDate(t.dateSortie)}`}
-                        </div>
-                      </td>
+  {(() => {
+    const unit = (units as any[]).find((u: any) =>
+      String(u.id) === String(t.bienId)
+    ) || (units as any[]).find((u: any) =>
+      String(u.locataireActuelId || "") === String(t.id)
+    );
 
+    const property = (properties as any[]).find((p: any) =>
+      String(p.id) === String(t.bienId)
+    );
+
+    return (
+      <div className="font-medium text-white max-w-[180px] truncate">
+        {t.bienNom || property?.nom || unit?.nom || "?"}
+      </div>
+    );
+  })()}
+  <div className="text-[10px] text-[#6B7C94]">
+    Entr?e : {formatDate(t.dateEntree)}
+    {sorted && t.dateSortie && ` ? Sortie : ${formatDate(t.dateSortie)}`}
+  </div>
+</td>
+
+
+                      <td className="py-3 px-3">
+  {(() => {
+    const unit = (units as any[]).find((u: any) =>
+      String(u.id) === String(t.bienId)
+    ) || (units as any[]).find((u: any) =>
+      String(u.locataireActuelId || "") === String(t.id)
+    );
+
+    const property = (properties as any[]).find((p: any) =>
+      String(p.id) === String(t.bienId)
+    );
+
+    const buildingId =
+      unit?.buildingId || unit?.building_id ||
+      property?.buildingId || property?.building_id;
+
+    const building = (buildings as any[]).find((b: any) =>
+      String(b.id) === String(buildingId)
+    );
+
+    return (
+      <div className="font-medium text-white max-w-[160px] truncate">
+        {unit?.buildingNom ||
+          unit?.building?.nom ||
+          property?.buildingNom ||
+          property?.building?.nom ||
+          building?.nom ||
+          "?"}
+      </div>
+    );
+  })()}
+</td>
                       <td className="py-3 px-3 font-mono">
                         <div className="flex items-center gap-2">
                           <span className="text-white text-xs font-semibold whitespace-nowrap">
