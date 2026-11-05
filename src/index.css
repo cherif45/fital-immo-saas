@@ -2736,3 +2736,137 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     opacity: 0 !important;
   }
 }
+
+
+/* FIX IMPRESSION RAPPORT CAISSE JOURNALIERE */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .daily-cash-report-modal,
+  .daily-cash-report-modal * {
+    visibility: visible !important;
+  }
+
+  .daily-cash-report-modal {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+  }
+
+  .daily-cash-report-modal > div {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .daily-cash-report-content {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    color: #111 !important;
+    background: white !important;
+  }
+
+  .daily-cash-report-modal .print\:hidden {
+    display: none !important;
+  }
+
+  .daily-cash-report-modal .print-page {
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    color: #111 !important;
+    background: white !important;
+  }
+}
+
+
+/* Impression rapport caisse : correction pagination */
+@media print {
+  html, body, #root {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body *:not(:has(.daily-cash-report-modal)):not(.daily-cash-report-modal):not(.daily-cash-report-modal *) {
+    display: none !important;
+  }
+
+  .daily-cash-report-modal,
+  .daily-cash-report-modal * {
+    visibility: visible !important;
+  }
+
+  .daily-cash-report-modal {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+  }
+
+  .daily-cash-report-modal > div {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  .daily-cash-report-content {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .daily-cash-report-modal .print\\:hidden {
+    display: none !important;
+  }
+}

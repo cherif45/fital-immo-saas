@@ -1,4 +1,5 @@
 import { paginateTable } from '../lib/supabase/service';
+import { DailyCashReportModal } from './DailyCashReportModal';
 
 import React, { useState } from 'react';
 
@@ -12,7 +13,7 @@ import {
 
   UserAccount 
 
-} from '../types';
+, Payment } from '../types';
 
 import { formatCurrencyFCFA } from '../lib/calculations/financial';
 
@@ -57,6 +58,7 @@ import {
 interface CashRegisterViewProps {
 
   cashMovements: CashMovement[];
+  payments: Payment[];
 
   cashClosings: CashClosing[];
 
@@ -85,6 +87,7 @@ interface CashRegisterViewProps {
 export function CashRegisterView({
 
   cashMovements,
+  payments,
 
   cashClosings,
 
@@ -103,6 +106,7 @@ export function CashRegisterView({
   const [isNewMovementModalOpen, setIsNewMovementModalOpen] = useState(false);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
+  const [showDailyReport, setShowDailyReport] = useState(false);
 
   // ðŸ†• Pagination serveur (mouvements caisse)
 
@@ -759,6 +763,13 @@ export function CashRegisterView({
             <h2 className="text-base font-bold text-white">Opérations d'Espèces Enregistrées</h2>
 
             <span className="text-xs text-slate-400">Responsable actuel : {currentUser.prenom} {currentUser.nom}</span>
+            <button
+              onClick={() => setShowDailyReport(true)}
+              className="px-3 py-2 bg-[#C9A96E] text-[#111C2E] rounded-lg text-xs font-bold hover:opacity-90"
+            >
+              <FileText className="w-4 h-4 inline mr-2" />
+              Imprimer les op?rations du jour
+            </button>
 
           </div>
 
@@ -1033,6 +1044,21 @@ export function CashRegisterView({
       )}
 
 
+
+      {showDailyReport && (
+        <DailyCashReportModal
+          date={(() => {
+            const today = new Date();
+            return today.getFullYear() + "-" +
+              String(today.getMonth() + 1).padStart(2, "0") + "-" +
+              String(today.getDate()).padStart(2, "0");
+          })()}
+          cashMovements={cashMovements}
+      payments={payments}
+          currentUser={currentUser}
+          onClose={() => setShowDailyReport(false)}
+        />
+      )}
 
       {/* Modal: New Cash Movement */}
 

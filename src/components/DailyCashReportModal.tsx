@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { X, Printer, Calendar, Download } from 'lucide-react';
-import { CashMovement, UserAccount } from '../types';
+import { CashMovement, Payment, UserAccount } from '../types';
 import { formatNumber } from '../lib/utils';
 
 interface DailyCashReportModalProps {
   date: string; // YYYY-MM-DD
   cashMovements: CashMovement[];
+  payments: Payment[];
   currentUser: UserAccount;
   onClose: () => void;
 }
@@ -55,25 +56,34 @@ function nombreEnLettres(n: number): string {
 export const DailyCashReportModal: React.FC<DailyCashReportModalProps> = ({
   date,
   cashMovements,
+  payments,
   currentUser,
   onClose,
 }) => {
   // ============================================================
   // FILTRAGE PAR DATE
   // ============================================================
-  const mouvementsDuJour = useMemo(() => {
-    return cashMovements.filter((m) => {
-      const mDate = (m.dateOperation || m.dateHeure || '').split(' ')[0].split('T')[0];
-      return mDate === date;
-    });
-  }, [cashMovements, date]);
+  const loyersEncaisses = useMemo(() => payments
+    .filter((p) => {
+      const d = (p.datePaiement || p.dateHeurePaiement || '').split('T')[0].split(' ')[0];
+      return d === date && Number(p.montantPaye || 0) > 0;
+    })
+    .map((p) => ({
+      id: p.id,
+      type: 'ENTREE' as const,
+      categorie: 'ENCAISSEMENT_LOYER' as const,
+      montant: Number(p.montantPaye || 0),
+      beneficiaireOuPayeur: p.locataireNom,
+      justificatifRef: p.quittanceNumero || p.ref,
+      moyenPaiementCode: p.moyenPaiementCode,
+      description: p.modePaiement,
+      dateOperation: p.datePaiement || p.dateHeurePaiement,
+    })), [payments, date]);
 
-  // ============================================================
-  // VENTILATION
-  // ============================================================
-  const loyersEncaisses = mouvementsDuJour.filter(
-    (m) => (m.type === 'ENTREE' || m.type === 'ENCAISSEMENT') && m.categorie === 'ENCAISSEMENT_LOYER'
-  );
+  const mouvementsDuJour = useMemo(() => cashMovements.filter((m) => {
+    const d = (m.dateOperation || m.dateHeure || '').split(' ')[0].split('T')[0];
+    return d === date && m.categorie !== 'ENCAISSEMENT_LOYER';
+  }), [cashMovements, date]);
 
   const autresEncaissements = mouvementsDuJour.filter(
     (m) => (m.type === 'ENTREE' || m.type === 'ENCAISSEMENT') && m.categorie !== 'ENCAISSEMENT_LOYER'
@@ -163,7 +173,7 @@ export const DailyCashReportModal: React.FC<DailyCashReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="daily-cash-report-modal fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header (masqué à l'impression) */}
         <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
@@ -199,7 +209,7 @@ export const DailyCashReportModal: React.FC<DailyCashReportModalProps> = ({
         </div>
 
         {/* Document imprimable */}
-        <div className="p-8 bg-white text-neutral-900 overflow-y-auto print:p-4">
+        <div className="daily-cash-report-content p-8 bg-white text-neutral-900 overflow-y-auto print:p-4">
           <div className="print-page">
             {/* En-tête */}
             <div className="text-center border-b-2 border-neutral-900 pb-3 mb-4">

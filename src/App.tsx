@@ -3119,6 +3119,7 @@ export default function App() {
             <ViewLoader variant="list">
               <LazyCashRegisterView
                 cashMovements={cashMovements}
+                payments={payments}
                 cashClosings={cashClosings}
                 currentUser={currentUser}
                 onAddCashMovement={handleAddCashMovement}
