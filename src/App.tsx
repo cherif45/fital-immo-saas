@@ -3516,7 +3516,7 @@ units={units}
             invoices={invoices}
             maintenance={maintenance}
             deductions={ownerDeductions}
-            selectedPeriod={selectedPeriod}
+            selectedPeriod={new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
             onClose={() => setOwnerBulletinModalOwner(null)}
             onSaveDeduction={handleAddOwnerDeduction}
             onDeleteDeduction={handleDeleteOwnerDeduction}
