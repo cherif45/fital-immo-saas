@@ -768,7 +768,7 @@ export function CashRegisterView({
               className="px-3 py-2 bg-[#C9A96E] text-[#111C2E] rounded-lg text-xs font-bold hover:opacity-90"
             >
               <FileText className="w-4 h-4 inline mr-2" />
-              Imprimer les op?rations du jour
+              Imprimer les opérations du jour
             </button>
 
           </div>
