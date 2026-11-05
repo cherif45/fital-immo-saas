@@ -310,7 +310,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
     </div>
 
     {/* NOTA */}
-    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[8px] text-neutral-700 leading-tight px-4">
+    <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[7.5px] text-neutral-700 leading-tight px-4">
       <div className="font-black uppercase mb-1">NOTA</div>
       <div>- Un locataire ne peut déménager sans :</div>
       <div className="pl-3">

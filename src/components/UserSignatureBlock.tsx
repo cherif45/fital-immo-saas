@@ -74,7 +74,7 @@ export const UserSignatureBlock: React.FC<UserSignatureBlockProps> = ({
         </div>
         <div
           className={`${
-            cachetUrl ? "h-20" : "h-10"
+            cachetUrl ? "h-24" : "h-16"
           } w-full border-b border-dotted border-neutral-400 relative flex items-center justify-center mx-auto`}
         >
           {cachetUrl && (
@@ -88,7 +88,7 @@ export const UserSignatureBlock: React.FC<UserSignatureBlockProps> = ({
             <img
               src={user.signatureUrl}
               alt="Signature"
-              className="relative z-10 max-h-9 max-w-full object-contain"
+              className="relative z-10 max-h-16 max-w-full object-contain"
             />
           ) : (
             <span className="relative z-10 text-[7.5px] text-neutral-400">

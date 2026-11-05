@@ -1256,7 +1256,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 <img
                   src={agency.gerantSignatureUrl}
                   alt="Signature gérant"
-                  className="h-12 object-contain -mt-16 ml-3"
+                  className="h-20 object-contain -mt-16 ml-3"
                 />
               )}
             </div>
