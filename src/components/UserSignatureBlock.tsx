@@ -64,16 +64,24 @@ export const UserSignatureBlock: React.FC<UserSignatureBlockProps> = ({
         <div className="text-neutral-500 text-[7.5px] mt-0.5">{dateStr}</div>
       </div>
 
-      <div className="text-center w-36 flex-shrink-0">
+      <div
+        className={`text-center ${
+          cachetUrl ? "w-44" : "w-36"
+        } flex-shrink-0`}
+      >
         <div className="text-[8px] text-neutral-700 font-semibold mb-0.5">
           Signature & Cachet
         </div>
-        <div className="h-10 w-full border-b border-dotted border-neutral-400 relative flex items-center justify-center mx-auto overflow-hidden">
+        <div
+          className={`${
+            cachetUrl ? "h-20" : "h-10"
+          } w-full border-b border-dotted border-neutral-400 relative flex items-center justify-center mx-auto`}
+        >
           {cachetUrl && (
             <img
               src={cachetUrl}
               alt="Cachet agence"
-              className="absolute inset-0 m-auto max-h-10 max-w-[90%] object-contain pointer-events-none"
+              className="absolute inset-0 m-auto max-h-20 max-w-[90%] object-contain pointer-events-none"
             />
           )}
           {user?.signatureUrl ? (

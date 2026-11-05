@@ -370,18 +370,19 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       `${titre} — ${payment.ref}`,
       `
       @page{size:A4 portrait;margin:7mm 10mm;}
-      #printable-quittance{--qfs:14px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.4 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
-      #printable-quittance p,#printable-quittance li,#printable-quittance span,#printable-quittance div{font-size:var(--qfs) !important;line-height:1.4 !important;}
+      #printable-quittance{--qfs:14px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.25 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
+      #printable-quittance p,#printable-quittance li,#printable-quittance span,#printable-quittance div{font-size:var(--qfs) !important;line-height:1.25 !important;}
       #printable-quittance .quittance-copy{max-height:none !important;overflow:visible !important;break-inside:avoid !important;page-break-inside:avoid !important;}
-      #printable-quittance .cut-line{break-inside:avoid !important;page-break-inside:avoid !important;}
+      #printable-quittance .cut-line{font-size:8px !important;line-height:1 !important;margin:1mm 0 !important;padding:0.5mm 0 !important;break-inside:avoid !important;page-break-inside:avoid !important;}
+      #printable-quittance .copy-label{font-size:7.5px !important;line-height:1 !important;margin-top:0.5mm !important;}
       #quittance-copy-2{display:flex !important;flex-direction:column !important;}
       #quittance-copy-2 .quittance-foot{margin-top:auto !important;}
       `,
       {
-        pageIds: ["quittance-copy-1", "quittance-copy-2"],
+        pageIds: ["printable-quittance"],
         baseFontPx: 14,
         minFontPx: 10.5,
-        pageBudgetMm: 138,
+        pageBudgetMm: 275,
         cssVar: "--qfs",
         finalize: (win) => {
           // Remplit la page : la 2e copie s'étire, son pied colle le bas
@@ -393,7 +394,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             "quittance-copy-2",
           ) as HTMLElement | null;
           if (!container || !copy2) return;
-          container.style.minHeight = "283mm";
+          container.style.minHeight = "275mm";
           container.style.display = "flex";
           container.style.flexDirection = "column";
           copy2.style.flex = "1 0 auto";

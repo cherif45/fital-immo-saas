@@ -155,6 +155,49 @@ function getRefCourte(ref: string | undefined): string {
   return ref.slice(-4) || "—";
 }
 
+function periodToInputValue(period: string): string {
+  const normalized = period
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  const inputMatch = normalized.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+  if (inputMatch) {
+    const month = Number(inputMatch[2]);
+    return month >= 1 && month <= 12
+      ? `${inputMatch[1]}-${String(month).padStart(2, "0")}`
+      : "";
+  }
+
+  const parts = normalized.split(/\s+/);
+  const months: Record<string, string> = {
+    janvier: "01",
+    fevrier: "02",
+    mars: "03",
+    avril: "04",
+    mai: "05",
+    juin: "06",
+    juillet: "07",
+    aout: "08",
+    septembre: "09",
+    octobre: "10",
+    novembre: "11",
+    decembre: "12",
+  };
+  const month = months[parts[0]];
+  const year = parts[1];
+  return month && /^\d{4}$/.test(year || "") ? `${year}-${month}` : "";
+}
+
+function periodFromInputValue(value: string): string {
+  if (!/^\d{4}-\d{2}$/.test(value)) return "";
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 interface LoyerLigne {
   ordre: number;
   ref: string;
@@ -214,6 +257,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   onSaveBulletin,
 }) => {
   const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
+  const [bulletinPeriod, setBulletinPeriod] = useState(selectedPeriod);
 
   const [serverPayments, setServerPayments] = useState<Payment[]>([]);
   const [serverOwnerProps, setServerOwnerProps] = useState<Property[]>([]);
@@ -284,13 +328,14 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             proprietaireId: t.proprietaire_id || t.proprietaireId,
             dateSortie: t.date_sortie || t.dateSortie,
             dateEntree: t.date_entree || t.dateEntree,
+            loyerMensuel: Number(t.loyer_mensuel) || Number(t.loyerMensuel) || 0,
           })),
         );
       } catch (e) {
         console.warn("loadBulletinData:", e);
       }
     })();
-  }, [currentUser?.agencyId, owner?.id, selectedPeriod]);
+  }, [currentUser?.agencyId, owner?.id]);
 
   const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
   const displayProperties =
@@ -337,29 +382,36 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     : null;
   const tauxCommission =
     buildings.find((b) => b.id === selectedBuildingId)?.tauxCommission ?? owner.tauxCommission ?? 10;
-  const normalizePeriod = (s: string) => (s || "").toLowerCase().trim();
-  const isSamePeriod = (a: string, b: string) =>
-    normalizePeriod(a) === normalizePeriod(b);
+  const normalizePeriod = (s: string) =>
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  const isSamePeriod = (a: string, b: string) => {
+    const periodA = periodToInputValue(a);
+    const periodB = periodToInputValue(b);
+    return periodA && periodB
+      ? periodA === periodB
+      : normalizePeriod(a) === normalizePeriod(b);
+  };
 
   const getObservationPeriode = (paymentPeriode: string): string => {
     if (!paymentPeriode) return "";
-    if (isSamePeriod(paymentPeriode, selectedPeriod)) return "";
+    if (isSamePeriod(paymentPeriode, bulletinPeriod)) return "";
 
     const moisOrdre: Record<string, number> = {
       janvier: 1,
-      février: 2,
       fevrier: 2,
       mars: 3,
       avril: 4,
       mai: 5,
       juin: 6,
       juillet: 7,
-      août: 8,
       aout: 8,
       septembre: 9,
       octobre: 10,
       novembre: 11,
-      décembre: 12,
       decembre: 12,
     };
 
@@ -371,7 +423,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       };
     };
 
-    const bullet = extract(selectedPeriod);
+    const bullet = extract(bulletinPeriod);
     const pay = extract(paymentPeriode);
 
     const isAvance =
@@ -385,19 +437,38 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
   const loyersData: LoyerLigne[] = useMemo(() => {
     const lines: LoyerLigne[] = [];
-    const now = new Date();
-    const moisCourant = now.getMonth();
-    const anneeCourante = now.getFullYear();
+    const monthInput = periodToInputValue(bulletinPeriod);
+    const [selectedYear, selectedMonth] = monthInput.split("-").map(Number);
+    const selectedMonthIndex = selectedYear * 12 + selectedMonth - 1;
+    const getDateMonthIndex = (dateValue?: string) => {
+      if (!dateValue) return null;
+      const isoDate = dateValue.match(/^(\d{4})-(\d{1,2})/);
+      if (isoDate) {
+        return Number(isoDate[1]) * 12 + Number(isoDate[2]) - 1;
+      }
+      const date = new Date(dateValue);
+      return Number.isNaN(date.getTime())
+        ? null
+        : date.getFullYear() * 12 + date.getMonth();
+    };
 
     const findActiveTenant = (bienId: string) =>
-      displayTenants.find((t) => t.bienId === bienId && !t.dateSortie);
+      displayTenants.find((tenant) => {
+        if (tenant.bienId !== bienId) return false;
+        const startMonth = getDateMonthIndex(tenant.dateEntree);
+        const endMonth = getDateMonthIndex(tenant.dateSortie);
+        return (
+          (startMonth === null || startMonth <= selectedMonthIndex) &&
+          (endMonth === null || endMonth >= selectedMonthIndex)
+        );
+      });
 
     const findPayment = (bienId: string, locataireId: string) =>
       displayPayments.find(
         (p) =>
           p.bienId === bienId &&
           p.locataireId === locataireId &&
-          isSamePeriod(p.periode, selectedPeriod) &&
+          isSamePeriod(p.periode, bulletinPeriod) &&
           p.statut === "Payé",
       );
 
@@ -418,15 +489,16 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       const payment = findPayment(unitId, tenant.id);
       const estNonPayeur = !payment;
 
-      const loyerFinal = estNonPayeur ? 0 : loyerBase;
-      const netFinal = estNonPayeur
-        ? 0
-        : Math.round(loyerBase * (1 - tauxCommission / 100));
+      const loyerAttendu =
+        loyerBase > 0 ? loyerBase : tenant.loyerMensuel || 0;
+      const netProprietaire = Math.round(
+        loyerAttendu * (1 - tauxCommission / 100),
+      );
 
       const dateEntree = tenant.dateEntree ? new Date(tenant.dateEntree) : null;
       const estNouveau = dateEntree
-        ? dateEntree.getMonth() === moisCourant &&
-          dateEntree.getFullYear() === anneeCourante
+        ? dateEntree.getMonth() === selectedMonth - 1 &&
+          dateEntree.getFullYear() === selectedYear
         : false;
 
       const refCourte = getRefCourte((tenant as any).ref);
@@ -443,10 +515,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         etage,
         locataire: `${tenant.prenom} ${tenant.nom}`,
         locataireRef: refCourte,
-        loyer: loyerFinal,
-        net: netFinal,
+        loyer: loyerAttendu,
+        net: netProprietaire,
         observation: estNonPayeur
-          ? "NON PAYER"
+          ? "LOYER ATTENDU - NON PAYÉ"
           : estNouveau
             ? "NOUVEAU LOCATAIRE"
             : "",
@@ -499,7 +571,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     tenants,
     payments,
     buildings,
-    selectedPeriod,
+    bulletinPeriod,
     tauxCommission,
   ]);
 
@@ -510,7 +582,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     const ownerPaymentsOtherPeriod = displayPayments.filter((p) => {
       if (p.proprietaireId !== owner.id) return false;
       if (p.statut !== "Payé") return false;
-      if (isSamePeriod(p.periode, selectedPeriod)) return false;
+      if (isSamePeriod(p.periode, bulletinPeriod)) return false;
       const ownsUnit = ownerUnits.some((u) => u.id === p.bienId);
       const ownsProp = ownerProperties.some((pr) => pr.id === p.bienId);
       return ownsUnit || ownsProp;
@@ -535,7 +607,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     ownerUnits,
     ownerProperties,
     tenants,
-    selectedPeriod,
+    bulletinPeriod,
     tauxCommission,
   ]);
 
@@ -543,7 +615,8 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const totalArrieresNet = arrieresData.reduce((sum, a) => sum + a.net, 0);
 
   const ownerDeductions = deductions.filter(
-    (d) => d.proprietaireId === owner.id && d.periode === selectedPeriod,
+    (d) =>
+      d.proprietaireId === owner.id && isSamePeriod(d.periode, bulletinPeriod),
   );
   const ownerInvoices = invoices.filter(
     (inv) => inv.proprietaireId === owner.id && inv.statut !== "Payée",
@@ -582,6 +655,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     const cautions = displayPayments.filter((p) => {
       if (p.proprietaireId !== owner.id) return false;
       if (p.statut !== "Payé") return false;
+      if (!isSamePeriod(p.periode, bulletinPeriod)) return false;
       const obs = (p.observation || "").toLowerCase();
       return (
         obs.includes("caution") ||
@@ -595,7 +669,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       libelle: `CAUTION ${p.locataireNom.toUpperCase()}`,
       montant: p.montantPaye || 0,
     }));
-  }, [payments, owner]);
+  }, [displayPayments, owner, bulletinPeriod]);
 
   const totalEncaissement = encaissementsLignes.reduce(
     (sum, e) => sum + e.montant,
@@ -608,7 +682,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const agency = settings || agencySettings || null;
   const gerantNom = agency?.gerantNom || "Le Gérant";
   const gerantTitre = agency?.gerantTitre || "Gérant";
-  const moisEnMajuscules = selectedPeriod.toUpperCase();
+  const moisEnMajuscules = bulletinPeriod.toUpperCase();
 
   const dateNow = new Date();
   const dateFormatee = `${String(dateNow.getDate()).padStart(2, "0")}/${String(
@@ -623,7 +697,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     const newDeduction: OwnerDeduction = {
       id: crypto.randomUUID(),
       proprietaireId: owner.id,
-      periode: selectedPeriod,
+      periode: bulletinPeriod,
       typeDeduction: "AUTRE",
       libelle: deductionLibelle,
       montant: deductionMontant,
@@ -648,7 +722,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       reference: `BV-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`,
       proprietaireId: owner.id,
       proprietaireNom: `${owner.prenom} ${owner.nom}`,
-      periode: selectedPeriod,
+      periode: bulletinPeriod,
       tauxCommission,
       totalLoyersBruts: totalLoyer,
       totalCommission: totalLoyer - totalNet,
@@ -680,8 +754,24 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 Bulletin de Versement — {owner.prenom} {owner.nom}
               </h2>
               <p className="text-xs text-[#A8B4C4]">
-                Période : {selectedPeriod} · Taux : {tauxCommission}%
+                Période : {bulletinPeriod} · Taux : {tauxCommission}%
               </p>
+              <label className="mt-2 flex items-center gap-2 text-xs text-[#A8B4C4] print:hidden">
+                <span>Mois du bulletin</span>
+                <input
+                  type="month"
+                  aria-label="Mois du bulletin propriétaire"
+                  value={periodToInputValue(bulletinPeriod)}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      setBulletinPeriod(
+                        periodFromInputValue(event.target.value),
+                      );
+                    }
+                  }}
+                  className="rounded border border-[#C9A96E]/30 bg-[#1E2E45] px-2 py-1 text-white"
+                />
+              </label>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -902,10 +992,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                       {l.unitNom}
                     </td>
                     <td className="p-2 border border-neutral-700 text-right font-mono">
-                      {l.estNonPayeur ? "" : formatNumber(l.loyer)}
+                      {formatNumber(l.loyer)}
                     </td>
                     <td className="p-2 border border-neutral-700 text-right font-mono font-bold">
-                      {l.estNonPayeur ? "" : formatNumber(l.net)}
+                      {formatNumber(l.net)}
                     </td>
                     <td className="p-2 border border-neutral-700 italic text-[10px]">
                       <span className="print:hidden">
@@ -1157,7 +1247,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 <img
                   src={agency.cachetUrl}
                   alt="Cachet"
-                  className="h-20 object-contain"
+                  className="h-24 w-24 max-w-full object-contain"
                 />
               ) : (
                 <div className="h-20 border-b border-dotted border-neutral-500"></div>

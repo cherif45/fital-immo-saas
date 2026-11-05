@@ -2489,9 +2489,9 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:first-child
     [class*="text-[18px]"] {
-    font-size: 42px !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
-    letter-spacing: 0.15em !important;
+    letter-spacing: 0.05em !important;
   }
 
   body:has(.bulletin-print-modal)
@@ -2502,7 +2502,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:first-child
     [class*="text-[12px]"] {
-    font-size: 20px !important;
+    font-size: 12px !important;
     font-weight: 700 !important;
   }
 
@@ -2519,16 +2519,16 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     .bulletin-print-container
     > div:nth-child(2)
     .text-\[22px\] {
-    font-size: 32px !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
-    letter-spacing: 0.15em !important;
+    letter-spacing: 0.1em !important;
   }
 
   body:has(.bulletin-print-modal)
     .bulletin-print-container
     > div:nth-child(2)
     .text-\[13px\] {
-    font-size: 18px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     margin-top: 1.5mm !important;
   }
@@ -2819,7 +2819,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     padding: 0 !important;
   }
 
-  body *:not(:has(.daily-cash-report-modal)):not(.daily-cash-report-modal):not(.daily-cash-report-modal *) {
+  body:has(.daily-cash-report-modal) *:not(:has(.daily-cash-report-modal)):not(.daily-cash-report-modal):not(.daily-cash-report-modal *) {
     display: none !important;
   }
 
@@ -2866,7 +2866,7 @@ html.theme-light [class*="text-[#F0EDE8]"] {
     background: white !important;
   }
 
-  .daily-cash-report-modal .print\\:hidden {
+  .daily-cash-report-modal .print\:hidden {
     display: none !important;
   }
 }
