@@ -202,6 +202,7 @@ interface LoyerLigne {
   ordre: number;
   ref: string;
   unitId: string;
+  tenantId: string;
   unitNom: string;
   immeubleRef: string;
   immeubleNom: string;
@@ -352,6 +353,13 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   const [observationsSaisies, setObservationsSaisies] = useState<
     Record<string, string>
   >({});
+  const [montantsPersonnalises, setMontantsPersonnalises] = useState<{
+    periode: string;
+    valeurs: Record<string, { loyer?: string; net?: string }>;
+  }>({
+    periode: periodToInputValue(bulletinPeriod) || bulletinPeriod,
+    valeurs: {},
+  });
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
 
   const ownerProperties = displayProperties.filter(
@@ -507,6 +515,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       return {
         ref: refCourte,
         unitId,
+        tenantId: tenant.id,
         unitNom: bienLoue,
         immeubleRef,
         immeubleNom,
@@ -575,8 +584,62 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     tauxCommission,
   ]);
 
-  const totalLoyer = loyersData.reduce((sum, l) => sum + l.loyer, 0);
-  const totalNet = loyersData.reduce((sum, l) => sum + l.net, 0);
+  const bulletinPeriodKey = periodToInputValue(bulletinPeriod) || bulletinPeriod;
+  const getMontantPersonnalise = (
+    tenantId: string,
+    champ: "loyer" | "net",
+  ): string | undefined =>
+    montantsPersonnalises.periode === bulletinPeriodKey
+      ? montantsPersonnalises.valeurs[tenantId]?.[champ]
+      : undefined;
+  const getBulletinMontant = (
+    ligne: LoyerLigne,
+    champ: "loyer" | "net",
+  ): number => {
+    const saisie = getMontantPersonnalise(ligne.tenantId, champ);
+    if (saisie === undefined || saisie === "") return ligne[champ];
+    const montant = Number(saisie);
+    return Number.isSafeInteger(montant) && montant >= 0
+      ? montant
+      : ligne[champ];
+  };
+  const mettreAJourMontantPersonnalise = (
+    tenantId: string,
+    champ: "loyer" | "net",
+    valeur: string | undefined,
+  ) => {
+    setMontantsPersonnalises((current) => {
+      const valeurs =
+        current.periode === bulletinPeriodKey ? { ...current.valeurs } : {};
+      const montantsTenant = { ...valeurs[tenantId] };
+      if (valeur === undefined) {
+        delete montantsTenant[champ];
+      } else {
+        montantsTenant[champ] = valeur;
+      }
+
+      if (Object.keys(montantsTenant).length > 0) {
+        valeurs[tenantId] = montantsTenant;
+      } else {
+        delete valeurs[tenantId];
+      }
+
+      return { periode: bulletinPeriodKey, valeurs };
+    });
+  };
+  const calculerMontantAutomatique = (
+    champ: "loyer" | "net",
+  ): number => loyersData.reduce((sum, ligne) => sum + ligne[champ], 0);
+  const totalLoyerAutomatique = calculerMontantAutomatique("loyer");
+  const totalNetAutomatique = calculerMontantAutomatique("net");
+  const totalLoyer = loyersData.reduce(
+    (sum, ligne) => sum + getBulletinMontant(ligne, "loyer"),
+    0,
+  );
+  const totalNet = loyersData.reduce(
+    (sum, ligne) => sum + getBulletinMontant(ligne, "net"),
+    0,
+  );
 
   const arrieresData: ArriereLigne[] = useMemo(() => {
     const ownerPaymentsOtherPeriod = displayPayments.filter((p) => {
@@ -678,6 +741,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
   const netAReverser =
     totalNet + totalArrieresNet - totalDecaissement + totalEncaissement;
+  const netAReverserAutomatique =
+    totalNetAutomatique +
+    totalArrieresNet -
+    totalDecaissement +
+    totalEncaissement;
 
   const agency = settings || agencySettings || null;
   const gerantNom = agency?.gerantNom || "Le Gérant";
@@ -724,12 +792,12 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       proprietaireNom: `${owner.prenom} ${owner.nom}`,
       periode: bulletinPeriod,
       tauxCommission,
-      totalLoyersBruts: totalLoyer,
-      totalCommission: totalLoyer - totalNet,
+      totalLoyersBruts: totalLoyerAutomatique,
+      totalCommission: totalLoyerAutomatique - totalNetAutomatique,
       totalTvaCommission: 0,
       totalDecaissements: totalDecaissement,
       totalEncaissements: totalEncaissement,
-      netAReverser,
+      netAReverser: netAReverserAutomatique,
       statut: "Validé",
       dateValidation: new Date().toISOString().split("T")[0],
       createdById: currentUser?.id,
@@ -764,9 +832,14 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                   value={periodToInputValue(bulletinPeriod)}
                   onChange={(event) => {
                     if (event.target.value) {
-                      setBulletinPeriod(
-                        periodFromInputValue(event.target.value),
+                      const nextPeriod = periodFromInputValue(
+                        event.target.value,
                       );
+                      setBulletinPeriod(nextPeriod);
+                      setMontantsPersonnalises({
+                        periode: event.target.value,
+                        valeurs: {},
+                      });
                     }
                   }}
                   className="rounded border border-[#C9A96E]/30 bg-[#1E2E45] px-2 py-1 text-white"
@@ -992,10 +1065,104 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                       {l.unitNom}
                     </td>
                     <td className="p-2 border border-neutral-700 text-right font-mono">
-                      {formatNumber(l.loyer)}
+                      <div className="print:hidden flex items-center justify-end gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          aria-label={`Loyer en FCFA pour ${l.locataire}`}
+                          value={
+                            getMontantPersonnalise(l.tenantId, "loyer") ??
+                            String(l.loyer)
+                          }
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
+                            if (
+                              value === "" ||
+                              (/^\d+$/.test(value) &&
+                                Number.isSafeInteger(Number(value)))
+                            ) {
+                              mettreAJourMontantPersonnalise(
+                                l.tenantId,
+                                "loyer",
+                                value,
+                              );
+                            }
+                          }}
+                          className="w-24 rounded border border-neutral-300 px-1 py-0.5 text-right font-mono"
+                        />
+                        {getMontantPersonnalise(l.tenantId, "loyer") !==
+                          undefined && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              mettreAJourMontantPersonnalise(
+                                l.tenantId,
+                                "loyer",
+                                undefined,
+                              )
+                            }
+                            aria-label={`Rétablir le loyer automatique pour ${l.locataire}`}
+                            className="text-[9px] text-blue-700 underline"
+                          >
+                            Auto
+                          </button>
+                        )}
+                      </div>
+                      <span className="hidden print:block">
+                        {formatNumber(getBulletinMontant(l, "loyer"))}
+                      </span>
                     </td>
                     <td className="p-2 border border-neutral-700 text-right font-mono font-bold">
-                      {formatNumber(l.net)}
+                      <div className="print:hidden flex items-center justify-end gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          aria-label={`Net en FCFA pour ${l.locataire}`}
+                          value={
+                            getMontantPersonnalise(l.tenantId, "net") ??
+                            String(l.net)
+                          }
+                          onChange={(event) => {
+                            const value = event.currentTarget.value;
+                            if (
+                              value === "" ||
+                              (/^\d+$/.test(value) &&
+                                Number.isSafeInteger(Number(value)))
+                            ) {
+                              mettreAJourMontantPersonnalise(
+                                l.tenantId,
+                                "net",
+                                value,
+                              );
+                            }
+                          }}
+                          className="w-24 rounded border border-neutral-300 px-1 py-0.5 text-right font-mono font-bold"
+                        />
+                        {getMontantPersonnalise(l.tenantId, "net") !==
+                          undefined && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              mettreAJourMontantPersonnalise(
+                                l.tenantId,
+                                "net",
+                                undefined,
+                              )
+                            }
+                            aria-label={`Rétablir le net automatique pour ${l.locataire}`}
+                            className="text-[9px] text-blue-700 underline"
+                          >
+                            Auto
+                          </button>
+                        )}
+                      </div>
+                      <span className="hidden print:block">
+                        {formatNumber(getBulletinMontant(l, "net"))}
+                      </span>
                     </td>
                     <td className="p-2 border border-neutral-700 italic text-[10px]">
                       <div className="print:hidden">
