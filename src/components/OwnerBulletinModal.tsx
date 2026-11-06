@@ -36,6 +36,9 @@ interface OwnerBulletinModalProps {
   onSaveDeduction?: (deduction: OwnerDeduction) => void;
   onDeleteDeduction?: (deductionId: string) => void;
   onSaveBulletin?: (bulletin: BulletinVersement) => void;
+  onRequestPayment?: (period: string) => void;
+  isPaymentFormOpen?: boolean;
+  paymentRefreshKey?: number;
 }
 
 // ============================================================
@@ -256,6 +259,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   onSaveDeduction,
   onDeleteDeduction,
   onSaveBulletin,
+  onRequestPayment,
+  isPaymentFormOpen = false,
+  paymentRefreshKey = 0,
 }) => {
   const { settings: agencySettings } = useAgencySettings(currentUser?.agencyId);
   const [bulletinPeriod, setBulletinPeriod] = useState(selectedPeriod);
@@ -270,9 +276,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
 
   React.useEffect(() => {
     if (!currentUser?.agencyId || !owner?.id) return;
+    let cancelled = false;
     (async () => {
       try {
         const data = await getOwnerBulletinData(currentUser.agencyId, owner.id);
+        if (cancelled) return;
         const mappedPayments: Payment[] = (data.payments || []).map(
           (r: any) => ({
             ...r,
@@ -333,10 +341,13 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           })),
         );
       } catch (e) {
-        console.warn("loadBulletinData:", e);
+        if (!cancelled) console.warn("loadBulletinData:", e);
       }
     })();
-  }, [currentUser?.agencyId, owner?.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.agencyId, owner?.id, paymentRefreshKey]);
 
   const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
   const displayProperties =
@@ -809,7 +820,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      style={isPaymentFormOpen ? { display: "none" } : undefined}
+    >
       <div className="bulletin-print-modal bg-[#162133] border border-[#C9A96E]/30 rounded-3xl w-full max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header écran */}
         <div className="p-5 border-b border-[#C9A96E]/20 flex items-center justify-between bg-[#1E2E45]/80 sticky top-0 z-10 print:hidden">
@@ -1381,6 +1395,16 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               >
                 <Plus className="w-3.5 h-3.5" /> Ajouter décaissement
               </button>
+              {onRequestPayment && (
+                <button
+                  onClick={() =>
+                    onRequestPayment(periodToInputValue(bulletinPeriod))
+                  }
+                  className="mt-1 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Ajouter encaissement
+                </button>
+              )}
             </div>
           </div>
 

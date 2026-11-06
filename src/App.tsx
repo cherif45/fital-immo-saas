@@ -300,6 +300,14 @@ export default function App() {
   const [tenantExitTarget, setTenantExitTarget] = useState<Tenant | null>(null);
   const [initialTenantForPayment, setInitialTenantForPayment] =
     useState<Tenant | null>(null);
+  const [initialPeriodForPayment, setInitialPeriodForPayment] = useState<
+    string | null
+  >(null);
+  const [ownerBulletinPaymentReturnTab, setOwnerBulletinPaymentReturnTab] =
+    useState<ActiveTab | null>(null);
+  const [ownerBulletinPaymentRefreshKey, setOwnerBulletinPaymentRefreshKey] =
+    useState(0);
+  const ownerBulletinPaymentSaved = React.useRef(false);
   const [mobileMoneyModalConfig, setMobileMoneyModalConfig] = useState<{
     isOpen: boolean;
     tenantName?: string;
@@ -2514,6 +2522,8 @@ export default function App() {
     setActiveTab("reminders");
   };
   const handleOpenNewPaymentForTenant = (tenant?: Tenant) => {
+    setInitialPeriodForPayment(null);
+    setOwnerBulletinPaymentReturnTab(null);
     if (tenant) {
       setInitialTenantForPayment(tenant);
     } else {
@@ -2521,6 +2531,44 @@ export default function App() {
     }
     setIsNewPaymentModalOpen(true);
     setActiveTab("payments");
+  };
+  const handleOpenPaymentFromBulletin = (period: string) => {
+    ownerBulletinPaymentSaved.current = false;
+    setInitialTenantForPayment(null);
+    setInitialPeriodForPayment(period);
+    setOwnerBulletinPaymentReturnTab(activeTab);
+    setIsNewPaymentModalOpen(true);
+    setActiveTab("payments");
+  };
+  const handleSetNewPaymentModalOpen = (open: boolean) => {
+    setIsNewPaymentModalOpen(open);
+    if (!open && ownerBulletinPaymentReturnTab !== null) {
+      if (ownerBulletinPaymentSaved.current) {
+        ownerBulletinPaymentSaved.current = false;
+        return;
+      }
+      setActiveTab(ownerBulletinPaymentReturnTab);
+      setOwnerBulletinPaymentReturnTab(null);
+      setInitialPeriodForPayment(null);
+    }
+  };
+  const handleAddPaymentFromBulletin = async (
+    payment: Payment,
+  ): Promise<boolean> => {
+    const saved = await handleAddPayment(payment);
+    if (saved) {
+      ownerBulletinPaymentSaved.current = true;
+      setOwnerBulletinPaymentRefreshKey((key) => key + 1);
+    }
+    return saved;
+  };
+  const handleClosePaymentReceipt = () => {
+    setReceiptModalPayment(null);
+    if (ownerBulletinPaymentReturnTab !== null) {
+      setActiveTab(ownerBulletinPaymentReturnTab);
+      setOwnerBulletinPaymentReturnTab(null);
+      setInitialPeriodForPayment(null);
+    }
   };
   const handleOpenBulletinVersement = (owner: Owner) => {
     setOwnerBulletinModalOwner(owner);
@@ -3207,11 +3255,16 @@ export default function App() {
                 )}
                 currentUser={currentUser || undefined}
                 settings={agencySettings}
-                onAddPayment={handleAddPayment}
+                onAddPayment={
+                  ownerBulletinPaymentReturnTab !== null
+                    ? handleAddPaymentFromBulletin
+                    : handleAddPayment
+                }
                 onOpenReceipt={(payment) => setReceiptModalPayment(payment)}
                 isNewPaymentModalOpen={isNewPaymentModalOpen}
-                setIsNewPaymentModalOpen={setIsNewPaymentModalOpen}
+                setIsNewPaymentModalOpen={handleSetNewPaymentModalOpen}
                 initialTenantForPayment={initialTenantForPayment}
+                initialPeriodForPayment={initialPeriodForPayment}
                 onValidatePendingPayment={handleValidatePendingPayment}
                 onOpenTenantCharges={handleOpenTenantCharges}
               />
@@ -3482,7 +3535,7 @@ units={units}
             units={units}
             buildings={buildings}
             currentUser={currentUser}
-            onClose={() => setReceiptModalPayment(null)}
+            onClose={handleClosePaymentReceipt}
           />
         </ViewLoader>
       )}
@@ -3521,6 +3574,16 @@ units={units}
             onSaveDeduction={handleAddOwnerDeduction}
             onDeleteDeduction={handleDeleteOwnerDeduction}
             onSaveBulletin={handleSaveBulletinVersement}
+            onRequestPayment={
+              currentUser &&
+              ["ADMIN", "SUPER_ADMIN", "CAISSIER", "GESTIONNAIRE"].includes(
+                currentUser.role,
+              )
+                ? handleOpenPaymentFromBulletin
+                : undefined
+            }
+            isPaymentFormOpen={ownerBulletinPaymentReturnTab !== null}
+            paymentRefreshKey={ownerBulletinPaymentRefreshKey}
           />
         </ViewLoader>
       )}

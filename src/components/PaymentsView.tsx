@@ -65,6 +65,7 @@ interface PaymentsViewProps {
   isNewPaymentModalOpen: boolean;
   setIsNewPaymentModalOpen: (open: boolean) => void;
   initialTenantForPayment?: Tenant | null;
+  initialPeriodForPayment?: string | null;
   onValidatePendingPayment?: (paymentId: string) => void;
   onOpenTenantCharges?: (tenant?: Tenant) => void;
 }
@@ -82,6 +83,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   isNewPaymentModalOpen,
   setIsNewPaymentModalOpen,
   initialTenantForPayment,
+  initialPeriodForPayment,
   onValidatePendingPayment,
   onOpenTenantCharges,
 }) => {
@@ -180,9 +182,20 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [montantPaye, setMontantPaye] = useState<number>(0);
   // Stocke le mois au format YYYY-MM (ex: "2026-09")
   const [periodeMonth, setPeriodeMonth] = useState<string>(() => {
+    if (
+      initialPeriodForPayment &&
+      /^\d{4}-(0[1-9]|1[0-2])$/.test(initialPeriodForPayment)
+    ) {
+      return initialPeriodForPayment;
+    }
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+  React.useEffect(() => {
+    if (!initialPeriodForPayment) return;
+    setSelectedTenantId(initialTenantForPayment?.id || "");
+    setPeriodeMonth(initialPeriodForPayment);
+  }, [initialPeriodForPayment, initialTenantForPayment]);
 
   // Convertit "2026-09" → "septembre 2026" (format DB standard)
   const formatPeriodeFromMonth = (m: string): string => {
