@@ -44,7 +44,7 @@ export const ThemePreview: React.FC<ThemePreviewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--bg-primary, #0F1B2D)', color: 'var(--text-primary, #F0EDE8)' }}>
+    <div className="min-h-screen p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--bg-body)', color: 'var(--text-primary)' }}>
       {/* Header */}
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
@@ -146,8 +146,9 @@ const ThemePreviewCard: React.FC<ThemePreviewCardProps> = ({
   getRating,
 }) => {
   // Adapter la couleur selon le mode (règle WCAG)
-  const accentColor = mode === 'dark' ? accent.color : accent.color;
-  const accentText = mode === 'dark' ? accent.textColor : '#FFFFFF';
+  const accentColor = accent.color;
+  const accentText =
+    contrastRatio(accentColor, '#FFFFFF') >= 4.5 ? '#FFFFFF' : '#0F1B2D';
 
   const bgColor = mode === 'dark' ? '#0F1B2D' : '#F5F5F0';
   const cardBg = mode === 'dark' ? '#162133' : '#FFFFFF';

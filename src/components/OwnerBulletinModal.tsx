@@ -998,23 +998,24 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                       {formatNumber(l.net)}
                     </td>
                     <td className="p-2 border border-neutral-700 italic text-[10px]">
-                      <span className="print:hidden">
-                        <input
-                          type="text"
-                          value={observationsSaisies[l.unitId] || l.observation}
+                      <div className="print:hidden">
+                        <textarea
+                          rows={2}
+                          value={observationsSaisies[l.unitId] ?? l.observation}
                           onChange={(e) =>
                             setObservationsSaisies({
                               ...observationsSaisies,
                               [l.unitId]: e.target.value,
                             })
                           }
-                          className="w-full bg-transparent border-none outline-none text-[10px] italic"
-                          placeholder="—"
+                          aria-label={`Observation pour ${l.locataire}`}
+                          className="w-full resize-y bg-transparent border-none outline-none text-[10px] italic"
+                          placeholder="Ajouter une observation..."
                         />
-                      </span>
-                      <span className="hidden print:inline">
-                        {observationsSaisies[l.unitId] || l.observation}
-                      </span>
+                      </div>
+                      <div className="hidden print:block whitespace-pre-wrap break-words">
+                        {observationsSaisies[l.unitId] ?? l.observation}
+                      </div>
                     </td>
                   </tr>
                 ))

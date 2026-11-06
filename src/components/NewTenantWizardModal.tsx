@@ -304,25 +304,25 @@ export function NewTenantWizardModal({
   // ============================================================
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#141E30] border border-[#2A3447] text-[#F0EDE8] rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
+      <div className="bg-[#141E30] border border-[var(--border-primary)] text-[#F0EDE8] rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#2A3447]">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-primary)]">
           <div>
             <h2 className="text-lg font-bold text-[#F0EDE8] flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[#C9A96E]" />
               Assistant Nouveau Locataire (6 Étapes)
             </h2>
-            <p className="text-xs text-[#A0AEC0] mt-0.5">
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
               Fiche complète · Bail · Cautions · État des lieux
             </p>
           </div>
-          <button onClick={onClose} className="text-[#A0AEC0] hover:text-[#F0EDE8] cursor-pointer">
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[#F0EDE8] cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Step Indicator */}
-        <div className="bg-[#0A111D] px-6 py-3 border-b border-[#2A3447] flex justify-between items-center text-xs overflow-x-auto">
+        <div className="bg-[#0A111D] px-6 py-3 border-b border-[var(--border-primary)] flex justify-between items-center text-xs overflow-x-auto">
           {[
             { n: 1, label: 'Identité' },
             { n: 2, label: 'Bien' },
@@ -343,7 +343,7 @@ export function NewTenantWizardModal({
                     ? 'bg-[#C9A96E] text-[#0A111D]'
                     : step > s.n
                     ? 'bg-[#10B981] text-white'
-                    : 'bg-[#1E2C44] text-[#A0AEC0]'
+                    : 'bg-[var(--bg-card-hover)] text-[var(--text-secondary)]'
                 }`}
               >
                 {s.n}
@@ -365,24 +365,24 @@ export function NewTenantWizardModal({
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Prénom *</label>
-                  <input type="text" value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder="Ex: Ibrahima" className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Prénom *</label>
+                  <input type="text" value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder="Ex: Ibrahima" className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Nom de Famille *</label>
-                  <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex: BA" className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Nom de Famille *</label>
+                  <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex: BA" className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Téléphone *</label>
-                  <input type="text" value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+221 77 000 00 00" className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Téléphone *</label>
+                  <input type="text" value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+221 77 000 00 00" className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Email</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="locataire@email.com" className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Email</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="locataire@email.com" className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Type de Pièce</label>
-                  <select value={typePiece} onChange={(e) => setTypePiece(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none">
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Type de Pièce</label>
+                  <select value={typePiece} onChange={(e) => setTypePiece(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none">
                     <option value="CNI">CNI</option>
                     <option value="PASSEPORT">Passeport</option>
                     <option value="CARTE_CONSULAIRE">Carte Consulaire</option>
@@ -390,39 +390,39 @@ export function NewTenantWizardModal({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">N° de la Pièce</label>
-                  <input type="text" value={cni} onChange={(e) => setCni(e.target.value)} placeholder={typePiece === 'CNI' ? '1 254 1990 00214' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">N° de la Pièce</label>
+                  <input type="text" value={cni} onChange={(e) => setCni(e.target.value)} placeholder={typePiece === 'CNI' ? '1 254 1990 00214' : typePiece === 'PASSEPORT' ? 'SN1234567' : '...'} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Date de délivrance pièce</label>
-                  <input type="date" value={dateDelivrancePiece} onChange={(e) => setDateDelivrancePiece(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Date de délivrance pièce</label>
+                  <input type="date" value={dateDelivrancePiece} onChange={(e) => setDateDelivrancePiece(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Profession</label>
-                  <input type="text" value={profession} onChange={(e) => setProfession(e.target.value)} placeholder="Cadre, Ingénieur..." className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Profession</label>
+                  <input type="text" value={profession} onChange={(e) => setProfession(e.target.value)} placeholder="Cadre, Ingénieur..." className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Employeur</label>
-                  <input type="text" value={employeur} onChange={(e) => setEmployeur(e.target.value)} placeholder="Orange, Total..." className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Employeur</label>
+                  <input type="text" value={employeur} onChange={(e) => setEmployeur(e.target.value)} placeholder="Orange, Total..." className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Revenu Mensuel (FCFA)</label>
-                  <input type="number" value={revenuMensuel} onChange={(e) => setRevenuMensuel(Number(e.target.value))} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none font-mono" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Revenu Mensuel (FCFA)</label>
+                  <input type="number" value={revenuMensuel} onChange={(e) => setRevenuMensuel(Number(e.target.value))} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none font-mono" />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-[#2A3447]">
+              <div className="pt-3 border-t border-[var(--border-primary)]">
                 <h4 className="text-xs font-bold text-[#C9A96E] mb-2 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" /> Conjoint (optionnel)
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-[#A0AEC0] mb-1">Nom du conjoint</label>
-                    <input type="text" value={conjointNom} onChange={(e) => setConjointNom(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Nom du conjoint</label>
+                    <input type="text" value={conjointNom} onChange={(e) => setConjointNom(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#A0AEC0] mb-1">Téléphone conjoint</label>
-                    <input type="text" value={conjointTelephone} onChange={(e) => setConjointTelephone(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Téléphone conjoint</label>
+                    <input type="text" value={conjointTelephone} onChange={(e) => setConjointTelephone(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                   </div>
                 </div>
               </div>
@@ -449,10 +449,10 @@ export function NewTenantWizardModal({
                   {allVacantOptions.map((b: any) => {
                     const isUnitType = 'buildingId' in b;
                     return (
-                      <div key={b.id} onClick={() => setSelectedBienId(b.id)} className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${selectedBienId === b.id ? 'bg-[#C9A96E]/20 border-[#C9A96E]' : 'bg-[#0A111D] border-[#2A3447] hover:border-[#64748B]'}`}>
+                      <div key={b.id} onClick={() => setSelectedBienId(b.id)} className={`p-3.5 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${selectedBienId === b.id ? 'bg-[#C9A96E]/20 border-[#C9A96E]' : 'bg-[#0A111D] border-[var(--border-primary)] hover:border-[#64748B]'}`}>
                         <div>
                           <div className="font-semibold text-sm">{b.nom} {isUnitType && <span className="text-[10px] text-[#C9A96E]">({b.type})</span>}</div>
-                          <div className="text-xs text-[#A0AEC0]">{b.quartier || b.etage || ''}, {b.ville || ''} • Bailleur: {b.proprietaireNom || '—'}</div>
+                          <div className="text-xs text-[var(--text-secondary)]">{b.quartier || b.etage || ''}, {b.ville || ''} • Bailleur: {b.proprietaireNom || '—'}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-bold text-[#C9A96E]">{formatCurrencyFCFA(b.loyerBase || 0)}/m</div>
@@ -476,16 +476,16 @@ export function NewTenantWizardModal({
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Ref Locatif</label>
-                  <input type="text" value={refLocatif} onChange={(e) => setRefLocatif(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Ref Locatif</label>
+                  <input type="text" value={refLocatif} onChange={(e) => setRefLocatif(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Ref Période</label>
-                  <input type="text" value={refPeriode} onChange={(e) => setRefPeriode(e.target.value)} placeholder="Septembre 2026" className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Ref Période</label>
+                  <input type="text" value={refPeriode} onChange={(e) => setRefPeriode(e.target.value)} placeholder="Septembre 2026" className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Type Règlement</label>
-                  <select value={typeReglement} onChange={(e) => setTypeReglement(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none">
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Type Règlement</label>
+                  <select value={typeReglement} onChange={(e) => setTypeReglement(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none">
                     <option value="MENSUEL">MENSUEL</option>
                     <option value="TRIMESTRIEL">TRIMESTRIEL</option>
                     <option value="SEMESTRIEL">SEMESTRIEL</option>
@@ -496,16 +496,16 @@ export function NewTenantWizardModal({
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Date Contrat</label>
-                  <input type="date" value={dateContrat} onChange={(e) => setDateContrat(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Date Contrat</label>
+                  <input type="date" value={dateContrat} onChange={(e) => setDateContrat(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Début Contrat</label>
-                  <input type="date" value={debutContrat} onChange={(e) => setDebutContrat(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Début Contrat</label>
+                  <input type="date" value={debutContrat} onChange={(e) => setDebutContrat(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Nombre de mois</label>
-                  <input type="number" value={nombreMois} onChange={(e) => setNombreMois(Number(e.target.value))} min={1} max={36} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Nombre de mois</label>
+                  <input type="number" value={nombreMois} onChange={(e) => setNombreMois(Number(e.target.value))} min={1} max={36} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
               </div>
 
@@ -517,15 +517,15 @@ export function NewTenantWizardModal({
                     <input type="number" value={lb} onChange={(e) => setLb(Number(e.target.value))} className="w-full px-3 py-2 bg-[#141E30] border border-[#C9A96E] rounded-xl text-base font-mono font-bold text-[#F0EDE8] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#A0AEC0] mb-1">Montant Location (= LB)</label>
-                    <input type="text" value={formatCurrencyFCFA(montantLocation)} readOnly className="w-full px-3 py-2 bg-[#141E30]/60 border border-[#2A3447] rounded-xl text-base font-mono font-bold text-amber-300 cursor-not-allowed" />
+                    <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Montant Location (= LB)</label>
+                    <input type="text" value={formatCurrencyFCFA(montantLocation)} readOnly className="w-full px-3 py-2 bg-[#141E30]/60 border border-[var(--border-primary)] rounded-xl text-base font-mono font-bold text-amber-300 cursor-not-allowed" />
                   </div>
                 </div>
 
                 {/* TOM / TVA / TLV en SAISIE MANUELLE avec bouton calcul */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-[#A0AEC0]">TAXES (saisie manuelle)</span>
+                    <span className="text-xs font-bold text-[var(--text-secondary)]">TAXES (saisie manuelle)</span>
                     <button
                       type="button"
                       onClick={handleCalculerTaxes}
@@ -537,16 +537,16 @@ export function NewTenantWizardModal({
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[10px] text-[#A0AEC0] mb-1">TOM</label>
-                      <input type="number" value={tomManuel} onChange={(e) => setTomManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
+                      <label className="block text-[10px] text-[var(--text-secondary)] mb-1">TOM</label>
+                      <input type="number" value={tomManuel} onChange={(e) => setTomManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[#A0AEC0] mb-1">TVA</label>
-                      <input type="number" value={tvaManuel} onChange={(e) => setTvaManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
+                      <label className="block text-[10px] text-[var(--text-secondary)] mb-1">TVA</label>
+                      <input type="number" value={tvaManuel} onChange={(e) => setTvaManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[#A0AEC0] mb-1">TLV</label>
-                      <input type="number" value={tlvManuel} onChange={(e) => setTlvManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
+                      <label className="block text-[10px] text-[var(--text-secondary)] mb-1">TLV</label>
+                      <input type="number" value={tlvManuel} onChange={(e) => setTlvManuel(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm font-mono text-amber-300 focus:border-[#C9A96E] focus:outline-none" />
                     </div>
                   </div>
                 </div>
@@ -569,32 +569,32 @@ export function NewTenantWizardModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Montant Caution</label>
-                  <input type="number" value={montantCaution} onChange={(e) => setMontantCaution(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Montant Caution</label>
+                  <input type="number" value={montantCaution} onChange={(e) => setMontantCaution(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Acompte Caution</label>
-                  <input type="number" value={acompteCaution} onChange={(e) => setAcompteCaution(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Acompte Caution</label>
+                  <input type="number" value={acompteCaution} onChange={(e) => setAcompteCaution(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Montant Commission</label>
-                  <input type="number" value={montantCommission} onChange={(e) => setMontantCommission(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Montant Commission</label>
+                  <input type="number" value={montantCommission} onChange={(e) => setMontantCommission(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Avance Loyer</label>
-                  <input type="number" value={lb} readOnly min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Avance Loyer</label>
+                  <input type="number" value={lb} readOnly min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Caution Eau</label>
-                  <input type="number" value={cautionEau} onChange={(e) => setCautionEau(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Caution Eau</label>
+                  <input type="number" value={cautionEau} onChange={(e) => setCautionEau(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Caution Électricité</label>
-                  <input type="number" value={cautionElectricite} onChange={(e) => setCautionElectricite(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Caution Électricité</label>
+                  <input type="number" value={cautionElectricite} onChange={(e) => setCautionElectricite(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Charges Diverses</label>
-                  <input type="number" value={chargesDiverses} onChange={(e) => setChargesDiverses(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Charges Diverses</label>
+                  <input type="number" value={chargesDiverses} onChange={(e) => setChargesDiverses(Number(e.target.value))} min={0} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm font-mono focus:border-[#C9A96E] focus:outline-none" />
                 </div>
               </div>
             </div>
@@ -609,21 +609,21 @@ export function NewTenantWizardModal({
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">Agent Responsable</label>
-                  <input type="text" value={agentNom} onChange={(e) => setAgentNom(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Agent Responsable</label>
+                  <input type="text" value={agentNom} onChange={(e) => setAgentNom(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#A0AEC0] mb-1">État général</label>
-                  <input type="text" value={etatGeneral} onChange={(e) => setEtatGeneral(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">État général</label>
+                  <input type="text" value={etatGeneral} onChange={(e) => setEtatGeneral(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-[#A0AEC0] mb-1">Compteur Eau</label>
-                    <input type="text" value={compteurEau} onChange={(e) => setCompteurEau(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Compteur Eau</label>
+                    <input type="text" value={compteurEau} onChange={(e) => setCompteurEau(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#A0AEC0] mb-1">Compteur Électrique</label>
-                    <input type="text" value={compteurElec} onChange={(e) => setCompteurElec(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
+                    <label className="block text-xs text-[var(--text-secondary)] mb-1">Compteur Électrique</label>
+                    <input type="text" value={compteurElec} onChange={(e) => setCompteurElec(e.target.value)} className="w-full px-3 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none" />
                   </div>
                 </div>
               </div>
@@ -638,33 +638,33 @@ export function NewTenantWizardModal({
                 Étape 6 : Récapitulatif
               </h3>
 
-              <div className="p-4 bg-[#0A111D] rounded-xl border border-[#2A3447] text-xs space-y-2">
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Locataire :</span><span className="font-bold">{prenom} {nom.toUpperCase()}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Téléphone :</span><span className="font-mono">{telephone}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Type pièce :</span><span className="font-mono">{typePiece}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">N° pièce :</span><span className="font-mono">{cni || '—'}</span></div>
+              <div className="p-4 bg-[#0A111D] rounded-xl border border-[var(--border-primary)] text-xs space-y-2">
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Locataire :</span><span className="font-bold">{prenom} {nom.toUpperCase()}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Téléphone :</span><span className="font-mono">{telephone}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Type pièce :</span><span className="font-mono">{typePiece}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">N° pièce :</span><span className="font-mono">{cni || '—'}</span></div>
                 {dateDelivrancePiece && (
-                  <div className="flex justify-between"><span className="text-[#A0AEC0]">Délivrée le :</span><span className="font-mono">{dateDelivrancePiece}</span></div>
+                  <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Délivrée le :</span><span className="font-mono">{dateDelivrancePiece}</span></div>
                 )}
-                <hr className="border-[#2A3447] my-2" />
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Bien :</span><span className="font-bold text-[#C9A96E]">{selectedBien?.nom}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Ref contrat :</span><span className="font-mono">{refLocatif}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Type règlement :</span><span className="font-bold">{typeReglement}</span></div>
-                <hr className="border-[#2A3447] my-2" />
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">LB (Loyer Base) :</span><span className="font-mono font-bold text-[#10B981]">{formatCurrencyFCFA(lb)}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">Caution :</span><span className="font-mono font-bold text-[#E8D5B0]">{formatCurrencyFCFA(montantCaution)}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">TOM :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tomManuel)}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">TVA :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tvaManuel)}</span></div>
-                <div className="flex justify-between"><span className="text-[#A0AEC0]">TLV :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tlvManuel)}</span></div>
+                <hr className="border-[var(--border-primary)] my-2" />
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Bien :</span><span className="font-bold text-[#C9A96E]">{selectedBien?.nom}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Ref contrat :</span><span className="font-mono">{refLocatif}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Type règlement :</span><span className="font-bold">{typeReglement}</span></div>
+                <hr className="border-[var(--border-primary)] my-2" />
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">LB (Loyer Base) :</span><span className="font-mono font-bold text-[#10B981]">{formatCurrencyFCFA(lb)}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Caution :</span><span className="font-mono font-bold text-[#E8D5B0]">{formatCurrencyFCFA(montantCaution)}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">TOM :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tomManuel)}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">TVA :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tvaManuel)}</span></div>
+                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">TLV :</span><span className="font-mono text-amber-300">{formatCurrencyFCFA(tlvManuel)}</span></div>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-5 bg-[#0A111D] border-t border-[#2A3447] flex justify-between items-center">
+        <div className="p-5 bg-[#0A111D] border-t border-[var(--border-primary)] flex justify-between items-center">
           {step > 1 ? (
-            <button onClick={() => setStep((p) => p - 1)} className="px-4 py-2 bg-[#141E30] hover:bg-[#1E2C44] text-[#A0AEC0] rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+            <button onClick={() => setStep((p) => p - 1)} className="px-4 py-2 bg-[#141E30] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
               <ChevronLeft className="w-4 h-4" /> Précédent
             </button>
           ) : <div />}

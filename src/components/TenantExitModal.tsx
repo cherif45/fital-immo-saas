@@ -82,101 +82,101 @@ export function TenantExitModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#141E30] border border-[#2A3447] text-[#F0EDE8] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scale-in">
-        <div className="flex items-center justify-between p-5 border-b border-[#2A3447]">
+      <div className="bg-[#141E30] border border-[var(--border-primary)] text-[#F0EDE8] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scale-in">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-primary)]">
           <div className="flex items-center gap-2.5">
             <LogOut className="w-5 h-5 text-[#EF4444]" />
             <h2 className="text-lg font-bold text-[#F0EDE8]">
               Départ & Extraction Locataire
             </h2>
           </div>
-          <button onClick={onClose} className="text-[#A0AEC0] hover:text-[#F0EDE8] cursor-pointer">
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[#F0EDE8] cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="p-4 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs space-y-1.5">
+          <div className="p-4 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-[#A0AEC0]">Locataire Sortant :</span>
+              <span className="text-[var(--text-secondary)]">Locataire Sortant :</span>
               <span className="font-bold text-[#F0EDE8]">{tenant.prenom} {tenant.nom}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#A0AEC0]">Logement Libéré :</span>
+              <span className="text-[var(--text-secondary)]">Logement Libéré :</span>
               <span className="font-bold text-[#C9A96E]">{tenant.bienNom}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#A0AEC0]">Impact sur le Bien :</span>
+              <span className="text-[var(--text-secondary)]">Impact sur le Bien :</span>
               <span className="font-bold text-[#10B981]">Repasse au statut « Vacant »</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-[#A0AEC0] mb-1.5">
+            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1.5">
               Date Effective de Sortie / Remise des Clés
             </label>
             <input
               type="date"
               value={dateSortie}
               onChange={(e) => setDateSortie(e.target.value)}
-              className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
+              className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#A0AEC0] mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1.5">
                 Dépôt Caution Initial
               </label>
               <input
                 type="number"
                 value={cautionInitiale}
                 onChange={(e) => setCautionInitiale(Number(e.target.value))}
-                className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
+                className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#A0AEC0] mb-1.5">
+              <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1.5">
                 Coût Dégradations
               </label>
               <input
                 type="number"
                 value={coutDegradations}
                 onChange={(e) => setCoutDegradations(Number(e.target.value))}
-                className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
+                className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-[#A0AEC0] mb-1.5">
+            <label className="block text-xs font-semibold uppercase text-[var(--text-secondary)] mb-1.5">
               Observations État des Lieux de Sortie
             </label>
             <textarea
               rows={2}
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
+              className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-sm focus:border-[#C9A96E] focus:outline-none"
             />
           </div>
 
           {/* Balance Calculation */}
           <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl space-y-1.5 text-xs">
-            <div className="flex justify-between text-[#A0AEC0]">
+            <div className="flex justify-between text-[var(--text-secondary)]">
               <span>Retenue pour réparations :</span>
               <span className="text-[#EF4444] font-bold">- {formatCurrencyFCFA(retenue)}</span>
             </div>
-            <div className="flex justify-between text-sm font-bold text-emerald-400 pt-1 border-t border-[#2A3447]">
+            <div className="flex justify-between text-sm font-bold text-emerald-400 pt-1 border-t border-[var(--border-primary)]">
               <span>Solde Caution à Restituer au Locataire :</span>
               <span>{formatCurrencyFCFA(restitution)}</span>
             </div>
           </div>
         </div>
 
-        <div className="p-5 bg-[#0A111D] border-t border-[#2A3447] flex justify-between items-center">
+        <div className="p-5 bg-[#0A111D] border-t border-[var(--border-primary)] flex justify-between items-center">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[#141E30] hover:bg-[#1E2C44] text-[#A0AEC0] rounded-xl text-xs font-semibold cursor-pointer"
+            className="px-4 py-2 bg-[#141E30] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] rounded-xl text-xs font-semibold cursor-pointer"
           >
             Annuler
           </button>

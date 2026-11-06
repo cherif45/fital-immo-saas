@@ -667,7 +667,7 @@ export const TenantChargesModal: React.FC<TenantChargesModalProps> = ({
                     </tr>
                   ) : (
                     filteredCharges.map((c) => (
-                      <tr key={c.id} className="hover:bg-[#1C2C44]/40 transition-colors">
+                      <tr key={c.id} className="hover:bg-[var(--bg-card-hover)]/40 transition-colors">
                         <td className="py-3 px-4">
                           <div className="font-bold text-white">
                             {c.dateOperation ? formatDate(c.dateOperation) : "—"}

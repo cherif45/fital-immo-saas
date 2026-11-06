@@ -43,18 +43,35 @@ const getAgencyLoginRoute = (): {
 const safeThemeColor = (value: string | undefined, fallback: string): string =>
   value && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
 
-const getContrastColor = (hexColor: string): string => {
-  const channels = hexColor
-    .slice(1)
-    .match(/.{2}/g)
-    ?.map((channel) => parseInt(channel, 16) / 255);
-  if (!channels || channels.length !== 3) return "#0F1B2D";
-  const [red, green, blue] = channels.map((channel) =>
-    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+const getContrastRatio = (foreground: string, background: string): number => {
+  const luminance = (hexColor: string): number => {
+    const channels = hexColor
+      .slice(1)
+      .match(/.{2}/g)
+      ?.map((channel) => parseInt(channel, 16) / 255);
+    if (!channels || channels.length !== 3) return 0;
+    const [red, green, blue] = channels.map((channel) =>
+      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+    );
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  };
+  const values = [luminance(foreground), luminance(background)].sort(
+    (a, b) => b - a,
   );
-  return 0.2126 * red + 0.7152 * green + 0.0722 * blue > 0.45
-    ? "#0F1B2D"
-    : "#FFFFFF";
+  return (values[0] + 0.05) / (values[1] + 0.05);
+};
+
+const getContrastColor = (hexColor: string): string => {
+  const dark = "#000000";
+  const light = "#FFFFFF";
+  return getContrastRatio(dark, hexColor) >= getContrastRatio(light, hexColor)
+    ? dark
+    : light;
+};
+
+const getReadableColor = (preferred: string, background: string): string => {
+  if (getContrastRatio(preferred, background) >= 4.5) return preferred;
+  return getContrastColor(background);
 };
 
 interface LoginViewProps {
@@ -143,6 +160,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const textColor = safeThemeColor(agencyBranding?.textColor, "#F0EDE8");
   const mutedColor = safeThemeColor(agencyBranding?.mutedColor, "#A8B4C4");
   const contrastColor = getContrastColor(brandColor);
+  const pageTextColor = getReadableColor(textColor, backgroundColor);
+  const cardTextColor = getReadableColor(textColor, cardColor);
+  const surfaceTextColor = getReadableColor(textColor, surfaceColor);
+  const cardMutedColor = getReadableColor(mutedColor, cardColor);
+  const surfaceMutedColor = getReadableColor(mutedColor, surfaceColor);
+  const cardBrandColor = getReadableColor(brandColor, cardColor);
+  const surfaceBrandColor = getReadableColor(brandColor, surfaceColor);
 
   const runConnectionDiagnostic = async () => {
     setIsCheckingHealth(true);
@@ -406,7 +430,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   return (
     <div
       className="min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 font-sans antialiased"
-      style={{ backgroundColor, color: textColor }}
+      style={{ backgroundColor, color: pageTextColor }}
     >
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
@@ -424,7 +448,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         style={{
           backgroundColor: cardColor,
           borderColor: `${brandColor}4D`,
-          color: textColor,
+          color: cardTextColor,
         }}
       >
         <div className="text-center mb-6">
@@ -454,7 +478,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       : "Aucun logo défini"
                   }
                   className="text-2xl font-black"
-                  style={{ color: brandColor }}
+                  style={{ color: surfaceBrandColor }}
                 >
                   {agencyBranding?.name.trim().charAt(0).toUpperCase() || "?"}
                 </span>
@@ -472,7 +496,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
             (agencyLogoError || !agencyBranding.logoUrl) && (
               <p
                 className="mt-1 text-[10px]"
-                style={{ color: agencyLogoError ? "#FDA4AF" : mutedColor }}
+                style={{
+                  color: getReadableColor(
+                    agencyLogoError ? "#FDA4AF" : mutedColor,
+                    cardColor,
+                  ),
+                }}
               >
                 {agencyLogoError
                   ? "Logo inaccessible : vérifiez l'URL publique et le bucket agency-logos."
@@ -481,13 +510,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
             )}
           <h1
             className="text-2xl font-black tracking-tight"
-            style={{ color: textColor }}
+            style={{ color: cardTextColor }}
           >
             {agencyRoute.isAgencyRoute
               ? agencyBranding?.name || "Connexion agence"
               : "Agence"}
           </h1>
-          <p className="text-xs mt-1 font-medium" style={{ color: mutedColor }}>
+          <p className="text-xs mt-1 font-medium" style={{ color: cardMutedColor }}>
             {agencyBranding?.slogan ||
               "Plateforme Professionnelle de Gestion Locative & Loyers"}
           </p>
@@ -507,7 +536,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 : {
                     backgroundColor: surfaceColor,
                     borderColor: `${brandColor}33`,
-                    color: mutedColor,
+                    color: surfaceMutedColor,
                   }
             }
           >
@@ -528,7 +557,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <div className="flex items-center justify-between">
             <span
               className="font-medium flex items-center gap-1.5"
-              style={{ color: textColor }}
+              style={{ color: surfaceTextColor }}
             >
               <Globe className="w-3.5 h-3.5" style={{ color: brandColor }} />
               Statut du service :
@@ -548,7 +577,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
             <span
               className="truncate max-w-[240px]"
-              style={{ color: mutedColor }}
+              style={{ color: surfaceMutedColor }}
             >
               {isSupabaseConfigured
                 ? "Accès sécurisé multi-utilisateurs"
@@ -559,7 +588,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               onClick={runConnectionDiagnostic}
               disabled={isCheckingHealth}
               className="font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
-              style={{ color: brandColor }}
+              style={{ color: surfaceBrandColor }}
             >
               <RefreshCw
                 className={`w-3 h-3 ${isCheckingHealth ? "animate-spin" : ""}`}
@@ -589,12 +618,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
         >
           <h2
             className="text-base font-bold flex items-center justify-center gap-2"
-            style={{ color: textColor }}
+            style={{ color: cardTextColor }}
           >
             <ShieldCheck className="w-4 h-4" style={{ color: brandColor }} />
             Connexion à votre Espace
           </h2>
-          <p className="text-[11px] mt-0.5" style={{ color: mutedColor }}>
+          <p className="text-[11px] mt-0.5" style={{ color: cardMutedColor }}>
             Accédez à vos données selon vos identifiants
           </p>
         </div>
@@ -604,14 +633,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <div>
               <label
                 className="block text-xs font-semibold mb-1"
-                style={{ color: textColor }}
+                style={{ color: cardTextColor }}
               >
                 Adresse email associée à votre compte
               </label>
               <div className="relative">
                 <Mail
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: mutedColor }}
+                  style={{ color: surfaceMutedColor }}
                 />
                 <input
                   type="email"
@@ -623,7 +652,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   style={{
                     backgroundColor: surfaceColor,
                     borderColor: `${brandColor}55`,
-                    color: textColor,
+                    color: surfaceTextColor,
                   }}
                 />
               </div>
@@ -650,7 +679,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   setErrorMsg(null);
                 }}
                 className="text-xs hover:underline cursor-pointer"
-                style={{ color: brandColor }}
+                style={{ color: cardBrandColor }}
               >
                 Retour à la connexion
               </button>
@@ -661,14 +690,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <div>
               <label
                 className="block text-xs font-semibold mb-1"
-                style={{ color: textColor }}
+                style={{ color: cardTextColor }}
               >
                 Adresse Email Professionnelle ou Personnelle
               </label>
               <div className="relative">
                 <Mail
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: mutedColor }}
+                  style={{ color: surfaceMutedColor }}
                 />
                 <input
                   type="email"
@@ -680,7 +709,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   style={{
                     backgroundColor: surfaceColor,
                     borderColor: `${brandColor}55`,
-                    color: textColor,
+                    color: surfaceTextColor,
                   }}
                 />
               </div>
@@ -690,7 +719,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div className="flex justify-between items-center mb-1">
                 <label
                   className="block text-xs font-semibold"
-                  style={{ color: textColor }}
+                  style={{ color: cardTextColor }}
                 >
                   Mot de passe
                 </label>
@@ -698,7 +727,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   type="button"
                   onClick={() => setIsForgotPassword(true)}
                   className="text-[11px] hover:underline cursor-pointer"
-                  style={{ color: brandColor }}
+                  style={{ color: cardBrandColor }}
                 >
                   Mot de passe oublié ?
                 </button>
@@ -706,7 +735,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div className="relative">
                 <Lock
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: mutedColor }}
+                  style={{ color: surfaceMutedColor }}
                 />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -718,14 +747,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   style={{
                     backgroundColor: surfaceColor,
                     borderColor: `${brandColor}55`,
-                    color: textColor,
+                    color: surfaceTextColor,
                   }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                  style={{ color: mutedColor }}
+                  style={{ color: surfaceMutedColor }}
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -748,14 +777,15 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   ? ""
                   : "bg-gradient-to-r from-[#C9A96E] to-[#A07840] shadow-[#C9A96E]/20 hover:shadow-[#C9A96E]/40"
               }`}
-              style={
-                agencyBranding
+              style={{
+                color: contrastColor,
+                ...(agencyBranding
                   ? {
                       backgroundColor: brandColor,
                       boxShadow: `0 10px 24px ${brandColor}33`,
                     }
-                  : undefined
-              }
+                  : {}),
+              }}
             >
               {loading ? (
                 <>

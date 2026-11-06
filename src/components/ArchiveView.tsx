@@ -406,8 +406,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         <div
           className={`rounded-xl border px-4 py-3 text-xs ${
             activityError
-              ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
-              : 'border-sky-500/30 bg-sky-500/10 text-sky-200'
+              ? 'border-rose-500/30 bg-rose-500/10 text-[var(--text-secondary)]'
+              : 'border-sky-500/30 bg-sky-500/10 text-[var(--text-secondary)]'
           }`}
         >
           {activityError

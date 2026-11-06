@@ -151,20 +151,20 @@ export function ReportsView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A3447] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-primary)] pb-5">
         <div>
           <h1 className="text-2xl font-bold text-[#F0EDE8] tracking-tight flex items-center gap-2.5">
             <FileText className="w-7 h-7 text-[#C9A96E]" />
             Rapports & Audit Financier
           </h1>
-          <p className="text-sm text-[#A0AEC0] mt-1">
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
             Génération des états périodiques, balances des impayés, états de vacance et décomptes de gérance.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2.5 bg-[#141E30] hover:bg-[#1E2C44] border border-[#2A3447] text-[#E8D5B0] rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+            className="px-4 py-2.5 bg-[#141E30] hover:bg-[var(--bg-card-hover)] border border-[var(--border-primary)] text-[#E8D5B0] rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <Download className="w-4 h-4 text-[#C9A96E]" />
             Exporter CSV
@@ -181,51 +181,51 @@ export function ReportsView({
 
       {/* Quick Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-2">
+        <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
             <span>Taux de Recouvrement</span>
             <PieChart className="w-4 h-4 text-[#10B981]" />
           </div>
           <p className="text-2xl font-bold text-[#10B981]">{collectionRate}%</p>
-          <p className="text-xs text-[#A0AEC0] mt-1">{formatCurrencyFCFA(totalPaidAmount)} encaissés</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">{formatCurrencyFCFA(totalPaidAmount)} encaissés</p>
         </div>
 
-        <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-2">
+        <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
             <span>Total Impayés & Retards</span>
             <TrendingDown className="w-4 h-4 text-[#EF4444]" />
           </div>
           <p className="text-2xl font-bold text-[#EF4444]">{formatCurrencyFCFA(totalUnpaidAmount)}</p>
-          <p className="text-xs text-[#A0AEC0] mt-1">{unpaidTenants.length} locataire(s) en souffrance</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">{unpaidTenants.length} locataire(s) en souffrance</p>
         </div>
 
-        <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-2">
+        <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
             <span>Commissions Agence</span>
             <DollarSign className="w-4 h-4 text-[#C9A96E]" />
           </div>
           <p className="text-2xl font-bold text-[#C9A96E]">{formatCurrencyFCFA(totalCommissions)}</p>
-          <p className="text-xs text-[#A0AEC0] mt-1">Sur loyers perçus (taux 8-10%)</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">Sur loyers perçus (taux 8-10%)</p>
         </div>
 
-        <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl p-5 shadow-lg">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-2">
+        <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl p-5 shadow-lg">
+          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
             <span>Biens Vacants</span>
             <Building className="w-4 h-4 text-[#F59E0B]" />
           </div>
           <p className="text-2xl font-bold text-[#F59E0B]">{vacantProperties.length} lot(s)</p>
-          <p className="text-xs text-[#A0AEC0] mt-1">Perte potentielle : {formatCurrencyFCFA(totalVacantRentPotential)}/mois</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">Perte potentielle : {formatCurrencyFCFA(totalVacantRentPotential)}/mois</p>
         </div>
       </div>
 
       {/* Navigation Pills for Report Types */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#2A3447] pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-primary)] pb-3">
         <button
           onClick={() => setReportType('unpaid')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
             reportType === 'unpaid'
               ? 'bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444]'
-              : 'bg-[#141E30] text-[#A0AEC0] hover:text-[#F0EDE8]'
+              : 'bg-[#141E30] text-[var(--text-secondary)] hover:text-[#F0EDE8]'
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
@@ -237,7 +237,7 @@ export function ReportsView({
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
             reportType === 'paid'
               ? 'bg-[#10B981]/20 border border-[#10B981]/40 text-[#10B981]'
-              : 'bg-[#141E30] text-[#A0AEC0] hover:text-[#F0EDE8]'
+              : 'bg-[#141E30] text-[var(--text-secondary)] hover:text-[#F0EDE8]'
           }`}
         >
           <CheckCircle2 className="w-4 h-4" />
@@ -249,7 +249,7 @@ export function ReportsView({
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
             reportType === 'vacant'
               ? 'bg-[#F59E0B]/20 border border-[#F59E0B]/40 text-[#F59E0B]'
-              : 'bg-[#141E30] text-[#A0AEC0] hover:text-[#F0EDE8]'
+              : 'bg-[#141E30] text-[var(--text-secondary)] hover:text-[#F0EDE8]'
           }`}
         >
           <Building className="w-4 h-4" />
@@ -261,7 +261,7 @@ export function ReportsView({
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
             reportType === 'agency_management'
               ? 'bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E]'
-              : 'bg-[#141E30] text-[#A0AEC0] hover:text-[#F0EDE8]'
+              : 'bg-[#141E30] text-[var(--text-secondary)] hover:text-[#F0EDE8]'
           }`}
         >
           <DollarSign className="w-4 h-4" />
@@ -270,10 +270,10 @@ export function ReportsView({
       </div>
 
       {/* Period Selector (P2: Aujourd'hui, Cette semaine, Ce mois, Personnalisé) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#141E30]/60 border border-[#2A3447] rounded-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#141E30]/60 border border-[var(--border-primary)] rounded-xl">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-[#C9A96E]" />
-          <span className="text-xs font-semibold text-[#A0AEC0] uppercase tracking-wider">Période :</span>
+          <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Période :</span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {(
@@ -300,20 +300,20 @@ export function ReportsView({
         </div>
 
         {periodFilter === 'custom' && (
-          <div className="flex items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2A3447]/50">
-            <span className="text-xs text-[#A0AEC0]">Du</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-primary)]/50">
+            <span className="text-xs text-[var(--text-secondary)]">Du</span>
             <input
               type="date"
               value={customStartDate}
               onChange={(e) => setCustomStartDate(e.target.value)}
-              className="px-2.5 py-1 bg-[#0A111D] border border-[#2A3447] rounded-lg text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+              className="px-2.5 py-1 bg-[#0A111D] border border-[var(--border-primary)] rounded-lg text-xs text-white focus:outline-none focus:border-[#C9A96E]"
             />
-            <span className="text-xs text-[#A0AEC0]">Au</span>
+            <span className="text-xs text-[var(--text-secondary)]">Au</span>
             <input
               type="date"
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
-              className="px-2.5 py-1 bg-[#0A111D] border border-[#2A3447] rounded-lg text-xs text-white focus:outline-none focus:border-[#C9A96E]"
+              className="px-2.5 py-1 bg-[#0A111D] border border-[var(--border-primary)] rounded-lg text-xs text-white focus:outline-none focus:border-[#C9A96E]"
             />
           </div>
         )}
@@ -322,20 +322,20 @@ export function ReportsView({
       {/* Filter / Search Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0AEC0]" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
             type="text"
             placeholder="Filtrer par nom de locataire, propriétaire, référence ou quartier..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] placeholder-[#64748B] focus:outline-none focus:border-[#C9A96E]"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm text-[#F0EDE8] placeholder-[#64748B] focus:outline-none focus:border-[#C9A96E]"
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={selectedOwnerId}
             onChange={(e) => setSelectedOwnerId(e.target.value)}
-            className="px-3.5 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:outline-none focus:border-[#C9A96E]"
+            className="px-3.5 py-2.5 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm text-[#F0EDE8] focus:outline-none focus:border-[#C9A96E]"
           >
             <option value="all">Tous les propriétaires</option>
             {owners.map((o) => (
@@ -348,11 +348,11 @@ export function ReportsView({
       </div>
 
       {/* Tab Content Display */}
-      <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl overflow-hidden shadow-xl">
         {reportType === 'unpaid' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[#F0EDE8]">
-              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[#A0AEC0] border-b border-[#2A3447]">
+              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-primary)]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Locataire</th>
                   <th className="py-3.5 px-4 font-semibold">Logement</th>
@@ -363,7 +363,7 @@ export function ReportsView({
                   <th className="py-3.5 px-4 font-semibold">Statut</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2A3447]/60">
+              <tbody className="divide-y divide-[var(--border-primary)]/60">
                 {unpaidTenants
                   .filter((t) => {
                     const matchSearch =
@@ -373,13 +373,13 @@ export function ReportsView({
                     return matchSearch && matchOwner;
                   })
                   .map((t) => (
-                    <tr key={t.id} className="hover:bg-[#1E2C44]/40 transition-colors">
+                    <tr key={t.id} className="hover:bg-[var(--bg-card-hover)]/40 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="font-semibold text-[#F0EDE8]">{t.prenom} {t.nom}</div>
-                        <div className="text-xs text-[#A0AEC0]">{t.telephone}</div>
+                        <div className="text-xs text-[var(--text-secondary)]">{t.telephone}</div>
                       </td>
                       <td className="py-3.5 px-4 text-[#C9A96E] font-medium">{t.bienNom}</td>
-                      <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">
+                      <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">
                         {owners.find((o) => o.id === t.proprietaireId)?.nom || 'Propriétaire'}
                       </td>
                       <td className="py-3.5 px-4 font-medium">{formatCurrencyFCFA(t.loyerMensuel)}</td>
@@ -406,7 +406,7 @@ export function ReportsView({
         {reportType === 'paid' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[#F0EDE8]">
-              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[#A0AEC0] border-b border-[#2A3447]">
+              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-primary)]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Quittance</th>
                   <th className="py-3.5 px-4 font-semibold">Date Encaissée</th>
@@ -417,7 +417,7 @@ export function ReportsView({
                   <th className="py-3.5 px-4 font-semibold">Mode Règlement</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2A3447]/60">
+              <tbody className="divide-y divide-[var(--border-primary)]/60">
                 {(() => {
                   const displayList = filteredPayments.filter((p) => {
                     const matchSearch =
@@ -431,7 +431,7 @@ export function ReportsView({
                   if (displayList.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-[#A0AEC0]">
+                        <td colSpan={7} className="py-12 text-center text-[var(--text-secondary)]">
                           <CheckCircle2 className="w-8 h-8 mx-auto text-[#A0AEC0]/40 mb-2" />
                           <p className="font-semibold text-white text-xs">Aucun encaissement sur cette période</p>
                           <p className="text-[11px] text-[#64748B] mt-1">Sélectionnez une autre période ou réinitialisez les filtres.</p>
@@ -441,17 +441,17 @@ export function ReportsView({
                   }
 
                   return displayList.map((p) => (
-                    <tr key={p.id} className="hover:bg-[#1E2C44]/40 transition-colors">
+                    <tr key={p.id} className="hover:bg-[var(--bg-card-hover)]/40 transition-colors">
                       <td className="py-3.5 px-4 font-mono text-xs font-bold text-[#C9A96E]">{p.quittanceNumero}</td>
-                      <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.datePaiement}</td>
+                      <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{p.datePaiement}</td>
                       <td className="py-3.5 px-4 font-semibold text-[#F0EDE8]">{p.locataireNom}</td>
                       <td className="py-3.5 px-4 text-xs text-[#E8D5B0]">{p.bienNom}</td>
-                      <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.proprietaireNom}</td>
+                      <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{p.proprietaireNom}</td>
                       <td className="py-3.5 px-4 text-right font-bold text-[#10B981]">
                         {formatCurrencyFCFA(p.montantPaye)}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E2C44] text-[#F0EDE8] border border-[#2A3447]">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--bg-card-hover)] text-[#F0EDE8] border border-[var(--border-primary)]">
                           {p.modePaiement}
                         </span>
                       </td>
@@ -466,7 +466,7 @@ export function ReportsView({
         {reportType === 'vacant' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[#F0EDE8]">
-              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[#A0AEC0] border-b border-[#2A3447]">
+              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-primary)]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Référence</th>
                   <th className="py-3.5 px-4 font-semibold">Bien Immobilier</th>
@@ -477,14 +477,14 @@ export function ReportsView({
                   <th className="py-3.5 px-4 font-semibold text-center">Statut</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2A3447]/60">
+              <tbody className="divide-y divide-[var(--border-primary)]/60">
                 {vacantProperties.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#1E2C44]/40 transition-colors">
-                    <td className="py-3.5 px-4 font-mono text-xs text-[#A0AEC0]">{p.ref}</td>
+                  <tr key={p.id} className="hover:bg-[var(--bg-card-hover)]/40 transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-xs text-[var(--text-secondary)]">{p.ref}</td>
                     <td className="py-3.5 px-4 font-semibold text-[#F0EDE8]">{p.nom}</td>
                     <td className="py-3.5 px-4 text-xs text-[#E8D5B0]">{p.type}</td>
-                    <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.quartier}, {p.ville}</td>
-                    <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">{p.proprietaireNom}</td>
+                    <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{p.quartier}, {p.ville}</td>
+                    <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">{p.proprietaireNom}</td>
                     <td className="py-3.5 px-4 text-right font-bold text-[#F59E0B]">
                       {formatCurrencyFCFA(p.loyerBase)}
                     </td>
@@ -503,7 +503,7 @@ export function ReportsView({
         {reportType === 'agency_management' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[#F0EDE8]">
-              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[#A0AEC0] border-b border-[#2A3447]">
+              <thead className="bg-[#0A111D]/80 text-xs uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-primary)]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Propriétaire Mandant</th>
                   <th className="py-3.5 px-4 font-semibold">Banque & Compte</th>
@@ -513,7 +513,7 @@ export function ReportsView({
                   <th className="py-3.5 px-4 font-semibold text-right">Commissions Agence</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2A3447]/60">
+              <tbody className="divide-y divide-[var(--border-primary)]/60">
                 {owners.map((o) => {
                   const ownerBiens = properties.filter((pr) => pr.proprietaireId === o.id);
                   const ownerPayments = payments.filter((py) => py.proprietaireId === o.id);
@@ -521,12 +521,12 @@ export function ReportsView({
                   const commissions = Math.round((loyersPerçus * (o.tauxCommission || 10)) / 100);
 
                   return (
-                    <tr key={o.id} className="hover:bg-[#1E2C44]/40 transition-colors">
+                    <tr key={o.id} className="hover:bg-[var(--bg-card-hover)]/40 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="font-semibold text-[#F0EDE8]">{o.prenom} {o.nom}</div>
-                        <div className="text-xs text-[#A0AEC0]">{o.telephone}</div>
+                        <div className="text-xs text-[var(--text-secondary)]">{o.telephone}</div>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-[#A0AEC0]">
+                      <td className="py-3.5 px-4 text-xs text-[var(--text-secondary)]">
                         <div>{o.banque}</div>
                         <div className="font-mono text-[11px] text-[#E8D5B0]">{o.compteBancaire}</div>
                       </td>

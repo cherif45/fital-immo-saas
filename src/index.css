@@ -381,21 +381,6 @@
   --accent-dark: #2563eb;
 }
 
-.theme-light {
-  /* ThÃ¨me CLAIR */
-  --bg-body: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --bg-input: #ffffff;
-  --bg-header: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --border-primary: #e2e8f0;
-  --border-hover: #cbd5e1;
-  --accent: #3b82f6;
-  --accent-dark: #2563eb;
-}
 
 /* Classe utilitaire pour appliquer le thÃ¨me */
 body {
@@ -442,475 +427,6 @@ body {
 }
 .theme-bg-accent {
   background-color: var(--accent);
-}
-/* ============================================================
-   OVERRIDE THÃˆME CLAIR (force les couleurs Tailwind hard-codÃ©es)
-   ============================================================ */
-.theme-light body {
-  background-color: #f8fafc !important;
-  color: #1a1a1a !important;
-}
-
-/* Fonds sombres â†’ clairs */
-.theme-light .bg-\[\#0F1B2D\] {
-  background-color: #f8fafc !important;
-}
-.theme-light .bg-\[\#162133\] {
-  background-color: #ffffff !important;
-}
-.theme-light .bg-\[\#1E2E45\] {
-  background-color: #f1f5f9 !important;
-}
-.theme-light .bg-\[\#1E2E45\]\/80 {
-  background-color: rgba(240, 240, 235, 0.8) !important;
-}
-.theme-light .bg-\[\#1E2E45\]\/40 {
-  background-color: rgba(240, 240, 235, 0.4) !important;
-}
-
-/* Textes clairs â†’ sombres */
-.theme-light .text-white {
-  color: #1a1a1a !important;
-}
-.theme-light .text-\[\#F0EDE8\] {
-  color: #1a1a1a !important;
-}
-.theme-light .text-\[\#A8B4C4\] {
-  color: #4a5568 !important;
-}
-.theme-light .text-\[\#6B7C94\] {
-  color: #718096 !important;
-}
-
-/* Bordures */
-.theme-light .border-\[\#C9A96E\]\/20 {
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-.theme-light .border-\[\#C9A96E\]\/30 {
-  border-color: rgba(15, 23, 42, 0.12) !important;
-}
-.theme-light .border-\[\#C9A96E\]\/15 {
-  border-color: rgba(15, 23, 42, 0.06) !important;
-}
-
-/* Input/Select */
-.theme-light input,
-.theme-light select,
-.theme-light textarea {
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-.theme-light input::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* Gradients (or) - garde la couleur or mais assombrit le texte */
-.theme-light .from-\[\#C9A96E\] {
-  --tw-gradient-from: #3b82f6 !important;
-}
-.theme-light .to-\[\#A07840\] {
-  --tw-gradient-to: #2563eb !important;
-}
-/* ============================================================
-   OVERRIDE THÃˆME CLAIR v2 â€” Couverture COMPLÃˆTE
-   ============================================================ */
-
-/* Fond gÃ©nÃ©ral */
-.theme-light,
-.theme-light body,
-.theme-light #root {
-  background-color: #f8fafc !important;
-  color: #1a1a1a !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SIDEBAR + TOPBAR + CONTAINERS PRINCIPAUX
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light aside,
-.theme-light header,
-.theme-light nav,
-.theme-light [class*="sidebar"],
-.theme-light [class*="topbar"] {
-  background-color: #ffffff !important;
-  border-color: rgba(15, 23, 42, 0.1) !important;
-}
-
-/* Tous les fonds sombres en dur */
-.theme-light [class*="bg-\[\#0F1B2D\]"],
-.theme-light [class*="bg-\[\#0A111D\]"],
-.theme-light [class*="bg-\[\#0a111d\]"],
-.theme-light [class*="bg-\[\#0F1115\]"] {
-  background-color: #f8fafc !important;
-}
-
-.theme-light [class*="bg-\[\#162133\]"],
-.theme-light [class*="bg-\[\#1A2332\]"],
-.theme-light [class*="bg-\[\#111827\]"] {
-  background-color: #ffffff !important;
-}
-
-.theme-light [class*="bg-\[\#1E2E45\]"],
-.theme-light [class*="bg-\[\#1e2e45\]"],
-.theme-light [class*="bg-\[\#2A3F5C\]"],
-.theme-light [class*="bg-\[\#2a3f5c\]"],
-.theme-light [class*="bg-\[\#263850\]"] {
-  background-color: #f1f5f9 !important;
-}
-
-/* Tous les fonds "slate" et "gray" sombres */
-.theme-light [class*="bg-slate-8"],
-.theme-light [class*="bg-slate-9"],
-.theme-light [class*="bg-gray-8"],
-.theme-light [class*="bg-gray-9"],
-.theme-light [class*="bg-neutral-8"],
-.theme-light [class*="bg-neutral-9"],
-.theme-light [class*="bg-zinc-8"],
-.theme-light [class*="bg-zinc-9"] {
-  background-color: #ffffff !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TEXTES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light h1,
-.theme-light h2,
-.theme-light h3,
-.theme-light h4,
-.theme-light .text-white,
-.theme-light [class*="text-\[\#F0EDE8\]"],
-.theme-light [class*="text-\[\#f0ede8\]"] {
-  color: #1a1a1a !important;
-}
-
-.theme-light p,
-.theme-light span,
-.theme-light [class*="text-\[\#A8B4C4\]"],
-.theme-light [class*="text-\[\#a8b4c4\]"] {
-  color: #4a5568;
-}
-
-.theme-light [class*="text-\[\#6B7C94\]"],
-.theme-light [class*="text-\[\#6b7c94\]"],
-.theme-light .text-slate-400,
-.theme-light .text-slate-500 {
-  color: #475569 !important;
-}
-
-/* Garde les couleurs dynamiques (statuts, alertes) */
-.theme-light [class*="text-emerald"],
-.theme-light [class*="text-rose"],
-.theme-light [class*="text-amber"],
-.theme-light [class*="text-blue"],
-.theme-light [class*="text-cyan"],
-.theme-light [class*="text-purple"] {
-  /* ne pas toucher aux textes colorÃ©s */
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   BORDURES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light [class*="border-[#C9A96E]"] {
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-.theme-light [class*="border-white/"],
-.theme-light [class*="border-slate-"] {
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   INPUTS / SELECTS / BOUTONS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light input,
-.theme-light select,
-.theme-light textarea {
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-.theme-light input::placeholder,
-.theme-light textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   CARTES / MODAUX
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light [class*="rounded-xl"],
-.theme-light [class*="rounded-2xl"],
-.theme-light [class*="rounded-3xl"] {
-  /* Pas de changement de fond ici, juste une ombre subtile */
-}
-
-.theme-light .shadow-2xl,
-.theme-light .shadow-xl {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SCROLLBARS (thÃ¨me clair)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light ::-webkit-scrollbar-track {
-  background: rgba(200, 200, 200, 0.3);
-}
-.theme-light ::-webkit-scrollbar-thumb {
-  background: rgba(201, 169, 110, 0.5);
-}
-.theme-light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 169, 110, 0.7);
-}
-/* ============================================================
-   OVERRIDE THÃˆME CLAIR â€” VERSION COMPLÃˆTE (38 couleurs)
-   ============================================================ */
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   FONDS SOMBRES â†’ BEIGE CLAIR / BLANC
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* Fond principal */
-.theme-light,
-.theme-light body,
-.theme-light #root {
-  background-color: #f8fafc !important;
-  color: #1a1a1a !important;
-}
-
-/* Fond trÃ¨s sombre (headers de tableaux) */
-.theme-light [class*="bg-\[\#0A111D\]"],
-.theme-light [class*="bg-\[\#0a111d\]"] {
-  background-color: #ffffff !important;
-}
-
-/* Fond principal app */
-.theme-light [class*="bg-\[\#0F1B2D\]"],
-.theme-light [class*="bg-\[\#0f1b2d\]"] {
-  background-color: #f8fafc !important;
-}
-
-/* Cartes principales */
-.theme-light [class*="bg-\[\#162133\]"] {
-  background-color: #ffffff !important;
-}
-
-/* Cartes secondaires, inputs, hovers */
-.theme-light [class*="bg-\[\#1E2E45\]"],
-.theme-light [class*="bg-\[\#1e2e45\]"] {
-  background-color: #f1f5f9 !important;
-}
-
-/* Fond trÃ¨s sombre alternatif */
-.theme-light [class*="bg-\[\#0D1624\]"],
-.theme-light [class*="bg-\[\#111C2E\]"],
-.theme-light [class*="bg-\[\#141E30\]"],
-.theme-light [class*="bg-\[\#1E2C44\]"],
-.theme-light [class*="bg-\[\#16243A\]"],
-.theme-light [class*="bg-\[\#0F172A\]"] {
-  background-color: #f1f5f9 !important;
-}
-
-/* Hovers plus clairs */
-.theme-light [class*="bg-\[\#2A3F5C\]"] {
-  background-color: #e2e8f0 !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TEXTES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* Textes principaux (blancs) â†’ noirs */
-.theme-light .text-white,
-.theme-light [class*="text-\[\#F0EDE8\]"],
-.theme-light [class*="text-\[\#f0ede8\]"] {
-  color: #1a1a1a !important;
-}
-
-/* Textes secondaires */
-.theme-light [class*="text-\[\#A8B4C4\]"],
-.theme-light [class*="text-\[\#a8b4c4\]"],
-.theme-light [class*="text-\[\#A0AEC0\]"],
-.theme-light [class*="text-\[\#a0aec0\]"] {
-  color: #4a5568 !important;
-}
-
-/* Textes muted */
-.theme-light [class*="text-\[\#6B7C94\]"],
-.theme-light [class*="text-\[\#6b7c94\]"],
-.theme-light [class*="text-\[\#64748B\]"],
-.theme-light [class*="text-\[\#64748b\]"] {
-  color: #718096 !important;
-}
-
-/* Textes dorÃ©s */
-.theme-light [class*="text-\[\#E8D5B0\]"],
-.theme-light [class*="text-\[\#e8d5b0\]"] {
-  color: #8b6530 !important;
-}
-
-/* Texte foncÃ© sur boutons or (reste foncÃ©) */
-.theme-light [class*="text-\[\#0F1B2D\]"],
-.theme-light [class*="text-\[\#0f1b2d\]"],
-.theme-light [class*="text-\[\#0A111D\]"],
-.theme-light [class*="text-\[\#0a111d\]"],
-.theme-light [class*="text-\[\#0F172A\]"],
-.theme-light [class*="text-\[\#1E293B\]"] {
-  color: #1a1a1a !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   BORDURES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* Bordures sombres â†’ claires */
-.theme-light [class*="border-\[\#2A3447\]"],
-.theme-light [class*="border-\[\#2a3447\]"] {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-
-.theme-light [class*="border-\[\#0F1B2D\]"] {
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Bordures dorÃ©es (gardent leur couleur mais plus claires) */
-.theme-light [class*="border-\[\#C9A96E\]"],
-.theme-light [class*="border-\[\#c9a96e\]"] {
-  border-color: rgba(15, 23, 42, 0.12) !important;
-}
-
-/* Bordures dynamiques (gardent leur couleur) */
-.theme-light [class*="border-\[\#10B981\]"],
-.theme-light [class*="border-\[\#F59E0B\]"],
-.theme-light [class*="border-\[\#EF4444\]"] {
-  /* Garde inchangÃ© */
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   INPUTS / SELECTS / TEXTAREAS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light input,
-.theme-light select,
-.theme-light textarea {
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-.theme-light input::placeholder,
-.theme-light textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-.theme-light input:focus,
-.theme-light select:focus,
-.theme-light textarea:focus {
-  border-color: #c9a96e !important;
-  outline: none;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SCROLLBARS (thÃ¨me clair)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light ::-webkit-scrollbar-track {
-  background: rgba(200, 200, 200, 0.3);
-}
-.theme-light ::-webkit-scrollbar-thumb {
-  background: rgba(201, 169, 110, 0.5);
-}
-.theme-light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 169, 110, 0.7);
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   OMBRES (plus subtiles en thÃ¨me clair)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light .shadow-2xl {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
-}
-.theme-light .shadow-xl {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   BOUTONS/GRADIENTS OR (gardent leur couleur)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light [class*="from-\[\#C9A96E\]"],
-.theme-light [class*="to-\[\#A07840\]"],
-.theme-light [class*="bg-\[\#C9A96E\]"],
-.theme-light [class*="bg-\[\#D8BA80\]"] {
-  /* Garde inchangÃ© (boutons or) */
-}
-
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   STATUTS DYNAMIQUES (gardent leurs couleurs)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-.theme-light [class*="text-\[\#10B981\]"],
-.theme-light [class*="text-\[\#EF4444\]"],
-.theme-light [class*="text-\[\#F59E0B\]"],
-.theme-light [class*="bg-\[\#10B981\]"],
-.theme-light [class*="bg-\[\#EF4444\]"],
-.theme-light [class*="bg-\[\#F59E0B\]"] {
-  /* Garde les couleurs de statut (vert, rouge, orange) */
-}
-/* ============================================================
-   FIX BANNIÃˆRES SOMBRES EN THÃˆME CLAIR (Centre de ContrÃ´le)
-   ============================================================ */
-
-/* BanniÃ¨re du Centre de ContrÃ´le - garde le fond sombre mais force le texte en blanc */
-.theme-light .bg-gradient-to-br,
-.theme-light .bg-gradient-to-r {
-  color: #ffffff;
-}
-
-/* Force le texte blanc dans les banniÃ¨res sombres */
-.theme-light [class*="from-[#0F1B2D]"] h1,
-.theme-light [class*="from-[#0F1B2D]"] h2,
-.theme-light [class*="from-[#0F1B2D]"] p,
-.theme-light [class*="from-[#0F1B2D]"] span,
-.theme-light [class*="from-slate-800"] h1,
-.theme-light [class*="from-slate-800"] h2,
-.theme-light [class*="from-slate-800"] p,
-.theme-light [class*="from-slate-800"] span {
-  color: #ffffff !important;
-}
-
-/* Fix spÃ©cifique : banniÃ¨re "Centre de ContrÃ´le & Supervision" */
-.theme-light [class*="rounded-2xl"][class*="bg-gradient"],
-.theme-light [class*="rounded-3xl"][class*="bg-gradient"] {
-  color: #ffffff !important;
-}
-
-.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h1,
-.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h2,
-.theme-light [class*="rounded-2xl"][class*="bg-gradient"] h3,
-.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h1,
-.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h2,
-.theme-light [class*="rounded-3xl"][class*="bg-gradient"] h3 {
-  color: #ffffff !important;
-}
-
-/* Fix spÃ©cifique : "Volume global des donnÃ©es" */
-.theme-light .bg-\[\#0F1B2D\] .text-white,
-.theme-light [class*="bg-\[\#0F1B2D\]"] [class*="text-\[\#"],
-.theme-light [class*="bg-\[\#0F1B2D\]"] h1,
-.theme-light [class*="bg-\[\#0F1B2D\]"] h2,
-.theme-light [class*="bg-\[\#0F1B2D\]"] h3 {
-  color: #ffffff !important;
-}
-
-/* Forcer le texte blanc dans les sections qui gardent un fond sombre */
-.theme-light .bg-\[\#0F1B2D\]\/95,
-.theme-light [class*="bg-\[\#0F1B2D\]"] h1,
-.theme-light [class*="bg-\[\#0F1B2D\]"] h2,
-.theme-light [class*="bg-\[\#0F1B2D\]"] p {
-  color: #ffffff !important;
-}
-
-/* Cas particulier : garder les banniÃ¨res sombres avec texte clair */
-.theme-light [class*="from-[#162133]"],
-.theme-light [class*="from-[#1E2E45]"] {
-  /* Si le dÃ©gradÃ© va vers sombre, garde le texte blanc */
 }
 /* ============================================================
    ACCENTS MÃ‰TIER â€” 6 palettes professionnelles
@@ -1147,482 +663,6 @@ body {
    Pour AJOUTER un composant : ajouter la classe Tailwind exacte
    ============================================================ */
 
-/* ============================================================
-   FIX - Renforcer le contraste du theme CLAIR
-   ============================================================ */
-.theme-light {
-  --text-secondary: #334155; /* Plus fonce */
-  --text-muted: #64748b; /* Plus fonce */
-  --border-primary: rgba(15, 23, 42, 0.1);
-  --border-hover: rgba(15, 23, 42, 0.2);
-}
-
-/* Cartes claires : ajouter une ombre subtile pour la separation */
-.theme-light [class*="rounded-2xl"][class*="bg-"],
-.theme-light [class*="rounded-3xl"][class*="bg-"],
-.theme-light [class*="rounded-xl"][class*="bg-"] {
-  box-shadow:
-    0 1px 3px 0 rgba(15, 23, 42, 0.04),
-    0 1px 2px -1px rgba(15, 23, 42, 0.06);
-}
-
-/* Inputs clairs : bordure visible */
-.theme-light input,
-.theme-light select,
-.theme-light textarea {
-  border-color: rgba(15, 23, 42, 0.12) !important;
-  color: #0f172a !important;
-}
-
-.theme-light input:focus,
-.theme-light select:focus,
-.theme-light textarea:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-/* Tableaux clairs : bordures visibles */
-.theme-light table {
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-.theme-light thead tr {
-  background-color: rgba(15, 23, 42, 0.03) !important;
-}
-
-/* Boutons primary en clair : bon contraste */
-.theme-light [class*="from-[#C9A96E]"],
-.theme-light [class*="to-[#A07840]"] {
-  color: #ffffff !important;
-}
-
-/* Separateurs visibles */
-.theme-light hr {
-  border-color: rgba(15, 23, 42, 0.08) !important;
-}
-
-/* ============================================================
-   FIX FINAL - Theme CLAIR : textes NOIRS partout
-   ============================================================ */
-
-/* Textes principaux en NOIR */
-.theme-light {
-  --text-primary: #000000 !important;
-  --text-secondary: #1f2937 !important;
-  --text-muted: #4b5563 !important;
-}
-
-/* Force le noir sur tous les textes */
-.theme-light body,
-.theme-light #root {
-  color: #000000 !important;
-}
-
-/* Textes blancs -> NOIRS */
-.theme-light .text-white,
-.theme-light [class*="text-white"] {
-  color: #000000 !important;
-}
-
-/* Textes clairs -> NOIRS */
-.theme-light .text-\[\#F0EDE8\],
-.theme-light [class*="text-[#F0EDE8]"],
-.theme-light [class*="text-[#f0ede8]"] {
-  color: #000000 !important;
-}
-
-/* Textes gris clairs -> NOIRS */
-.theme-light .text-\[\#A8B4C4\],
-.theme-light [class*="text-[#A8B4C4]"],
-.theme-light [class*="text-[#a8b4c4]"] {
-  color: #1f2937 !important;
-}
-
-.theme-light .text-\[\#6B7C94\],
-.theme-light [class*="text-[#6B7C94]"] {
-  color: #374151 !important;
-}
-
-/* Slate colors -> plus foncÃ©s */
-.theme-light .text-slate-300 {
-  color: #374151 !important;
-}
-.theme-light .text-slate-400 {
-  color: #4b5563 !important;
-}
-.theme-light .text-slate-500 {
-  color: #4b5563 !important;
-}
-.theme-light .text-slate-600 {
-  color: #1f2937 !important;
-}
-
-/* Neutral colors -> plus foncÃ©s */
-.theme-light .text-neutral-500 {
-  color: #4b5563 !important;
-}
-.theme-light .text-neutral-600 {
-  color: #374151 !important;
-}
-.theme-light .text-neutral-700 {
-  color: #1f2937 !important;
-}
-.theme-light .text-neutral-800 {
-  color: #111827 !important;
-}
-.theme-light .text-neutral-900 {
-  color: #000000 !important;
-}
-
-/* Inputs : texte NOIR */
-.theme-light input,
-.theme-light textarea,
-.theme-light select {
-  color: #000000 !important;
-}
-
-/* Placeholder : gris moyen visible */
-.theme-light input::placeholder,
-.theme-light textarea::placeholder {
-  color: #6b7280 !important;
-}
-
-/* Labels : noir */
-.theme-light label {
-  color: #000000 !important;
-}
-
-/* Titres : noir */
-.theme-light h1,
-.theme-light h2,
-.theme-light h3,
-.theme-light h4,
-.theme-light h5,
-.theme-light h6 {
-  color: #000000 !important;
-}
-
-/* Paragraphes : noir */
-.theme-light p {
-  color: #1f2937 !important;
-}
-
-/* Tableaux : texte noir */
-.theme-light table th,
-.theme-light table td {
-  color: #000000 !important;
-}
-
-/* Modales : texte noir */
-.theme-light [class*="rounded-2xl"] h1,
-.theme-light [class*="rounded-2xl"] h2,
-.theme-light [class*="rounded-2xl"] h3,
-.theme-light [class*="rounded-3xl"] h1,
-.theme-light [class*="rounded-3xl"] h2,
-.theme-light [class*="rounded-3xl"] h3 {
-  color: #000000 !important;
-}
-
-/* Conserver les couleurs de statut (badges) */
-.theme-light [class*="bg-emerald-"] * {
-  color: inherit !important;
-}
-.theme-light [class*="bg-rose-"] * {
-  color: inherit !important;
-}
-.theme-light [class*="bg-amber-"] * {
-  color: inherit !important;
-}
-.theme-light [class*="bg-blue-"] * {
-  color: inherit !important;
-}
-.theme-light [class*="bg-purple-"] * {
-  color: inherit !important;
-}
-
-/* Boutons avec fond colorÃ© : garder le blanc */
-.theme-light button[class*="bg-gradient"] {
-  color: #ffffff !important;
-}
-
-.theme-light button[class*="bg-\[\#C9A96E\]"] {
-  color: #ffffff !important;
-}
-
-.theme-light button[class*="bg-emerald"],
-.theme-light button[class*="bg-blue"],
-.theme-light button[class*="bg-purple"],
-.theme-light button[class*="bg-rose"] {
-  color: #ffffff !important;
-}
-
-/* ============================================================================
-   FIX ULTIME - Theme CLAIR : FORCER tous les text-white en NOIR
-   (Ce bloc doit etre le DERNIER du fichier pour gagner la specificite)
-   ============================================================================ */
-
-/* TOUS les elements qui ont text-white => NOIR */
-.theme-light .text-white,
-.theme-light .text-white *,
-.theme-light [class*="text-white"],
-.theme-light [class*="text-white"] *,
-html.theme-light .text-white,
-html.theme-light [class*="text-white"] {
-  color: #000000 !important;
-}
-
-/* Titres de page - FORCER NOIR */
-.theme-light h1,
-.theme-light h1 *,
-html.theme-light h1,
-html.theme-light h1 * {
-  color: #000000 !important;
-  text-shadow: none !important;
-}
-
-.theme-light h2,
-.theme-light h2 *,
-html.theme-light h2,
-html.theme-light h2 * {
-  color: #000000 !important;
-}
-
-.theme-light h3,
-.theme-light h3 *,
-html.theme-light h3,
-html.theme-light h3 * {
-  color: #000000 !important;
-}
-
-.theme-light h4,
-.theme-light h5,
-.theme-light h6 {
-  color: #000000 !important;
-}
-
-/* NAVBAR - Forcer sur tous les elements */
-.theme-light header,
-.theme-light header *,
-html.theme-light header,
-html.theme-light header * {
-  color: #000000 !important;
-}
-
-/* Navbar container specifique */
-.theme-light header.sticky,
-.theme-light .sticky.top-0,
-html.theme-light .sticky.top-0 {
-  background-color: #ffffff !important;
-  border-bottom-color: #e2e8f0 !important;
-}
-
-/* Le titre de la navbar (Topbar ligne 257) */
-.theme-light header h1,
-.theme-light header .font-display,
-.theme-light header [class*="tracking-tight"] {
-  color: #000000 !important;
-}
-
-/* Textes clairs hardcodes */
-.theme-light .text-\[\#F0EDE8\],
-.theme-light [class*="text-[#F0EDE8]"],
-.theme-light [class*="text-[#f0ede8]"],
-html.theme-light .text-\[\#F0EDE8\],
-html.theme-light [class*="text-[#F0EDE8]"] {
-  color: #000000 !important;
-}
-
-/* GRADIENT TEXTS : forcer en noir si pas de background */
-.theme-light [class*="bg-clip-text"] {
-  -webkit-text-fill-color: #000000 !important;
-  background: none !important;
-}
-
-/* Titres avec gradient : interdire le gradient sur fond blanc */
-.theme-light .text-transparent {
-  color: #000000 !important;
-  -webkit-text-fill-color: #000000 !important;
-  background: none !important;
-  background-image: none !important;
-}
-
-/* EXCEPTIONS - Ne pas toucher */
-/* 1. Boutons avec fond sombre/colore : garder blanc */
-.theme-light
-  button[class*="bg-gradient-to-r"]:not([class*="bg-[#1E"]):not(
-    [class*="bg-[#0F"]
-  ),
-.theme-light
-  button[class*="bg-gradient-to-r"]:not([class*="bg-[#1E"]):not(
-    [class*="bg-[#0F"]
-  )
-  * {
-  color: #ffffff !important;
-}
-
-/* 2. Badges de statut (PayÃ©, etc.) avec fond colore */
-.theme-light [class*="bg-emerald-500"] *,
-.theme-light [class*="bg-emerald-600"] *,
-.theme-light [class*="bg-rose-500"] *,
-.theme-light [class*="bg-rose-600"] *,
-.theme-light [class*="bg-amber-500"] *,
-.theme-light [class*="bg-blue-500"] *,
-.theme-light [class*="bg-purple-500"] *,
-.theme-light [class*="bg-emerald-100"] *,
-.theme-light [class*="bg-rose-100"] *,
-.theme-light [class*="bg-amber-100"] * {
-  color: inherit !important;
-}
-
-/* 3. Textes colores specifiques (vert, rouge, etc.) : garder leurs couleurs */
-.theme-light .text-emerald-300,
-.theme-light .text-emerald-400,
-.theme-light .text-emerald-500,
-.theme-light .text-emerald-600 {
-  color: #059669 !important;
-}
-.theme-light .text-rose-300,
-.theme-light .text-rose-400,
-.theme-light .text-rose-500,
-.theme-light .text-rose-600 {
-  color: #dc2626 !important;
-}
-.theme-light .text-amber-300,
-.theme-light .text-amber-400,
-.theme-light .text-amber-500,
-.theme-light .text-amber-600 {
-  color: #d97706 !important;
-}
-.theme-light .text-blue-300,
-.theme-light .text-blue-400,
-.theme-light .text-blue-500,
-.theme-light .text-blue-600 {
-  color: #2563eb !important;
-}
-.theme-light .text-purple-300,
-.theme-light .text-purple-400,
-.theme-light .text-purple-500,
-.theme-light .text-purple-600 {
-  color: #7c3aed !important;
-}
-.theme-light .text-cyan-300,
-.theme-light .text-cyan-400,
-.theme-light .text-cyan-500,
-.theme-light .text-cyan-600 {
-  color: #0891b2 !important;
-}
-
-/* 4. Highlight accent : garder la couleur d'accent */
-.theme-light .text-accent,
-.theme-light [class*="text-[#C9A96E]"] {
-  color: var(--accent) !important;
-}
-
-/* ============================================================================
-   FIN FIX
-   ============================================================================ */
-
-/* ============================================================================
-   FIX ULTIME 2 - Theme CLAIR : FORCER tous les FONDS sombres -> CLAIRS
-   ============================================================================ */
-
-/* Toutes les cartes avec bg bleu nuit -> fond BLANC */
-.theme-light [class*="bg-[#0F1B2D]"],
-.theme-light [class*="bg-[#0f1b2d]"],
-.theme-light .bg-\[\#0F1B2D\] {
-  background-color: #f8fafc !important;
-}
-
-.theme-light [class*="bg-[#162133]"],
-.theme-light [class*="bg-[#162133]/"],
-.theme-light .bg-\[\#162133\] {
-  background-color: #ffffff !important;
-}
-
-.theme-light [class*="bg-[#1E2E45]"],
-.theme-light [class*="bg-[#1E2E45]/"],
-.theme-light .bg-\[\#1E2E45\] {
-  background-color: #f1f5f9 !important;
-}
-
-.theme-light [class*="bg-[#0A111D]"],
-.theme-light [class*="bg-[#0a111d]"] {
-  background-color: #ffffff !important;
-}
-
-.theme-light [class*="bg-[#0F172A]"],
-.theme-light [class*="bg-[#0f172a]"] {
-  background-color: #f8fafc !important;
-}
-
-.theme-light [class*="bg-[#111827]"],
-.theme-light [class*="bg-[#111827]/"] {
-  background-color: #f1f5f9 !important;
-}
-
-.theme-light [class*="bg-[#1F2937]"],
-.theme-light [class*="bg-[#1F2937]/"] {
-  background-color: #ffffff !important;
-}
-
-.theme-light [class*="bg-[#263850]"] {
-  background-color: #f1f5f9 !important;
-}
-
-.theme-light [class*="bg-[#2A3F5C]"],
-.theme-light [class*="bg-[#2A3F5C]/"] {
-  background-color: #e2e8f0 !important;
-}
-
-/* Overlays et modales */
-.theme-light [class*="bg-black/"],
-.theme-light [class*="bg-black\/"] {
-  background-color: rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Fallback : si la classe contient bg-[#...] et n'est pas deja convertie */
-.theme-light [class*="rounded-2xl"][class*="bg-\[\#0"],
-.theme-light [class*="rounded-3xl"][class*="bg-\[\#0"],
-.theme-light [class*="rounded-xl"][class*="bg-\[\#0"] {
-  background-color: #ffffff !important;
-}
-
-/* Cartes de stat avec fond semi-transparent : garder les couleurs */
-.theme-light [class*="bg-emerald-500\/"],
-.theme-light [class*="bg-rose-500\/"],
-.theme-light [class*="bg-amber-500\/"],
-.theme-light [class*="bg-blue-500\/"],
-.theme-light [class*="bg-purple-500\/"],
-.theme-light [class*="bg-cyan-500\/"] {
-  /* Ne pas toucher - garder la couleur de statut */
-}
-
-/* Header sticky de la navbar */
-.theme-light [class*="topbar"],
-.theme-light header.sticky {
-  background-color: #ffffff !important;
-}
-
-/* Cartes qui utilisent bg-card via variables CSS */
-.theme-light .theme-bg-card {
-  background-color: #ffffff !important;
-}
-
-.theme-light .theme-bg-body {
-  background-color: #f8fafc !important;
-}
-
-/* Input, selects et textareas */
-.theme-light input,
-.theme-light textarea,
-.theme-light select {
-  background-color: #ffffff !important;
-}
-
-/* ============================================================================
-   FIN DU FICHIER
-   ============================================================================ */
-/* ============================================================ */
 /* FIX BULLETIN - Pagination naturelle + CentrÃ© + Compact      */
 /* ============================================================ */
 
@@ -2868,5 +1908,425 @@ html.theme-light [class*="text-[#F0EDE8]"] {
 
   .daily-cash-report-modal .print\:hidden {
     display: none !important;
+  }
+}
+
+@media screen {
+  html.theme-light {
+    color-scheme: light;
+    --bg-body: #f4f6f8;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f7f8fa;
+    --bg-input: #ffffff;
+    --bg-header: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --border-primary: #e2e8f0;
+    --border-hover: #cbd5e1;
+  }
+
+  html.theme-light {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+  }
+
+  html.theme-light body {
+    background-color: var(--bg-body) !important;
+    color: var(--text-primary) !important;
+  }
+
+  html.theme-light #root {
+    color: var(--text-primary);
+  }
+
+  html.theme-light [class*="bg-[#0F1B2D" i],
+  html.theme-light [class*="bg-[#0F172A" i],
+  html.theme-light [class*="bg-slate-950"],
+  html.theme-light [class*="bg-gray-950"],
+  html.theme-light [class*="bg-neutral-950"],
+  html.theme-light [class*="bg-zinc-950"] {
+    background-color: var(--bg-body);
+  }
+
+  html.theme-light [class*="bg-[#0A111D" i],
+  html.theme-light [class*="bg-[#0D1624" i],
+  html.theme-light [class*="bg-[#111C2E" i],
+  html.theme-light [class*="bg-[#121B2B" i],
+  html.theme-light [class*="bg-[#141E30" i],
+  html.theme-light [class*="bg-[#162133" i],
+  html.theme-light [class*="bg-[#162234" i],
+  html.theme-light [class*="bg-[#16243A" i],
+  html.theme-light [class*="bg-[#182438" i],
+  html.theme-light [class*="bg-[#1A2332" i],
+  html.theme-light [class*="bg-[#1A263B" i],
+  html.theme-light [class*="bg-[#1F2937" i],
+  html.theme-light [class*="bg-slate-8"],
+  html.theme-light [class*="bg-slate-9"],
+  html.theme-light [class*="bg-gray-8"],
+  html.theme-light [class*="bg-gray-9"],
+  html.theme-light [class*="bg-neutral-8"],
+  html.theme-light [class*="bg-neutral-9"],
+  html.theme-light [class*="bg-zinc-8"],
+  html.theme-light [class*="bg-zinc-9"] {
+    background-color: var(--bg-card);
+  }
+
+  html.theme-light [class*="bg-[#1E2E45" i],
+  html.theme-light [class*="bg-[#263850" i],
+  html.theme-light [class*="bg-[#2A3B54" i],
+  html.theme-light [class*="bg-[#2A3F5C" i],
+  html.theme-light [class*="bg-slate-7"],
+  html.theme-light [class*="bg-gray-7"],
+  html.theme-light [class*="bg-neutral-7"],
+  html.theme-light [class*="bg-zinc-7"] {
+    background-color: var(--bg-card-hover);
+  }
+
+  html.theme-light [class*="from-[#0A111D" i],
+  html.theme-light [class*="from-[#0F1B2D" i],
+  html.theme-light [class*="from-[#162133" i],
+  html.theme-light [class*="from-[#1E2E45" i],
+  html.theme-light [class*="from-slate-800"] {
+    background-color: var(--bg-card);
+    background-image: none;
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+  }
+
+  html.theme-light [class*="text-[#F0EDE8" i],
+  html.theme-light [class*="text-[#A8B4C4" i],
+  html.theme-light [class*="text-[#6B7C94" i],
+  html.theme-light [class*="text-slate-1"],
+  html.theme-light [class*="text-slate-2"],
+  html.theme-light [class*="text-slate-3"],
+  html.theme-light [class*="text-slate-4"],
+  html.theme-light [class*="text-gray-1"],
+  html.theme-light [class*="text-gray-2"],
+  html.theme-light [class*="text-gray-3"],
+  html.theme-light [class*="text-gray-4"],
+  html.theme-light [class*="text-neutral-1"],
+  html.theme-light [class*="text-neutral-2"],
+  html.theme-light [class*="text-neutral-3"],
+  html.theme-light [class*="text-neutral-4"],
+  html.theme-light [class*="text-zinc-1"],
+  html.theme-light [class*="text-zinc-2"],
+  html.theme-light [class*="text-zinc-3"],
+  html.theme-light [class*="text-zinc-4"] {
+    color: var(--text-secondary);
+  }
+
+  html.theme-light :is(
+      [class*="bg-[#0A111D" i],
+      [class*="bg-[#0D1624" i],
+      [class*="bg-[#0F1B2D" i],
+      [class*="bg-[#0F172A" i],
+      [class*="bg-[#111C2E" i],
+      [class*="bg-[#121B2B" i],
+      [class*="bg-[#141E30" i],
+      [class*="bg-[#162133" i],
+      [class*="bg-[#162234" i],
+      [class*="bg-[#16243A" i],
+      [class*="bg-[#182438" i],
+      [class*="bg-[#1A2332" i],
+      [class*="bg-[#1A263B" i],
+      [class*="bg-[#1E2E45" i],
+      [class*="bg-[#1F2937" i],
+      [class*="bg-[#263850" i],
+      [class*="bg-[#2A3B54" i],
+      [class*="bg-[#2A3F5C" i],
+      [class*="bg-slate-7"],
+      [class*="bg-slate-8"],
+      [class*="bg-slate-9"],
+      [class*="bg-gray-7"],
+      [class*="bg-gray-8"],
+      [class*="bg-gray-9"],
+      [class*="bg-neutral-7"],
+      [class*="bg-neutral-8"],
+      [class*="bg-neutral-9"],
+      [class*="bg-zinc-7"],
+      [class*="bg-zinc-8"],
+      [class*="bg-zinc-9"]
+    ).text-white,
+  html.theme-light :is(
+      [class*="bg-[#0A111D" i],
+      [class*="bg-[#0D1624" i],
+      [class*="bg-[#0F1B2D" i],
+      [class*="bg-[#0F172A" i],
+      [class*="bg-[#111C2E" i],
+      [class*="bg-[#121B2B" i],
+      [class*="bg-[#141E30" i],
+      [class*="bg-[#162133" i],
+      [class*="bg-[#162234" i],
+      [class*="bg-[#16243A" i],
+      [class*="bg-[#182438" i],
+      [class*="bg-[#1A2332" i],
+      [class*="bg-[#1A263B" i],
+      [class*="bg-[#1E2E45" i],
+      [class*="bg-[#1F2937" i],
+      [class*="bg-[#263850" i],
+      [class*="bg-[#2A3B54" i],
+      [class*="bg-[#2A3F5C" i],
+      [class*="bg-slate-7"],
+      [class*="bg-slate-8"],
+      [class*="bg-slate-9"],
+      [class*="bg-gray-7"],
+      [class*="bg-gray-8"],
+      [class*="bg-gray-9"],
+      [class*="bg-neutral-7"],
+      [class*="bg-neutral-8"],
+      [class*="bg-neutral-9"],
+      [class*="bg-zinc-7"],
+      [class*="bg-zinc-8"],
+      [class*="bg-zinc-9"]
+    ) :is(.text-white, [class*="text-white"]):not([class*="bg-"]) {
+    color: var(--text-secondary);
+  }
+
+  html.theme-light [class~="bg-amber-500"][class~="text-white"],
+  html.theme-light [class~="bg-orange-500"][class~="text-white"],
+  html.theme-light [class~="bg-orange-600"][class~="text-white"],
+  html.theme-light [class~="bg-orange-600/20"][class~="text-white"],
+  html.theme-light [class~="bg-orange-500"] [class~="text-white"],
+  html.theme-light [class~="bg-orange-600/20"] [class~="text-white"] {
+    color: #431407;
+  }
+
+  html.theme-light [class~="bg-slate-500"][class~="text-white"],
+  html.theme-light [class~="bg-slate-500"] [class~="text-white"] {
+    color: #ffffff;
+  }
+
+  html.theme-light [class*="text-[#C9A96E" i],
+  html.theme-light [class*="text-[#A07840" i],
+  html.theme-light [class*="text-[#E8D5B0" i],
+  html.theme-light [class*="text-[#E8A84A" i] {
+    color: var(--accent);
+  }
+
+  html.theme-light .text-emerald-300,
+  html.theme-light .text-emerald-400,
+  html.theme-light .text-emerald-500,
+  html.theme-light .text-emerald-600 {
+    color: #047857;
+  }
+
+  html.theme-light .text-rose-300,
+  html.theme-light .text-rose-400,
+  html.theme-light .text-rose-500,
+  html.theme-light .text-rose-600 {
+    color: #be123c;
+  }
+
+  html.theme-light .text-amber-300,
+  html.theme-light .text-amber-400,
+  html.theme-light .text-amber-500,
+  html.theme-light .text-amber-600 {
+    color: #92400e;
+  }
+
+  html.theme-light .text-blue-300,
+  html.theme-light .text-blue-400,
+  html.theme-light .text-blue-500,
+  html.theme-light .text-blue-600 {
+    color: #1d4ed8;
+  }
+
+  html.theme-light .text-purple-300,
+  html.theme-light .text-purple-400,
+  html.theme-light .text-purple-500,
+  html.theme-light .text-purple-600 {
+    color: #6d28d9;
+  }
+
+  html.theme-light .text-cyan-300,
+  html.theme-light .text-cyan-400,
+  html.theme-light .text-cyan-500,
+  html.theme-light .text-cyan-600 {
+    color: #0e7490;
+  }
+
+  html.theme-light :is(.text-green-300, .text-green-500) {
+    color: #15803d;
+  }
+
+  html.theme-light :is(.text-red-400, .text-red-600, .text-red-700) {
+    color: #b91c1c;
+  }
+
+  html.theme-light .text-yellow-400 {
+    color: #a16207;
+  }
+
+  html.theme-light :is(.text-indigo-300, .text-indigo-400) {
+    color: #4338ca;
+  }
+
+  html.theme-light .text-lime-400 {
+    color: #4d7c0f;
+  }
+
+  html.theme-light :is(
+      .text-orange-300,
+      .text-orange-400,
+      .text-orange-500
+    ) {
+    color: #c2410c;
+  }
+
+  html.theme-light .text-pink-400 {
+    color: #be185d;
+  }
+
+  html.theme-light :is(
+      .text-sky-200,
+      .text-sky-300,
+      .text-sky-400,
+      .text-sky-800
+    ) {
+    color: #0369a1;
+  }
+
+  html.theme-light .text-teal-400 {
+    color: #0f766e;
+  }
+
+  html.theme-light .text-violet-400 {
+    color: #6d28d9;
+  }
+
+  html.theme-light h1,
+  html.theme-light h2,
+  html.theme-light h3,
+  html.theme-light h4,
+  html.theme-light h5,
+  html.theme-light h6,
+  html.theme-light label,
+  html.theme-light th {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+
+  html.theme-light aside a,
+  html.theme-light header nav a {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  html.theme-light input,
+  html.theme-light select,
+  html.theme-light textarea {
+    background-color: var(--bg-input);
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+  }
+
+  html.theme-light input::placeholder,
+  html.theme-light textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
+  html.theme-light input:focus,
+  html.theme-light select:focus,
+  html.theme-light textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft, rgba(37, 99, 235, 0.14));
+  }
+
+  html.theme-light [class*="border-white/"],
+  html.theme-light [class*="border-slate-"],
+  html.theme-light [class*="border-gray-"],
+  html.theme-light [class*="border-neutral-"],
+  html.theme-light [class*="border-zinc-"] {
+    border-color: var(--border-primary);
+  }
+
+  html.theme-light table,
+  html.theme-light th,
+  html.theme-light td,
+  html.theme-light hr {
+    border-color: var(--border-primary);
+  }
+
+  html.theme-light thead tr {
+    background-color: var(--bg-card-hover);
+  }
+
+  html.theme-light .shadow-xl,
+  html.theme-light .shadow-2xl {
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  html.theme-light button[class*="bg-gradient"] {
+    color: #ffffff;
+  }
+
+  html.theme-light button[class*="bg-gradient"] [class*="text-white"] {
+    color: inherit;
+  }
+
+  html.theme-light button[class*="from-amber-"],
+  html.theme-light button[class*="from-amber-"] * {
+    color: #431407;
+  }
+
+  html.theme-light button[class~="hover:bg-rose-500/20"]:hover {
+    background-color: rgba(190, 18, 60, 0.12);
+  }
+
+  html.theme-light button[class~="from-[#C9A96E]"],
+  html.theme-light [class~="bg-[#C9A96E]"] {
+    color: var(--accent-text, #0f1b2d);
+  }
+
+  html.theme-light [class~="bg-[#C9A96E]"] .text-white {
+    color: var(--accent-text, #0f1b2d);
+  }
+
+  html.theme-light button[class~="bg-blue-500"],
+  html.theme-light button[class~="bg-blue-600"],
+  html.theme-light button[class~="bg-blue-700"],
+  html.theme-light button[class~="bg-emerald-500"],
+  html.theme-light button[class~="bg-emerald-600"],
+  html.theme-light button[class~="bg-rose-500"],
+  html.theme-light button[class~="bg-rose-600"],
+  html.theme-light button[class~="bg-purple-500"],
+  html.theme-light button[class~="bg-purple-600"] {
+    color: #ffffff;
+  }
+
+  html.theme-light button:is(
+      [class~="bg-blue-500"],
+      [class~="bg-blue-600"],
+      [class~="bg-blue-700"],
+      [class~="bg-emerald-500"],
+      [class~="bg-emerald-600"],
+      [class~="bg-rose-500"],
+      [class~="bg-rose-600"],
+      [class~="bg-purple-500"],
+      [class~="bg-purple-600"]
+    )
+    .text-white {
+    color: #ffffff;
+  }
+
+  html.theme-light [class~="bg-emerald-500"].text-white,
+  html.theme-light [class~="bg-emerald-600"].text-white,
+  html.theme-light [class~="bg-rose-500"].text-white,
+  html.theme-light [class~="bg-rose-600"].text-white,
+  html.theme-light [class~="bg-blue-500"].text-white,
+  html.theme-light [class~="bg-blue-600"].text-white,
+  html.theme-light [class~="bg-purple-500"].text-white,
+  html.theme-light [class~="bg-purple-600"].text-white,
+  html.theme-light [class~="bg-emerald-500"] .text-white,
+  html.theme-light [class~="bg-emerald-600"] .text-white,
+  html.theme-light [class~="bg-rose-500"] .text-white,
+  html.theme-light [class~="bg-rose-600"] .text-white,
+  html.theme-light [class~="bg-blue-500"] .text-white,
+  html.theme-light [class~="bg-blue-600"] .text-white,
+  html.theme-light [class~="bg-purple-500"] .text-white,
+  html.theme-light [class~="bg-purple-600"] .text-white {
+    color: #ffffff;
   }
 }

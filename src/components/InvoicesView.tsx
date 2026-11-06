@@ -302,13 +302,13 @@ export function InvoicesView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A3447] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-primary)] pb-5">
         <div>
           <h1 className="text-2xl font-bold text-[#F0EDE8] tracking-tight flex items-center gap-2.5">
             <FileText className="w-7 h-7 text-[#C9A96E]" />
             Facturation & Décaissements Travaux
           </h1>
-          <p className="text-sm text-[#A0AEC0] mt-1">
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
             Décompte des fournitures achetées, facturation des réparations
             locatives et décaissement automatique sur les bulletins
             propriétaires.
@@ -335,19 +335,19 @@ export function InvoicesView({
       {/* Filters */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0AEC0]" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
           <input
             type="text"
             placeholder="Rechercher par référence (FAC-...), propriétaire, bien ou locataire..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] placeholder-[#64748B] focus:border-[#C9A96E] focus:outline-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm text-[#F0EDE8] placeholder-[#64748B] focus:border-[#C9A96E] focus:outline-none"
           />
         </div>
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3.5 py-2.5 bg-[#141E30] border border-[#2A3447] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none w-full sm:w-auto"
+          className="px-3.5 py-2.5 bg-[#141E30] border border-[var(--border-primary)] rounded-xl text-sm text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none w-full sm:w-auto"
         >
           <option value="all">Tous les types de facture</option>
           <option value="Travaux">Factures de Travaux & Matériels</option>
@@ -357,10 +357,10 @@ export function InvoicesView({
       </div>
 
       {/* Invoices Table */}
-      <div className="bg-[#141E30]/90 border border-[#2A3447] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[#141E30]/90 border border-[var(--border-primary)] rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[#0A111D] text-xs uppercase font-semibold text-[#A0AEC0] border-b border-[#2A3447]">
+            <thead className="bg-[#0A111D] text-xs uppercase font-semibold text-[var(--text-secondary)] border-b border-[var(--border-primary)]">
               <tr>
                 <th className="py-3.5 px-4">Référence</th>
                 <th className="py-3.5 px-4">Type / Prestation</th>
@@ -371,10 +371,10 @@ export function InvoicesView({
                 <th className="py-3.5 px-4 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#2A3447]/60 text-xs">
+            <tbody className="divide-y divide-[var(--border-primary)]/60 text-xs">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#A0AEC0]">
+                  <td colSpan={7} className="py-8 text-center text-[var(--text-secondary)]">
                     Aucune facture trouvée.
                   </td>
                 </tr>
@@ -882,7 +882,7 @@ export function InvoicesView({
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-[#A0AEC0] hover:text-[#F0EDE8] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[#F0EDE8] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -893,13 +893,13 @@ export function InvoicesView({
               className="p-6 space-y-4 text-xs"
             >
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                   Type de Facture
                 </label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as any)}
-                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
                   <option value="Adhésion">
                     Facture d'Adhésion / Mandat de Gestion
@@ -912,13 +912,13 @@ export function InvoicesView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                   Propriétaire Destinataire
                 </label>
                 <select
                   value={targetOwnerId}
                   onChange={(e) => setTargetOwnerId(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
                   {owners.map((o) => (
                     <option key={o.id} value={o.id}>
@@ -929,13 +929,13 @@ export function InvoicesView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                   Bien Immobilier Concerné
                 </label>
                 <select
                   value={targetBienNom}
                   onChange={(e) => setTargetBienNom(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                 >
                   {properties.map((p) => (
                     <option key={p.id} value={p.nom}>
@@ -946,28 +946,28 @@ export function InvoicesView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                   Description de la prestation
                 </label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#A0AEC0] mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
                     Montant HT (FCFA)
                   </label>
                   <input
                     type="number"
                     value={montantHT}
                     onChange={(e) => setMontantHT(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 bg-[#0A111D] border border-[#2A3447] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2 bg-[#0A111D] border border-[var(--border-primary)] rounded-xl text-xs text-[#F0EDE8] focus:border-[#C9A96E] focus:outline-none font-mono"
                     required
                   />
                 </div>
@@ -977,15 +977,15 @@ export function InvoicesView({
                       type="checkbox"
                       checked={tvaApplicable}
                       onChange={(e) => setTvaApplicable(e.target.checked)}
-                      className="rounded border-[#2A3447] text-[#C9A96E] focus:ring-[#C9A96E]"
+                      className="rounded border-[var(--border-primary)] text-[#C9A96E] focus:ring-[#C9A96E]"
                     />
                     Appliquer TVA 18%
                   </label>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#0A111D] rounded-xl border border-[#2A3447] flex justify-between items-center text-xs">
-                <span className="text-[#A0AEC0]">Total TTC Facturé :</span>
+              <div className="p-3 bg-[#0A111D] rounded-xl border border-[var(--border-primary)] flex justify-between items-center text-xs">
+                <span className="text-[var(--text-secondary)]">Total TTC Facturé :</span>
                 <span className="text-base font-bold font-mono text-emerald-400">
                   {formatCurrencyFCFA(
                     montantHT +
@@ -1003,7 +1003,7 @@ export function InvoicesView({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-[#0A111D] hover:bg-[#1E2C44] text-[#A0AEC0] rounded-xl text-xs cursor-pointer"
+                  className="px-4 py-2 bg-[#0A111D] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] rounded-xl text-xs cursor-pointer"
                 >
                   Annuler
                 </button>

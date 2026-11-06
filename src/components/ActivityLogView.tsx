@@ -670,7 +670,7 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-200"
+          className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-[var(--text-secondary)]"
         >
           {error}
         </div>
