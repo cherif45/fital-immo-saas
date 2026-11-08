@@ -26,6 +26,8 @@ import {
   Tenant,
   Property,
   Owner,
+  Building as BuildingRecord,
+  Unit,
   PaymentMethod,
   PaymentStatus,
   UserAccount,
@@ -38,6 +40,7 @@ import {
   formatNumber,
   formatDate,
   exportToCSV,
+  getLocalDateString,
 } from "../lib/utils";
 import {
   triggerPhoneCall,
@@ -56,6 +59,8 @@ interface PaymentsViewProps {
   payments: Payment[];
   tenants: Tenant[];
   properties: Property[];
+  buildings: BuildingRecord[];
+  units: Unit[];
   owners: Owner[];
   tenantCharges?: TenantCharge[];
   currentUser?: UserAccount;
@@ -74,6 +79,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   payments,
   tenants,
   properties,
+  buildings,
+  units,
   owners,
   tenantCharges = [],
   currentUser,
@@ -106,7 +113,18 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [serverData, setServerData] = useState<Payment[]>([]);
   const [serverTotal, setServerTotal] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [serverDataReady, setServerDataReady] = useState(false);
+  const [serverLoadError, setServerLoadError] = useState("");
   const PAGE_SIZE = 50;
+
+  const getBienLabel = (bienId: string, fallback = ""): string => {
+    const unit = units.find((item) => item.id === bienId);
+    if (unit) {
+      const building = buildings.find((item) => item.id === unit.buildingId);
+      return building ? `${building.nom} — ${unit.nom}` : unit.nom;
+    }
+    return properties.find((item) => item.id === bienId)?.nom || fallback || "—";
+  };
 
   // Charger la première page au montage
   React.useEffect(() => {
@@ -123,6 +141,12 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       page,
       PAGE_SIZE,
     );
+    if (result.error) {
+      setServerLoadError(result.error);
+      setIsLoadingMore(false);
+      return;
+    }
+    setServerLoadError("");
     // Mapper les champs de la RPC vers le type Payment
     const mapped: Payment[] = result.data.map((r: any) => ({
       ...r,
@@ -132,7 +156,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       locataireNom: r.locataire_nom_calc
         ? `${r.locataire_prenom_calc || ""} ${r.locataire_nom_calc}`.trim()
         : r.locataire_nom || "—",
-      bienNom: r.bien_nom_calc || r.bien_nom || "—",
+      bienNom:
+        r.bien_nom ||
+        r.bienNom ||
+        r.bien_nom_calc ||
+        getBienLabel(r.bien_id),
       montantPaye: Number(r.montant_paye) || 0,
       montantVersement:
         r.montant_versement == null
@@ -162,6 +190,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }));
     if (page === 0) {
       setServerData(mapped);
+      setServerDataReady(true);
     } else {
       setServerData((prev) => [...prev, ...mapped]);
     }
@@ -171,7 +200,24 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   };
 
   // Utiliser les données serveur si disponibles, sinon les props
-  const displayPayments = serverData.length > 0 ? serverData : payments;
+  const displayPayments = useMemo(() => {
+    const source = currentUser?.agencyId ? serverData : payments;
+    return source.map((payment) => ({
+      ...payment,
+      bienNom:
+        payment.bienNom && payment.bienNom !== "—"
+          ? payment.bienNom
+          : getBienLabel(payment.bienId),
+    }));
+  }, [
+    currentUser?.agencyId,
+    serverDataReady,
+    serverData,
+    payments,
+    buildings,
+    units,
+    properties,
+  ]);
   const allKnownPayments = useMemo(() => {
     const paymentsById = new Map(
       payments.map((payment) => [payment.id, payment]),
@@ -212,9 +258,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [charges, setCharges] = useState<number>(0);
   const [tva, setTva] = useState<number>(0);
   const [tom, setTom] = useState<number>(0);
-  const [datePaiement, setDatePaiement] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
+  const [datePaiement, setDatePaiement] = useState<string>(getLocalDateString());
   const [observation, setObservation] = useState<string>(
     "Règlement loyer régulier",
   );
@@ -578,8 +622,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
 
     const p = properties.find((prop) => prop.id === t.bienId);
+    const unit = units.find((item) => item.id === t.bienId);
     const o = owners.find(
-      (owner) => owner.id === (p?.proprietaireId || t.proprietaireId),
+      (owner) =>
+        owner.id ===
+        (p?.proprietaireId || unit?.proprietaireId || t.proprietaireId),
     );
 
     // ⬇️ Récupérer le paiement initial si lié
@@ -683,8 +730,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         locataireId: t.id,
         locataireNom: `${t.prenom} ${t.nom}`,
         bienId: t.bienId,
-        bienNom: p?.nom || t.bienNom,
-        proprietaireId: o?.id || p?.proprietaireId || t.proprietaireId || "",
+        bienNom: getBienLabel(t.bienId, t.bienNom),
+        proprietaireId:
+          o?.id ||
+          p?.proprietaireId ||
+          unit?.proprietaireId ||
+          t.proprietaireId ||
+          "",
         proprietaireNom: o ? `${o.prenom} ${o.nom}` : "Propriétaire",
         periode,
         loyerBase: t.loyerMensuel || 0,
@@ -722,6 +774,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
     const saved = await onAddPayment(paymentToSave);
     if (!saved) return;
+    await loadPage(0);
     setIsNewPaymentModalOpen(false);
     setSettlingPayment(null);
 
@@ -791,6 +844,16 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {currentUser?.agencyId && !serverDataReady && !serverLoadError && (
+        <div role="status" className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+          Chargement des encaissements depuis Supabase…
+        </div>
+      )}
+      {serverLoadError && (
+        <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-xs text-red-200">
+          La récupération des encaissements a échoué : {serverLoadError}
+        </div>
+      )}
       {/* Top Banner Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-[#162133] border border-[#C9A96E]/20">
@@ -1243,7 +1306,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     })
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.nom} {t.prenom} — {t.bienNom} (Loyer :{" "}
+                        {t.nom} {t.prenom} — {getBienLabel(t.bienId, t.bienNom)} (Loyer :{" "}
                         {formatNumber(t.loyerMensuel)} FCFA)
                       </option>
                     ))}
@@ -1649,12 +1712,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               quittanceNumero:
                 selectedPaymentForMobileMoney.quittanceNumero ||
                 createDocumentNumber(settings?.prefixQuittance, "QUI-"),
-              datePaiement: new Date().toISOString().split("T")[0],
+              datePaiement: getLocalDateString(),
               observation: `Règlement direct validé via ${method === "WAVE" ? "Wave Sénégal" : "Orange Money"} (${transactionId})`,
               typeRecu: "QUITTANCE",
             };
             const saved = await onAddPayment(updatedPayment);
             if (!saved) return false;
+            await loadPage(0);
             setSelectedPaymentForMobileMoney(null);
             confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
             return true;

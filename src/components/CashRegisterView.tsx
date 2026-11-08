@@ -1,5 +1,6 @@
 import { paginateTable } from '../lib/supabase/service';
 import { DailyCashReportModal } from './DailyCashReportModal';
+import { getLocalDateString } from '../lib/utils';
 
 import React, { useState } from 'react';
 
@@ -64,7 +65,7 @@ interface CashRegisterViewProps {
 
   currentUser: UserAccount;
 
-  onAddCashMovement: (movement: CashMovement) => void;
+  onAddCashMovement: (movement: CashMovement) => Promise<CashMovement | null>;
 
   onAddCashClosing: (closing: CashClosing) => void;
 
@@ -101,9 +102,29 @@ export function CashRegisterView({
 
 }: CashRegisterViewProps) {
 
+  const pendingMovementStorageKey = currentUser?.agencyId
+    ? `fital-pending-cash-movement:${currentUser.agencyId}:${currentUser.id}`
+    : "";
+  const readPendingMovement = (): CashMovement | null => {
+    if (!pendingMovementStorageKey || typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(pendingMovementStorageKey);
+      if (!raw) return null;
+      const value = JSON.parse(raw) as CashMovement;
+      return value?.id && value.reference && value.type && value.montant > 0
+        ? value
+        : null;
+    } catch (error) {
+      console.error("Impossible de relire le mouvement de caisse en attente:", error);
+      return null;
+    }
+  };
+  const initialPendingMovement = readPendingMovement();
   const [activeTab, setActiveTab] = useState<'journal' | 'closing' | 'history'>('journal');
 
-  const [isNewMovementModalOpen, setIsNewMovementModalOpen] = useState(false);
+  const [isNewMovementModalOpen, setIsNewMovementModalOpen] = useState(Boolean(initialPendingMovement));
+  const [isSavingMovement, setIsSavingMovement] = useState(false);
+  const [pendingMovement, setPendingMovement] = useState<CashMovement | null>(initialPendingMovement);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [showDailyReport, setShowDailyReport] = useState(false);
@@ -117,6 +138,7 @@ export function CashRegisterView({
   const [serverPage, setServerPage] = useState(0);
 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [serverLoadError, setServerLoadError] = useState('');
 
   const PAGE_SIZE = 50;
 
@@ -139,6 +161,16 @@ export function CashRegisterView({
     setIsLoadingMore(true);
 
     const result = await paginateTable<any>('cash_movements', currentUser.agencyId, page, PAGE_SIZE);
+    if (result.error) {
+      if (page === 0) {
+        setServerMovements([]);
+        setServerTotal(0);
+      }
+      setServerLoadError(result.error);
+      setIsLoadingMore(false);
+      return;
+    }
+    setServerLoadError('');
 
     const mapped: CashMovement[] = result.data.map((r: any) => ({
 
@@ -161,6 +193,10 @@ export function CashRegisterView({
       beneficiaire: r.beneficiaire || '',
 
       dateOperation: r.date_operation || r.created_at,
+
+      justificatifRef: r.justificatif_ref || '',
+
+      paiementId: r.paiement_id || undefined,
 
       statut: r.statut,
 
@@ -188,7 +224,9 @@ export function CashRegisterView({
 
 
 
-  const displayMovements = serverMovements.length > 0 ? serverMovements : cashMovements;
+  const displayMovements = currentUser?.agencyId
+    ? serverMovements
+    : cashMovements;
 
 
 
@@ -238,17 +276,17 @@ export function CashRegisterView({
 
   }>({
 
-    type: 'ENTREE',
+    type: initialPendingMovement?.type === 'ENCAISSEMENT' ? 'ENTREE' : initialPendingMovement?.type === 'DECAISSEMENT' ? 'SORTIE' : initialPendingMovement?.type || 'ENTREE',
 
-    categorie: 'ENCAISSEMENT_LOYER',
+    categorie: initialPendingMovement?.categorie || 'ENCAISSEMENT_LOYER',
 
-    montant: 0,
+    montant: initialPendingMovement?.montant || 0,
 
-    description: '',
+    description: initialPendingMovement?.description || initialPendingMovement?.libelle || '',
 
-    beneficiaireOuPayeur: '',
+    beneficiaireOuPayeur: initialPendingMovement?.beneficiaireOuPayeur || initialPendingMovement?.beneficiaire || '',
 
-    pieceJustificative: '',
+    pieceJustificative: initialPendingMovement?.justificatifRef || '',
 
   });
 
@@ -312,23 +350,24 @@ export function CashRegisterView({
 
 
 
-  const handleCreateMovement = (e: React.FormEvent) => {
+  const handleCreateMovement = async (e: React.FormEvent) => {
 
     e.preventDefault();
 
-    if (movementForm.montant <= 0 || !movementForm.description) return;
+    if (movementForm.montant <= 0 || !movementForm.description || isSavingMovement) return;
 
 
 
-    const newMov: CashMovement = {
+    const movementId = crypto.randomUUID();
+    const newMov: CashMovement = pendingMovement || {
 
-      id: `mov-${Date.now()}`,
+      id: movementId,
 
-      reference: `MVT-${Date.now().toString().slice(-6)}`,
+      reference: `MVT-${movementId}`,
 
-      ref: `MVT-${Date.now().toString().slice(-6)}`,
+      ref: `MVT-${movementId}`,
 
-      dateOperation: new Date().toISOString().split('T')[0],
+      dateOperation: getLocalDateString(),
 
       dateHeure: new Date().toISOString(),
 
@@ -366,27 +405,48 @@ export function CashRegisterView({
 
     };
 
-
-
-    onAddCashMovement(newMov);
-
-    setIsNewMovementModalOpen(false);
-
-    setMovementForm({
-
-      type: 'ENTREE',
-
-      categorie: 'ENCAISSEMENT_LOYER',
-
-      montant: 0,
-
-      description: '',
-
-      beneficiaireOuPayeur: '',
-
-      pieceJustificative: '',
-
-    });
+    if (!pendingMovementStorageKey) {
+      alert("Impossible de sécuriser la référence du mouvement : aucune agence n'est associée à votre session.");
+      return;
+    }
+    try {
+      window.localStorage.setItem(pendingMovementStorageKey, JSON.stringify(newMov));
+    } catch (error) {
+      console.error("Impossible de conserver la référence du mouvement:", error);
+      alert("Le mouvement n'a pas été envoyé : impossible de conserver sa référence de reprise sur cet appareil.");
+      return;
+    }
+    setPendingMovement(newMov);
+    setIsSavingMovement(true);
+    try {
+      const savedMovement = await onAddCashMovement(newMov);
+      if (!savedMovement) return;
+      const alreadyLoaded = serverMovements.some(
+        (movement) => movement.id === savedMovement.id,
+      );
+      setServerMovements((previous) => {
+        return [
+          savedMovement,
+          ...previous.filter((movement) => movement.id !== savedMovement.id),
+        ];
+      });
+      if (!alreadyLoaded) setServerTotal((total) => total + 1);
+      window.localStorage.removeItem(pendingMovementStorageKey);
+      setPendingMovement(null);
+      setIsNewMovementModalOpen(false);
+      setMovementForm({
+        type: 'ENTREE',
+        categorie: 'ENCAISSEMENT_LOYER',
+        montant: 0,
+        description: '',
+        beneficiaireOuPayeur: '',
+        pieceJustificative: '',
+      });
+    } catch (error) {
+      console.error('Erreur enregistrement mouvement caisse:', error);
+    } finally {
+      setIsSavingMovement(false);
+    }
 
   };
 
@@ -455,6 +515,11 @@ export function CashRegisterView({
   return (
 
     <div className="space-y-6">
+      {serverLoadError && (
+        <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-xs text-red-200">
+          La récupération du journal de caisse a échoué : {serverLoadError}
+        </div>
+      )}
 
       {/* Header Banner */}
 
@@ -1053,7 +1118,7 @@ export function CashRegisterView({
               String(today.getMonth() + 1).padStart(2, "0") + "-" +
               String(today.getDate()).padStart(2, "0");
           })()}
-          cashMovements={cashMovements}
+          cashMovements={displayMovements}
       payments={payments}
           currentUser={currentUser}
           onClose={() => setShowDailyReport(false)}
@@ -1089,9 +1154,8 @@ export function CashRegisterView({
               <div className="grid grid-cols-2 gap-2">
 
                 <button
-
                   type="button"
-
+                  disabled={isSavingMovement || Boolean(pendingMovement)}
                   onClick={() => setMovementForm({ ...movementForm, type: 'ENTREE', categorie: 'ENCAISSEMENT_LOYER' })}
 
                   className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
@@ -1111,9 +1175,8 @@ export function CashRegisterView({
 
 
                 <button
-
                   type="button"
-
+                  disabled={isSavingMovement || Boolean(pendingMovement)}
                   onClick={() => setMovementForm({ ...movementForm, type: 'SORTIE', categorie: 'DEPENSE_MENUE' })}
 
                   className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
@@ -1143,9 +1206,8 @@ export function CashRegisterView({
                   type="number"
 
                   required
-
                   min="100"
-
+                  disabled={isSavingMovement || Boolean(pendingMovement)}
                   value={movementForm.montant || ''}
 
                   onChange={(e) => setMovementForm({ ...movementForm, montant: Number(e.target.value) })}
@@ -1165,9 +1227,8 @@ export function CashRegisterView({
                 <input
 
                   type="text"
-
                   required
-
+                  disabled={isSavingMovement || Boolean(pendingMovement)}
                   value={movementForm.description}
 
                   onChange={(e) => setMovementForm({ ...movementForm, description: e.target.value })}
@@ -1189,7 +1250,7 @@ export function CashRegisterView({
                 <input
 
                   type="text"
-
+                  disabled={isSavingMovement || Boolean(pendingMovement)}
                   value={movementForm.beneficiaireOuPayeur}
 
                   onChange={(e) => setMovementForm({ ...movementForm, beneficiaireOuPayeur: e.target.value })}
@@ -1221,14 +1282,16 @@ export function CashRegisterView({
                 </button>
 
                 <button
-
                   type="submit"
-
+                  disabled={isSavingMovement}
                   className="px-5 py-2.5 bg-[#C9A96E] hover:bg-[#D8BA80] text-[#0A111D] font-bold rounded-xl text-xs shadow-md cursor-pointer"
-
                 >
 
-                  Enregistrer dans le Journal
+                  {isSavingMovement
+                    ? 'Enregistrement...'
+                    : pendingMovement
+                      ? 'Réessayer le même mouvement'
+                      : 'Enregistrer dans le Journal'}
 
                 </button>
 
@@ -1583,4 +1646,3 @@ export function CashRegisterView({
   );
 
 }
-

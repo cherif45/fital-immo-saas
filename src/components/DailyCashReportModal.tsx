@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { X, Printer, Calendar, Download } from 'lucide-react';
 import { CashMovement, Payment, UserAccount } from '../types';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, getCalendarDate } from '../lib/utils';
 
 interface DailyCashReportModalProps {
   date: string; // YYYY-MM-DD
@@ -65,7 +65,7 @@ export const DailyCashReportModal: React.FC<DailyCashReportModalProps> = ({
   // ============================================================
   const loyersEncaisses = useMemo(() => payments
     .filter((p) => {
-      const d = (p.datePaiement || p.dateHeurePaiement || '').split('T')[0].split(' ')[0];
+      const d = getCalendarDate(p.datePaiement || p.dateHeurePaiement);
       return d === date && Number(p.montantPaye || 0) > 0;
     })
     .map((p) => ({
@@ -80,13 +80,36 @@ export const DailyCashReportModal: React.FC<DailyCashReportModalProps> = ({
       dateOperation: p.datePaiement || p.dateHeurePaiement,
     })), [payments, date]);
 
-  const mouvementsDuJour = useMemo(() => cashMovements.filter((m) => {
-    const d = (m.dateOperation || m.dateHeure || '').split(' ')[0].split('T')[0];
-    return d === date && m.categorie !== 'ENCAISSEMENT_LOYER';
-  }), [cashMovements, date]);
+  const paymentReceiptReferences = useMemo(
+    () =>
+      new Set(
+        payments.flatMap((payment) =>
+          [payment.id, payment.ref, payment.quittanceNumero].filter(
+            (reference): reference is string => Boolean(reference),
+          ),
+        ),
+      ),
+    [payments],
+  );
+  const mouvementsDuJour = useMemo(
+    () =>
+      cashMovements.filter((movement) => {
+        const d = getCalendarDate(
+          movement.dateOperation || movement.dateHeure || movement.createdAt,
+        );
+        const isPaymentMovement =
+          Boolean(movement.paiementId) ||
+          Boolean(
+            movement.justificatifRef &&
+              paymentReceiptReferences.has(movement.justificatifRef),
+          );
+        return d === date && !isPaymentMovement;
+      }),
+    [cashMovements, date, paymentReceiptReferences],
+  );
 
   const autresEncaissements = mouvementsDuJour.filter(
-    (m) => (m.type === 'ENTREE' || m.type === 'ENCAISSEMENT') && m.categorie !== 'ENCAISSEMENT_LOYER'
+    (m) => m.type === 'ENTREE' || m.type === 'ENCAISSEMENT'
   );
 
   const decaissementsProprietaire = mouvementsDuJour.filter(

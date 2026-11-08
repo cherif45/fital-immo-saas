@@ -8,6 +8,7 @@ import type {
   UserAccount,
 } from '../../types';
 import { createDocumentNumber } from '../documentNumber';
+import { getLocalDateString } from '../utils';
 import { getPeriodDueDate } from './dueDate';
 
 interface CreatePendingMobilePaymentInput {
@@ -36,7 +37,7 @@ export function createPendingMobilePayment({
   dueDay = 5,
 }: CreatePendingMobilePaymentInput): Payment {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = getLocalDateString(now);
   const dueDate = getPeriodDueDate(period, dueDay);
 
   return {

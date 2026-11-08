@@ -252,7 +252,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
         />
       )}
 
-      <div className="flex-1 min-w-0 text-[14px] text-neutral-900 leading-snug space-y-1">
+      <div className="quittance-body flex-1 min-w-0 text-neutral-900 leading-snug space-y-1">
         <div>
           <strong>Reçu de Mr (mme) :</strong>{" "}
           <strong className="underline">{payment.locataireNom}</strong>
@@ -262,8 +262,7 @@ const QuittanceCopy: React.FC<QuittanceCopyProps> = ({
           <strong>{nombreEnLettres(montantPaye)}</strong> Francs CFA
         </div>
         <div>
-          <strong>pour la Location de :</strong>{" "}
-          <strong>{nomUnite}</strong>
+          <strong>pour la Location de :</strong> <strong>{nomUnite}</strong>
         </div>
         <div>
           <strong>Lieux qu'il occupe dans l'immeuble situé :</strong>{" "}
@@ -369,40 +368,104 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       "printable-quittance",
       `${titre} — ${payment.ref}`,
       `
-      @page{size:A4 portrait;margin:7mm 10mm;}
-      #printable-quittance{--qfs:14px;width:190mm !important;margin:0 auto !important;font-size:var(--qfs) !important;line-height:1.25 !important;color:#000 !important;background:#fff !important;padding:0 !important;}
-      #printable-quittance p,#printable-quittance li,#printable-quittance span,#printable-quittance div{font-size:var(--qfs) !important;line-height:1.25 !important;}
-      #printable-quittance .quittance-copy{max-height:none !important;overflow:visible !important;break-inside:avoid !important;page-break-inside:avoid !important;}
-      #printable-quittance .cut-line{font-size:8px !important;line-height:1 !important;margin:1mm 0 !important;padding:0.5mm 0 !important;break-inside:avoid !important;page-break-inside:avoid !important;}
-      #printable-quittance .copy-label{font-size:7.5px !important;line-height:1 !important;margin-top:0.5mm !important;}
-      #quittance-copy-2{display:flex !important;flex-direction:column !important;}
-      #quittance-copy-2 .quittance-foot{margin-top:auto !important;}
+      @page {
+        size: A4 portrait;
+        margin: 5mm;
+      }
+
+      * {
+        box-sizing: border-box !important;
+      }
+
+      html, body {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+      }
+
+      #printable-quittance {
+        --qfs: 14px;
+        width: 200mm !important;
+        max-width: 200mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        font-size: var(--qfs) !important;
+        line-height: 1.2 !important;
+        background: #fff !important;
+      }
+
+      #printable-quittance .quittance-copy {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 1mm 2mm !important;
+        overflow: visible !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      #printable-quittance .quittance-body {
+        font-size: var(--qfs) !important;
+        line-height: 1.2 !important;
+      }
+
+      #printable-quittance .quittance-copy .px-4 {
+        padding-left: 2mm !important;
+        padding-right: 2mm !important;
+      }
+
+      #printable-quittance .quittance-copy .space-y-1 > * + * {
+        margin-top: 0.8mm !important;
+      }
+
+      #printable-quittance .quittance-copy .my-1\\.5 {
+        margin-top: 1mm !important;
+        margin-bottom: 1mm !important;
+      }
+
+      #printable-quittance .quittance-copy .mb-2 {
+        margin-bottom: 1mm !important;
+      }
+
+      #printable-quittance .quittance-copy .mt-2 {
+        margin-top: 1mm !important;
+      }
+
+      #printable-quittance .quittance-copy .mt-1\\.5 {
+        margin-top: 0.8mm !important;
+      }
+
+      #printable-quittance .quittance-copy .pt-1 {
+        padding-top: 0.5mm !important;
+      }
+
+      #printable-quittance .cut-line {
+        width: 100% !important;
+        margin: 1mm 0 !important;
+        padding: 0.5mm 0 !important;
+        text-align: center !important;
+        font-size: 8px !important;
+        line-height: 1 !important;
+        break-inside: avoid !important;
+      }
+
+      #printable-quittance .copy-label {
+        font-size: 9px !important;
+        line-height: 1 !important;
+        margin-top: 0.5mm !important;
+        text-align: center !important;
+      }
       `,
       {
         pageIds: ["printable-quittance"],
         baseFontPx: 14,
-        minFontPx: 10.5,
-        pageBudgetMm: 275,
+        minFontPx: 11,
+        pageBudgetMm: 287,
         cssVar: "--qfs",
-        finalize: (win) => {
-          // Remplit la page : la 2e copie s'étire, son pied colle le bas
-          const doc = win.document;
-          const container = doc.getElementById(
-            "printable-quittance",
-          ) as HTMLElement | null;
-          const copy2 = doc.getElementById(
-            "quittance-copy-2",
-          ) as HTMLElement | null;
-          if (!container || !copy2) return;
-          container.style.minHeight = "275mm";
-          container.style.display = "flex";
-          container.style.flexDirection = "column";
-          copy2.style.flex = "1 0 auto";
-        },
       },
     );
   };
-
   const [receiptType, setReceiptType] = useState<ReceiptType>(() => {
     if (payment.typeRecu) return payment.typeRecu;
     if (montantPaye >= montantTotal && montantRestant === 0) {

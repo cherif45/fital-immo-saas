@@ -15,7 +15,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { useTheme } from "./hooks/useTheme";
 import { useAgencySettings } from "./hooks/useAgencySettings";
 import { supabase, isSupabaseConfigured } from "./lib/supabase/client";
-import { formatNumber } from "./lib/utils";
+import { formatNumber, getLocalDateString } from "./lib/utils";
 import { findBlockingPayment } from "./lib/payments/duplicate";
 import { createDocumentNumber } from "./lib/documentNumber";
 import { createPendingMobilePayment } from "./lib/payments/createPendingMobilePayment";
@@ -1005,61 +1005,65 @@ export default function App() {
       alert(
         "Une sauvegarde est déjà en cours. Merci de patienter quelques secondes.",
       );
-      return;
+      return false;
     }
     setIsSavingUnit(true);
-
-    setUnits((prev) => {
-      const next = [newUnit, ...prev];
-      persistCollection("units", next);
-      return next;
-    });
-
-    if (currentUser?.agencyId) {
-      try {
-        const res = await saveUnitToDb(newUnit, currentUser.agencyId);
-        if (res.success && res.data) {
-          setUnits((prev) => {
-            const next = prev.map((u) =>
-              u.id === newUnit.id ? { ...u, ...res.data! } : u,
-            );
-            persistCollection("units", next);
-            return next;
-          });
-        } else {
-          // Échec : on retire l'unit optimiste
-          alert(
-            `Impossible de créer l'espace : ${res.error || "erreur inconnue"}`,
-          );
-          setUnits((prev) => {
-            const next = prev.filter((u) => u.id !== newUnit.id);
-            persistCollection("units", next);
-            return next;
-          });
-        }
-      } catch (err: any) {
-        console.warn("Erreur saveUnitToDb:", err);
-        alert(
-          `Erreur réseau. L'espace n'a pas été créé. Réessayez.\n\n${err?.message || ""}`,
-        );
-        setUnits((prev) => {
-          const next = prev.filter((u) => u.id !== newUnit.id);
-          persistCollection("units", next);
-          return next;
-        });
+    try {
+      let savedUnit = newUnit;
+      if (!currentUser?.agencyId || !isSupabaseConfigured || !supabase) {
+        throw new Error("Impossible de sauvegarder l'unité : session d'agence ou connexion Supabase indisponible.");
       }
+      const result = await saveUnitToDb(newUnit, currentUser.agencyId);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Supabase n'a pas retourné l'unité enregistrée.");
+      }
+      savedUnit = { ...newUnit, ...result.data };
+      setUnits((prev) => {
+        const next = [savedUnit, ...prev];
+        persistCollection("units", next);
+        return next;
+      });
+      return true;
+    } catch (err) {
+      console.error("Erreur saveUnitToDb:", err);
+      alert(
+        `Impossible de créer l'espace : ${
+          err instanceof Error ? err.message : "erreur inconnue"
+        }`,
+      );
+      return false;
+    } finally {
+      setIsSavingUnit(false);
     }
-
-    setIsSavingUnit(false);
   };
-  const handleUpdateUnit = (updatedUnit: Unit) => {
-    setUnits((prev) => {
-      const next = prev.map((u) => (u.id === updatedUnit.id ? updatedUnit : u));
-      persistCollection("units", next);
-      return next;
-    });
-    if (currentUser?.agencyId)
-      saveUnitToDb(updatedUnit, currentUser.agencyId).catch(console.warn);
+  const handleUpdateUnit = async (updatedUnit: Unit): Promise<boolean> => {
+    try {
+      let savedUnit = updatedUnit;
+      if (!currentUser?.agencyId || !isSupabaseConfigured || !supabase) {
+        throw new Error("Impossible de sauvegarder l'unité : session d'agence ou connexion Supabase indisponible.");
+      }
+      const result = await saveUnitToDb(updatedUnit, currentUser.agencyId);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Supabase n'a pas retourné l'unité enregistrée.");
+      }
+      savedUnit = { ...updatedUnit, ...result.data };
+      setUnits((prev) => {
+        const next = prev.map((unit) =>
+          unit.id === savedUnit.id ? savedUnit : unit,
+        );
+        persistCollection("units", next);
+        return next;
+      });
+      return true;
+    } catch (err) {
+      console.error("Erreur updateUnit:", err);
+      alert(
+        `Impossible de modifier l'espace : ${
+          err instanceof Error ? err.message : "erreur inconnue"
+        }`,
+      );
+      return false;
+    }
   };
   const handleDeleteUnit = (unitId: string) => {
     setUnits((prev) => {
@@ -1501,32 +1505,76 @@ export default function App() {
       });
     }
 
+    let cashMovementWarning = "";
     if (
       newPayment.modePaiement === "Espèces" ||
       newPayment.moyenPaiementCode === "ESPECES"
     ) {
       const newCashEntry: CashMovement = {
-        id: crypto.randomUUID(),
+        id: `cash-payment-${newPayment.id}`,
+        reference: `CASH-${newPayment.id}`,
         type: "ENCAISSEMENT",
+        categorie: "ENCAISSEMENT_LOYER",
         montant: newPayment.montantPaye,
         libelle: `Encaissement loyer ${newPayment.periode} - ${newPayment.locataireNom}`,
-        dateHeure: new Date().toISOString().replace("T", " ").substring(0, 16),
+        dateHeure: new Date(
+          `${newPayment.datePaiement || getLocalDateString()}T12:00:00Z`,
+        ).toISOString(),
         auteurId: currentUser?.id,
         auteurNom: currentUser
           ? `${currentUser.prenom} ${currentUser.nom}`
           : "Système",
         justificatifRef: newPayment.quittanceNumero,
+        paiementId: newPayment.id,
         moyenPaiementCode: "ESPECES",
       };
-      setCashMovements((prev) => {
-        const next = [newCashEntry, ...prev];
-        persistCollection("cash_movements", next);
-        return next;
-      });
-      if (currentUser?.agencyId)
-        saveCashMovementToDb(newCashEntry, currentUser.agencyId).catch(
-          console.warn,
+      let savedCashEntry: CashMovement | null = newCashEntry;
+      if (currentUser?.agencyId) {
+        const cashResult = await saveCashMovementToDb(
+          newCashEntry,
+          currentUser.agencyId,
+          currentUser.id,
         );
+        savedCashEntry =
+          cashResult.success && cashResult.data ? cashResult.data : null;
+        if (!savedCashEntry) {
+          let retrySaved = false;
+          if (currentUser?.agencyId && currentUser.id) {
+            try {
+              window.localStorage.setItem(
+                `fital-pending-cash-movement:${currentUser.agencyId}:${currentUser.id}`,
+                JSON.stringify(newCashEntry),
+              );
+              retrySaved = true;
+            } catch (storageError) {
+              console.error(
+                "Impossible de conserver le mouvement de caisse à reprendre:",
+                storageError,
+              );
+            }
+          }
+          cashMovementWarning = `Le mouvement de caisse n'a pas été confirmé par Supabase : ${
+              cashResult.error || "aucune donnée enregistrée n'a été retournée"
+            }\n\nNe ressaisissez pas le paiement. ${
+              retrySaved
+                ? "La référence du mouvement a été conservée pour une reprise depuis l'écran Caisse."
+                : "La reprise automatique n'a pas pu être conservée sur cet appareil; vérifiez le journal avant toute régularisation."
+            }`;
+        }
+      }
+      const cashEntryToDisplay = savedCashEntry;
+      if (cashEntryToDisplay) {
+        setCashMovements((prev) => {
+          const next = [
+            cashEntryToDisplay,
+            ...prev.filter(
+              (movement) => movement.id !== cashEntryToDisplay.id,
+            ),
+          ];
+          persistCollection("cash_movements", next);
+          return next;
+        });
+      }
     }
 
     // Le statut et les arriérés du locataire ne sont pas recalculés
@@ -1558,9 +1606,23 @@ export default function App() {
       newPayment.statut === "En attente" ||
         newPayment.verificationStatut === "en_attente"
         ? `Paiement transmis et en attente de validation.\n\nRéférence : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`
-        : `Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}`,
+        : `Paiement enregistré !\n\nQuittance : ${newPayment.quittanceNumero}\nMontant : ${formatNumber(newPayment.montantPaye)} FCFA\nLocataire : ${newPayment.locataireNom}${cashMovementWarning ? `\n\n⚠️ ${cashMovementWarning}` : ""}`,
     );
     return true;
+  };
+
+  const getTenantBienLabel = (tenant?: Tenant): string => {
+    if (!tenant) return "Résidence FITAL-IMMO";
+    const unit = units.find((item) => item.id === tenant.bienId);
+    if (unit) {
+      const building = buildings.find((item) => item.id === unit.buildingId);
+      return building ? `${building.nom} — ${unit.nom}` : unit.nom;
+    }
+    return (
+      properties.find((item) => item.id === tenant.bienId)?.nom ||
+      tenant.bienNom ||
+      "Bien non renseigné"
+    );
   };
 
   const handleOpenMobileMoney = (tenant?: Tenant, amount?: number) => {
@@ -1569,7 +1631,7 @@ export default function App() {
       isOpen: true,
       tenantName: t ? `${t.prenom} ${t.nom}` : "Client FITAL-IMMO",
       tenantPhone: t?.telephone || "+221 77 845 20 10",
-      propertyNom: t?.bienNom || "Résidence FITAL-IMMO",
+      propertyNom: getTenantBienLabel(t),
       amount: amount || t?.arrieresCumules || t?.loyerMensuel || 250000,
       period: selectedPeriod,
       reference: createDocumentNumber(agencySettings?.prefixPaiement, "PAY-"),
@@ -1678,20 +1740,23 @@ export default function App() {
         : method === "ORANGE_MONEY"
           ? "ORANGE_MONEY"
           : "AUTRE";
-    const newPayment = createPendingMobilePayment({
-      tenant,
-      property,
-      owner,
-      amount,
-      method: methodCode,
-      transactionId,
-      period,
-      settings: agencySettings,
-      currentUser,
-      dueDay:
-        contracts.find((item) => item.locataireId === tenant.id)
-          ?.jourEcheance ?? 5,
-    });
+    const newPayment = {
+      ...createPendingMobilePayment({
+        tenant,
+        property,
+        owner,
+        amount,
+        method: methodCode,
+        transactionId,
+        period,
+        settings: agencySettings,
+        currentUser,
+        dueDay:
+          contracts.find((item) => item.locataireId === tenant.id)
+            ?.jourEcheance ?? 5,
+      }),
+      bienNom: getTenantBienLabel(tenant),
+    };
     const saved = await handleAddPayment(newPayment);
     if (saved) setMobileMoneyModalConfig(null);
     return saved;
@@ -1822,7 +1887,9 @@ export default function App() {
     });
   };
 
-  const handleAddCashMovement = (mov: CashMovement) => {
+  const handleAddCashMovement = async (
+    mov: CashMovement,
+  ): Promise<CashMovement | null> => {
     const enrichedMov: CashMovement = {
       ...mov,
       createdById: mov.createdById || currentUser?.id,
@@ -1831,15 +1898,33 @@ export default function App() {
         (currentUser ? `${currentUser.prenom} ${currentUser.nom}` : "Système"),
       createdByRole: mov.createdByRole || currentUser?.role,
     };
+    if (!currentUser?.agencyId) {
+      alert("Impossible d'enregistrer le mouvement : aucune agence n'est associée à votre session.");
+      return null;
+    }
+    const result = await saveCashMovementToDb(
+      enrichedMov,
+      currentUser.agencyId,
+      currentUser.id,
+    );
+    if (!result.success || !result.data) {
+      alert(
+        `Le mouvement n'a pas été confirmé par Supabase : ${
+          result.error || "aucune donnée enregistrée n'a été retournée"
+        }\n\nAucune opération locale n'a été ajoutée. Vérifiez le journal avant tout nouvel essai.`,
+      );
+      return null;
+    }
+    const savedMovement = { ...enrichedMov, ...result.data };
     setCashMovements((prev) => {
-      const next = [enrichedMov, ...prev];
+      const next = [
+        savedMovement,
+        ...prev.filter((movement) => movement.id !== savedMovement.id),
+      ];
       persistCollection("cash_movements", next);
       return next;
     });
-    if (currentUser?.agencyId)
-      saveCashMovementToDb(enrichedMov, currentUser.agencyId).catch(
-        console.warn,
-      );
+    return savedMovement;
   };
 
   const handleAddCashClosing = (cls: CashClosing) => {
@@ -2037,14 +2122,19 @@ export default function App() {
       return;
     }
 
-    const existingActiveLease = tenants.find(
-      (t) =>
-        t.nom?.toLowerCase() === newTenant.nom?.toLowerCase() &&
-        t.prenom?.toLowerCase() === newTenant.prenom?.toLowerCase() &&
-        t.cni === newTenant.cni &&
-        t.bienId !== newTenant.bienId &&
-        !t.dateSortie,
-    );
+    const normalizedCni = String(newTenant.cni || "")
+      .trim()
+      .toLocaleUpperCase("fr-FR");
+    const existingActiveLease = normalizedCni
+      ? tenants.find(
+          (t) =>
+            String(t.cni || "")
+              .trim()
+              .toLocaleUpperCase("fr-FR") === normalizedCni &&
+            t.bienId !== newTenant.bienId &&
+            !t.dateSortie,
+        )
+      : undefined;
 
     if (existingActiveLease) {
       alert(
@@ -2165,14 +2255,19 @@ export default function App() {
       return;
     }
 
-    const existingActiveLease = tenants.find(
-      (t) =>
-        t.nom?.toLowerCase() === data.tenant.nom?.toLowerCase() &&
-        t.prenom?.toLowerCase() === data.tenant.prenom?.toLowerCase() &&
-        t.cni === data.tenant.cni &&
-        t.bienId !== data.tenant.bienId &&
-        !t.dateSortie,
-    );
+    const normalizedCni = String(data.tenant.cni || "")
+      .trim()
+      .toLocaleUpperCase("fr-FR");
+    const existingActiveLease = normalizedCni
+      ? tenants.find(
+          (t) =>
+            String(t.cni || "")
+              .trim()
+              .toLocaleUpperCase("fr-FR") === normalizedCni &&
+            t.bienId !== data.tenant.bienId &&
+            !t.dateSortie,
+        )
+      : undefined;
 
     if (existingActiveLease) {
       alert(
@@ -3249,6 +3344,8 @@ export default function App() {
                 payments={scopedPayments}
                 tenants={scopedTenants}
                 properties={scopedProperties}
+                buildings={scopedBuildings}
+                units={scopedUnits}
                 owners={owners}
                 tenantCharges={tenantCharges.filter((charge) =>
                   scopedTenants.some((tenant) => tenant.id === charge.locataireId),

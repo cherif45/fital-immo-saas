@@ -1015,7 +1015,9 @@ const UploadZone: React.FC<{
           <img
             src={currentUrl}
             alt={label || "Document de l'agence"}
-            className="mx-auto max-h-32 object-contain"
+            className={`mx-auto object-contain ${
+              type === "signature" ? "max-h-40" : "max-h-32"
+            }`}
           />
 
           <label className="block cursor-pointer text-center text-xs font-semibold text-[#C9A96E] hover:underline">

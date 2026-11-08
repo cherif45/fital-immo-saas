@@ -800,6 +800,7 @@ export interface CashMovement extends AuditSignature {
   beneficiaire?: string;
   beneficiaireOuPayeur?: string;
   justificatifRef?: string;
+  paiementId?: string;
   dateOperation?: string;
   dateHeure?: string;
   statut?: string;

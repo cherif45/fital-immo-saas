@@ -23,6 +23,20 @@ export function formatDate(dateString: string | undefined | null): string {
   }
 }
 
+export function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getCalendarDate(value: string | undefined): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : getLocalDateString(date);
+}
+
 /**
  * Convert number to French words for official rent receipts and legal documents
  */
@@ -137,4 +151,3 @@ export function exportToCSV(filename: string, rows: (string | number)[][], heade
 export function exportToCsv(filename: string, headers: string[], data: (string | number)[][]) {
   exportToCSV(filename, data, headers);
 }
-

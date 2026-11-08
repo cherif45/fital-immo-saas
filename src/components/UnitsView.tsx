@@ -25,8 +25,8 @@ interface UnitsViewProps {
   owners: Owner[];
   tenants: Tenant[];
   currentUser?: UserAccount;
-  onAddUnit: (unit: Unit) => void;
-  onUpdateUnit: (unit: Unit) => void;
+  onAddUnit: (unit: Unit) => Promise<boolean>;
+  onUpdateUnit: (unit: Unit) => Promise<boolean>;
   onDeleteUnit: (unitId: string) => void;
   initialBuildingId?: string;
   onReattachUnit?: (unitId: string, newBuildingId: string) => void;
@@ -68,6 +68,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
   >("Vacant");
   const [locataireActuelId, setLocataireActuelId] = useState<string>("");
   const [description, setDescription] = useState("");
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
 
   // 🔒 Permissions
   const role = currentUser?.role || "ADMIN";
@@ -171,9 +172,9 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setDescription("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canManage) return;
+    if (!canManage || isSavingUnit) return;
 
     const building = buildings.find((b) => b.id === buildingId);
     if (!building) {
@@ -213,23 +214,35 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
       superficie: Number(superficie) || 0,
       nombrePieces: Number(nombrePieces) || 1,
       loyerBase: Number(loyerBase) || 0,
-      charges: 0,
+      charges: editingUnit?.charges ?? 0,
       statut,
       locataireActuelId: locataireActuelId || undefined,
       locataireActuelNom: tenant ? `${tenant.prenom} ${tenant.nom}` : undefined,
       description,
-      dateCreation: new Date().toISOString().split("T")[0],
+      equipements: editingUnit?.equipements || [],
+      dateCreation:
+        editingUnit?.dateCreation || new Date().toISOString().split("T")[0],
     };
 
-    if (editingUnit) {
-      onUpdateUnit(newUnit);
+    setIsSavingUnit(true);
+    try {
+      const saved = editingUnit
+        ? await onUpdateUnit(newUnit)
+        : await onAddUnit(newUnit);
+      if (!saved) return;
       setEditingUnit(null);
-    } else {
-      onAddUnit(newUnit);
+      resetForm();
+      setIsNewUnitModalOpen(false);
+    } catch (error) {
+      console.error("Erreur d'enregistrement de l'espace:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "L'espace n'a pas pu être enregistré.",
+      );
+    } finally {
+      setIsSavingUnit(false);
     }
-
-    resetForm();
-    setIsNewUnitModalOpen(false);
   };
 
   const handleOpenEdit = (unit: Unit) => {
@@ -766,15 +779,21 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                     setEditingUnit(null);
                     resetForm();
                   }}
+                  disabled={isSavingUnit}
                   className="px-4 py-2 rounded-xl bg-[#1E2E45] text-[#A8B4C4] hover:bg-[#2A3F5C] cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
+                  disabled={isSavingUnit}
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold shadow-lg hover:scale-105 transition-all cursor-pointer"
                 >
-                  {editingUnit ? "Enregistrer" : "Créer l'Espace"}
+                  {isSavingUnit
+                    ? "Enregistrement…"
+                    : editingUnit
+                      ? "Enregistrer"
+                      : "Créer l'Espace"}
                 </button>
               </div>
             </form>

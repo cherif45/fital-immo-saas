@@ -318,7 +318,7 @@ export function UserProfileModal({
                     <img 
                       src={signatureUrl} 
                       alt="Signature" 
-                      className="max-h-24 mx-auto object-contain mb-3" 
+                      className="max-h-40 mx-auto object-contain mb-3"
                     />
                     <div className="flex gap-2 justify-center">
                       <label className="px-3 py-1.5 rounded-lg bg-[#1E2E45] text-white text-xs font-semibold cursor-pointer hover:bg-[#2A3F5C]">

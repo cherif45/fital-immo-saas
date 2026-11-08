@@ -273,14 +273,27 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
   );
   const [serverOwnerUnits, setServerOwnerUnits] = useState<Unit[]>([]);
   const [serverOwnerTenants, setServerOwnerTenants] = useState<Tenant[]>([]);
+  const [bulletinDataStatus, setBulletinDataStatus] = useState<
+    "loading" | "server" | "local" | "error"
+  >(currentUser?.agencyId ? "loading" : "local");
+  const [bulletinDataError, setBulletinDataError] = useState("");
 
   React.useEffect(() => {
-    if (!currentUser?.agencyId || !owner?.id) return;
+    if (!currentUser?.agencyId || !owner?.id) {
+      setBulletinDataStatus("local");
+      return;
+    }
     let cancelled = false;
+    setBulletinDataStatus("loading");
+    setBulletinDataError("");
     (async () => {
       try {
         const data = await getOwnerBulletinData(currentUser.agencyId, owner.id);
         if (cancelled) return;
+        if (!data) {
+          setBulletinDataStatus("local");
+          return;
+        }
         const mappedPayments: Payment[] = (data.payments || []).map(
           (r: any) => ({
             ...r,
@@ -300,10 +313,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             bienId: r.bien_id,
             proprietaireId: r.proprietaire_id,
             contratId: r.contrat_id,
-            locataireNom: r.locataire_nom_calc
+            locataireNom: r.locataire_nom || (r.locataire_nom_calc
               ? `${r.locataire_prenom_calc || ""} ${r.locataire_nom_calc}`.trim()
-              : r.locataire_nom,
-            bienNom: r.bien_nom_calc || r.bien_nom,
+              : undefined),
+            bienNom: r.bien_nom || r.bien_nom_calc,
           }),
         );
         setServerPayments(mappedPayments);
@@ -319,6 +332,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           (data.buildings || []).map((b: any) => ({
             ...b,
             proprietaireId: b.proprietaire_id || b.proprietaireId,
+            loyerBase: Number(b.loyer_base ?? b.loyerBase) || 0,
+            tauxCommission:
+              b.taux_commission == null
+                ? b.tauxCommission
+                : Number(b.taux_commission),
           })),
         );
         setServerOwnerUnits(
@@ -328,6 +346,8 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             buildingId: u.building_id || u.buildingId,
             loyerBase: Number(u.loyer_base) || Number(u.loyerBase) || 0,
             bienId: u.id || u.bien_id || u.bienId,
+            locataireActuelId:
+              u.locataire_actuel_id || u.locataireActuelId,
           })),
         );
         setServerOwnerTenants(
@@ -340,8 +360,16 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             loyerMensuel: Number(t.loyer_mensuel) || Number(t.loyerMensuel) || 0,
           })),
         );
+        setBulletinDataStatus("server");
       } catch (e) {
-        if (!cancelled) console.warn("loadBulletinData:", e);
+        if (!cancelled) {
+          setBulletinDataError(
+            e instanceof Error
+              ? e.message
+              : "Impossible de récupérer les données du bulletin.",
+          );
+          setBulletinDataStatus("error");
+        }
       }
     })();
     return () => {
@@ -349,14 +377,36 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     };
   }, [currentUser?.agencyId, owner?.id, paymentRefreshKey]);
 
-  const displayPayments = serverPayments.length > 0 ? serverPayments : payments;
+  const displayPayments =
+    bulletinDataStatus === "server"
+      ? serverPayments
+      : bulletinDataStatus === "local"
+        ? payments
+        : [];
   const displayProperties =
-    serverOwnerProps.length > 0 ? serverOwnerProps : properties;
+    bulletinDataStatus === "server"
+      ? serverOwnerProps
+      : bulletinDataStatus === "local"
+        ? properties
+        : [];
   const displayBuildings =
-    serverOwnerBuildings.length > 0 ? serverOwnerBuildings : buildings;
-  const displayUnits = serverOwnerUnits.length > 0 ? serverOwnerUnits : units;
+    bulletinDataStatus === "server"
+      ? serverOwnerBuildings
+      : bulletinDataStatus === "local"
+        ? buildings
+        : [];
+  const displayUnits =
+    bulletinDataStatus === "server"
+      ? serverOwnerUnits
+      : bulletinDataStatus === "local"
+        ? units
+        : [];
   const displayTenants =
-    serverOwnerTenants.length > 0 ? serverOwnerTenants : tenants;
+    bulletinDataStatus === "server"
+      ? serverOwnerTenants
+      : bulletinDataStatus === "local"
+        ? tenants
+        : [];
 
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [deductionLibelle, setDeductionLibelle] = useState("");
@@ -386,7 +436,6 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     }
   }, [ownerBuildings.length, selectedBuildingId]);
   const ownerUnits = displayUnits.filter((u) => {
-    // Filtrer par bâtiment sélectionné
     if (selectedBuildingId && u.buildingId !== selectedBuildingId) return false;
     // Unit direct propriétaire
     if (u.proprietaireId === owner.id) return true;
@@ -400,7 +449,9 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     ? displayBuildings.find((b) => b.id === selectedBuildingId)
     : null;
   const tauxCommission =
-    buildings.find((b) => b.id === selectedBuildingId)?.tauxCommission ?? owner.tauxCommission ?? 10;
+    selectedBuildingForCommission?.tauxCommission ??
+    owner.tauxCommission ??
+    10;
   const normalizePeriod = (s: string) =>
     (s || "")
       .normalize("NFD")
@@ -471,16 +522,37 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         : date.getFullYear() * 12 + date.getMonth();
     };
 
-    const findActiveTenant = (bienId: string) =>
-      displayTenants.find((tenant) => {
-        if (tenant.bienId !== bienId) return false;
-        const startMonth = getDateMonthIndex(tenant.dateEntree);
-        const endMonth = getDateMonthIndex(tenant.dateSortie);
-        return (
-          (startMonth === null || startMonth <= selectedMonthIndex) &&
-          (endMonth === null || endMonth >= selectedMonthIndex)
-        );
-      });
+    const isTenantActiveForPeriod = (tenant: Tenant) => {
+      const status = String(tenant.statut || "").toLocaleLowerCase("fr-FR");
+      if (
+        !tenant.dateSortie &&
+        ["parti", "résilié", "archive", "archivé"].includes(status)
+      ) {
+        return false;
+      }
+      const endMonth = getDateMonthIndex(tenant.dateSortie);
+      return endMonth === null || endMonth >= selectedMonthIndex;
+    };
+
+    const findActiveTenant = (
+      bienId: string,
+      locataireActuelId?: string,
+    ) => {
+      const currentTenant = locataireActuelId
+        ? displayTenants.find(
+            (tenant) =>
+              tenant.id === locataireActuelId &&
+              isTenantActiveForPeriod(tenant),
+          )
+        : undefined;
+      return (
+        currentTenant ||
+        displayTenants.find(
+          (tenant) =>
+            tenant.bienId === bienId && isTenantActiveForPeriod(tenant),
+        )
+      );
+    };
 
     const findPayment = (bienId: string, locataireId: string) =>
       displayPayments.find(
@@ -501,39 +573,56 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       etage: string,
       ordre: number,
       loyerBase: number,
+      locataireActuelId?: string,
     ): LoyerLigne | null => {
-      const tenant = findActiveTenant(unitId);
-      if (!tenant) return null;
+      const tenant = findActiveTenant(unitId, locataireActuelId);
+      const historicalPayment = tenant
+        ? undefined
+        : displayPayments.find(
+            (p) =>
+              p.bienId === unitId &&
+              isSamePeriod(p.periode, bulletinPeriod) &&
+              p.statut === "Payé" &&
+              Boolean(p.locataireNom),
+          );
+      if (!tenant && !historicalPayment) return null;
 
-      const payment = findPayment(unitId, tenant.id);
+      const payment = tenant
+        ? findPayment(unitId, tenant.id)
+        : historicalPayment;
       const estNonPayeur = !payment;
 
       const loyerAttendu =
-        loyerBase > 0 ? loyerBase : tenant.loyerMensuel || 0;
+        loyerBase > 0
+          ? loyerBase
+          : tenant?.loyerMensuel ||
+            historicalPayment?.loyerBase ||
+            historicalPayment?.montantTotal ||
+            0;
       const netProprietaire = Math.round(
         loyerAttendu * (1 - tauxCommission / 100),
       );
 
-      const dateEntree = tenant.dateEntree ? new Date(tenant.dateEntree) : null;
-      const estNouveau = dateEntree
-        ? dateEntree.getMonth() === selectedMonth - 1 &&
-          dateEntree.getFullYear() === selectedYear
-        : false;
+      const estNouveau =
+        tenant !== undefined &&
+        getDateMonthIndex(tenant.dateEntree) === selectedMonthIndex;
 
-      const refCourte = getRefCourte((tenant as any).ref);
+      const refCourte = getRefCourte(tenant?.ref);
       const bienLoue = unitNom || "—";
 
       return {
         ref: refCourte,
         unitId,
-        tenantId: tenant.id,
+        tenantId: tenant?.id || historicalPayment?.locataireId || "",
         unitNom: bienLoue,
         immeubleRef,
         immeubleNom,
         type,
         adresse,
         etage,
-        locataire: `${tenant.prenom} ${tenant.nom}`,
+        locataire: tenant
+          ? `${tenant.prenom} ${tenant.nom}`
+          : historicalPayment?.locataireNom || "—",
         locataireRef: refCourte,
         loyer: loyerAttendu,
         net: netProprietaire,
@@ -559,9 +648,30 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
         unit.etage || "RDC",
         getOrdreEtage(unit.etage || "RDC"),
         unit.loyerBase || 0,
+        unit.locataireActuelId,
       );
       if (line) lines.push(line);
     });
+
+    ownerBuildings
+      .filter(
+        (building) =>
+          !selectedBuildingId || building.id === selectedBuildingId,
+      )
+      .forEach((building) => {
+        const line = buildLine(
+          building.id,
+          building.nom,
+          building.ref || "—",
+          building.nom,
+          building.type || "Immeuble",
+          building.adresse || "—",
+          "—",
+          1000,
+          building.loyerBase || 0,
+        );
+        if (line) lines.push(line);
+      });
 
     ownerProperties.forEach((prop) => {
       const line = buildLine(
@@ -587,10 +697,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
     return lines;
   }, [
     ownerUnits,
+    ownerBuildings,
     ownerProperties,
-    tenants,
-    payments,
-    buildings,
+    displayTenants,
+    displayPayments,
+    displayBuildings,
     bulletinPeriod,
     tauxCommission,
   ]);
@@ -676,11 +787,11 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
       };
     });
   }, [
-    payments,
+    displayPayments,
     owner,
     ownerUnits,
     ownerProperties,
-    tenants,
+    displayTenants,
     bulletinPeriod,
     tauxCommission,
   ]);
@@ -864,6 +975,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleSave}
+              disabled={
+                bulletinDataStatus === "loading" ||
+                bulletinDataStatus === "error"
+              }
               className="px-4 py-2 rounded-xl bg-[#1E2E45] hover:bg-[#2A3F5C] border border-[#C9A96E]/30 text-[#E8D5B0] font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Save className="w-4 h-4" />
@@ -871,6 +986,10 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             </button>
             <button
               onClick={() => window.print()}
+              disabled={
+                bulletinDataStatus === "loading" ||
+                bulletinDataStatus === "error"
+              }
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#A07840] text-[#0F1B2D] font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
@@ -884,6 +1003,24 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
             </button>
           </div>
         </div>
+
+        {bulletinDataStatus === "loading" && (
+          <div
+            role="status"
+            className="mx-8 mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 print:hidden"
+          >
+            Chargement des données du bulletin depuis Supabase…
+          </div>
+        )}
+        {bulletinDataStatus === "error" && (
+          <div
+            role="alert"
+            className="mx-8 mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900 print:hidden"
+          >
+            Le bulletin n'a pas pu être chargé depuis Supabase. Aucun
+            locataire de repli n'est affiché. {bulletinDataError}
+          </div>
+        )}
 
         {/* Document imprimable */}
         <div className="bulletin-print-container print-container bg-white text-neutral-900 p-8 max-w-[210mm] mx-auto relative">
@@ -974,9 +1111,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
               </thead>
               <tbody>
                 {ownerBuildings
-                  .filter(
-                    (b) => !selectedBuildingId || b.id === selectedBuildingId,
-                  )
+                  .filter((b) => !selectedBuildingId || b.id === selectedBuildingId)
                   .map((b) => (
                     <tr key={b.id}>
                       <td className="p-2 border border-neutral-700 font-mono">
@@ -1000,9 +1135,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                     </tr>
                   ))}
                 {ownerProperties
-                  .filter(
-                    (p) => !selectedBuildingId || p.id === selectedBuildingId,
-                  )
+                  .filter((p) => !selectedBuildingId || p.id === selectedBuildingId)
                   .map((p) => (
                     <tr key={p.id}>
                       <td className="p-2 border border-neutral-700 font-mono">
@@ -1448,7 +1581,7 @@ export const OwnerBulletinModal: React.FC<OwnerBulletinModalProps> = ({
                 <img
                   src={agency.gerantSignatureUrl}
                   alt="Signature gérant"
-                  className="h-20 object-contain -mt-16 ml-3"
+                  className="h-24 max-w-full object-contain -mt-20 ml-3"
                 />
               )}
             </div>

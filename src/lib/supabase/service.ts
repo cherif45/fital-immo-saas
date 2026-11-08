@@ -39,6 +39,7 @@ import {
   PublicAgencyLoginBranding,
 } from "../../types";
 import { createDocumentNumber } from "../documentNumber";
+import { getLocalDateString } from "../utils";
 
 export interface AppStateData {
   agency: Agency | null;
@@ -819,7 +820,7 @@ export function mapOwnerChargeFromDb(r: any): OwnerCharge {
     referenceDocument: r.reference_document || r.referenceDocument,
     dateCharge:
       r.date_charge || r.dateCharge || new Date().toISOString().split("T")[0],
-    statut: r.statut || "Valid?",
+    statut: r.statut || "Validé",
     notes: r.notes || "",
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
@@ -924,16 +925,22 @@ export function mapCashMovementFromDb(r: any): CashMovement {
     reference: r.reference || r.id,
     type: r.type,
     montant: Number(r.montant || 0),
+    categorie: r.categorie,
     description: r.description || "",
     libelle: r.description || r.libelle || "",
     moyenPaiementCode:
       r.moyen_paiement_code || r.moyenPaiementCode || "ESPECES",
     auteurNom: r.user_nom || r.auteurNom || "Caissier",
     auteurId: r.user_id || r.auteurId,
+    userNom: r.user_nom || r.userNom,
+    userId: r.user_id || r.userId,
     beneficiaire: r.beneficiaire || "",
     justificatifRef: r.justificatif_ref || r.justificatifRef || "",
-    dateHeure: r.created_at || r.dateHeure || new Date().toISOString(),
-    statut: r.statut || "Valid?",
+    dateOperation: r.date_operation || r.created_at || r.dateOperation,
+    dateHeure: r.date_operation || r.created_at || r.dateHeure,
+    paiementId: r.paiement_id || r.paiementId,
+    statut: r.statut || "Validé",
+    createdAt: r.created_at || r.createdAt,
     createdById: r.created_by_id || r.createdById,
     createdByNom: r.created_by_nom || r.createdByNom,
     createdByRole: r.created_by_role || r.createdByRole,
@@ -1954,8 +1961,12 @@ export async function saveUnitToDb(
   unit: Partial<Unit>,
   agencyId: string,
 ): Promise<{ success: boolean; data?: Unit; error?: string }> {
-  if (!isSupabaseConfigured || !supabase)
-    return { success: true, data: unit as Unit };
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      error: "Supabase n'est pas configuré; l'unité n'a pas été sauvegardée.",
+    };
+  }
   try {
     const record: any = {
       agency_id: agencyId,
@@ -1976,12 +1987,22 @@ export async function saveUnitToDb(
       updated_at: new Date().toISOString(),
     };
     if (unit.id) record.id = unit.id;
-    const { data, error } = await supabase
-      .from("units")
-      .upsert(record, { onConflict: "id" })
-      .select()
-      .single();
+    const query = unit.id
+      ? supabase
+          .from("units")
+          .update(record)
+          .eq("id", unit.id)
+          .eq("agency_id", agencyId)
+      : supabase.from("units").insert(record);
+    const { data, error } = await query.select().maybeSingle();
     if (error) throw error;
+    if (!data) {
+      throw new Error(
+        unit.id
+          ? "L'unité n'existe pas dans cette agence ou la mise à jour n'est pas autorisée."
+          : "Supabase n'a retourné aucune unité créée.",
+      );
+    }
     return { success: true, data: mapUnitFromDb(data) };
   } catch (err: any) {
     console.error("Erreur saveUnitToDb:", err);
@@ -3132,9 +3153,9 @@ export async function savePaymentToDb(
       reference_transaction: payment.referenceTransaction || null,
       proof_url: payment.justificatifUrl || null,
       date_paiement:
-        payment.datePaiement || new Date().toISOString().split("T")[0],
+        payment.datePaiement || getLocalDateString(),
       date_echeance:
-        payment.dateEcheance || new Date().toISOString().split("T")[0],
+        payment.dateEcheance || getLocalDateString(),
       recu_par: payment.recuPar || "Service G?rance",
       caissier_id: authorId || null,
       observation: payment.observation || "",
@@ -3244,36 +3265,80 @@ export async function saveCashMovementToDb(
   agencyId: string,
   authorId?: string,
 ): Promise<{ success: boolean; data?: CashMovement; error?: string }> {
-  if (!isSupabaseConfigured || !supabase)
-    return { success: true, data: movement as CashMovement };
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      error: "Supabase n'est pas configuré; le mouvement n'a pas été sauvegardé.",
+    };
+  }
   try {
+    const reference =
+      movement.reference ||
+      movement.ref ||
+      (movement.id ? `CSH-${movement.id}` : `CSH-${crypto.randomUUID()}`);
     const record = {
       agency_id: agencyId,
-      reference: movement.id?.startsWith("csh-")
-        ? movement.id
-        : `CSH-${Date.now()}`,
+      reference,
       type: movement.type,
       montant: movement.montant,
-      description: movement.libelle || "Mouvement de caisse",
+      description:
+        movement.libelle || movement.description || "Mouvement de caisse",
+      categorie: movement.categorie || "AUTRE",
       moyen_paiement_code: movement.moyenPaiementCode || "ESPECES",
-      user_id: authorId || null,
-      user_nom: movement.auteurNom || "Caissier",
+      user_id: authorId || movement.auteurId || movement.createdById || null,
+      user_nom:
+        movement.userNom ||
+        movement.auteurNom ||
+        movement.createdByNom ||
+        "Caissier",
       beneficiaire: movement.beneficiaire || null,
       justificatif_ref: movement.justificatifRef || null,
-      statut: "Valid?",
-      created_by_id: movement.createdById || null,
-      created_by_nom: movement.createdByNom || null,
-      created_by_role: movement.createdByRole || null,
+      paiement_id: movement.paiementId || null,
+      date_operation:
+        movement.dateHeure ||
+        movement.dateOperation ||
+        new Date().toISOString(),
+      statut: movement.statut || "Validé",
     };
     const { data, error } = await supabase
       .from("cash_movements")
       .insert([record])
       .select()
       .single();
+    if (error?.code === "23505") {
+      const { data: existing, error: lookupError } = await supabase
+        .from("cash_movements")
+        .select("*")
+        .eq("agency_id", agencyId)
+        .eq("reference", reference)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      const sameOperation =
+        existing &&
+        existing.type === record.type &&
+        Number(existing.montant) === Number(record.montant) &&
+        existing.description === record.description &&
+        existing.categorie === record.categorie &&
+        existing.moyen_paiement_code === record.moyen_paiement_code &&
+        existing.user_id === record.user_id &&
+        existing.beneficiaire === record.beneficiaire &&
+        existing.justificatif_ref === record.justificatif_ref &&
+        existing.paiement_id === record.paiement_id &&
+        Number.isFinite(new Date(existing.date_operation).getTime()) &&
+        new Date(existing.date_operation).getTime() ===
+          new Date(record.date_operation).getTime() &&
+        existing.statut === record.statut;
+      if (!sameOperation) throw error;
+      return { success: true, data: mapCashMovementFromDb(existing) };
+    }
     if (error) throw error;
-    return { success: true, data: data as unknown as CashMovement };
+    if (!data) throw new Error("Supabase n'a retourné aucun mouvement enregistré.");
+    return { success: true, data: mapCashMovementFromDb(data) };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Impossible d'enregistrer le mouvement de caisse.",
+    };
   }
 }
 
@@ -4506,7 +4571,11 @@ export interface AgencyStats {
 export async function getAgencyStats(
   agencyId: string,
 ): Promise<AgencyStats | null> {
-  if (!supabase) return null;
+  if (!supabase) {
+    throw new Error(
+      "Supabase n'est pas configuré; impossible de charger les données du bulletin.",
+    );
+  }
   try {
     const { data, error } = await supabase.rpc("get_agency_stats", {
       p_agency_id: agencyId,
@@ -4583,64 +4652,51 @@ export interface OwnerBulletinData {
 export async function getOwnerBulletinData(
   agencyId: string,
   ownerId: string,
-): Promise<OwnerBulletinData> {
-  const empty: OwnerBulletinData = {
-    payments: [],
-    properties: [],
-    buildings: [],
-    units: [],
-    tenants: [],
-  };
-  if (!supabase || !agencyId || !ownerId) return empty;
-  try {
-    const { data, error } = await supabase.rpc("get_owner_bulletin_data", {
-      p_agency_id: agencyId,
-      p_owner_id: ownerId,
-    });
-    if (error) {
-      console.warn("getOwnerBulletinData:", error);
-      return empty;
-    }
-    console.log("?? getOwnerBulletinData raw:", data);
-
-    // Supabase peut retourner le JSON de plusieurs fa?ons :
-    // 1. Direct : { payments: [...], properties: [...] }
-    // 2. Array [ { get_owner_bulletin_data: {...} } ]
-    // 3. String JSON ? parser
-    let payload: any = data;
-
-    // Cas 1 : tableau
-    if (Array.isArray(payload) && payload.length > 0) {
-      payload = payload[0];
-    }
-    // Cas 2 : cl? get_owner_bulletin_data
-    if (
-      payload &&
-      typeof payload === "object" &&
-      payload.get_owner_bulletin_data
-    ) {
-      payload = payload.get_owner_bulletin_data;
-    }
-    // Cas 3 : string JSON
-    if (typeof payload === "string") {
-      try {
-        payload = JSON.parse(payload);
-      } catch {}
-    }
-
-    console.log("?? payload parsed:", payload);
-
-    return {
-      payments: Array.isArray(payload?.payments) ? payload.payments : [],
-      properties: Array.isArray(payload?.properties) ? payload.properties : [],
-      buildings: Array.isArray(payload?.buildings) ? payload.buildings : [],
-      units: Array.isArray(payload?.units) ? payload.units : [],
-      tenants: Array.isArray(payload?.tenants) ? payload.tenants : [],
-    };
-  } catch (e) {
-    console.warn("getOwnerBulletinData exception:", e);
-    return empty;
+): Promise<OwnerBulletinData | null> {
+  if (!agencyId || !ownerId) {
+    throw new Error("Agence ou propriétaire manquant pour charger le bulletin.");
   }
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.rpc("get_owner_bulletin_data", {
+    p_agency_id: agencyId,
+    p_owner_id: ownerId,
+  });
+  if (error) throw error;
+
+  let payload: any = data;
+  if (Array.isArray(payload)) {
+    if (payload.length === 0) {
+      throw new Error("La requête du bulletin propriétaire a retourné une réponse vide.");
+    }
+    payload = payload[0];
+  }
+  if (
+    payload &&
+    typeof payload === "object" &&
+    payload.get_owner_bulletin_data
+  ) {
+    payload = payload.get_owner_bulletin_data;
+  }
+  if (typeof payload === "string") payload = JSON.parse(payload);
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    !["payments", "properties", "buildings", "units", "tenants"].every(
+      (key) => Array.isArray(payload[key]),
+    )
+  ) {
+    throw new Error("La réponse du bulletin propriétaire est invalide.");
+  }
+
+  return {
+    payments: payload.payments,
+    properties: payload.properties,
+    buildings: payload.buildings,
+    units: payload.units,
+    tenants: payload.tenants,
+  };
 }
 
 // ============================================================
