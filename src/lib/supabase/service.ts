@@ -2057,8 +2057,12 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
 
   let tenantRecord: any;
   let unitRecord: any;
+  let contractRecord: any;
+  let currentTenantId: string | null = null;
   let tenantWriteAttempted = false;
+  let contractWriteAttempted = false;
   let unitWriteAttempted = false;
+  let contractWriteTimestamp: string | undefined;
 
   try {
     const { data: currentUnit, error: unitReadError } = await supabase
@@ -2074,9 +2078,15 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
       );
     }
     unitRecord = currentUnit;
+    currentTenantId = currentUnit.locataire_actuel_id || null;
+    if (currentTenantId !== (unit.locataireActuelId || null)) {
+      throw new Error(
+        "Synchronisation annulée : l'affectation du locataire de l'unité a changé. Rechargez les données avant de réessayer.",
+      );
+    }
 
     if (unit.statut === "Occupé") {
-      if (!unit.locataireActuelId) {
+      if (!currentTenantId) {
         throw new Error(
           "L'unité est marquée comme occupée, mais aucun locataire actuel n'est associé.",
         );
@@ -2085,7 +2095,7 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
       const { data, error } = await supabase
         .from("tenants")
         .select("*")
-        .eq("id", unit.locataireActuelId)
+        .eq("id", currentTenantId)
         .eq("agency_id", agencyId)
         .is("deleted_at", null)
         .maybeSingle();
@@ -2096,6 +2106,59 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
         );
       }
       tenantRecord = data;
+
+      const { data: matchingContracts, error: contractsReadError } =
+        await supabase
+          .from("contracts")
+          .select("*")
+          .eq("bien_id", unit.id)
+          .eq("locataire_id", currentTenantId)
+          .eq("agency_id", agencyId)
+          .limit(2);
+      if (contractsReadError) throw contractsReadError;
+      if (!matchingContracts?.length) {
+        throw new Error(
+          "Synchronisation annulée sans aucune écriture : aucun contrat ne correspond exactement à cette unité, ce locataire et cette agence.",
+        );
+      }
+      if (matchingContracts.length !== 1) {
+        throw new Error(
+          "Synchronisation annulée sans aucune écriture : plusieurs contrats correspondent à cette unité, ce locataire et cette agence; aucun contrat ne sera modifié.",
+        );
+      }
+
+      contractRecord = matchingContracts[0];
+      if (!["En cours", "À renouveler"].includes(contractRecord.statut)) {
+        throw new Error(
+          `Synchronisation annulée sans aucune écriture : le contrat correspondant ${contractRecord.ref || contractRecord.id} n'est pas actif (statut : ${contractRecord.statut || "inconnu"}).`,
+        );
+      }
+    }
+
+    let updatedContract: LeaseContract | undefined;
+    if (contractRecord) {
+      contractWriteTimestamp = new Date().toISOString();
+      contractWriteAttempted = true;
+      const { data, error } = await supabase
+        .from("contracts")
+        .update({
+          loyer_base: unit.loyerBase,
+          updated_at: contractWriteTimestamp,
+        })
+        .eq("id", contractRecord.id)
+        .eq("bien_id", unit.id)
+        .eq("locataire_id", currentTenantId)
+        .eq("agency_id", agencyId)
+        .in("statut", ["En cours", "À renouveler"])
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        throw new Error(
+          "Le loyer de base du contrat n'a pas été enregistré (contrat inaccessible ou relation modifiée).",
+        );
+      }
+      updatedContract = mapContractFromDb(data);
     }
 
     let updatedTenant: Tenant | undefined;
@@ -2135,7 +2198,7 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
       data: {
         unit: unitResult.data,
         tenant: updatedTenant,
-        contracts: [],
+        contracts: updatedContract ? [updatedContract] : [],
       },
     };
   } catch (err: any) {
@@ -2287,6 +2350,71 @@ export async function saveUnitAndSyncLeaseAmountsToDb(
       } catch (rollbackError: any) {
         rollbackErrors.push(
           `restauration du locataire: ${rollbackError.message || "erreur inconnue"}`,
+        );
+      }
+    }
+    if (contractWriteAttempted && contractRecord) {
+      try {
+        const { data: current, error: readError } = await supabase
+          .from("contracts")
+          .select("loyer_base, updated_at")
+          .eq("id", contractRecord.id)
+          .eq("bien_id", unit.id)
+          .eq("locataire_id", currentTenantId)
+          .eq("agency_id", agencyId)
+          .maybeSingle();
+        if (readError) throw readError;
+        if (!current) throw new Error("le contrat correspondant est introuvable");
+
+        const currentRent = Number(current.loyer_base);
+        const originalRent = Number(contractRecord.loyer_base);
+        const currentUpdatedAt = current.updated_at ?? null;
+        const originalUpdatedAt = contractRecord.updated_at ?? null;
+        if (
+          currentRent === originalRent &&
+          currentUpdatedAt === originalUpdatedAt
+        ) {
+          // La requête de sauvegarde n'a pas modifié le contrat.
+        } else if (
+          currentRent === Number(unit.loyerBase) &&
+          Number.isFinite(Date.parse(currentUpdatedAt || "")) &&
+          Number.isFinite(Date.parse(contractWriteTimestamp || "")) &&
+          Date.parse(currentUpdatedAt || "") ===
+            Date.parse(contractWriteTimestamp || "")
+        ) {
+          let restoreQuery = supabase
+            .from("contracts")
+            .update({
+              loyer_base: contractRecord.loyer_base,
+              updated_at: contractRecord.updated_at,
+            })
+            .eq("id", contractRecord.id)
+            .eq("bien_id", unit.id)
+            .eq("locataire_id", currentTenantId)
+            .eq("agency_id", agencyId);
+          restoreQuery =
+            currentUpdatedAt == null
+              ? restoreQuery.is("updated_at", null)
+              : restoreQuery.eq("updated_at", currentUpdatedAt);
+          const { data, error } = await restoreQuery.select().maybeSingle();
+          if (error) throw error;
+          if (
+            !data ||
+            Number(data.loyer_base) !== originalRent ||
+            (data.updated_at ?? null) !== originalUpdatedAt
+          ) {
+            throw new Error(
+              "le loyer de base initial du contrat n'a pas été restauré",
+            );
+          }
+        } else {
+          throw new Error(
+            "le contrat a changé depuis la tentative de sauvegarde; restauration annulée pour ne pas écraser une modification concurrente",
+          );
+        }
+      } catch (rollbackError: any) {
+        rollbackErrors.push(
+          `restauration du contrat ${contractRecord.ref || contractRecord.id}: ${rollbackError.message || "erreur inconnue"}`,
         );
       }
     }
