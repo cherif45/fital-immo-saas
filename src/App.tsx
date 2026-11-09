@@ -160,6 +160,7 @@ import {
   saveBuildingToDb,
   deleteBuildingFromDb,
   saveUnitToDb,
+  saveUnitAndSyncLeaseAmountsToDb,
   deleteUnitFromDb,
   saveOwnerDeductionToDb,
   deleteOwnerDeductionFromDb,
@@ -1038,15 +1039,18 @@ export default function App() {
   };
   const handleUpdateUnit = async (updatedUnit: Unit): Promise<boolean> => {
     try {
-      let savedUnit = updatedUnit;
       if (!currentUser?.agencyId || !isSupabaseConfigured || !supabase) {
         throw new Error("Impossible de sauvegarder l'unité : session d'agence ou connexion Supabase indisponible.");
       }
-      const result = await saveUnitToDb(updatedUnit, currentUser.agencyId);
+      const result = await saveUnitAndSyncLeaseAmountsToDb(
+        updatedUnit,
+        currentUser.agencyId,
+      );
       if (!result.success || !result.data) {
-        throw new Error(result.error || "Supabase n'a pas retourné l'unité enregistrée.");
+        throw new Error(result.error || "Les modifications n'ont pas été enregistrées.");
       }
-      savedUnit = { ...updatedUnit, ...result.data };
+      const { unit: savedUnit, tenant: savedTenant, contracts: savedContracts } =
+        result.data;
       setUnits((prev) => {
         const next = prev.map((unit) =>
           unit.id === savedUnit.id ? savedUnit : unit,
@@ -1054,6 +1058,27 @@ export default function App() {
         persistCollection("units", next);
         return next;
       });
+      if (savedTenant) {
+        setTenants((prev) => {
+          const next = prev.map((tenant) =>
+            tenant.id === savedTenant.id ? savedTenant : tenant,
+          );
+          persistCollection("tenants", next);
+          return next;
+        });
+      }
+      if (savedContracts.length) {
+        setContracts((prev) => {
+          const updatedContracts = new Map(
+            savedContracts.map((contract) => [contract.id, contract]),
+          );
+          const next = prev.map(
+            (contract) => updatedContracts.get(contract.id) || contract,
+          );
+          persistCollection("contracts", next);
+          return next;
+        });
+      }
       return true;
     } catch (err) {
       console.error("Erreur updateUnit:", err);

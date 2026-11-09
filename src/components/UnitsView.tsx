@@ -63,6 +63,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
   const [superficie, setSuperficie] = useState(0);
   const [nombrePieces, setNombrePieces] = useState(1);
   const [loyerBase, setLoyerBase] = useState(150000);
+  const [charges, setCharges] = useState(0);
   const [statut, setStatut] = useState<
     "Occupé" | "Vacant" | "Maintenance" | "En litige"
   >("Vacant");
@@ -167,6 +168,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setSuperficie(0);
     setNombrePieces(1);
     setLoyerBase(150000);
+    setCharges(0);
     setStatut("Vacant");
     setLocataireActuelId("");
     setDescription("");
@@ -214,7 +216,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
       superficie: Number(superficie) || 0,
       nombrePieces: Number(nombrePieces) || 1,
       loyerBase: Number(loyerBase) || 0,
-      charges: editingUnit?.charges ?? 0,
+      charges: Number(charges) || 0,
       statut,
       locataireActuelId: locataireActuelId || undefined,
       locataireActuelNom: tenant ? `${tenant.prenom} ${tenant.nom}` : undefined,
@@ -233,6 +235,11 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
       setEditingUnit(null);
       resetForm();
       setIsNewUnitModalOpen(false);
+      alert(
+        editingUnit
+          ? "Les modifications de l'espace et les montants associés ont été enregistrés."
+          : "L'espace a été créé.",
+      );
     } catch (error) {
       console.error("Erreur d'enregistrement de l'espace:", error);
       alert(
@@ -254,6 +261,7 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
     setSuperficie(unit.superficie || 0);
     setNombrePieces(unit.nombrePieces || 1);
     setLoyerBase(unit.loyerBase || 0);
+    setCharges(unit.charges || 0);
     setStatut(unit.statut);
     setLocataireActuelId(unit.locataireActuelId || "");
     setDescription(unit.description || "");
@@ -456,8 +464,15 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-3 text-right font-mono font-bold text-white">
-                        {formatNumber(u.loyerBase)}{" "}
-                        <span className="text-[10px] text-[#C9A96E]">FCFA</span>
+                        <div>
+                          {formatNumber(u.loyerBase + (u.charges || 0))}{" "}
+                          <span className="text-[10px] text-[#C9A96E]">
+                            FCFA
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-[#6B7C94] font-normal">
+                          {formatNumber(u.loyerBase)} + {formatNumber(u.charges || 0)} de charges
+                        </div>
                       </td>
 
                       <td className="py-3 px-3 text-center">
@@ -720,6 +735,19 @@ export const UnitsView: React.FC<UnitsViewProps> = ({
                   required
                   min={0}
                   className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E] text-white font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#A8B4C4] uppercase mb-1">
+                  Charges mensuelles (FCFA)
+                </label>
+                <input
+                  type="number"
+                  value={charges}
+                  onChange={(e) => setCharges(Number(e.target.value))}
+                  min={0}
+                  className="w-full p-2.5 rounded-xl bg-[#1E2E45] border border-[#C9A96E]/20 text-white font-mono"
                 />
               </div>
 

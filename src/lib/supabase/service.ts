@@ -631,7 +631,8 @@ export function mapTenantFromDb(r: any): Tenant {
     email: r.email || "",
     cni: r.cni || "",
     typePiece: r.type_piece || r.typePiece || "CNI",
-    dateDelivrancePiece: r.date_delivrance_piece || r.dateDelivrancePiece || undefined,
+    dateDelivrancePiece:
+      r.date_delivrance_piece || r.dateDelivrancePiece || undefined,
     fonction: r.fonction || r.profession || "",
     profession: r.fonction || r.profession || "",
     employeur: r.employeur || "",
@@ -738,7 +739,9 @@ export function mapPaymentFromDb(r: any): Payment {
     loyerBase: Number(r.loyer_base ?? r.loyerBase ?? 0),
     charges: Number(r.charges ?? 0),
     chargesEau: Number(r.charges_eau ?? r.chargesEau ?? 0),
-    chargesElectricite: Number(r.charges_electricite ?? r.chargesElectricite ?? 0),
+    chargesElectricite: Number(
+      r.charges_electricite ?? r.chargesElectricite ?? 0,
+    ),
     chargesNettoyage: Number(r.charges_nettoyage ?? r.chargesNettoyage ?? 0),
     tva: Number(r.tva ?? 0),
     tom: Number(r.tom ?? 0),
@@ -747,9 +750,7 @@ export function mapPaymentFromDb(r: any): Payment {
     montantPaye:
       montantPaye === 0 && statut === "Payé" ? montantTotal : montantPaye,
     montantVersement:
-      rawMontantVersement == null
-        ? undefined
-        : Number(rawMontantVersement),
+      rawMontantVersement == null ? undefined : Number(rawMontantVersement),
     montantRestant: Number(r.montant_restant ?? r.montantRestant ?? 0),
     statut,
     modePaiement,
@@ -1334,7 +1335,9 @@ export async function loadFullApplicationData(
       agencyFilter(supabase.from("payment_methods_config").select("*")),
       supabase
         .from("agency_settings")
-        .select("id, agency_id, nom_agence, slogan, telephone, email, adresse, ville, pays, ninea, devise, taux_gerance_defaut, penalite_defaut, tva_taux, prefix_facture, prefix_quittance, prefix_paiement, prefix_contrat, prefix_bon_caisse, updated_at, wave_numero, orange_money_code, whatsapp_business, standard_telephone, logo_url, primary_color, website, wave_enabled, orange_money_enabled, paydunya_mode, paydunya_enabled, payments_enabled, payments_provider, gerant_nom, gerant_titre, gerant_signature_url, slogan_1, slogan_2, cachet_url, entete_url, pied_page_url, rc_numero, ninea_numero, boite_postale, site_web, wave_configured, orange_money_configured, paydunya_configured, login_background_color, login_card_color, login_surface_color, login_text_color, login_muted_color")
+        .select(
+          "id, agency_id, nom_agence, slogan, telephone, email, adresse, ville, pays, ninea, devise, taux_gerance_defaut, penalite_defaut, tva_taux, prefix_facture, prefix_quittance, prefix_paiement, prefix_contrat, prefix_bon_caisse, updated_at, wave_numero, orange_money_code, whatsapp_business, standard_telephone, logo_url, primary_color, website, wave_enabled, orange_money_enabled, paydunya_mode, paydunya_enabled, payments_enabled, payments_provider, gerant_nom, gerant_titre, gerant_signature_url, slogan_1, slogan_2, cachet_url, entete_url, pied_page_url, rc_numero, ninea_numero, boite_postale, site_web, wave_configured, orange_money_configured, paydunya_configured, login_background_color, login_card_color, login_surface_color, login_text_color, login_muted_color",
+        )
         .eq("agency_id", agencyId)
         .maybeSingle(),
       agencyFilter(supabase.from("profiles").select("*")),
@@ -1362,8 +1365,7 @@ export async function loadFullApplicationData(
       Promise.resolve({ data: [], error: null }), // owner_charges : charge lazy
     ]);
 
-
-// CONTRÔLE DES ERREURS DE SYNCHRONISATION
+    // CONTRÔLE DES ERREURS DE SYNCHRONISATION
     const syncResults: Record<string, PromiseSettledResult<any>> = {
       agency: agencyRes,
       properties: propsRes,
@@ -1395,9 +1397,15 @@ export async function loadFullApplicationData(
 
     for (const [name, result] of Object.entries(syncResults)) {
       if (result.status === "rejected") {
-        console.error(`[FITAL-IMMO] Échec de chargement : ${name}`, result.reason);
+        console.error(
+          `[FITAL-IMMO] Échec de chargement : ${name}`,
+          result.reason,
+        );
       } else if (result.value?.error) {
-        console.error(`[FITAL-IMMO] Erreur Supabase : ${name}`, result.value.error);
+        console.error(
+          `[FITAL-IMMO] Erreur Supabase : ${name}`,
+          result.value.error,
+        );
       }
     }
     if (agencyRes.status === "fulfilled" && agencyRes.value.data) {
@@ -1408,7 +1416,8 @@ export async function loadFullApplicationData(
     if (
       ownersRes.status === "fulfilled" &&
       ownersRes.value.data &&
-      Array.isArray(ownersRes.value.data) && !ownersRes.value.error
+      Array.isArray(ownersRes.value.data) &&
+      !ownersRes.value.error
     ) {
       state.owners = ownersRes.value.data.map(mapOwnerFromDb);
       persistCollection("owners", state.owners);
@@ -1416,7 +1425,8 @@ export async function loadFullApplicationData(
     if (
       propsRes.status === "fulfilled" &&
       propsRes.value.data &&
-      Array.isArray(propsRes.value.data) && !propsRes.value.error
+      Array.isArray(propsRes.value.data) &&
+      !propsRes.value.error
     ) {
       state.properties = propsRes.value.data.map((r: any) => {
         const mapped = mapPropertyFromDb(r);
@@ -1438,7 +1448,8 @@ export async function loadFullApplicationData(
     if (
       tenantsRes.status === "fulfilled" &&
       tenantsRes.value.data &&
-      Array.isArray(tenantsRes.value.data) && !tenantsRes.value.error
+      Array.isArray(tenantsRes.value.data) &&
+      !tenantsRes.value.error
     ) {
       state.tenants = tenantsRes.value.data.map(mapTenantFromDb);
       persistCollection("tenants", state.tenants);
@@ -1446,7 +1457,8 @@ export async function loadFullApplicationData(
     if (
       contractsRes.status === "fulfilled" &&
       contractsRes.value.data &&
-      Array.isArray(contractsRes.value.data) && !contractsRes.value.error
+      Array.isArray(contractsRes.value.data) &&
+      !contractsRes.value.error
     ) {
       state.contracts = contractsRes.value.data.map(mapContractFromDb);
       persistCollection("contracts", state.contracts);
@@ -1454,15 +1466,16 @@ export async function loadFullApplicationData(
       state.tenants = state.tenants.map((tenant) => {
         if (tenant.bienId) return tenant;
 
-        const tenantContracts = state.contracts.filter((contract: any) =>
-          String(contract.locataireId || "") === String(tenant.id)
+        const tenantContracts = state.contracts.filter(
+          (contract: any) =>
+            String(contract.locataireId || "") === String(tenant.id),
         );
 
         const activeContract =
           tenantContracts.find((contract: any) =>
             ["en cours", "actif"].includes(
-              String(contract.statut || "").toLowerCase()
-            )
+              String(contract.statut || "").toLowerCase(),
+            ),
           ) || tenantContracts[0];
 
         if (!activeContract?.bienId) return tenant;
@@ -1474,12 +1487,12 @@ export async function loadFullApplicationData(
         };
       });
       persistCollection("tenants", state.tenants);
-
     }
     if (
       paymentsRes.status === "fulfilled" &&
       paymentsRes.value.data &&
-      Array.isArray(paymentsRes.value.data) && !paymentsRes.value.error
+      Array.isArray(paymentsRes.value.data) &&
+      !paymentsRes.value.error
     ) {
       state.payments = paymentsRes.value.data.map(mapPaymentFromDb);
       persistCollection("payments", state.payments);
@@ -1495,7 +1508,8 @@ export async function loadFullApplicationData(
     if (
       cashCloseRes.status === "fulfilled" &&
       cashCloseRes.value.data &&
-      Array.isArray(cashCloseRes.value.data) && !cashCloseRes.value.error
+      Array.isArray(cashCloseRes.value.data) &&
+      !cashCloseRes.value.error
     ) {
       state.cashClosings = cashCloseRes.value.data.map(mapCashClosingFromDb);
       persistCollection("cash_closings", state.cashClosings);
@@ -1503,7 +1517,8 @@ export async function loadFullApplicationData(
     if (
       maintRes.status === "fulfilled" &&
       maintRes.value.data &&
-      Array.isArray(maintRes.value.data) && !maintRes.value.error
+      Array.isArray(maintRes.value.data) &&
+      !maintRes.value.error
     ) {
       state.maintenance = maintRes.value.data.map(mapMaintenanceFromDb);
       persistCollection("maintenance", state.maintenance);
@@ -1511,7 +1526,8 @@ export async function loadFullApplicationData(
     if (
       inspRes.status === "fulfilled" &&
       inspRes.value.data &&
-      Array.isArray(inspRes.value.data) && !inspRes.value.error
+      Array.isArray(inspRes.value.data) &&
+      !inspRes.value.error
     ) {
       state.inspections = inspRes.value.data.map(mapInspectionFromDb);
       persistCollection("inspections", state.inspections);
@@ -1519,7 +1535,8 @@ export async function loadFullApplicationData(
     if (
       disbRes.status === "fulfilled" &&
       disbRes.value.data &&
-      Array.isArray(disbRes.value.data) && !disbRes.value.error
+      Array.isArray(disbRes.value.data) &&
+      !disbRes.value.error
     ) {
       state.disbursements = disbRes.value.data.map((d: any) => {
         const mapped = mapDisbursementFromDb(d);
@@ -1555,7 +1572,8 @@ export async function loadFullApplicationData(
     if (
       remindRes.status === "fulfilled" &&
       remindRes.value.data &&
-      Array.isArray(remindRes.value.data) && !remindRes.value.error
+      Array.isArray(remindRes.value.data) &&
+      !remindRes.value.error
     ) {
       state.reminders = remindRes.value.data.map(mapReminderFromDb);
       persistCollection("reminders", state.reminders);
@@ -1563,7 +1581,8 @@ export async function loadFullApplicationData(
     if (
       auditRes.status === "fulfilled" &&
       auditRes.value.data &&
-      Array.isArray(auditRes.value.data) && !auditRes.value.error
+      Array.isArray(auditRes.value.data) &&
+      !auditRes.value.error
     ) {
       state.auditLogs = auditRes.value.data as unknown as AuditLog[];
       persistCollection("audit_logs", state.auditLogs);
@@ -1571,7 +1590,8 @@ export async function loadFullApplicationData(
     if (
       notifRes.status === "fulfilled" &&
       notifRes.value.data &&
-      Array.isArray(notifRes.value.data) && !notifRes.value.error
+      Array.isArray(notifRes.value.data) &&
+      !notifRes.value.error
     ) {
       state.notifications = notifRes.value
         .data as unknown as NotificationItem[];
@@ -1580,7 +1600,8 @@ export async function loadFullApplicationData(
     if (
       pmRes.status === "fulfilled" &&
       pmRes.value.data &&
-      Array.isArray(pmRes.value.data) && !pmRes.value.error
+      Array.isArray(pmRes.value.data) &&
+      !pmRes.value.error
     ) {
       state.paymentMethods = pmRes.value
         .data as unknown as PaymentMethodConfig[];
@@ -1589,7 +1610,8 @@ export async function loadFullApplicationData(
     if (
       buildingsRes.status === "fulfilled" &&
       buildingsRes.value.data &&
-      Array.isArray(buildingsRes.value.data) && !buildingsRes.value.error
+      Array.isArray(buildingsRes.value.data) &&
+      !buildingsRes.value.error
     ) {
       state.buildings = buildingsRes.value.data.map((r: any) => {
         const mapped = mapBuildingFromDb(r);
@@ -1610,7 +1632,8 @@ export async function loadFullApplicationData(
     if (
       unitsRes.status === "fulfilled" &&
       unitsRes.value.data &&
-      Array.isArray(unitsRes.value.data) && !unitsRes.value.error
+      Array.isArray(unitsRes.value.data) &&
+      !unitsRes.value.error
     ) {
       state.units = unitsRes.value.data.map((r: any) => {
         const mapped = mapUnitFromDb(r);
@@ -1638,7 +1661,8 @@ export async function loadFullApplicationData(
     if (
       deductionsRes.status === "fulfilled" &&
       deductionsRes.value.data &&
-      Array.isArray(deductionsRes.value.data) && !deductionsRes.value.error
+      Array.isArray(deductionsRes.value.data) &&
+      !deductionsRes.value.error
     ) {
       state.ownerDeductions = deductionsRes.value.data.map(
         mapOwnerDeductionFromDb,
@@ -1648,7 +1672,8 @@ export async function loadFullApplicationData(
     if (
       bulletinsRes.status === "fulfilled" &&
       bulletinsRes.value.data &&
-      Array.isArray(bulletinsRes.value.data) && !bulletinsRes.value.error
+      Array.isArray(bulletinsRes.value.data) &&
+      !bulletinsRes.value.error
     ) {
       state.bulletinVersements = bulletinsRes.value.data.map(
         mapBulletinVersementFromDb,
@@ -1692,7 +1717,7 @@ export async function loadFullApplicationData(
         supabase
           .from("tenant_charges")
           .select("*")
-          .order("date_operation", { ascending: false })
+          .order("date_operation", { ascending: false }),
       );
       if (tcError) {
         console.error(
@@ -1746,7 +1771,8 @@ export async function loadFullApplicationData(
     if (
       usersRes.status === "fulfilled" &&
       usersRes.value.data &&
-      Array.isArray(usersRes.value.data) && !usersRes.value.error
+      Array.isArray(usersRes.value.data) &&
+      !usersRes.value.error
     ) {
       state.users = usersRes.value.data.map((p: any) => ({
         id: p.id,
@@ -2010,6 +2036,271 @@ export async function saveUnitToDb(
   }
 }
 
+export async function saveUnitAndSyncLeaseAmountsToDb(
+  unit: Unit,
+  agencyId: string,
+): Promise<{
+  success: boolean;
+  data?: { unit: Unit; tenant?: Tenant; contracts: LeaseContract[] };
+  error?: string;
+}> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      error:
+        "Supabase n'est pas configuré; les modifications n'ont pas été sauvegardées.",
+    };
+  }
+  if (!unit.id) {
+    return { success: false, error: "Identifiant d'unité manquant." };
+  }
+
+  let tenantRecord: any;
+  let unitRecord: any;
+  let tenantWriteAttempted = false;
+  let unitWriteAttempted = false;
+
+  try {
+    const { data: currentUnit, error: unitReadError } = await supabase
+      .from("units")
+      .select("*")
+      .eq("id", unit.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (unitReadError) throw unitReadError;
+    if (!currentUnit) {
+      throw new Error(
+        "L'unité n'existe pas dans cette agence ou n'est pas accessible.",
+      );
+    }
+    unitRecord = currentUnit;
+
+    if (unit.statut === "Occupé") {
+      if (!unit.locataireActuelId) {
+        throw new Error(
+          "L'unité est marquée comme occupée, mais aucun locataire actuel n'est associé.",
+        );
+      }
+
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("*")
+        .eq("id", unit.locataireActuelId)
+        .eq("agency_id", agencyId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data || data.date_sortie) {
+        throw new Error(
+          "Le locataire actuel est introuvable, archivé ou n'occupe plus de logement.",
+        );
+      }
+      tenantRecord = data;
+    }
+
+    let updatedTenant: Tenant | undefined;
+    if (tenantRecord) {
+      tenantWriteAttempted = true;
+      const { data, error } = await supabase
+        .from("tenants")
+        .update({
+          loyer_mensuel: unit.loyerBase,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", tenantRecord.id)
+        .eq("agency_id", agencyId)
+        .is("deleted_at", null)
+        .is("date_sortie", null)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        throw new Error(
+          "Le loyer du locataire n'a pas été enregistré (ligne inaccessible ou affectation modifiée).",
+        );
+      }
+      updatedTenant = mapTenantFromDb(data);
+    }
+
+    unitWriteAttempted = true;
+    const unitResult = await saveUnitToDb(unit, agencyId);
+    if (!unitResult.success || !unitResult.data) {
+      throw new Error(
+        unitResult.error || "Supabase n'a pas retourné l'unité enregistrée.",
+      );
+    }
+
+    return {
+      success: true,
+      data: {
+        unit: unitResult.data,
+        tenant: updatedTenant,
+        contracts: [],
+      },
+    };
+  } catch (err: any) {
+    const rollbackErrors: string[] = [];
+    if (unitWriteAttempted && unitRecord) {
+      try {
+        const { data: current, error: readError } = await supabase
+          .from("units")
+          .select("*")
+          .eq("agency_id", agencyId)
+          .eq("id", unit.id)
+          .maybeSingle();
+        if (readError) throw readError;
+        if (!current) throw new Error("l'unité est introuvable");
+
+        const intendedUnitValues: Record<string, any> = {
+          building_id: unit.buildingId || null,
+          proprietaire_id: unit.proprietaireId || null,
+          proprietaire_nom: unit.proprietaireNom || null,
+          nom: unit.nom || "Espace",
+          type: unit.type || "Appartement",
+          etage: unit.etage || "",
+          superficie: unit.superficie || 0,
+          nombre_pieces: unit.nombrePieces || 1,
+          loyer_base: unit.loyerBase || 0,
+          charges: unit.charges || 0,
+          statut: unit.statut || "Vacant",
+          locataire_actuel_id: unit.locataireActuelId || null,
+          description: unit.description || "",
+          equipements: unit.equipements || [],
+        };
+        const numericColumns = new Set([
+          "superficie",
+          "nombre_pieces",
+          "loyer_base",
+          "charges",
+        ]);
+        const matchesValues = (
+          record: Record<string, any>,
+          expected: Record<string, any>,
+        ) =>
+          Object.entries(expected).every(([key, value]) => {
+            if (numericColumns.has(key)) {
+              return Number(record[key] ?? 0) === Number(value ?? 0);
+            }
+            if (Array.isArray(value)) {
+              return (
+                JSON.stringify(record[key] || []) === JSON.stringify(value)
+              );
+            }
+            return (record[key] ?? null) === (value ?? null);
+          });
+
+        if (matchesValues(current, unitRecord)) {
+          // Aucune modification de l'unité n'a été appliquée.
+        } else if (!matchesValues(current, intendedUnitValues)) {
+          throw new Error(
+            "l'unité a changé depuis la tentative de sauvegarde; restauration annulée pour ne pas écraser une modification concurrente",
+          );
+        } else {
+          let restoreQuery = supabase
+            .from("units")
+            .update({
+              building_id: unitRecord.building_id,
+              proprietaire_id: unitRecord.proprietaire_id,
+              proprietaire_nom: unitRecord.proprietaire_nom,
+              nom: unitRecord.nom,
+              type: unitRecord.type,
+              etage: unitRecord.etage,
+              superficie: unitRecord.superficie,
+              nombre_pieces: unitRecord.nombre_pieces,
+              loyer_base: unitRecord.loyer_base,
+              charges: unitRecord.charges,
+              statut: unitRecord.statut,
+              locataire_actuel_id: unitRecord.locataire_actuel_id,
+              description: unitRecord.description,
+              equipements: unitRecord.equipements,
+              updated_at: unitRecord.updated_at,
+            })
+            .eq("agency_id", agencyId)
+            .eq("id", unit.id);
+          restoreQuery =
+            current.updated_at == null
+              ? restoreQuery.is("updated_at", null)
+              : restoreQuery.eq("updated_at", current.updated_at);
+          const { data, error } = await restoreQuery.select().maybeSingle();
+          if (error) throw error;
+          if (!data || !matchesValues(data, unitRecord)) {
+            throw new Error(
+              "les valeurs restaurées ne correspondent pas à l'état initial",
+            );
+          }
+        }
+      } catch (rollbackError: any) {
+        rollbackErrors.push(
+          `restauration de l'unité: ${rollbackError.message || "erreur inconnue"}`,
+        );
+      }
+    }
+    if (tenantWriteAttempted && tenantRecord) {
+      try {
+        const { data: current, error: readError } = await supabase
+          .from("tenants")
+          .select("loyer_mensuel, updated_at")
+          .eq("id", tenantRecord.id)
+          .eq("agency_id", agencyId)
+          .maybeSingle();
+        if (readError) throw readError;
+        if (!current) throw new Error("le locataire est introuvable");
+
+        const currentRent = Number(current.loyer_mensuel);
+        const originalRent = Number(tenantRecord.loyer_mensuel);
+        const currentUpdatedAt = current.updated_at ?? null;
+        const originalUpdatedAt = tenantRecord.updated_at ?? null;
+        if (
+          currentRent === originalRent &&
+          currentUpdatedAt === originalUpdatedAt
+        ) {
+          // La requête de sauvegarde n'a pas modifié le locataire.
+        } else if (currentRent === Number(unit.loyerBase)) {
+          let restoreQuery = supabase
+            .from("tenants")
+            .update({
+              loyer_mensuel: tenantRecord.loyer_mensuel,
+              updated_at: tenantRecord.updated_at,
+            })
+            .eq("id", tenantRecord.id)
+            .eq("agency_id", agencyId);
+          restoreQuery =
+            currentUpdatedAt == null
+              ? restoreQuery.is("updated_at", null)
+              : restoreQuery.eq("updated_at", currentUpdatedAt);
+          const { data, error } = await restoreQuery.select().maybeSingle();
+          if (error) throw error;
+          if (
+            !data ||
+            Number(data.loyer_mensuel) !== originalRent ||
+            (data.updated_at ?? null) !== originalUpdatedAt
+          ) {
+            throw new Error(
+              "le loyer initial du locataire n'a pas été restauré",
+            );
+          }
+        } else {
+          throw new Error(
+            "les données du locataire ont changé depuis la tentative de sauvegarde; restauration annulée pour ne pas écraser une modification concurrente",
+          );
+        }
+      } catch (rollbackError: any) {
+        rollbackErrors.push(
+          `restauration du locataire: ${rollbackError.message || "erreur inconnue"}`,
+        );
+      }
+    }
+
+    const message = err instanceof Error ? err.message : "erreur inconnue";
+    return {
+      success: false,
+      error: rollbackErrors.length
+        ? `${message} La restauration automatique a également échoué : ${rollbackErrors.join("; ")}.`
+        : message,
+    };
+  }
+}
+
 export async function deleteUnitFromDb(
   unitId: string,
 ): Promise<{ success: boolean; error?: string }> {
@@ -2147,7 +2438,9 @@ export function mapTenantChargeFromDb(r: any): TenantCharge {
     categorie: (r.categorie as TenantChargeCategory) || "Eau",
     montant: Number(r.montant ?? 0),
     dateOperation:
-      r.date_operation || r.dateOperation || new Date().toISOString().split("T")[0],
+      r.date_operation ||
+      r.dateOperation ||
+      new Date().toISOString().split("T")[0],
     periode: r.periode || "",
     description: r.description || "",
     statut: r.statut || "En attente",
@@ -2970,24 +3263,29 @@ export async function saveTenantToDb(
       };
       if (tenant.nom !== undefined) updateData.nom = tenant.nom;
       if (tenant.prenom !== undefined) updateData.prenom = tenant.prenom;
-      if (tenant.telephone !== undefined) updateData.telephone = tenant.telephone;
+      if (tenant.telephone !== undefined)
+        updateData.telephone = tenant.telephone;
       if (tenant.email !== undefined) updateData.email = tenant.email;
       if (tenant.cni !== undefined) updateData.cni = tenant.cni;
-      if (tenant.typePiece !== undefined) updateData.type_piece = tenant.typePiece;
+      if (tenant.typePiece !== undefined)
+        updateData.type_piece = tenant.typePiece;
       if (tenant.dateDelivrancePiece !== undefined)
         updateData.date_delivrance_piece = tenant.dateDelivrancePiece || null;
       if (tenant.fonction !== undefined || tenant.profession !== undefined)
         updateData.fonction = tenant.fonction ?? tenant.profession ?? "";
-      if (tenant.employeur !== undefined) updateData.employeur = tenant.employeur;
+      if (tenant.employeur !== undefined)
+        updateData.employeur = tenant.employeur;
       if (tenant.revenuMensuel !== undefined)
         updateData.revenu_mensuel = tenant.revenuMensuel;
       if (tenant.statut !== undefined) updateData.statut = tenant.statut;
       if (tenant.scoreSolvabilite !== undefined)
         updateData.score_solvabilite = tenant.scoreSolvabilite;
-      if (tenant.bienId !== undefined) updateData.bien_id = tenant.bienId || null;
+      if (tenant.bienId !== undefined)
+        updateData.bien_id = tenant.bienId || null;
       if (tenant.proprietaireId !== undefined)
         updateData.proprietaire_id = tenant.proprietaireId || null;
-      if (tenant.dateEntree !== undefined) updateData.date_entree = tenant.dateEntree;
+      if (tenant.dateEntree !== undefined)
+        updateData.date_entree = tenant.dateEntree;
       if (tenant.dateSortie !== undefined)
         updateData.date_sortie = tenant.dateSortie || null;
       if (tenant.loyerMensuel !== undefined)
@@ -3026,7 +3324,8 @@ export async function saveTenantToDb(
         score_solvabilite: tenant.scoreSolvabilite || 85,
         bien_id: tenant.bienId || null,
         proprietaire_id: tenant.proprietaireId || null,
-        date_entree: tenant.dateEntree || new Date().toISOString().split("T")[0],
+        date_entree:
+          tenant.dateEntree || new Date().toISOString().split("T")[0],
         date_sortie: tenant.dateSortie || null,
         loyer_mensuel: tenant.loyerMensuel || 0,
         arrieres_cumules: tenant.arrieresCumules || 0,
@@ -3152,10 +3451,8 @@ export async function savePaymentToDb(
       verification_statut: payment.verificationStatut || "valide",
       reference_transaction: payment.referenceTransaction || null,
       proof_url: payment.justificatifUrl || null,
-      date_paiement:
-        payment.datePaiement || getLocalDateString(),
-      date_echeance:
-        payment.dateEcheance || getLocalDateString(),
+      date_paiement: payment.datePaiement || getLocalDateString(),
+      date_echeance: payment.dateEcheance || getLocalDateString(),
       recu_par: payment.recuPar || "Service G?rance",
       caissier_id: authorId || null,
       observation: payment.observation || "",
@@ -3268,7 +3565,8 @@ export async function saveCashMovementToDb(
   if (!isSupabaseConfigured || !supabase) {
     return {
       success: false,
-      error: "Supabase n'est pas configuré; le mouvement n'a pas été sauvegardé.",
+      error:
+        "Supabase n'est pas configuré; le mouvement n'a pas été sauvegardé.",
     };
   }
   try {
@@ -3332,12 +3630,16 @@ export async function saveCashMovementToDb(
       return { success: true, data: mapCashMovementFromDb(existing) };
     }
     if (error) throw error;
-    if (!data) throw new Error("Supabase n'a retourné aucun mouvement enregistré.");
+    if (!data)
+      throw new Error("Supabase n'a retourné aucun mouvement enregistré.");
     return { success: true, data: mapCashMovementFromDb(data) };
   } catch (err: any) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Impossible d'enregistrer le mouvement de caisse.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Impossible d'enregistrer le mouvement de caisse.",
     };
   }
 }
@@ -4609,7 +4911,13 @@ export async function paginateTable<T = any>(
   pageSize: number = 50,
 ): Promise<PaginatedResult<T>> {
   if (!supabase) {
-    return { total: 0, page, page_size: pageSize, data: [], error: "Supabase non configuré." };
+    return {
+      total: 0,
+      page,
+      page_size: pageSize,
+      data: [],
+      error: "Supabase non configuré.",
+    };
   }
   try {
     const { data, error } = await supabase.rpc("paginate_table", {
@@ -4620,10 +4928,22 @@ export async function paginateTable<T = any>(
     });
     if (error) {
       console.warn("paginateTable:", error);
-      return { total: 0, page, page_size: pageSize, data: [], error: error.message };
+      return {
+        total: 0,
+        page,
+        page_size: pageSize,
+        data: [],
+        error: error.message,
+      };
     }
     if (!data || !Array.isArray(data.data)) {
-      return { total: 0, page, page_size: pageSize, data: [], error: "Réponse de pagination Supabase invalide." };
+      return {
+        total: 0,
+        page,
+        page_size: pageSize,
+        data: [],
+        error: "Réponse de pagination Supabase invalide.",
+      };
     }
     return data as PaginatedResult<T>;
   } catch (e) {
@@ -4654,7 +4974,9 @@ export async function getOwnerBulletinData(
   ownerId: string,
 ): Promise<OwnerBulletinData | null> {
   if (!agencyId || !ownerId) {
-    throw new Error("Agence ou propriétaire manquant pour charger le bulletin.");
+    throw new Error(
+      "Agence ou propriétaire manquant pour charger le bulletin.",
+    );
   }
   if (!supabase) return null;
 
@@ -4667,7 +4989,9 @@ export async function getOwnerBulletinData(
   let payload: any = data;
   if (Array.isArray(payload)) {
     if (payload.length === 0) {
-      throw new Error("La requête du bulletin propriétaire a retourné une réponse vide.");
+      throw new Error(
+        "La requête du bulletin propriétaire a retourné une réponse vide.",
+      );
     }
     payload = payload[0];
   }
@@ -4683,8 +5007,8 @@ export async function getOwnerBulletinData(
     !payload ||
     typeof payload !== "object" ||
     Array.isArray(payload) ||
-    !["payments", "properties", "buildings", "units", "tenants"].every(
-      (key) => Array.isArray(payload[key]),
+    !["payments", "properties", "buildings", "units", "tenants"].every((key) =>
+      Array.isArray(payload[key]),
     )
   ) {
     throw new Error("La réponse du bulletin propriétaire est invalide.");
@@ -5016,7 +5340,8 @@ export async function resetUserPassword(
 ): Promise<{ success: boolean; error?: string; email?: string }> {
   try {
     if (!supabase) return { success: false, error: "Supabase non configuré." };
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
     if (sessionError || !sessionData.session?.access_token) {
       return { success: false, error: "Session expirée. Reconnectez-vous." };
     }
