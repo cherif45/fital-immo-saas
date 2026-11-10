@@ -379,7 +379,7 @@ export type PaymentMethodCode =
   | "CHEQUE"
   | "FREE_MONEY"
   | "AUTRE";
-export type VerificationStatus = "valide" | "en_attente" | "rejete";
+export type VerificationStatus = "valide" | "en_attente" | "rejete" | "annule";
 
 export interface Payment extends AuditSignature {
   numeroTelephoneEmetteur?: string;
@@ -411,6 +411,10 @@ export interface Payment extends AuditSignature {
   modePaiement: PaymentMethod;
   moyenPaiementCode?: PaymentMethodCode;
   verificationStatut?: VerificationStatus;
+  annuleParId?: string;
+  annuleParNom?: string;
+  dateAnnulation?: string;
+  motifAnnulation?: string;
   numeroTransaction?: string;
   referenceTransaction?: string;
   transactionReference?: string;

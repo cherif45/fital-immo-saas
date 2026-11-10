@@ -72,6 +72,7 @@ interface PaymentsViewProps {
   initialTenantForPayment?: Tenant | null;
   initialPeriodForPayment?: string | null;
   onValidatePendingPayment?: (paymentId: string) => void;
+  onCancelPayment?: (paymentId: string, reason: string) => Promise<boolean>;
   onOpenTenantCharges?: (tenant?: Tenant) => void;
 }
 
@@ -92,6 +93,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   initialTenantForPayment,
   initialPeriodForPayment,
   onValidatePendingPayment,
+  onCancelPayment,
   onOpenTenantCharges,
 }) => {
   const [search, setSearch] = useState("");
@@ -171,6 +173,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       modePaiement: r.mode_paiement || "Espèces",
       datePaiement: r.date_paiement || r.created_at,
       statut: r.statut || "Payé",
+      annuleParId: r.annule_par_id || r.annuleParId,
+      annuleParNom: r.annule_par_nom || r.annuleParNom,
+      dateAnnulation: r.date_annulation || r.dateAnnulation,
+      motifAnnulation: r.motif_annulation || r.motifAnnulation,
       verificationStatut:
         r.verification_statut || r.verificationStatut,
       periode: r.periode || "",
@@ -274,6 +280,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const role = currentUser?.role || "ADMIN";
   const isLocataire = role === "LOCATAIRE";
   const isProprietaire = role === "PROPRIETAIRE";
+  const canCancelPayment = role === "SUPER_ADMIN" || role === "ADMIN" || role === "GESTIONNAIRE";
   const canEncaisser =
     role === "ADMIN" ||
     role === "SUPER_ADMIN" ||
@@ -757,7 +764,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         statut: isMobileMoney ? "En attente" : isFull ? "Payé" : "Partiel",
         modePaiement,
         moyenPaiementCode: moyenCode,
-        verificationStatut: isMobileMoney ? "en_attente" : "valide",
+      verificationStatut: isMobileMoney ? "en_attente" : "valide",
         datePaiement,
         dateEcheance,
         recuPar: currentUser
@@ -1034,12 +1041,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 </tr>
               ) : (
                 filteredPayments.map((p) => {
+                  const isCancelled = p.verificationStatut === "annule";
                   const isPaid = p.statut === "Payé";
                   const isAcompte = p.typeRecu === "RECU_ACOMPTE";
                   const isSolde = p.typeRecu === "QUITTANCE_SOLDE";
-                  const isPending =
+                  const isPending = !isCancelled && (
                     p.statut === "En attente" ||
-                    p.verificationStatut === "en_attente";
+                    p.verificationStatut === "en_attente");
                   const isPartiel = p.statut === "Partiel";
                   return (
                     <tr
@@ -1108,7 +1116,9 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                       <td className="py-3 px-3 text-center">
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                            isSolde
+                            isCancelled
+                              ? "bg-slate-500/20 text-slate-300 border-slate-500/30"
+                              : isSolde
                               ? "bg-green-500/20 text-green-300 border-green-500/30"
                               : isAcompte
                                 ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
@@ -1117,7 +1127,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                                   : "bg-rose-500/20 text-rose-300 border-rose-500/30"
                           }`}
                         >
-                          {isSolde ? "SOLDE" : isAcompte ? "ACOMPTE" : p.statut}
+                          {isCancelled ? "ANNULÉ" : isSolde ? "SOLDE" : isAcompte ? "ACOMPTE" : p.statut}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -1197,8 +1207,38 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                               </button>
                             )}
 
+                          {isCancelled && (
+                            <span className="px-2 py-1 text-[10px] rounded-lg bg-slate-500/20 text-slate-300">
+                              Annulé
+                            </span>
+                          )}
+
+                          {!isCancelled && canCancelPayment && onCancelPayment && (
+                            <button
+                              onClick={async () => {
+                                const reason = window.prompt(
+                                  "Motif obligatoire de l'annulation (minimum 5 caractères) :",
+                                );
+                                if (reason === null) return;
+                                if (reason.trim().length < 5) {
+                                  alert("Le motif doit contenir au moins 5 caractères.");
+                                  return;
+                                }
+                                if (!window.confirm(
+                                  `Confirmer l'annulation du paiement ${p.quittanceNumero} de ${formatNumber(p.montantPaye)} FCFA ?`,
+                                )) return;
+
+                                const success = await onCancelPayment(p.id, reason.trim());
+                                if (success) await loadPage(0);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-semibold text-[11px]"
+                              title="Annuler cet encaissement en conservant son historique"
+                            >
+                              Annuler
+                            </button>
+                          )}
                           {/* Bouton Encaisser pour les impayés ou partiels - BUGS 4, 22, 27 */}
-                          {!isPaid && !isPending && canEncaisser && (
+                          {!isCancelled && !isPaid && !isPending && canEncaisser && (
                             <button
                               onClick={() => {
                                 if (isPartiel) {
@@ -1697,7 +1737,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             const updatedPayment: Payment = {
               ...selectedPaymentForMobileMoney,
               statut: amountPaid >= amountDue ? "Payé" : "Partiel",
-              verificationStatut: "valide",
+      verificationStatut: "valide",
               montantPaye: amountPaid,
               montantRestant: Math.max(0, amountDue - amountPaid),
               modePaiement: "Mobile Money",

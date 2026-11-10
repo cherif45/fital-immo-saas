@@ -142,6 +142,7 @@ import {
   savePaymentToDb,
   validatePendingPaymentInDb,
   rejectPendingPaymentInDb,
+  cancelPaymentInDb,
   softDeleteRecord,
   saveCashMovementToDb,
   saveCashClosingToDb,
@@ -1914,6 +1915,74 @@ export default function App() {
     });
   };
 
+  const handleCancelPayment = async (
+    paymentId: string,
+    reason: string,
+  ): Promise<boolean> => {
+    if (!currentUser?.agencyId) {
+      alert("Impossible d'annuler : aucune agence associée à votre session.");
+      return false;
+    }
+
+    if (!reason.trim() || reason.trim().length < 5) {
+      alert("Le motif doit contenir au moins 5 caractères.");
+      return false;
+    }
+
+    const result = await cancelPaymentInDb(
+      paymentId,
+      currentUser.agencyId,
+      reason.trim(),
+    );
+
+    if (!result.success) {
+      alert(result.error || "L'annulation du paiement a échoué.");
+      return false;
+    }
+
+    const dateAnnulation = new Date().toISOString();
+
+    setPayments((previous) => {
+      const next = previous.map((payment) =>
+        payment.id === paymentId
+          ? {
+              ...payment,
+              verificationStatut: "annule" as const,
+              annuleParId: currentUser.id,
+              annuleParNom: `${currentUser.prenom} ${currentUser.nom}`,
+              dateAnnulation,
+              motifAnnulation: reason.trim(),
+            }
+          : payment,
+      );
+      persistCollection("payments", next);
+      return next;
+    });
+
+    setCashMovements((previous) => {
+      const next = previous.map((movement) =>
+        movement.paiementId === paymentId
+          ? { ...movement, statut: "Annulé" }
+          : movement,
+      );
+      persistCollection("cash_movements", next);
+      return next;
+    });
+
+    setTenantCharges((previous) => {
+      const next = previous.map((charge) =>
+        charge.paymentId === paymentId &&
+        charge.statut !== "Payé" &&
+        charge.statut !== "Annulé"
+          ? { ...charge, statut: "En attente", paymentId: undefined }
+          : charge,
+      );
+      persistCollection("tenant_charges", next);
+      return next;
+    });
+
+    return true;
+  };
   const handleAddCashMovement = async (
     mov: CashMovement,
   ): Promise<CashMovement | null> => {
@@ -3390,6 +3459,7 @@ export default function App() {
                 initialTenantForPayment={initialTenantForPayment}
                 initialPeriodForPayment={initialPeriodForPayment}
                 onValidatePendingPayment={handleValidatePendingPayment}
+        onCancelPayment={handleCancelPayment}
                 onOpenTenantCharges={handleOpenTenantCharges}
               />
             </ViewLoader>

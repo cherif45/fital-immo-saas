@@ -19,7 +19,7 @@ export function findBlockingPayment(
     if (
       payment.locataireId !== tenantId ||
       paymentPeriod !== normalizedPeriod ||
-      payment.verificationStatut === "rejete"
+      (payment.verificationStatut === "rejete" || payment.verificationStatut === "annule")
     ) {
       return false;
     }

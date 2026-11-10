@@ -757,6 +757,10 @@ export function mapPaymentFromDb(r: any): Payment {
     moyenPaiementCode,
     verificationStatut:
       r.verification_statut || r.verificationStatut || "valide",
+    annuleParId: r.annule_par_id || r.annuleParId,
+    annuleParNom: r.annule_par_nom || r.annuleParNom,
+    dateAnnulation: r.date_annulation || r.dateAnnulation,
+    motifAnnulation: r.motif_annulation || r.motifAnnulation,
     referenceTransaction:
       r.reference_transaction || r.referenceTransaction || "",
     justificatifUrl: r.proof_url || r.justificatifUrl || "",
@@ -5615,5 +5619,38 @@ export async function fetchTableProgressive<T>(
     // Si on a reçu moins que batchSize, c'est la dernière page
     if (data.length < batchSize) break;
     page++;
+  }
+}
+
+
+/**
+ * Annule logiquement un paiement en conservant son historique.
+ */
+export async function cancelPaymentInDb(
+  paymentId: string,
+  agencyId: string,
+  reason: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: "Supabase non configuré" };
+  }
+
+  try {
+    const { error } = await supabase.rpc("cancel_payment_with_history", {
+      p_payment_id: paymentId,
+      p_agency_id: agencyId,
+      p_reason: reason.trim(),
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Erreur pendant l'annulation du paiement",
+    };
   }
 }
