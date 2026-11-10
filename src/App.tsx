@@ -1014,7 +1014,9 @@ export default function App() {
       if (!currentUser?.agencyId || !isSupabaseConfigured || !supabase) {
         throw new Error("Impossible de sauvegarder l'unité : session d'agence ou connexion Supabase indisponible.");
       }
-      const result = await saveUnitToDb(newUnit, currentUser.agencyId);
+      const unitToCreate: Partial<Unit> = { ...newUnit };
+      delete unitToCreate.id;
+      const result = await saveUnitToDb(unitToCreate, currentUser.agencyId);
       if (!result.success || !result.data) {
         throw new Error(result.error || "Supabase n'a pas retourné l'unité enregistrée.");
       }
