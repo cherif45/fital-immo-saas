@@ -1,7 +1,3 @@
-// ============================================================
-// COMPOSANT — Bloc signature utilisateur (traçabilité)
-// Affiche : "Encaissé par : Nom (Fonction) + signature"
-// ============================================================
 import React, { useState, useEffect } from "react";
 import { getUserSignatureInfo } from "../lib/supabase/signatureService";
 import { formatDate } from "../lib/utils";
@@ -30,12 +26,14 @@ export const UserSignatureBlock: React.FC<UserSignatureBlockProps> = ({
 
   useEffect(() => {
     if (!userId) return;
+
     getUserSignatureInfo(userId).then(setUser);
   }, [userId]);
 
   if (!user && !cachetUrl) return null;
 
   const fullName = user ? `${user.prenom || ""} ${user.nom || ""}`.trim() : "";
+
   const dateStr = date
     ? typeof date === "string"
       ? date
@@ -52,41 +50,44 @@ export const UserSignatureBlock: React.FC<UserSignatureBlockProps> = ({
   }
 
   return (
-    <div className="mt-2 flex items-end justify-between gap-2 px-4">
+    <div className="user-signature-block mt-2 flex items-end justify-between gap-2 px-4">
       <div className="min-w-0 flex-1 text-[8.5px] text-neutral-800 leading-tight">
         <div className="font-bold mb-0.5">{label} :</div>
+
         <div className="font-medium">{fullName || "L’Agence"}</div>
+
         {user?.fonction && (
           <div className="italic text-neutral-600 text-[8px]">
             {user.fonction}
           </div>
         )}
+
         <div className="text-neutral-500 text-[7.5px] mt-0.5">{dateStr}</div>
       </div>
 
       <div
-        className={`text-center ${
-          cachetUrl ? "w-[26rem]" : "w-[22rem]"
+        className={`quittance-signature-container text-center ${
+          cachetUrl ? "w-[18rem]" : "w-[16rem]"
         } flex-shrink-0`}
       >
         <div className="text-[8px] text-neutral-700 font-semibold mb-0.5">
           Signature & Cachet
         </div>
-        <div
-          className="h-32 w-full border-b border-dotted border-neutral-400 relative flex items-center justify-center mx-auto"
-        >
+
+        <div className="quittance-signature-zone h-32 w-full border-b border-dotted border-neutral-400 relative flex items-center justify-center mx-auto">
           {cachetUrl && (
             <img
               src={cachetUrl}
               alt="Cachet agence"
-              className="absolute inset-0 m-auto max-h-24 max-w-[90%] object-contain pointer-events-none"
+              className="quittance-cachet-image absolute inset-0 m-auto max-h-14 max-w-[90%] object-contain pointer-events-none"
             />
           )}
+
           {user?.signatureUrl ? (
             <img
               src={user.signatureUrl}
               alt="Signature"
-              className="relative z-10 max-h-32 max-w-full object-contain"
+              className="quittance-signature-image relative z-10 max-h-[108px] max-w-full object-contain"
             />
           ) : (
             <span className="relative z-10 text-[7.5px] text-neutral-400">

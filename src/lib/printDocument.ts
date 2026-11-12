@@ -1,21 +1,9 @@
-// ============================================================
-// Impression isolée d'un document : clone le contenu ciblé dans
-// une fenêtre dédiée avec son propre CSS (aucune dépendance au
-// CSS de l'app : pas d'overlay sombre, pas de pages noires).
-// ============================================================
-
 export interface FitToPagesOptions {
-  /** Ids des blocs dont chacun doit tenir sur UNE page A4 (ex. une page logique par bloc) */
   pageIds: string[];
-  /** Taille de police de départ en px (réduite seulement si besoin) */
   baseFontPx: number;
-  /** Taille minimale en px (on ne descend jamais en dessous) */
   minFontPx: number;
-  /** Hauteur utile d'une page en mm (297 - marges haut+bas) */
   pageBudgetMm: number;
-  /** Nom de la variable CSS pilotant la taille (définie sur le conteneur) */
   cssVar?: string;
-  /** Retouche finale après ajustement (ex. plaquer un pied en bas), avant impression */
   finalize?: (win: Window) => void;
 }
 
@@ -26,103 +14,332 @@ export function printElementById(
   fitToPages?: FitToPagesOptions,
 ): void {
   const source = document.getElementById(sourceId);
+
   if (!source) {
     window.print();
     return;
   }
+
   const win = window.open("", "_blank", "width=900,height=700");
+
   if (!win) {
     window.print();
     return;
   }
 
-  // Feuilles de style de l'app (URLs absolues pour la fenêtre vierge)
-  const links = Array.from(
-    document.querySelectorAll('link[rel="stylesheet"]'),
-  )
+  const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
     .map((el) => {
       const href = (el as HTMLLinkElement).getAttribute("href");
       if (!href) return "";
+
       try {
-        const abs = new URL(href, window.location.href).href;
-        return `<link rel="stylesheet" href="${abs}">`;
+        return `<link rel="stylesheet" href="${
+          new URL(href, window.location.href).href
+        }">`;
       } catch {
         return "";
       }
     })
     .filter(Boolean)
     .join("\n");
+
   const inlineStyles = Array.from(document.querySelectorAll("style"))
     .map((el) => el.outerHTML)
     .join("\n");
 
+  const printOverrides = sourceId === "printable-quittance" ? `
+    @page {
+      size: A4 portrait;
+      margin: 4mm 5mm;
+    }
+
+    * {
+      box-sizing: border-box !important;
+    }
+
+    html,
+    body {
+      width: 200mm !important;
+      height: 289mm !important;
+      min-height: 0 !important;
+      max-height: 289mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: #fff !important;
+    }
+
+    body {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+
+    /* DOCUMENT */
+    #${sourceId} {
+      width: 200mm !important;
+      max-width: 200mm !important;
+      height: 287mm !important;
+      min-height: 0 !important;
+      max-height: 287mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      page-break-before: avoid !important;
+      page-break-after: avoid !important;
+      break-before: avoid !important;
+      break-after: avoid !important;
+    }
+
+    /* COPIE 1 : conserver sa hauteur naturelle */
+    #${sourceId} > #quittance-copy-1 {
+      display: block !important;
+      flex: 0 0 auto !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 1mm !important;
+      overflow: visible !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* Remonter légèrement ENCAISSÉ PAR */
+    #${sourceId} > #quittance-copy-1 .receipt-signature-row {
+      margin-top: 0 !important;
+      position: static !important;
+      overflow: visible !important;
+    }
+
+    #${sourceId} > #quittance-copy-1 .user-signature-block {
+      margin-top: 0 !important;
+      position: static !important;
+    }
+
+    /* Remonter légèrement NOTA */
+    #${sourceId} > #quittance-copy-1 .nota-box {
+      margin-top: 0 !important;
+      padding-top: 0.5mm !important;
+      position: static !important;
+    }
+
+    /* LIGNE DE DÉCOUPE */
+    #${sourceId} > .cut-line {
+      display: block !important;
+      flex: 0 0 auto !important;
+      width: 100% !important;
+      height: 1px !important;
+      min-height: 1px !important;
+      margin: 1.5mm 0 !important;
+      padding: 0 !important;
+      border-top: 1px dashed #777 !important;
+      overflow: visible !important;
+    }
+
+    /* COPIE 2 : hauteur naturelle, aucun écrasement */
+    #${sourceId} > #quittance-copy-2 {
+      display: block !important;
+      flex: 0 0 auto !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 1mm !important;
+      overflow: visible !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* Signature copie 2 */
+    #${sourceId} > #quittance-copy-2 .receipt-signature-row {
+      margin-top: 0 !important;
+      position: static !important;
+      overflow: visible !important;
+    }
+
+    #${sourceId} > #quittance-copy-2 .user-signature-block {
+      margin-top: 0 !important;
+      position: static !important;
+    }
+
+    /* NOTA copie 2 : ne plus le pousser hors de la page */
+    #${sourceId} > #quittance-copy-2 .nota-box {
+      display: block !important;
+      margin-top: 0 !important;
+      padding-top: 0.5mm !important;
+      position: static !important;
+      flex-shrink: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    #${sourceId} > #quittance-copy-2 .quittance-foot,
+    #${sourceId} > #quittance-copy-2 .copy-label {
+      flex-shrink: 0 !important;
+    }
+
+    /* SIGNATURE ET CACHEt */
+    #${sourceId} .user-signature-block {
+      display: flex !important;
+      position: relative !important;
+      z-index: 2 !important;
+      background: #fff !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    #${sourceId} .quittance-signature-container {
+      flex-shrink: 0 !important;
+      position: relative !important;
+    }
+
+    #${sourceId} .quittance-signature-zone {
+      height: auto !important;
+      min-height: 88px !important;
+      max-height: 132px !important;
+      position: relative !important;
+      overflow: visible !important;
+    }
+
+    #${sourceId} img.quittance-signature-image {
+      display: block !important;
+      width: auto !important;
+      height: auto !important;
+      max-height: 108px !important;
+      max-width: 100% !important;
+      object-fit: contain !important;
+    }
+
+    #${sourceId} img.quittance-cachet-image {
+      display: block !important;
+      width: auto !important;
+      height: auto !important;
+      max-height: 56px !important;
+      max-width: 90% !important;
+      object-fit: contain !important;
+    }
+
+    /* NOTA : conserver toutes les lignes */
+    #${sourceId} .nota-box,
+    #${sourceId} .nota-box > div {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      white-space: normal !important;
+      font-size: 6px !important;
+      line-height: 1.15 !important;
+    }
+
+    #${sourceId} .nota-box .pl-3 {
+      padding-left: 3mm !important;
+    }
+
+    /* Masquer les commandes */
+    button,
+    .print\\:hidden {
+      display: none !important;
+    }
+
+    img {
+      max-width: 100% !important;
+    }
+  ` : "";
   win.document.write(
     `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/>` +
       `<base href="${window.location.origin}/">` +
       `<title>${title.replace(/</g, "&lt;")}</title>` +
       `${links}${inlineStyles}<style>` +
-      // Garde-fous : page blanche, contenu visible, pas de boutons
-      `html,body{background:#ffffff !important;color:#000000 !important;margin:0 !important;padding:0 !important;}` +
-      `body *{visibility:visible !important;}` +
-      `button,.print\\:hidden{display:none !important;}` +
-      `img{max-width:100% !important;}` +
       extraCss +
-      // outerHTML (et non innerHTML) : le conteneur garde son id, sans
-      // quoi les règles #id, la mesure et le plaquage en bas sont inopérants
+      printOverrides +
       `</style></head><body>${source.outerHTML}</body></html>`,
   );
+
   win.document.close();
   win.focus();
 
-  // Ajustement exact : chaque bloc pageIds doit tenir sur une page.
-  // On mesure en conditions réelles d'impression puis on réduit la
-  // police (via variable CSS) jusqu'à ce que tout tienne. Garantit
-  // l'absence de page blanche / page en trop, quelles que soient
-  // les données (noms longs, adresses longues, etc.).
   let printed = false;
-  const doPrint = () => {
+
+  const doPrint = async () => {
     if (printed) return;
-    printed = true;
+
     try {
+      if (win.document.fonts?.ready) {
+        await win.document.fonts.ready;
+      }
+
+      await Promise.all(
+        Array.from(win.document.images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) {
+                resolve();
+                return;
+              }
+
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            }),
+        ),
+      );
+
+      if (printed) return;
+
       if (fitToPages) {
         const doc = win.document;
-        const container = doc.getElementById(sourceId) as HTMLElement | null;
+        const container = doc.getElementById(sourceId);
         const cssVar = fitToPages.cssVar || "--printfs";
-        const MM = 3.7795275591;
-        const budgetPx = fitToPages.pageBudgetMm * MM;
+
         let size = fitToPages.baseFontPx;
-        const apply = (s: number) => {
-          container?.style.setProperty(cssVar, `${s}px`);
-          // force le recalcul de mise en page avant mesure
+
+        const apply = (value: number) => {
+          container?.style.setProperty(cssVar, `${value}px`);
           void container?.offsetHeight;
         };
+
         const fits = () =>
           fitToPages.pageIds.every((id) => {
-            const el = doc.getElementById(id) as HTMLElement | null;
-            return el ? el.offsetHeight <= budgetPx + 2 : true;
+            const el = doc.getElementById(id);
+            if (!el) return true;
+
+            return (
+              el.scrollHeight <= fitToPages.pageBudgetMm * 3.7795275591 + 2
+            );
           });
+
         apply(size);
+
         let guard = 0;
+
         while (!fits() && size > fitToPages.minFontPx && guard++ < 20) {
-          size -= 0.5;
+          size = Math.max(fitToPages.minFontPx, size - 0.5);
           apply(size);
         }
-        if (fitToPages.finalize) fitToPages.finalize(win);
+
+        fitToPages.finalize?.(win);
       }
+
+      printed = true;
       win.print();
     } catch {
-      /* aperçu déjà ouvert, l'utilisateur imprime manuellement */
+      // La fenêtre reste ouverte pour impression manuelle.
     }
   };
-  // Mesurer seulement quand les CSS sont chargées (sinon hauteurs fausses)
-  try {
-    if (win.document.readyState === "complete") {
-      setTimeout(doPrint, 250);
-    } else {
-      win.addEventListener("load", () => setTimeout(doPrint, 250));
-    }
-  } catch {
-    setTimeout(doPrint, 400);
+
+  if (win.document.readyState === "complete") {
+    window.setTimeout(() => void doPrint(), 500);
+  } else {
+    win.addEventListener(
+      "load",
+      () => window.setTimeout(() => void doPrint(), 500),
+      { once: true },
+    );
   }
-  setTimeout(doPrint, 2500);
+
+  window.setTimeout(() => void doPrint(), 5000);
 }
