@@ -78,6 +78,7 @@ export const LazyQuickCommsModal = lazy(() => import('../components/QuickCommsMo
 export const LazyGlobalSearchModal = lazy(() => import('../components/GlobalSearchModal').then(m => ({ default: m.GlobalSearchModal })));
 export const LazyOwnerBulletinModal = lazy(() => import('../components/OwnerBulletinModal').then(m => ({ default: m.OwnerBulletinModal })));
 export const LazyPaymentReceiptModal = lazy(() => import('../components/PaymentReceiptModal').then(m => ({ default: m.PaymentReceiptModal })));
+export const LazyEntryReceiptModal = lazy(() => import('../components/EntryReceiptModal').then(m => ({ default: m.EntryReceiptModal })));
 
 // ============================================================
 // GROUPE 7 - THEME

@@ -290,7 +290,6 @@ export function NewTenantWizardModal({
       statut: 'Validé',
       remarques: `${etatGeneral}. Compteur eau: ${compteurEau}. Élec: ${compteurElec}.`,
     };
-
     onComplete({
       tenant: newTenant,
       contract: newContract,

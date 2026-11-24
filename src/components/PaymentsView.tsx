@@ -48,11 +48,14 @@ import {
   triggerWhatsApp,
   getPaymentReceiptTemplate,
 } from "../lib/comms/commsHelper";
-import { findBlockingPayment } from "../lib/payments/duplicate";
+import {
+  findBlockingPayment,
+  getPeriodBalance,
+} from "../lib/payments/duplicate";
 import { createDocumentNumber } from "../lib/documentNumber";
 import { getPeriodDueDate } from "../lib/payments/dueDate";
 import { MobileMoneyPaymentModal } from "./MobileMoneyPaymentModal";
-import { paginateTable } from "../lib/supabase/service";
+import { paginateTable, fetchPaymentsForTenant } from "../lib/supabase/service";
 import confetti from "canvas-confetti";
 
 interface PaymentsViewProps {
@@ -224,13 +227,39 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     units,
     properties,
   ]);
+  // 🆕 Paiements du locataire récupérés directement auprès du serveur.
+  //    La liste locale est paginée (500 derniers) : sans cette requête, un
+  //    acompte déjà encaissé peut passer inaperçu et un solde légitime
+  //    apparaît comme un double paiement (ou l'inverse).
+  const [authoritativePayments, setAuthoritativePayments] = useState<
+    Payment[]
+  >([]);
+  React.useEffect(() => {
+    if (!selectedTenantId || !currentUser?.agencyId) {
+      setAuthoritativePayments([]);
+      return;
+    }
+    let cancelled = false;
+    fetchPaymentsForTenant(currentUser.agencyId, selectedTenantId)
+      .then((rows) => {
+        if (!cancelled) setAuthoritativePayments(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTenantId, currentUser?.agencyId]);
+
   const allKnownPayments = useMemo(() => {
+    // Priorité aux données locales/serveur les plus fraîches : la liste
+    // « autoritaire » ne sert qu'à combler les trous de la pagination.
     const paymentsById = new Map(
-      payments.map((payment) => [payment.id, payment]),
+      authoritativePayments.map((payment) => [payment.id, payment]),
     );
+    payments.forEach((payment) => paymentsById.set(payment.id, payment));
     serverData.forEach((payment) => paymentsById.set(payment.id, payment));
     return Array.from(paymentsById.values());
-  }, [payments, serverData]);
+  }, [authoritativePayments, payments, serverData]);
   const [montantPaye, setMontantPaye] = useState<number>(0);
   // Stocke le mois au format YYYY-MM (ex: "2026-09")
   const [periodeMonth, setPeriodeMonth] = useState<string>(() => {
@@ -589,13 +618,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
 
     // 🚨 CONTRÔLE ANTI-DOUBLE-PAIEMENT (uniquement pour nouveau paiement)
+    // 🆕 Contrôle « SOLDE vs DOUBLON » :
+    //    - un paiement EN ATTENTE n'est jamais un encaissement → on bloque ;
+    //    - une période déjà intégralement encaissée → vrai doublon → on bloque ;
+    //    - un acompte partiel déjà encaissé → on AUTORISE le solde (reste dû > 0).
+    let linkedParentId: string | undefined;
+    let linkedInitialRef: string | undefined;
     if (!settlingPayment) {
-      const dejaPaye = findBlockingPayment(
-        allKnownPayments,
-        selectedTenantId,
-        periode,
-      );
-
       const hasAdditionalCharges = itemizedCharges.allItems.some(
         (charge) =>
           (!charge.paymentId ||
@@ -603,28 +632,84 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           charge.statut !== "Payé" &&
           charge.statut !== "Annulé",
       );
-      if (dejaPaye && !hasAdditionalCharges) {
-        const isPending =
-          dejaPaye.statut === "En attente" ||
-          dejaPaye.verificationStatut === "en_attente";
+
+      // Solde réel de la période (sommes réellement encaissées / total dû).
+      const balance = getPeriodBalance(
+        allKnownPayments,
+        selectedTenantId,
+        periode,
+        totalCalculated,
+      );
+
+      // 1) Paiement en attente : jamais compté comme un acompte encaissé.
+      if (balance.pending.length > 0 && !hasAdditionalCharges) {
+        const pendingPayment = balance.pending[0];
         alert(
-          `${isPending ? "⏳ PAIEMENT EN ATTENTE" : "⚠️ DOUBLE PAIEMENT DÉTECTÉ"}\n\n` +
-            `${
-              isPending
-                ? `Un paiement pour "${periode}" attend déjà sa validation.`
-                : `Le loyer de "${periode}" a déjà été réglé par ${t.prenom} ${t.nom}.`
-            }\n\n` +
-            `📄 Quittance : ${dejaPaye.quittanceNumero}\n` +
-            `💰 Montant : ${formatNumber(dejaPaye.montantPaye)} FCFA\n` +
-            `📅 Date : ${dejaPaye.datePaiement}\n` +
-            `🔖 Statut : ${dejaPaye.statut}\n\n` +
-            `${
-              isPending
-                ? "Veuillez valider ou rejeter ce paiement avant d'en créer un nouveau."
-                : "Si vous devez corriger, supprimez d'abord l'ancien paiement."
-            }`,
+          `⏳ PAIEMENT EN ATTENTE\n\n` +
+            `Un paiement pour "${periode}" attend déjà sa validation.\n\n` +
+            `📄 Quittance : ${pendingPayment.quittanceNumero}\n` +
+            `💰 Montant : ${formatNumber(pendingPayment.montantPaye)} FCFA\n` +
+            `📅 Date : ${pendingPayment.datePaiement}\n` +
+            `🔖 Statut : ${pendingPayment.statut}\n\n` +
+            `Veuillez valider ou rejeter ce paiement avant d'en créer un nouveau.`,
         );
         return;
+      }
+
+      // 2) Période déjà intégralement encaissée : c'est un vrai double paiement.
+      if (
+        balance.collectedPayments.length > 0 &&
+        balance.remaining <= 0 &&
+        !hasAdditionalCharges
+      ) {
+        const dejaPaye =
+          balance.collectedPayments[0] ||
+          findBlockingPayment(allKnownPayments, selectedTenantId, periode);
+        alert(
+          `⚠️ DOUBLE PAIEMENT DÉTECTÉ\n\n` +
+            `Le loyer de "${periode}" a déjà été réglé par ${t.prenom} ${t.nom}.\n\n` +
+            (dejaPaye
+              ? `📄 Quittance : ${dejaPaye.quittanceNumero}\n` +
+                `💰 Montant : ${formatNumber(dejaPaye.montantPaye)} FCFA\n` +
+                `📅 Date : ${dejaPaye.datePaiement}\n` +
+                `🔖 Statut : ${dejaPaye.statut}\n\n`
+              : "") +
+            `💰 Déjà encaissé : ${formatNumber(balance.collected)} FCFA\n` +
+            `🧾 Total dû : ${formatNumber(balance.due)} FCFA\n\n` +
+            `Si vous devez corriger, supprimez d'abord l'ancien paiement.`,
+        );
+        return;
+      }
+
+      // 3) Reste dû > 0 : on est sur un ACOMPTE + SOLDE, pas sur un doublon.
+      //    On rattache automatiquement le nouveau versement au paiement initial
+      //    (parent + référence) pour préserver l'historique de la chaîne.
+      if (balance.remaining > 0 && balance.collectedPayments.length > 0) {
+        const sorted = balance.collectedPayments
+          .slice()
+          .sort((a, b) =>
+            (a.datePaiement || "").localeCompare(b.datePaiement || ""),
+          );
+        const root =
+          balance.collectedPayments.find((payment) => !payment.parentPaymentId) ||
+          sorted[0];
+        linkedParentId = root?.id;
+        linkedInitialRef = root?.ref;
+
+        // 4) Saisie supérieure au reste dû : on prévient avant l'encaissement.
+        if (montantPaye > balance.remaining + 1) {
+          const confirmed = window.confirm(
+            `⚠️ MONTANT SUPÉRIEUR AU RESTE DÛ\n\n` +
+              `Locataire : ${t.prenom} ${t.nom}\n` +
+              `Période : ${periode}\n\n` +
+              `💰 Déjà encaissé : ${formatNumber(balance.collected)} FCFA\n` +
+              `🧾 Total dû : ${formatNumber(balance.due)} FCFA\n` +
+              `🔎 Reste à encaisser : ${formatNumber(balance.remaining)} FCFA\n` +
+              `✋ Montant saisi : ${formatNumber(montantPaye)} FCFA\n\n` +
+              `Confirmez-vous cet encaissement ?`,
+          );
+          if (!confirmed) return;
+        }
       }
     }
 
@@ -772,10 +857,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           : "Caisse FITAL-IMMO",
         observation,
         typeRecu,
-        referencePaiementInitial: referencePaiementInitial || undefined,
-        montantInitialDu: paymentTotalDue || initialPayment?.montantTotal || totalCalculated,
+        referencePaiementInitial:
+          referencePaiementInitial || linkedInitialRef || undefined,
+        montantInitialDu:
+          paymentTotalDue || initialPayment?.montantTotal || totalCalculated,
         parentPaymentId:
-          settlingPayment?.id || paymentContext?.parentId || undefined,
+          settlingPayment?.id ||
+          paymentContext?.parentId ||
+          linkedParentId ||
+          undefined,
       };
     }
 

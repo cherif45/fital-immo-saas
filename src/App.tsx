@@ -16,7 +16,7 @@ import { useTheme } from "./hooks/useTheme";
 import { useAgencySettings } from "./hooks/useAgencySettings";
 import { supabase, isSupabaseConfigured } from "./lib/supabase/client";
 import { formatNumber, getLocalDateString } from "./lib/utils";
-import { findBlockingPayment } from "./lib/payments/duplicate";
+import { findBlockingPayment, getPeriodBalance } from "./lib/payments/duplicate";
 import { createDocumentNumber } from "./lib/documentNumber";
 import { createPendingMobilePayment } from "./lib/payments/createPendingMobilePayment";
 // ============================================================
@@ -71,6 +71,7 @@ import {
   LazyGlobalSearchModal,
   LazyOwnerBulletinModal,
   LazyPaymentReceiptModal,
+  LazyEntryReceiptModal,
   LazyThemePreview,
 } from "./lib/lazyImports";
 import {
@@ -103,6 +104,7 @@ import {
   OwnerCharge,
   TenantCharge,
 } from "./types";
+import type { EntryReceiptSums } from "./components/EntryReceiptModal";
 import {
   initialProperties,
   initialOwners,
@@ -170,6 +172,7 @@ import {
   saveActivityLogToDb,
   fetchAgencyActivityLogs,
   fetchAgencyArchiveData,
+  fetchPaymentsForTenant,
   savePenaltyToDb,
   saveOwnerChargeToDb,
   deletePenaltyFromDb,
@@ -282,6 +285,15 @@ export default function App() {
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState<boolean>(false);
   const [receiptModalPayment, setReceiptModalPayment] =
     useState<Payment | null>(null);
+  // Reçu d'entrée (nouveau locataire) : ouvert uniquement si des sommes
+  // ont réellement été encaissées à l'entrée.
+  const [entryReceipt, setEntryReceipt] = useState<{
+    tenant: Tenant;
+    contract: LeaseContract;
+    sums: EntryReceiptSums;
+    refRecu: string;
+    adresseBien: string;
+  } | null>(null);
   const [ownerSlipModalOwner, setOwnerSlipModalOwner] = useState<Owner | null>(
     null,
   );
@@ -1401,8 +1413,30 @@ export default function App() {
   // HANDLERS : PAIEMENTS
   // ============================================================
   const handleAddPayment = async (newPayment: Payment): Promise<boolean> => {
+    // 🆕 Liste autoritaire des paiements du locataire : la liste locale ne
+    //    contient que les 500 derniers paiements, elle peut donc masquer un
+    //    acompte déjà encaissé (solde pris pour un doublon, ou l'inverse).
+    let knownPayments = payments;
+    if (currentUser?.agencyId && newPayment.locataireId) {
+      try {
+        const authoritative = await fetchPaymentsForTenant(
+          currentUser.agencyId,
+          newPayment.locataireId,
+        );
+        if (authoritative.length > 0) {
+          const byId = new Map(
+            payments.map((payment) => [payment.id, payment]),
+          );
+          authoritative.forEach((payment) => byId.set(payment.id, payment));
+          knownPayments = Array.from(byId.values());
+        }
+      } catch {
+        // Repli silencieux sur la liste locale.
+      }
+    }
+
     const existingPayment = findBlockingPayment(
-      payments,
+      knownPayments,
       newPayment.locataireId,
       newPayment.periode,
     );
@@ -1411,7 +1445,7 @@ export default function App() {
       existingPayment?.statut === "En attente" ||
       existingPayment?.verificationStatut === "en_attente";
     const isUpdatingExistingPayment = existingPayment?.id === newPayment.id;
-    const isLinkedContinuation = payments.some(
+    const isLinkedContinuation = knownPayments.some(
       (payment) =>
         payment.id === newPayment.parentPaymentId &&
         payment.locataireId === newPayment.locataireId &&
@@ -1419,6 +1453,18 @@ export default function App() {
           newPayment.periode.trim().toLocaleLowerCase("fr-FR") &&
         payment.verificationStatut !== "rejete",
     );
+
+    // 🆕 Solde d'un acompte : on refuse seulement si la période est déjà
+    //    intégralement encaissée (vrai doublon), sinon on autorise le solde.
+    const periodBalance = getPeriodBalance(
+      knownPayments,
+      newPayment.locataireId,
+      newPayment.periode,
+      Number(newPayment.montantInitialDu || newPayment.montantTotal || 0),
+    );
+    const isPeriodAlreadySettled =
+      periodBalance.collectedPayments.length > 0 &&
+      periodBalance.remaining <= 0;
 
     if (
       existingPayment &&
@@ -1436,13 +1482,16 @@ export default function App() {
     if (
       existingPayment &&
       !isUpdatingExistingPayment &&
-      !isLinkedContinuation
+      (isPeriodAlreadySettled || !isLinkedContinuation)
     ) {
       alert(
         `DOUBLON DÉTECTÉ - Paiement refusé\n\n` +
           `Un paiement de ${formatNumber(existingPayment.montantPaye)} FCFA existe déjà pour ce locataire (${existingPayment.periode}).\n\n` +
           `Quittance : ${existingPayment.quittanceNumero}\n` +
           `Date : ${existingPayment.datePaiement}\n\n` +
+          `💰 Déjà encaissé : ${formatNumber(periodBalance.collected)} FCFA\n` +
+          `🧾 Total dû : ${formatNumber(periodBalance.due)} FCFA\n` +
+          `🔎 Reste à encaisser : ${formatNumber(periodBalance.remaining)} FCFA\n\n` +
           `Pour éviter un double encaissement, ce paiement est bloqué.`,
       );
       handleTriggerAuditLog(
@@ -2328,6 +2377,7 @@ export default function App() {
     tenant: Tenant;
     contract: LeaseContract;
     inspection: Inspection;
+    initialSums?: EntryReceiptSums;
   }) => {
     if (!currentUser?.agencyId || !supabase) return;
 
@@ -2419,6 +2469,39 @@ export default function App() {
     setTenants((prev) => [tenantToSave, ...prev]);
     setContracts((prev) => [contractToSave, ...prev]);
     setInspections((prev) => [inspectionToSave, ...prev]);
+
+    // ============================================================
+    // REÇU D'ENTRÉE (nouveau locataire) : affiché UNIQUEMENT si des
+    // sommes ont réellement été encaissées (initialSums transmis par
+    // l'assistant uniquement quand le total > 0). Aucun paiement n'est
+    // créé : le reçu retrace les montants déjà encaissés à l'entrée.
+    // ============================================================
+    if (data.initialSums) {
+      const propForReceipt = properties.find(
+        (p) => p.id === data.tenant.bienId || p.id === data.contract.bienId,
+      );
+      const unitForReceipt = units.find(
+        (u) => u.id === data.tenant.bienId || u.id === data.contract.bienId,
+      );
+      const buildingForReceipt = unitForReceipt
+        ? buildings.find((b) => b.id === unitForReceipt.buildingId)
+        : undefined;
+      const adresseBien = [
+        propForReceipt?.adresse || buildingForReceipt?.adresse,
+        propForReceipt?.quartier || buildingForReceipt?.quartier,
+        propForReceipt?.ville || buildingForReceipt?.ville,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setEntryReceipt({
+        tenant: tenantToSave,
+        contract: contractToSave,
+        sums: data.initialSums,
+        refRecu: createDocumentNumber(undefined, "ENT-"),
+        adresseBien: adresseBien || propForReceipt?.nom || "Adresse du bien",
+      });
+    }
   };
 
   const handleCompleteTenantExit = async (data: {
@@ -3720,6 +3803,20 @@ units={units}
           )}
         </main>
       </div>
+
+      {entryReceipt && (
+        <ViewLoader variant="default">
+          <LazyEntryReceiptModal
+            tenant={entryReceipt.tenant}
+            contract={entryReceipt.contract}
+            sums={entryReceipt.sums}
+            settings={agencySettings}
+            refRecu={entryReceipt.refRecu}
+            adresseBien={entryReceipt.adresseBien}
+            onClose={() => setEntryReceipt(null)}
+          />
+        </ViewLoader>
+      )}
 
       {receiptModalPayment && (
         <ViewLoader variant="default">

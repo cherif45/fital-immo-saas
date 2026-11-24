@@ -787,6 +787,36 @@ export function mapPaymentFromDb(r: any): Payment {
   };
 }
 
+/**
+ * Charge TOUS les paiements réellement enregistrés en base pour un locataire.
+ * Sert au contrôle anti-doublon : on ne peut pas se fier uniquement à la liste
+ * locale (500 derniers paiements) ni à la pagination affichée, sinon un
+ * acompte déjà encaissé peut passer inaperçu — ou, à l'inverse, un solde
+ * légitime apparaît comme un doublon.
+ */
+export async function fetchPaymentsForTenant(
+  agencyId: string,
+  tenantId: string,
+  limit = 200,
+): Promise<Payment[]> {
+  if (!isSupabaseConfigured || !supabase || !agencyId || !tenantId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("agency_id", agencyId)
+      .eq("locataire_id", tenantId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data || []).map(mapPaymentFromDb);
+  } catch (err) {
+    console.warn("Chargement des paiements du locataire impossible:", err);
+    return [];
+  }
+}
+
 export function mapPenaltyFromDb(r: any): Penalty {
   return {
     id: r.id,
@@ -3634,11 +3664,25 @@ export async function savePaymentToDb(
       return { success: true, data: data as unknown as Payment };
     }
   } catch (err: any) {
-    const error =
-      err?.code === "23505"
-        ? "Paiement bloqu? : un paiement r?gl? ou en attente existe d?j? pour ce locataire et cette p?riode."
-        : err.message || "Impossible.";
-    return { success: false, error };
+    if (err?.code === "23505") {
+      const constraint = err?.constraint || "contrainte inconnue";
+
+      const error =
+        constraint === "uq_payment_tenant_period_blocking"
+          ? "Un autre paiement est réellement en attente de validation pour cette période."
+          : `Erreur d'unicité (${constraint}) : ${
+              err?.message || "référence ou identifiant déjà utilisé."
+            }`;
+
+      console.error("[savePaymentToDb] Erreur 23505 :", {
+        constraint: err?.constraint,
+        details: err?.details,
+        message: err?.message,
+      });
+
+      return { success: false, error };
+    }
+    return { success: false, error: err.message || "Impossible." };
   }
 }
 
